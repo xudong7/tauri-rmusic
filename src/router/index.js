@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory } from "vue-router";
 import Home from "../views/Home.vue";
+import Netease from "../views/Netease.vue";
 
 const routes = [
   {
@@ -7,11 +8,11 @@ const routes = [
     name: "Home",
     component: Home,
   },
-  // {
-  //   path: "/netease",
-  //   name: "Netease",
-  //   component: Netease,
-  // },
+  {
+    path: "/netease",
+    name: "Netease",
+    component: Netease,
+  },
 ];
 
 const router = createRouter({
