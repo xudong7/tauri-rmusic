@@ -1,7 +1,7 @@
 <template>
   <div class="music-player-container">
     <div class="header">
-      <h1>Rmusic</h1>
+      <!-- <h1>Rmusic</h1> -->
       <button class="btn choose-btn" @click="chooseMusicFolder">
         Choose folder
       </button>
@@ -60,21 +60,33 @@
   </div>
 </template>
   
-  <script setup>
-import { ref, onMounted, computed } from "vue";
+<script setup>
+import { ref, onMounted, computed, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import musicStore from '../store/musicState';
 
-const musicFiles = ref([]);
+// 使用共享状态
 const tableData = ref([]);
-const currentMusic = ref(null);
-const isPlaying = ref(false);
-const volume = ref(50);
-const musicPath = ref("");
-const isMuted = ref(false);
-const previousVolume = ref(50);
 const playMode = ref("list");
 const checkInterval = ref(null);
+const isMuted = ref(false);
+const previousVolume = ref(50);
+
+// 从状态管理中获取状态
+const musicPath = computed(() => musicStore.state.localMusic.musicPath);
+const musicFiles = computed(() => musicStore.state.localMusic.musicFiles);
+const currentMusic = computed(() => musicStore.state.localMusic.currentMusic);
+const isPlaying = computed(() => musicStore.state.localMusic.isPlaying);
+const volume = computed({
+  get: () => musicStore.state.localMusic.volume,
+  set: (value) => musicStore.mutations.setLocalMusicVolume(value)
+});
+
+// 当musicFiles变化时，更新tableData
+watch(musicFiles, (newFiles) => {
+  tableData.value = [...newFiles];
+}, { deep: true });
 
 const currAudioName = computed(() => {
   return currentMusic.value?.file_name || "no music playing";
@@ -89,7 +101,7 @@ async function chooseMusicFolder() {
     });
 
     if (selected) {
-      musicPath.value = selected;
+      musicStore.mutations.setMusicPath(selected);
       await scanMusicFiles(selected);
     }
   } catch (error) {
@@ -99,15 +111,16 @@ async function chooseMusicFolder() {
 
 async function scanMusicFiles(path) {
   try {
-    musicFiles.value = await invoke("scan_files", { path });
-    tableData.value = [...musicFiles.value];
+    const files = await invoke("scan_files", { path });
+    musicStore.mutations.setMusicFiles(files);
+    tableData.value = [...files];
 
     if (
       currentMusic.value &&
       !tableData.value.some((m) => m.id === currentMusic.value.id)
     ) {
-      currentMusic.value = null;
-      isPlaying.value = false;
+      musicStore.mutations.setCurrentMusic(null);
+      musicStore.mutations.setLocalMusicPlaying(false);
     }
   } catch (error) {
     console.error("scan files error:", error);
@@ -120,7 +133,7 @@ function rowClick(row) {
 
 async function playAudio(music) {
   try {
-    currentMusic.value = music;
+    musicStore.mutations.setCurrentMusic(music);
     const fullPath = `${musicPath.value}/${music.file_name}`;
 
     await invoke("handle_event", {
@@ -130,7 +143,7 @@ async function playAudio(music) {
       }),
     });
 
-    isPlaying.value = true;
+    musicStore.mutations.setLocalMusicPlaying(true);
   } catch (error) {
     console.error("play music error:", error);
   }
@@ -146,7 +159,7 @@ async function recoveryAudio() {
       }),
     });
 
-    isPlaying.value = true;
+    musicStore.mutations.setLocalMusicPlaying(true);
   } catch (error) {
     console.error("recover music error:", error);
   }
@@ -160,7 +173,7 @@ async function pauseAudio() {
       }),
     });
 
-    isPlaying.value = false;
+    musicStore.mutations.setLocalMusicPlaying(false);
   } catch (error) {
     console.error("pause music error:", error);
   }
@@ -198,11 +211,11 @@ function nextAudio() {
 
 function toggleMute() {
   if (isMuted.value) {
-    volume.value = previousVolume.value;
+    musicStore.mutations.setLocalMusicVolume(previousVolume.value);
     isMuted.value = false;
   } else {
     previousVolume.value = volume.value;
-    volume.value = 0;
+    musicStore.mutations.setLocalMusicVolume(0);
     isMuted.value = true;
   }
 
@@ -239,20 +252,24 @@ async function checkSinkStatus() {
   }
 }
 
+
 onMounted(() => {
   checkInterval.value = setInterval(checkSinkStatus, 1000);
+  
+  if (musicPath.value) {
+    scanMusicFiles(musicPath.value);
+  }
 });
 </script>
   
-  <style scoped>
+<style scoped>
 .music-player-container {
+  padding: 20px;
+  max-width: 800px;
+  min-height: 600px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  background-color: #f8f9fa;
-  color: #333;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  overflow: hidden;
 }
 
 .header {
