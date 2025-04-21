@@ -15,10 +15,6 @@
     <main class="app-content">
       <router-view></router-view>
     </main>
-    
-    <!-- <footer class="app-footer">
-      <p>© 2025 RMusic - 基于Tauri和Vue的音乐播放器</p>
-    </footer> -->
   </div>
 </template>
 
