@@ -42,9 +42,9 @@ async fn get_response(client: reqwest::Client, url: String) -> Result<reqwest::R
         .get(&url)
         .send()
         .await
-        .map_err(|e| format!("API请求失败: {}", e))?;
+        .map_err(|e| format!("API request error: {}", e))?;
     if response.status().is_client_error() {
-        return Err(format!("API请求失败: HTTP {}", response.status()));
+        return Err(format!("API request error: HTTP {}", response.status()));
     }
     Ok(response)
 }
@@ -54,7 +54,7 @@ async fn get_text(response: reqwest::Response) -> Result<String, String> {
     let text = response
         .text()
         .await
-        .map_err(|e| format!("读取响应失败: {}", e))?;
+        .map_err(|e| format!("Read text error: {}", e))?;
     Ok(text)
 }
 
@@ -66,7 +66,7 @@ async fn get_response_json(
     let response = get_response(client, url).await?;
     let text = get_text(response).await?;
     let json: serde_json::Value = serde_json::from_str(&text)
-        .map_err(|e| format!("解析JSON失败: {}，内容: {}", e, &text[..200]))?;
+        .map_err(|e| format!("Serialize json error: {}, content: {}", e, &text[..200]))?;
     Ok(json)
 }
 
@@ -99,18 +99,18 @@ pub async fn search_songs(
         let error_msg = response_json
             .get("error_msg")
             .and_then(|v| v.as_str())
-            .unwrap_or("未知错误");
-        return Err(format!("API返回错误: {}", error_msg));
+            .unwrap_or("unknown error");
+        return Err(format!("API return error: {}", error_msg));
     }
 
     let data = response_json
         .get("data")
-        .ok_or_else(|| "响应中没有data字段".to_string())?;
+        .ok_or_else(|| "No data".to_string())?;
 
     let songs_value = data
         .get("lists")
         .and_then(|v| v.as_array())
-        .ok_or_else(|| "没有找到歌曲数据".to_string())?;
+        .ok_or_else(|| "No lists".to_string())?;
 
     let total = data.get("total").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
 
@@ -125,7 +125,7 @@ pub async fn search_songs(
             .as_u64()
             .map(|id| id.to_string())
             .unwrap_or_default();
-        let song_name = song["OriSongName"].as_str().unwrap_or("未知").to_string();
+        let song_name = song["OriSongName"].as_str().unwrap_or("unknown").to_string();
 
         let artists = if let Some(singers_array) = song["Singers"].as_array() {
             singers_array
@@ -133,11 +133,11 @@ pub async fn search_songs(
                 .filter_map(|singer| singer["name"].as_str().map(|s| s.to_string()))
                 .collect()
         } else {
-            let singer_name = song["SingerName"].as_str().unwrap_or("未知歌手");
+            let singer_name = song["SingerName"].as_str().unwrap_or("unknown singer");
             vec![singer_name.to_string()]
         };
 
-        let album = song["AlbumName"].as_str().unwrap_or("未知专辑").to_string();
+        let album = song["AlbumName"].as_str().unwrap_or("unknown album").to_string();
 
         let duration = song["Duration"].as_u64().unwrap_or(0) * 1000;
 
@@ -158,19 +158,15 @@ pub async fn search_songs(
     Ok(SearchResult { songs, total })
 }
 
-// 获取歌曲URL和详细信息
+/// get song url by file_hash
 #[tauri::command]
 pub async fn get_song_url(id: String) -> Result<String, String> {
     let client = get_client()?;
 
-    // 构建请求URL - 使用file_hash获取歌曲URL
     let url = format!("{}/song/url/new?hash={}", LOCAL_API_BASE, id);
-
-    println!("获取歌曲URL: {}", url);
 
     let response_json: serde_json::Value = get_response_json(client, url).await?;
 
-    // 检查API错误码
     let error_code = response_json
         .get("error_code")
         .and_then(|v| v.as_u64())
@@ -179,24 +175,21 @@ pub async fn get_song_url(id: String) -> Result<String, String> {
         let error_msg = response_json
             .get("message")
             .and_then(|v| v.as_str())
-            .unwrap_or("未知错误");
-        return Err(format!("API返回错误: {}", error_msg));
+            .unwrap_or("unknown error");
+        return Err(format!("API return error: {}", error_msg));
     }
 
-    // 获取歌曲数据
     let data = response_json
         .get("data")
         .and_then(|v| v.as_array())
-        .ok_or_else(|| "响应中没有data数组字段".to_string())?;
+        .ok_or_else(|| "No data".to_string())?;
 
     if data.is_empty() {
-        return Err("歌曲数据为空".to_string());
+        return Err("data empty".to_string());
     }
 
-    // 获取第一个数据项
     let song_data = &data[0];
 
-    // 检查歌曲错误信息
     let errno = song_data
         .get("_errno")
         .and_then(|v| v.as_u64())
@@ -205,75 +198,69 @@ pub async fn get_song_url(id: String) -> Result<String, String> {
         let msg = song_data
             .get("_msg")
             .and_then(|v| v.as_str())
-            .unwrap_or("获取歌曲失败");
-        return Err(format!("歌曲获取错误: {}", msg));
+            .unwrap_or("get song url error");
+        return Err(format!("get song error: {}", msg));
     }
 
-    // 获取歌曲信息
     let info = song_data
         .get("info")
-        .ok_or_else(|| "歌曲数据中没有info字段".to_string())?;
+        .ok_or_else(|| "no info in data".to_string())?;
 
-    // 优先获取tracker_url (完整歌曲URL)
+    // get tracker_url for first
     if let Some(tracker_urls) = info.get("tracker_url").and_then(|u| u.as_array()) {
         if !tracker_urls.is_empty() {
             if let Some(play_url) = tracker_urls[0].as_str() {
                 if !play_url.is_empty() {
-                    println!("使用tracker_url获取完整歌曲");
+                    println!("use tracker_url to get whole song");
                     return Ok(play_url.to_string());
                 }
             }
         }
     }
 
-    // 如果没有tracker_url或为空，尝试获取climax_info.url
+    // if tracker_url is empty, get url from climax_info
     let climax_info = info
         .get("climax_info")
-        .ok_or_else(|| "歌曲数据中没有climax_info字段".to_string())?;
+        .ok_or_else(|| "no climax_info".to_string())?;
 
-    // 获取URL数组
     let urls = climax_info
         .get("url")
         .and_then(|u| u.as_array())
-        .ok_or_else(|| "歌曲数据中没有url数组".to_string())?;
+        .ok_or_else(|| "no url array".to_string())?;
 
     if urls.is_empty() {
-        return Err("歌曲URL列表为空".to_string());
+        return Err("song urls empty".to_string());
     }
 
-    // 获取第一个URL
     let play_url = urls[0]
         .as_str()
-        .ok_or_else(|| "URL不是有效的字符串".to_string())?;
+        .ok_or_else(|| "url not valid".to_string())?;
 
     if play_url.is_empty() {
-        return Err("歌曲播放地址为空".to_string());
+        return Err("play_url empty".to_string());
     }
 
-    println!("使用climax_info.url获取歌曲片段");
+    println!("use climax_info to get song fragment");
     Ok(play_url.to_string())
 }
 
-// 获取歌曲详情
+
+/// get song detail by id
 #[tauri::command]
 pub async fn get_song_detail(id: String) -> Result<SongInfo, String> {
     let client = get_client()?;
 
     let url = format!("{}/song/detail?ids={}", LOCAL_API_BASE, id);
 
-    println!("获取歌曲详情: {}", url);
-
-    // 解析JSON
     let response_json: serde_json::Value = get_response_json(client, url).await?;
 
-    // 解析歌曲详情
     let songs = response_json
         .get("songs")
         .and_then(|s| s.as_array())
-        .ok_or_else(|| "响应中没有songs字段".to_string())?;
+        .ok_or_else(|| "no songs attribute".to_string())?;
 
     if songs.is_empty() {
-        return Err("歌曲详情为空".to_string());
+        return Err("songs empty".to_string());
     }
 
     let song = &songs[0];
@@ -281,30 +268,26 @@ pub async fn get_song_detail(id: String) -> Result<SongInfo, String> {
     let song_id = song["id"]
         .as_u64()
         .map(|id| id.to_string())
-        .unwrap_or_else(|| "未知ID".to_string());
+        .unwrap_or_else(|| "unknown id".to_string());
 
-    let song_name = song["name"].as_str().unwrap_or("未知").to_string();
+    let song_name = song["name"].as_str().unwrap_or("unknown").to_string();
 
-    // 解析歌手信息
     let artists = if let Some(artist_array) = song["ar"].as_array() {
         artist_array
             .iter()
             .filter_map(|artist| artist["name"].as_str().map(|s| s.to_string()))
             .collect()
     } else {
-        vec!["未知歌手".to_string()]
+        vec!["unknown singer".to_string()]
     };
 
-    // 专辑信息
     let album = song["al"]["name"]
         .as_str()
-        .unwrap_or("未知专辑")
+        .unwrap_or("unknown album")
         .to_string();
 
-    // 时长
     let duration = song["dt"].as_u64().unwrap_or(0);
 
-    // 图片链接
     let pic_url = song["al"]["picUrl"].as_str().unwrap_or("").to_string();
 
     Ok(SongInfo {
@@ -318,7 +301,7 @@ pub async fn get_song_detail(id: String) -> Result<SongInfo, String> {
     })
 }
 
-// 播放歌曲
+/// play online song by id
 #[tauri::command]
 pub async fn play_netease_song(id: String) -> Result<String, String> {
     get_song_url(id).await

@@ -56,7 +56,7 @@ impl Music {
                             let path_clone = path.clone();
 
                             tokio::spawn(async move {
-                                match download_and_play(&path_clone, sink_for_http).await {
+                                match online_play(&path_clone, sink_for_http).await {
                                     Ok(_) => println!("Begin play online song: {}", path_clone),
                                     Err(e) => eprintln!("Play online song error: {}", e),
                                 }
@@ -109,45 +109,76 @@ impl Music {
     }
 }
 
-// 下载并播放在线音频
-async fn download_and_play(url: &str, sink: Arc<Mutex<Sink>>) -> Result<(), String> {
-    println!("开始下载在线音频: {}", url);
-
-    // 创建HTTP客户端
+async fn online_play(url: &str, sink: Arc<Mutex<Sink>>) -> Result<(), String> {
+    println!("Downloading online song: {}", url);
+    
     let client = reqwest::Client::builder()
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        .timeout(std::time::Duration::from_secs(30)) 
         .build()
-        .map_err(|e| format!("创建HTTP客户端失败: {}", e))?;
+        .map_err(|e| format!("create client error: {}", e))?;
+    
+    let max_retries = 3;
+    let mut retry_count = 0;
+    let mut last_error = String::from("unknown error");
+    
+    while retry_count < max_retries {
+        match try_online_play(&client, url, Arc::clone(&sink)).await {
+            Ok(_) => {
+                if retry_count > 0 {
+                    println!("after {} retries, download online song successfully", retry_count + 1);
+                }
+                return Ok(());
+            },
+            Err(e) => {
+                retry_count += 1;
+                last_error = e.to_string();
+                println!("download online song error: {}, retrying {}/{}", last_error, retry_count, max_retries);
+                
+                tokio::time::sleep(std::time::Duration::from_millis(1000 * retry_count)).await;
+            }
+        }
+    }
+    
+    Err(format!("download online song error: {}, after {} retries", last_error, max_retries))
+}
 
-    // 发送HTTP请求获取音频数据
-    let response = client
-        .get(url)
+async fn try_online_play(client: &reqwest::Client, url: &str, sink: Arc<Mutex<Sink>>) -> Result<(), String> {
+    let response = client.get(url)
         .send()
         .await
-        .map_err(|e| format!("请求在线音频失败: {}", e))?;
-
+        .map_err(|e| format!("request error: {}", e))?;
+    
     if !response.status().is_success() {
-        return Err(format!("获取在线音频失败，状态码: {}", response.status()));
+        return Err(format!("response status fail: {}", response.status()));
     }
-
-    // 获取响应体字节
-    let bytes = response
-        .bytes()
+    
+    let bytes = response.bytes()
         .await
-        .map_err(|e| format!("读取响应数据失败: {}", e))?;
-
-    // 将字节转换为游标
+        .map_err(|e| format!("read response data error: {}", e))?;
+    
+    println!("download online song successfully, size: {} bytes", bytes.len());
+    
     let cursor = std::io::Cursor::new(bytes);
-
-    // 解码音频
-    let source = Decoder::new(cursor).map_err(|e| format!("解码在线音频失败: {}", e))?;
-
-    // 获取sink并播放
-    let mut sink_lock = sink.lock().await;
+    
+    let source = match Decoder::new(cursor) {
+        Ok(s) => s,
+        Err(e) => {
+            return Err(format!("decode online song error: {}", e));
+        }
+    };
+    
+    let mut sink_lock = match sink.try_lock() {
+        Ok(lock) => lock,
+        Err(_) => {
+            return Err("cannot get lock".to_string());
+        }
+    };
+    
     sink_lock.append(source);
     if sink_lock.is_paused() {
         sink_lock.play();
     }
-
+    
     Ok(())
 }

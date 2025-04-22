@@ -124,6 +124,18 @@ const currAudioName = computed(() => {
   return currentMusic.value?.file_name || "no music playing";
 });
 
+async function loadDefaultMusicDir() {
+  try {
+    const defaultMusicDir = await invoke("get_default_music_dir");
+    if (defaultMusicDir) {
+      musicStore.mutations.setMusicPath(defaultMusicDir);
+      await scanMusicFiles(defaultMusicDir);
+    }
+  } catch (error) {
+    console.error("Load default music dir error:", error);
+  }
+}
+
 async function chooseMusicFolder() {
   try {
     const selected = await open({
@@ -317,11 +329,13 @@ async function checkSinkStatus() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   checkInterval.value = setInterval(checkSinkStatus, 1000);
 
   if (musicPath.value) {
-    scanMusicFiles(musicPath.value);
+    await scanMusicFiles(musicPath.value);
+  } else {
+    await loadDefaultMusicDir();
   }
 
   if (

@@ -1,39 +1,16 @@
-use music::{Music, MusicFile, MusicState};
-use netease::{search_songs, get_song_url, play_netease_song};
+use file::{download_music, get_default_music_dir, scan_directory, scan_files};
+use music::{Music, MusicState};
+use netease::{get_song_url, play_netease_song, search_songs};
 use rodio::Sink;
-use std::fs::read_dir;
 use std::sync::Arc;
-use tauri::menu::{Menu, MenuItem};
-use tauri::tray::TrayIconBuilder;
-use tauri::App;
 use tokio::sync::broadcast::Sender;
 use tokio::sync::Mutex;
+use tray::setup_tray;
 
+mod file;
 mod music;
 mod netease;
-
-/// set up the tray
-fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
-    // setup the tray icon
-    let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&quit_i])?;
-
-    let _tray = TrayIconBuilder::new()
-        .icon(app.default_window_icon().unwrap().clone())
-        .menu(&menu)
-        .show_menu_on_left_click(true)
-        .on_menu_event(|app, event| match event.id.as_ref() {
-            "quit" => {
-                println!("quit menu item was clicked");
-                app.exit(0);
-            }
-            _ => {
-                println!("menu item {:?} not handled", event.id);
-            }
-        })
-        .build(app)?;
-    Ok(())
-}
+mod tray;
 
 /// handle the music events
 /// play, pause, recovery, volume, quit
@@ -54,66 +31,6 @@ fn handle_event(sender: tauri::State<Sender<MusicState>>, event: String) {
             _ => None,
         };
     }
-}
-
-/// recursive scan the directory
-/// and add the files to the list
-fn scan_directory(
-    base_path: &std::path::Path,
-    dir_path: &std::path::Path,
-    files: &mut Vec<MusicFile>,
-    id: &mut i32,
-) {
-    if let Ok(entries) = read_dir(dir_path) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-
-            if path.is_dir() {
-                scan_directory(base_path, &path, files, id);
-            } else if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
-                if ["mp3", "wav", "ogg", "flac"].contains(&extension.to_lowercase().as_str()) {
-                    if let Ok(relative) = path.strip_prefix(base_path) {
-                        if let Some(rel_path_str) = relative.to_str() {
-                            files.push(MusicFile {
-                                id: *id,
-                                file_name: rel_path_str.to_string(),
-                            });
-                            *id += 1;
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/// need to scan the files and abstract the certain file types
-/// filter -> mp3, wav, ogg, flac
-/// if path include a dir, the dir also need to be scanned
-#[tauri::command]
-fn scan_files(path: &str) -> Vec<MusicFile> {
-    let mut music_files = Vec::new();
-    let mut id_counter = 0;
-
-    let base_path = std::path::Path::new(path).to_path_buf();
-
-    let path_obj = std::path::Path::new(path);
-    if path_obj.is_dir() {
-        scan_directory(&base_path, &base_path, &mut music_files, &mut id_counter);
-    } else {
-        if let Some(extension) = path_obj.extension().and_then(|ext| ext.to_str()) {
-            if ["mp3", "wav", "ogg", "flac"].contains(&extension.to_lowercase().as_str()) {
-                if let Some(file_name) = path_obj.file_name().and_then(|f| f.to_str()) {
-                    music_files.push(MusicFile {
-                        id: id_counter,
-                        file_name: file_name.to_string(),
-                    });
-                }
-            }
-        }
-    }
-
-    music_files
 }
 
 /// check if the sink is empty
@@ -143,6 +60,8 @@ pub fn run() {
             search_songs,
             get_song_url,
             play_netease_song,
+            get_default_music_dir,
+            download_music,
         ])
         // share sender and sink with the frontend
         .manage(music.event_sender)
