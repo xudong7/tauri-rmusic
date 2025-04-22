@@ -25,6 +25,20 @@ pub struct SearchResult {
     pub total: u32,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct LyricInfo {
+    pub id: String,
+    pub accesskey: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Lyric {
+    pub content: String,
+    pub fmt: String,
+    pub contenttype: u32,
+    pub charset: String,
+}
+
 const LOCAL_API_BASE: &str = "http://localhost:3000";
 
 /// return client
@@ -246,7 +260,6 @@ pub async fn get_song_url(id: String) -> Result<String, String> {
     Ok(play_url.to_string())
 }
 
-
 /// get song detail by id
 #[tauri::command]
 pub async fn get_song_detail(id: String) -> Result<SongInfo, String> {
@@ -307,4 +320,125 @@ pub async fn get_song_detail(id: String) -> Result<SongInfo, String> {
 #[tauri::command]
 pub async fn play_netease_song(id: String) -> Result<String, String> {
     get_song_url(id).await
+}
+
+/// get lyric info (id and accesskey) by song hash
+#[tauri::command]
+pub async fn search_lyric(hash: String) -> Result<LyricInfo, String> {
+    let client = get_client()?;
+    
+    let url = format!("{}/search/lyric?hash={}", LOCAL_API_BASE, hash);
+    
+    println!("Fetching lyric info from: {}", url);
+    let response_json: serde_json::Value = get_response_json(client, url).await?;
+    
+    let status = response_json
+        .get("status")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
+    if status != 200 {
+        let errmsg = response_json
+            .get("errmsg")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown error");
+        return Err(format!("API return error: {}", errmsg));
+    }
+    
+    let candidates = response_json
+        .get("candidates")
+        .and_then(|v| v.as_array())
+        .ok_or_else(|| "No candidates found".to_string())?;
+    
+    if candidates.is_empty() {
+        return Err("No lyric candidates available".to_string());
+    }
+    
+    let candidate = &candidates[0];
+    
+    let id = candidate
+        .get("id")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "No lyric id".to_string())?
+        .to_string();
+        
+    let accesskey = candidate
+        .get("accesskey")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "No accesskey".to_string())?
+        .to_string();
+    
+    println!("Successfully got lyric info: id={}, accesskey={}", id, accesskey);
+    Ok(LyricInfo { id, accesskey })
+}
+
+/// get lyric content by id and accesskey
+#[tauri::command]
+pub async fn get_lyric(id: String, accesskey: String) -> Result<Lyric, String> {
+    let client = get_client()?;
+    
+    let url = format!("{}/lyric?id={}&accesskey={}&decode=true&fmt=lrc", 
+        LOCAL_API_BASE, id, accesskey);
+    
+    let response_json: serde_json::Value = get_response_json(client, url).await?;
+    
+    let status = response_json
+        .get("status")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(500);
+    if status != 200 {
+        let error = response_json
+            .get("error")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown error");
+        return Err(format!("API return error: {}", error));
+    }
+    
+    let content = response_json
+        .get("content")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "No lyric content".to_string())?
+        .to_string();
+        
+    let fmt = response_json
+        .get("fmt")
+        .and_then(|v| v.as_str())
+        .unwrap_or("lrc")
+        .to_string();
+        
+    let contenttype = response_json
+        .get("contenttype")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(1) as u32;
+        
+    let charset = response_json
+        .get("charset")
+        .and_then(|v| v.as_str())
+        .unwrap_or("utf8")
+        .to_string();
+    
+    Ok(Lyric {
+        content,
+        fmt,
+        contenttype,
+        charset,
+    })
+}
+
+/// get decoded lyric content by id and accesskey
+#[tauri::command]
+pub async fn get_lyric_decoded(id: String, accesskey: String) -> Result<String, String> {
+    let client = get_client()?;
+    
+    let url = format!("{}/lyric?id={}&accesskey={}&decode=true&fmt=lrc", 
+        LOCAL_API_BASE, id, accesskey);
+    
+    let response_json: serde_json::Value = get_response_json(client, url).await?;
+    
+    let decoded_content = response_json
+        .get("decodeContent")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "No decoded lyric content".to_string())?
+        .to_string();
+        
+    Ok(decoded_content)
 }
