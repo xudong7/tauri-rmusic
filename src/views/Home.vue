@@ -1,7 +1,6 @@
 <template>
   <div class="music-player-container">
     <div class="header">
-      <!-- <h1>Rmusic</h1> -->
       <button class="btn choose-btn" @click="chooseMusicFolder">
         Choose folder
       </button>
@@ -61,32 +60,33 @@
 </template>
   
 <script setup>
-import { ref, onMounted, computed, watch } from "vue";
+import { ref, onMounted, computed, watch, onBeforeUnmount } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import musicStore from '../store/musicState';
+import musicStore from "../store/musicState";
 
-// 使用共享状态
 const tableData = ref([]);
 const playMode = ref("list");
 const checkInterval = ref(null);
 const isMuted = ref(false);
 const previousVolume = ref(50);
 
-// 从状态管理中获取状态
 const musicPath = computed(() => musicStore.state.localMusic.musicPath);
 const musicFiles = computed(() => musicStore.state.localMusic.musicFiles);
 const currentMusic = computed(() => musicStore.state.localMusic.currentMusic);
 const isPlaying = computed(() => musicStore.state.localMusic.isPlaying);
 const volume = computed({
   get: () => musicStore.state.localMusic.volume,
-  set: (value) => musicStore.mutations.setLocalMusicVolume(value)
+  set: (value) => musicStore.mutations.setLocalMusicVolume(value),
 });
 
-// 当musicFiles变化时，更新tableData
-watch(musicFiles, (newFiles) => {
-  tableData.value = [...newFiles];
-}, { deep: true });
+watch(
+  musicFiles,
+  (newFiles) => {
+    tableData.value = [...newFiles];
+  },
+  { deep: true }
+);
 
 const currAudioName = computed(() => {
   return currentMusic.value?.file_name || "no music playing";
@@ -136,6 +136,9 @@ async function playAudio(music) {
     musicStore.mutations.setCurrentMusic(music);
     const fullPath = `${musicPath.value}/${music.file_name}`;
 
+    musicStore.mutations.setGlobalSource("local");
+    musicStore.mutations.setGlobalPlayingUrl(fullPath);
+
     await invoke("handle_event", {
       event: JSON.stringify({
         action: "play",
@@ -144,13 +147,24 @@ async function playAudio(music) {
     });
 
     musicStore.mutations.setLocalMusicPlaying(true);
+    musicStore.mutations.setGlobalPlaying(true);
   } catch (error) {
     console.error("play music error:", error);
   }
 }
 
 async function recoveryAudio() {
-  if (!currentMusic.value) return;
+  if (
+    !currentMusic.value &&
+    musicStore.state.globalMusic.currentSource !== "local"
+  ) {
+    if (
+      musicStore.state.globalMusic.currentSource === "netease" &&
+      musicStore.state.globalMusic.isPlaying
+    ) {
+      return;
+    }
+  }
 
   try {
     await invoke("handle_event", {
@@ -160,6 +174,7 @@ async function recoveryAudio() {
     });
 
     musicStore.mutations.setLocalMusicPlaying(true);
+    musicStore.mutations.setGlobalPlaying(true);
   } catch (error) {
     console.error("recover music error:", error);
   }
@@ -174,6 +189,7 @@ async function pauseAudio() {
     });
 
     musicStore.mutations.setLocalMusicPlaying(false);
+    musicStore.mutations.setGlobalPlaying(false);
   } catch (error) {
     console.error("pause music error:", error);
   }
@@ -252,12 +268,24 @@ async function checkSinkStatus() {
   }
 }
 
-
 onMounted(() => {
   checkInterval.value = setInterval(checkSinkStatus, 1000);
-  
+
   if (musicPath.value) {
     scanMusicFiles(musicPath.value);
+  }
+
+  if (
+    musicStore.state.globalMusic.isPlaying &&
+    musicStore.state.globalMusic.currentSource === "netease"
+  ) {
+    console.log("检测到正在播放网易云音乐，保持播放状态");
+  }
+});
+
+onBeforeUnmount(() => {
+  if (checkInterval.value) {
+    clearInterval(checkInterval.value);
   }
 });
 </script>

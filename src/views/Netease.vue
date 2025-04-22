@@ -6,41 +6,49 @@
           type="text"
           v-model="searchKeyword"
           @keyup.enter="searchSongs"
-          placeholder="搜索歌曲、歌手..."
+          placeholder="Searching Song、Singer..."
           class="search-input"
         />
         <button @click="searchSongs" class="search-button">
-          <span>搜索</span>
+          <span>Search</span>
         </button>
       </div>
     </div>
 
     <div v-if="musicState.state.neteaseMusic.loading" class="loading">
       <div class="spinner"></div>
-      <span>正在搜索...</span>
+      <span>Searching...</span>
     </div>
 
-    <div v-else-if="musicState.state.neteaseMusic.searchResults.length > 0" class="search-results">
+    <div
+      v-else-if="musicState.state.neteaseMusic.searchResults.length > 0"
+      class="search-results"
+    >
       <table class="song-table">
         <thead>
           <tr>
             <th style="width: 50px"></th>
-            <th style="width: 40%">歌曲</th>
-            <th style="width: 30%">歌手</th>
-            <th style="width: 20%">专辑</th>
-            <th style="width: 10%">时长</th>
+            <th style="width: 40%">Song</th>
+            <th style="width: 30%">Singer</th>
+            <th style="width: 20%">Album</th>
+            <th style="width: 10%">Time</th>
           </tr>
         </thead>
         <tbody>
           <tr
-            v-for="(song, ) in musicState.state.neteaseMusic.searchResults"
+            v-for="song in musicState.state.neteaseMusic.searchResults"
             :key="song.id"
             @dblclick="playSong(song)"
-            :class="{ 'playing': isCurrentSong(song) }"
+            :class="{ playing: isCurrentSong(song) }"
           >
             <td class="play-cell">
               <button class="play-btn" @click="playSong(song)">
-                <span v-if="isCurrentSong(song) && musicState.state.neteaseMusic.isPlaying">
+                <span
+                  v-if="
+                    isCurrentSong(song) &&
+                    musicState.state.neteaseMusic.isPlaying
+                  "
+                >
                   ■
                 </span>
                 <span v-else>▶</span>
@@ -48,11 +56,15 @@
             </td>
             <td>
               <div class="song-info">
-                <img v-if="song.pic_url" :src="song.pic_url" class="song-cover" />
+                <img
+                  v-if="song.pic_url"
+                  :src="song.pic_url"
+                  class="song-cover"
+                />
                 <span class="song-name">{{ song.name }}</span>
               </div>
             </td>
-            <td>{{ song.artists.join(', ') }}</td>
+            <td>{{ song.artists.join(", ") }}</td>
             <td>{{ song.album }}</td>
             <td>{{ formatDuration(song.duration) }}</td>
           </tr>
@@ -69,13 +81,21 @@
         </button>
         <span class="page-info">
           {{ musicState.state.neteaseMusic.currentPage }} /
-          {{ Math.ceil(musicState.state.neteaseMusic.totalCount / musicState.state.neteaseMusic.pageSize) }}
+          {{
+            Math.ceil(
+              musicState.state.neteaseMusic.totalCount /
+                musicState.state.neteaseMusic.pageSize
+            )
+          }}
         </span>
         <button
           @click="changePage(musicState.state.neteaseMusic.currentPage + 1)"
           :disabled="
             musicState.state.neteaseMusic.currentPage >=
-            Math.ceil(musicState.state.neteaseMusic.totalCount / musicState.state.neteaseMusic.pageSize)
+            Math.ceil(
+              musicState.state.neteaseMusic.totalCount /
+                musicState.state.neteaseMusic.pageSize
+            )
           "
           class="page-btn"
         >
@@ -84,13 +104,16 @@
       </div>
     </div>
 
-    <div v-else-if="musicState.state.neteaseMusic.searchKeyword" class="no-results">
-      未找到相关歌曲
+    <div
+      v-else-if="musicState.state.neteaseMusic.searchKeyword"
+      class="no-results"
+    >
+    No results found for "{{ musicState.state.neteaseMusic.searchKeyword }}"
     </div>
 
     <div v-else class="welcome-message">
       <div class="welcome-icon">🎵</div>
-      <p>在搜索框中输入歌曲名或歌手名开始搜索</p>
+      <p>Search for your favorite songs!</p>
     </div>
 
     <div v-if="musicState.state.neteaseMusic.currentSong" class="player-bar">
@@ -101,9 +124,11 @@
           class="current-song-cover"
         />
         <div class="current-song-info">
-          <div class="current-song-name">{{ musicState.state.neteaseMusic.currentSong.name }}</div>
+          <div class="current-song-name">
+            {{ musicState.state.neteaseMusic.currentSong.name }}
+          </div>
           <div class="current-song-artist">
-            {{ musicState.state.neteaseMusic.currentSong.artists.join(', ') }}
+            {{ musicState.state.neteaseMusic.currentSong.artists.join(", ") }}
           </div>
         </div>
       </div>
@@ -125,127 +150,120 @@ import musicState from "../store/musicState";
 export default {
   name: "NeteaseView",
   setup() {
-    const searchKeyword = ref('');
-    const playingUrl = ref('');
+    const searchKeyword = ref("");
+    const playingUrl = ref("");
 
-    // 搜索歌曲
     const searchSongs = async () => {
       if (!searchKeyword.value.trim()) return;
-      
-      // 更新关键词
+
       musicState.mutations.setNeteaseSearchKeyword(searchKeyword.value);
       musicState.mutations.setNeteaseLoading(true);
-      
+
       try {
-        // 调用后端API搜索歌曲
-        const result = await invoke('search_songs', {
+        const result = await invoke("search_songs", {
           keywords: searchKeyword.value,
-          limit: musicState.state.neteaseMusic.pageSize,
-          offset: (musicState.state.neteaseMusic.currentPage - 1) * musicState.state.neteaseMusic.pageSize
+          // limit: musicState.state.neteaseMusic.pageSize,
+          // offset: (musicState.state.neteaseMusic.currentPage - 1) * musicState.state.neteaseMusic.pageSize
         });
-        
-        // 更新搜索结果
+
         musicState.mutations.setNeteaseSearchResults(result.songs);
         musicState.mutations.setNeteaseTotalCount(result.total);
       } catch (error) {
-        console.error('搜索歌曲失败:', error);
+        console.error("Search song error:", error);
         musicState.mutations.setNeteaseSearchResults([]);
       } finally {
         musicState.mutations.setNeteaseLoading(false);
       }
     };
 
-    // 切换页码
     const changePage = (page) => {
       musicState.mutations.setNeteaseCurrentPage(page);
       searchSongs();
     };
 
-    // 格式化时间
     const formatDuration = (ms) => {
       const minutes = Math.floor(ms / 60000);
       const seconds = Math.floor((ms % 60000) / 1000);
-      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      return `${minutes}:${seconds.toString().padStart(2, "0")}`;
     };
 
-    // 播放歌曲
     const playSong = async (song) => {
       try {
-        // 设置当前歌曲
         musicState.mutations.setNeteaseCurrentSong(song);
         musicState.mutations.setNeteaseLoading(true);
-        
-        // 获取歌曲URL - 注意这里传递的是字符串类型的id
-        const songUrl = await invoke('play_netease_song', {
-          id: song.id
+
+        const songUrl = await invoke("play_netease_song", {
+          id: song.file_hash,
         });
 
         if (!songUrl) {
-          console.error('获取歌曲URL失败');
+          console.error("get songUrl error:", songUrl);
           return;
         }
-        
+
         playingUrl.value = songUrl;
 
-        // 发送播放事件到Rust后端
-        await invoke('handle_event', {
+        musicState.mutations.setGlobalSource("netease");
+        musicState.mutations.setGlobalPlayingUrl(songUrl);
+
+        await invoke("handle_event", {
           event: JSON.stringify({
-            action: 'play',
-            path: songUrl
-          })
+            action: "play",
+            path: songUrl,
+          }),
         });
 
         musicState.mutations.setNeteasePlaying(true);
+        musicState.mutations.setGlobalPlaying(true);
       } catch (error) {
-        console.error('播放歌曲失败:', error);
+        console.error("Play song error:", error);
       } finally {
         musicState.mutations.setNeteaseLoading(false);
       }
     };
 
-    // 切换播放状态
     const togglePlay = async () => {
       try {
         if (musicState.state.neteaseMusic.isPlaying) {
-          // 暂停
-          await invoke('handle_event', {
-            event: JSON.stringify({ action: 'pause' })
+          await invoke("handle_event", {
+            event: JSON.stringify({ action: "pause" }),
           });
           musicState.mutations.setNeteasePlaying(false);
+          musicState.mutations.setGlobalPlaying(false);
         } else {
-          // 继续播放
-          await invoke('handle_event', {
-            event: JSON.stringify({ action: 'recovery' })
+          await invoke("handle_event", {
+            event: JSON.stringify({ action: "recovery" }),
           });
           musicState.mutations.setNeteasePlaying(true);
+          musicState.mutations.setGlobalPlaying(true);
         }
       } catch (error) {
-        console.error('切换播放状态失败:', error);
+        console.error("toggle status error:", error);
       }
     };
 
-    // 判断是否当前播放的歌曲
     const isCurrentSong = (song) => {
-      return musicState.state.neteaseMusic.currentSong &&
-        musicState.state.neteaseMusic.currentSong.id === song.id;
+      return (
+        musicState.state.neteaseMusic.currentSong &&
+        musicState.state.neteaseMusic.currentSong.id === song.id
+      );
     };
 
-    // 当组件卸载前停止播放
-    onBeforeUnmount(async () => {
-      if (musicState.state.neteaseMusic.isPlaying) {
-        await invoke('handle_event', {
-          event: JSON.stringify({ action: 'pause' })
-        });
-        musicState.mutations.setNeteasePlaying(false);
-      }
+    onBeforeUnmount(() => {
+      console.log("保持网易云音乐播放状态");
     });
 
-    // 组件挂载时的操作
     onMounted(() => {
-      // 如果之前有搜索过，重新加载搜索结果
       if (musicState.state.neteaseMusic.searchKeyword) {
         searchKeyword.value = musicState.state.neteaseMusic.searchKeyword;
         searchSongs();
+      }
+
+      if (
+        musicState.state.globalMusic.currentSource === "netease" &&
+        musicState.state.globalMusic.isPlaying
+      ) {
+        musicState.mutations.setNeteasePlaying(true);
       }
     });
 
@@ -257,9 +275,9 @@ export default {
       togglePlay,
       changePage,
       formatDuration,
-      isCurrentSong
+      isCurrentSong,
     };
-  }
+  },
 };
 </script>
 
