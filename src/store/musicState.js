@@ -3,9 +3,9 @@ import { reactive, readonly } from "vue";
 const state = reactive({
   // 全局音乐状态
   globalMusic: {
-    isPlaying: false,    // 是否正在播放
+    isPlaying: false, // 是否正在播放
     currentSource: null, // 当前播放源 'local' 或 'netease'
-    playingUrl: "",      // 当前播放的URL
+    playingUrl: "", // 当前播放的URL
   },
   localMusic: {
     musicPath: "", // 选择的音乐文件夹路径
@@ -13,17 +13,19 @@ const state = reactive({
     currentMusic: null, // 当前播放的音乐
     isPlaying: false, // 是否正在播放
     volume: 50, // 音量
+    currentPage: 1, // 当前页码
+    pageSize: 8, // 每页显示数量
   },
   neteaseMusic: {
     searchKeyword: "", // 搜索关键词
     searchResults: [], // 搜索结果
     currentPage: 1, // 当前页码
-    pageSize: 20, // 每页显示数量
+    pageSize: 6, // 每页显示数量
     totalCount: 0, // 搜索结果总数
     currentSong: null, // 当前播放的歌曲
     isPlaying: false, // 是否正在播放
     loading: false, // 是否正在加载
-  }
+  },
 });
 
 const mutations = {
@@ -31,11 +33,11 @@ const mutations = {
   setGlobalPlaying(isPlaying) {
     state.globalMusic.isPlaying = isPlaying;
   },
-  
+
   setGlobalSource(source) {
     state.globalMusic.currentSource = source;
   },
-  
+
   setGlobalPlayingUrl(url) {
     state.globalMusic.playingUrl = url;
   },
@@ -59,6 +61,10 @@ const mutations = {
 
   setLocalMusicVolume(volume) {
     state.localMusic.volume = volume;
+  },
+
+  setLocalMusicCurrentPage(page) {
+    state.localMusic.currentPage = page;
   },
 
   // 网易云音乐相关操作
@@ -88,7 +94,7 @@ const mutations = {
 
   setNeteaseLoading(loading) {
     state.neteaseMusic.loading = loading;
-  }
+  },
 };
 
 export default {

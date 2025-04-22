@@ -155,21 +155,21 @@ export default {
 
     const searchSongs = async () => {
       if (!searchKeyword.value.trim()) return;
-
+      
       musicState.mutations.setNeteaseSearchKeyword(searchKeyword.value);
       musicState.mutations.setNeteaseLoading(true);
-
+      
       try {
-        const result = await invoke("search_songs", {
+        const result = await invoke('search_songs', {
           keywords: searchKeyword.value,
-          // limit: musicState.state.neteaseMusic.pageSize,
-          // offset: (musicState.state.neteaseMusic.currentPage - 1) * musicState.state.neteaseMusic.pageSize
+          page: musicState.state.neteaseMusic.currentPage,
+          pagesize: musicState.state.neteaseMusic.pageSize
         });
-
+        
         musicState.mutations.setNeteaseSearchResults(result.songs);
         musicState.mutations.setNeteaseTotalCount(result.total);
       } catch (error) {
-        console.error("Search song error:", error);
+        console.error('Search songs error:', error);
         musicState.mutations.setNeteaseSearchResults([]);
       } finally {
         musicState.mutations.setNeteaseLoading(false);
@@ -250,7 +250,7 @@ export default {
     };
 
     onBeforeUnmount(() => {
-      console.log("保持网易云音乐播放状态");
+      console.log("Keep alive NeteaseView");
     });
 
     onMounted(() => {

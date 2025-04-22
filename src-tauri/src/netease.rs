@@ -1,11 +1,10 @@
 use reqwest;
 use serde::{Deserialize, Serialize};
-use std::error::Error;
 use urlencoding::encode;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SongInfo {
-    pub id: String, 
+    pub id: String,
     pub name: String,
     pub artists: Vec<String>,
     pub album: String,
@@ -22,27 +21,27 @@ pub struct SearchResult {
 
 const LOCAL_API_BASE: &str = "http://localhost:3000";
 
-// 搜索歌曲
 #[tauri::command]
 pub async fn search_songs(
     keywords: String,
+    page: Option<u32>,
+    pagesize: Option<u32>,
 ) -> Result<SearchResult, String> {
     let client = reqwest::Client::builder()
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
         .build()
         .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
 
-    // URL编码搜索关键词
     let encoded_keywords = encode(&keywords);
 
+    let page = page.unwrap_or(1);
+    let pagesize = pagesize.unwrap_or(7);
+
     let url = format!(
-        "{}/search?keywords={}",
-        LOCAL_API_BASE, encoded_keywords
+        "{}/search?keywords={}&page={}&pagesize={}",
+        LOCAL_API_BASE, encoded_keywords, page, pagesize
     );
 
-    println!("请求搜索API: {}", url);
-
-    // 发送请求
     let response = client
         .get(&url)
         .send()
@@ -64,9 +63,15 @@ pub async fn search_songs(
         .map_err(|e| format!("解析JSON失败: {}，内容: {}", e, &text[..200]))?;
 
     // 判断是否有错误
-    let error_code = response_json.get("error_code").and_then(|v| v.as_u64()).unwrap_or(1);
+    let error_code = response_json
+        .get("error_code")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(1);
     if error_code != 0 {
-        let error_msg = response_json.get("error_msg").and_then(|v| v.as_str()).unwrap_or("未知错误");
+        let error_msg = response_json
+            .get("error_msg")
+            .and_then(|v| v.as_str())
+            .unwrap_or("未知错误");
         return Err(format!("API返回错误: {}", error_msg));
     }
 
@@ -79,22 +84,22 @@ pub async fn search_songs(
         .and_then(|v| v.as_array())
         .ok_or_else(|| "没有找到歌曲数据".to_string())?;
 
-    let total = data
-        .get("total")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0) as u32;
+    let total = data.get("total").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
 
     // 转换歌曲数据
     let mut songs = Vec::new();
     for song in songs_value {
         let file_hash = song["FileHash"].as_str().unwrap_or("").to_string();
         if file_hash.is_empty() {
-            continue; 
+            continue;
         }
-        
-        let id = song["Audioid"].as_u64().map(|id| id.to_string()).unwrap_or_default();
+
+        let id = song["Audioid"]
+            .as_u64()
+            .map(|id| id.to_string())
+            .unwrap_or_default();
         let song_name = song["OriSongName"].as_str().unwrap_or("未知").to_string();
-        
+
         // 解析歌手信息
         let artists = if let Some(singers_array) = song["Singers"].as_array() {
             singers_array
@@ -106,13 +111,13 @@ pub async fn search_songs(
             let singer_name = song["SingerName"].as_str().unwrap_or("未知歌手");
             vec![singer_name.to_string()]
         };
-        
+
         // 专辑信息
         let album = song["AlbumName"].as_str().unwrap_or("未知专辑").to_string();
-        
+
         // 时长（秒转毫秒）
         let duration = song["Duration"].as_u64().unwrap_or(0) * 1000;
-        
+
         // 图片链接 - 替换{size}为合适的尺寸
         let mut pic_url = song["Image"].as_str().unwrap_or("").to_string();
         pic_url = pic_url.replace("{size}", "400");
@@ -166,9 +171,15 @@ pub async fn get_song_url(id: String) -> Result<String, String> {
         .map_err(|e| format!("解析JSON失败: {}，内容: {}", e, &text[..200]))?;
 
     // 检查API错误码
-    let error_code = response_json.get("error_code").and_then(|v| v.as_u64()).unwrap_or(1);
+    let error_code = response_json
+        .get("error_code")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(1);
     if error_code != 0 {
-        let error_msg = response_json.get("message").and_then(|v| v.as_str()).unwrap_or("未知错误");
+        let error_msg = response_json
+            .get("message")
+            .and_then(|v| v.as_str())
+            .unwrap_or("未知错误");
         return Err(format!("API返回错误: {}", error_msg));
     }
 
@@ -184,11 +195,17 @@ pub async fn get_song_url(id: String) -> Result<String, String> {
 
     // 获取第一个数据项
     let song_data = &data[0];
-    
+
     // 检查歌曲错误信息
-    let errno = song_data.get("_errno").and_then(|v| v.as_u64()).unwrap_or(0);
+    let errno = song_data
+        .get("_errno")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
     if errno != 0 {
-        let msg = song_data.get("_msg").and_then(|v| v.as_str()).unwrap_or("获取歌曲失败");
+        let msg = song_data
+            .get("_msg")
+            .and_then(|v| v.as_str())
+            .unwrap_or("获取歌曲失败");
         return Err(format!("歌曲获取错误: {}", msg));
     }
 
@@ -208,7 +225,7 @@ pub async fn get_song_url(id: String) -> Result<String, String> {
             }
         }
     }
-    
+
     // 如果没有tracker_url或为空，尝试获取climax_info.url
     let climax_info = info
         .get("climax_info")
@@ -282,12 +299,14 @@ pub async fn get_song_detail(id: String) -> Result<SongInfo, String> {
     }
 
     let song = &songs[0];
-    
-    let song_id = song["id"].as_u64().map(|id| id.to_string())
+
+    let song_id = song["id"]
+        .as_u64()
+        .map(|id| id.to_string())
         .unwrap_or_else(|| "未知ID".to_string());
-        
+
     let song_name = song["name"].as_str().unwrap_or("未知").to_string();
-    
+
     // 解析歌手信息
     let artists = if let Some(artist_array) = song["ar"].as_array() {
         artist_array
@@ -297,13 +316,16 @@ pub async fn get_song_detail(id: String) -> Result<SongInfo, String> {
     } else {
         vec!["未知歌手".to_string()]
     };
-    
+
     // 专辑信息
-    let album = song["al"]["name"].as_str().unwrap_or("未知专辑").to_string();
-    
+    let album = song["al"]["name"]
+        .as_str()
+        .unwrap_or("未知专辑")
+        .to_string();
+
     // 时长
     let duration = song["dt"].as_u64().unwrap_or(0);
-    
+
     // 图片链接
     let pic_url = song["al"]["picUrl"].as_str().unwrap_or("").to_string();
 
