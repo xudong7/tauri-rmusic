@@ -89,6 +89,8 @@ pub async fn search_songs(
         LOCAL_API_BASE, search_request.keywords, search_request.page, search_request.pagesize
     );
 
+    println!("search url: {}", url);
+
     let response_json: serde_json::Value = get_response_json(client, url).await?;
 
     let error_code = response_json
