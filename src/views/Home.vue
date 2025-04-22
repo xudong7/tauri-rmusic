@@ -10,7 +10,7 @@
           :disabled="currentPage === 1"
           class="page-btn"
         >
-          ⬅️
+          Last
         </button>
         <span class="page-info"> {{ currentPage }} / {{ totalPages }} </span>
         <button
@@ -18,7 +18,7 @@
           :disabled="currentPage >= totalPages"
           class="page-btn"
         >
-          ➡️
+          Next
         </button>
       </div>
     </div>
@@ -356,8 +356,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .music-player-container {
   padding: 20px;
-  max-width: 800px;
-  min-height: 600px;
+  height: 100%;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -441,6 +440,12 @@ onBeforeUnmount(() => {
 
 .player-controls {
   padding: 1.2rem;
+  background-color: #f7f7f7;
+  border-radius: 8px;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   background-color: #fff;
   border-top: 1px solid #eaeaea;
   display: flex;
@@ -452,7 +457,7 @@ onBeforeUnmount(() => {
 .now-playing {
   display: flex;
   align-items: center;
-  width: 30%;
+  width: 40%;
 }
 
 .music-icon {
@@ -501,12 +506,14 @@ onBeforeUnmount(() => {
 }
 
 .volume-control {
+  width: 15%;
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
 .volume-btn {
+  width: 15%;
   background: none;
   border: none;
   font-size: 1.4rem;
@@ -554,11 +561,16 @@ onBeforeUnmount(() => {
 
 .page-btn {
   padding: 8px 15px;
+  background: #4a86e8;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   margin: 0 10px;
+}
+
+.page-btn:hover {
+  background-color: #3a76d8;
 }
 
 .page-btn:disabled {
