@@ -350,15 +350,20 @@ export default {
 
 <style scoped>
 .netease-container {
+  padding: 20px;
+  height: 100%;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  padding: 20px;
-  background-color: #f9f9f9;
+  background-color: #fff;
   color: #333;
 }
 
 .search-section {
+  padding: 1.2rem;
+  background-color: #fff;
+  border-bottom: 1px solid #eaeaea;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   margin-bottom: 20px;
 }
 
@@ -369,24 +374,29 @@ export default {
 
 .search-input {
   flex: 1;
-  padding: 10px 15px;
+  padding: 0.6rem 1.2rem;
   border: 1px solid #ddd;
-  border-radius: 4px 0 0 4px;
+  border-radius: 6px 0 0 6px;
   font-size: 16px;
+  outline: none;
 }
 
 .search-button {
-  padding: 10px 20px;
-  background-color: #e74c3c;
+  padding: 0.6rem 1.2rem;
+  background-color: #4a86e8;
   color: white;
   border: none;
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 6px 6px 0;
   cursor: pointer;
   font-size: 16px;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .search-button:hover {
-  background-color: #c0392b;
+  background-color: #3a76d8;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .loading {
@@ -400,7 +410,7 @@ export default {
 .spinner {
   width: 30px;
   height: 30px;
-  border: 3px solid #e74c3c;
+  border: 3px solid #4a86e8;
   border-top: 3px solid transparent;
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -416,6 +426,18 @@ export default {
   }
 }
 
+.search-results {
+  flex: 1;
+  overflow-y: auto;
+  background-color: white;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.search-results::-webkit-scrollbar {
+  display: none;
+}
+
 .song-table {
   width: 100%;
   border-collapse: collapse;
@@ -425,22 +447,23 @@ export default {
 .song-table th {
   padding: 12px;
   text-align: left;
-  border-bottom: 2px solid #ddd;
+  border-bottom: 2px solid #eaeaea;
   color: #666;
   font-weight: 500;
 }
 
 .song-table td {
   padding: 12px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .song-table tr:hover {
-  background-color: #f5f5f5;
+  background-color: #f0f8ff;
 }
 
 .song-table tr.playing {
-  background-color: #fdeaea;
+  background-color: #e6f2ff;
+  border-left: 3px solid #4a86e8;
 }
 
 .song-info {
@@ -454,6 +477,7 @@ export default {
   border-radius: 4px;
   margin-right: 10px;
   object-fit: cover;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .song-name {
@@ -469,16 +493,19 @@ export default {
   height: 30px;
   border-radius: 50%;
   border: none;
-  background-color: #e74c3c;
+  background-color: #4a86e8;
   color: white;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .play-btn:hover {
-  background-color: #c0392b;
+  background-color: #3a76d8;
+  transform: scale(1.05);
 }
 
 .pagination {
@@ -486,16 +513,22 @@ export default {
   justify-content: center;
   align-items: center;
   margin-top: 20px;
+  margin-bottom: 10px;
 }
 
 .page-btn {
   padding: 8px 15px;
-  background-color: #e74c3c;
+  background-color: #4a86e8;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   margin: 0 10px;
+  transition: all 0.2s ease;
+}
+
+.page-btn:hover {
+  background-color: #3a76d8;
 }
 
 .page-btn:disabled {
@@ -520,6 +553,7 @@ export default {
 .welcome-icon {
   font-size: 60px;
   margin-bottom: 20px;
+  color: #4a86e8;
 }
 
 .no-results {
@@ -532,30 +566,33 @@ export default {
 }
 
 .player-bar {
+  padding: 1.2rem;
+  background-color: #fff;
+  border-top: 1px solid #eaeaea;
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   height: 80px;
-  background-color: white;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.03);
   z-index: 1000;
 }
 
 .song-details {
   display: flex;
   align-items: center;
+  width: 40%;
 }
 
 .current-song-cover {
-  width: 60px;
-  height: 60px;
+  width: 48px;
+  height: 48px;
   border-radius: 4px;
   margin-right: 15px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .current-song-info {
@@ -567,6 +604,9 @@ export default {
   font-size: 16px;
   font-weight: 500;
   margin-bottom: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .current-song-artist {
@@ -580,41 +620,42 @@ export default {
 }
 
 .control-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: none;
-  background-color: #e74c3c;
+  padding: 0.6rem 1.2rem;
+  background-color: #4a86e8;
   color: white;
-  font-size: 18px;
+  border: none;
+  border-radius: 50px;
   cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 10px;
 }
 
 .control-btn:hover {
-  background-color: #c0392b;
+  transform: scale(1.05);
+  background-color: #3a76d8;
 }
 
-/* 下载按钮样式 */
 .download-btn {
   width: 30px;
   height: 30px;
   border-radius: 50%;
   border: none;
-  background-color: #4caf50;
+  background-color: #4a86e8;
   color: white;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .download-btn:hover:not([disabled]) {
-  background-color: #45a049;
+  background-color: #3a76d8;
+  transform: scale(1.05);
 }
 
 .download-btn[disabled] {
@@ -623,14 +664,13 @@ export default {
   opacity: 0.7;
 }
 
-/* 下载提示框样式 */
 .download-message {
   position: fixed;
   bottom: 100px;
   left: 50%;
   transform: translateX(-50%);
   padding: 12px 24px;
-  border-radius: 4px;
+  border-radius: 6px;
   color: white;
   font-size: 14px;
   z-index: 100;
@@ -645,5 +685,11 @@ export default {
 
 .error {
   background-color: #f44336;
+}
+
+@supports (-webkit-touch-callout: none) {
+  .search-results {
+    -webkit-overflow-scrolling: touch;
+  }
 }
 </style>
