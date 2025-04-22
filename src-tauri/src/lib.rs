@@ -1,17 +1,16 @@
 use music::{Music, MusicFile, MusicState};
+use netease::{search_songs, get_song_url, play_netease_song};
 use rodio::Sink;
 use std::fs::read_dir;
 use std::sync::Arc;
 use tauri::menu::{Menu, MenuItem};
-use tauri::path::BaseDirectory;
 use tauri::tray::TrayIconBuilder;
 use tauri::App;
-use tauri::Manager;
 use tokio::sync::broadcast::Sender;
 use tokio::sync::Mutex;
 
 mod music;
-
+mod netease;
 
 /// set up the tray
 fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
@@ -141,6 +140,9 @@ pub fn run() {
             is_sink_empty,
             handle_event,
             scan_files,
+            search_songs,
+            get_song_url,
+            play_netease_song,
         ])
         // share sender and sink with the frontend
         .manage(music.event_sender)

@@ -1,6 +1,12 @@
 import { reactive, readonly } from "vue";
 
 const state = reactive({
+  // 全局音乐状态
+  globalMusic: {
+    isPlaying: false,    // 是否正在播放
+    currentSource: null, // 当前播放源 'local' 或 'netease'
+    playingUrl: "",      // 当前播放的URL
+  },
   localMusic: {
     musicPath: "", // 选择的音乐文件夹路径
     musicFiles: [], // 扫描到的音乐文件列表
@@ -21,6 +27,19 @@ const state = reactive({
 });
 
 const mutations = {
+  // 全局音乐相关操作
+  setGlobalPlaying(isPlaying) {
+    state.globalMusic.isPlaying = isPlaying;
+  },
+  
+  setGlobalSource(source) {
+    state.globalMusic.currentSource = source;
+  },
+  
+  setGlobalPlayingUrl(url) {
+    state.globalMusic.playingUrl = url;
+  },
+
   // 本地音乐相关操作
   setMusicPath(path) {
     state.localMusic.musicPath = path;
