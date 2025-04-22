@@ -4,17 +4,36 @@
       <button class="btn choose-btn" @click="chooseMusicFolder">
         Choose folder
       </button>
+      <div v-if="totalPages > 1" class="pagination">
+        <button
+          @click="changePage(currentPage - 1)"
+          :disabled="currentPage === 1"
+          class="page-btn"
+        >
+          ⬅️
+        </button>
+        <span class="page-info"> {{ currentPage }} / {{ totalPages }} </span>
+        <button
+          @click="changePage(currentPage + 1)"
+          :disabled="currentPage >= totalPages"
+          class="page-btn"
+        >
+          ➡️
+        </button>
+      </div>
     </div>
 
     <div class="music-list">
       <div
-        v-for="(item, index) in tableData"
+        v-for="(item, index) in paginatedMusicFiles"
         :key="item.id"
         class="music-item"
         :class="{ playing: currentMusic && item.id === currentMusic.id }"
         @click="rowClick(item)"
       >
-        <span class="item-number">{{ index + 1 }}</span>
+        <span class="item-number">{{
+          (currentPage - 1) * pageSize + index + 1
+        }}</span>
         <span class="item-name">{{ item.file_name }}</span>
         <span
           class="item-play-icon"
@@ -80,6 +99,19 @@ const volume = computed({
   set: (value) => musicStore.mutations.setLocalMusicVolume(value),
 });
 
+const currentPage = computed(() => musicStore.state.localMusic.currentPage);
+const pageSize = computed(() => musicStore.state.localMusic.pageSize);
+const totalPages = computed(() => {
+  if (musicFiles.value.length === 0) return 1;
+  return Math.ceil(musicFiles.value.length / pageSize.value);
+});
+
+const paginatedMusicFiles = computed(() => {
+  const startIndex = (currentPage.value - 1) * pageSize.value;
+  const endIndex = startIndex + pageSize.value;
+  return musicFiles.value.slice(startIndex, endIndex);
+});
+
 watch(
   musicFiles,
   (newFiles) => {
@@ -113,11 +145,11 @@ async function scanMusicFiles(path) {
   try {
     const files = await invoke("scan_files", { path });
     musicStore.mutations.setMusicFiles(files);
-    tableData.value = [...files];
+    musicStore.mutations.setLocalMusicCurrentPage(1);
 
     if (
       currentMusic.value &&
-      !tableData.value.some((m) => m.id === currentMusic.value.id)
+      !files.some((m) => m.id === currentMusic.value.id)
     ) {
       musicStore.mutations.setCurrentMusic(null);
       musicStore.mutations.setLocalMusicPlaying(false);
@@ -196,33 +228,50 @@ async function pauseAudio() {
 }
 
 function preAudio() {
-  if (tableData.value.length === 0) return;
+  if (musicFiles.value.length === 0) return;
 
+  const fullFilesList = musicFiles.value;
   const currentIndex = currentMusic.value
-    ? tableData.value.findIndex((item) => item.id === currentMusic.value.id)
+    ? fullFilesList.findIndex((item) => item.id === currentMusic.value.id)
     : -1;
 
   let newIndex = currentIndex - 1;
   if (newIndex < 0) {
-    newIndex = tableData.value.length - 1;
+    newIndex = fullFilesList.length - 1;
   }
 
-  playAudio(tableData.value[newIndex]);
+  const newPage = Math.floor(newIndex / pageSize.value) + 1;
+  if (newPage !== currentPage.value) {
+    musicStore.mutations.setLocalMusicCurrentPage(newPage);
+  }
+
+  playAudio(fullFilesList[newIndex]);
 }
 
 function nextAudio() {
-  if (tableData.value.length === 0) return;
+  if (musicFiles.value.length === 0) return;
 
+  const fullFilesList = musicFiles.value;
   const currentIndex = currentMusic.value
-    ? tableData.value.findIndex((item) => item.id === currentMusic.value.id)
+    ? fullFilesList.findIndex((item) => item.id === currentMusic.value.id)
     : -1;
 
   let newIndex = currentIndex + 1;
-  if (newIndex >= tableData.value.length) {
+  if (newIndex >= fullFilesList.length) {
     newIndex = 0;
   }
 
-  playAudio(tableData.value[newIndex]);
+  const newPage = Math.floor(newIndex / pageSize.value) + 1;
+  if (newPage !== currentPage.value) {
+    musicStore.mutations.setLocalMusicCurrentPage(newPage);
+  }
+
+  playAudio(fullFilesList[newIndex]);
+}
+
+function changePage(page) {
+  if (page < 1 || page > totalPages.value) return;
+  musicStore.mutations.setLocalMusicCurrentPage(page);
 }
 
 function toggleMute() {
@@ -279,7 +328,7 @@ onMounted(() => {
     musicStore.state.globalMusic.isPlaying &&
     musicStore.state.globalMusic.currentSource === "netease"
   ) {
-    console.log("检测到正在播放网易云音乐，保持播放状态");
+    console.log("netease music is playing, not local music");
   }
 });
 
@@ -479,6 +528,33 @@ onBeforeUnmount(() => {
   background: #4a86e8;
   cursor: pointer;
   border: none;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+
+.page-btn {
+  padding: 8px 15px;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin: 0 10px;
+}
+
+.page-btn:disabled {
+  background-color: #ccc;
+  cursor: default;
+}
+
+.page-info {
+  font-size: 16px;
+  color: #666;
 }
 
 @supports (-webkit-touch-callout: none) {
