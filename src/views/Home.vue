@@ -51,14 +51,14 @@
       </div>
 
       <div class="control-buttons">
-        <button class="control-btn" @click="preAudio">⏮️</button>
+        <button class="control-btn" @click="preAudio">⏮</button>
         <button
           class="control-btn play-btn"
           @click="isPlaying ? pauseAudio() : recoveryAudio()"
         >
-          {{ isPlaying ? "pause" : "play" }}
+          {{ isPlaying ? "⏸" : "▶" }}
         </button>
-        <button class="control-btn" @click="nextAudio">⏭️</button>
+        <button class="control-btn" @click="nextAudio">⏭</button>
       </div>
 
       <div class="volume-control">
@@ -488,6 +488,9 @@ onBeforeUnmount(() => {
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .control-btn:hover {
@@ -499,6 +502,9 @@ onBeforeUnmount(() => {
   background-color: #4a86e8;
   color: white;
   padding: 0.6rem 1.5rem;
+  width: auto;
+  height: auto;
+  font-size: 1.2em;
 }
 
 .play-btn:hover {

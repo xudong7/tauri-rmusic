@@ -27,7 +27,6 @@
       <table class="song-table">
         <thead>
           <tr>
-            <th style="width: 50px"></th>
             <th style="width: 35%">Song</th>
             <th style="width: 25%">Singer</th>
             <th style="width: 20%">Album</th>
@@ -42,19 +41,6 @@
             @dblclick="playSong(song)"
             :class="{ playing: isCurrentSong(song) }"
           >
-            <td class="play-cell">
-              <button class="play-btn" @click="playSong(song)">
-                <span
-                  v-if="
-                    isCurrentSong(song) &&
-                    musicState.state.neteaseMusic.isPlaying
-                  "
-                >
-                  ■
-                </span>
-                <span v-else>▶</span>
-              </button>
-            </td>
             <td>
               <div class="song-info">
                 <img
@@ -77,7 +63,7 @@
                 :title="downloadingMap[song.id] ? 'Downloading...' : 'Download'"
               >
                 <span v-if="downloadingMap[song.id]">⏳</span>
-                <span v-else>⬇️</span>
+                <span v-else>⬇</span>
               </button>
             </td>
           </tr>
@@ -146,9 +132,23 @@
         </div>
       </div>
       <div class="player-controls">
-        <button @click="togglePlay" class="control-btn">
-          <span v-if="musicState.state.neteaseMusic.isPlaying">⏸️</span>
-          <span v-else>▶️</span>
+        <button
+          @click="playPrevious"
+          class="control-btn prev-btn"
+          :disabled="!hasPrevious"
+        >
+          <span>⏮</span>
+        </button>
+        <button @click="togglePlay" class="control-btn play-btn">
+          <span v-if="musicState.state.neteaseMusic.isPlaying">⏸</span>
+          <span v-else>▶</span>
+        </button>
+        <button
+          @click="playNext"
+          class="control-btn next-btn"
+          :disabled="!hasNext"
+        >
+          <span>⏭</span>
         </button>
       </div>
     </div>
@@ -327,6 +327,47 @@ export default {
       isImmersiveMode.value = false;
     };
 
+    const playPrevious = () => {
+      const currentIndex =
+        musicState.state.neteaseMusic.searchResults.findIndex(
+          (song) => song.id === musicState.state.neteaseMusic.currentSong.id
+        );
+      if (currentIndex > 0) {
+        playSong(musicState.state.neteaseMusic.searchResults[currentIndex - 1]);
+      }
+    };
+
+    const playNext = () => {
+      const currentIndex =
+        musicState.state.neteaseMusic.searchResults.findIndex(
+          (song) => song.id === musicState.state.neteaseMusic.currentSong.id
+        );
+      if (
+        currentIndex <
+        musicState.state.neteaseMusic.searchResults.length - 1
+      ) {
+        playSong(musicState.state.neteaseMusic.searchResults[currentIndex + 1]);
+      }
+    };
+
+    const hasPrevious = computed(() => {
+      const currentIndex =
+        musicState.state.neteaseMusic.searchResults.findIndex(
+          (song) => song.id === musicState.state.neteaseMusic.currentSong.id
+        );
+      return currentIndex > 0;
+    });
+
+    const hasNext = computed(() => {
+      const currentIndex =
+        musicState.state.neteaseMusic.searchResults.findIndex(
+          (song) => song.id === musicState.state.neteaseMusic.currentSong.id
+        );
+      return (
+        currentIndex < musicState.state.neteaseMusic.searchResults.length - 1
+      );
+    });
+
     onBeforeUnmount(() => {
       console.log("Keep alive NeteaseView");
     });
@@ -363,6 +404,10 @@ export default {
       enterImmersiveMode,
       exitImmersiveMode,
       lyrics,
+      playPrevious,
+      playNext,
+      hasPrevious,
+      hasNext,
     };
   },
 };
@@ -384,7 +429,10 @@ export default {
   background-color: #fff;
   border-bottom: 1px solid #eaeaea;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  margin-bottom: 20px;
+  margin-bottom: 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .search-bar {
@@ -465,7 +513,7 @@ export default {
 }
 
 .song-table th {
-  padding: 12px;
+  padding: 8px;
   text-align: left;
   border-bottom: 2px solid #eaeaea;
   color: #666;
@@ -475,6 +523,10 @@ export default {
 .song-table td {
   padding: 12px;
   border-bottom: 1px solid #f0f0f0;
+}
+
+.song-table tr {
+  transition: background-color 0.15s ease;
 }
 
 .song-table tr:hover {
@@ -504,10 +556,6 @@ export default {
   font-weight: 500;
 }
 
-.play-cell {
-  text-align: center;
-}
-
 .play-btn {
   width: 30px;
   height: 30px;
@@ -532,8 +580,8 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 20px;
-  margin-bottom: 10px;
+  margin-top: 5px;
+  margin-bottom: 5px;
 }
 
 .page-btn {
@@ -587,12 +635,14 @@ export default {
 
 .player-bar {
   padding: 1.2rem;
-  background-color: #fff;
-  border-top: 1px solid #eaeaea;
+  background-color: #f7f7f7;
+  border-radius: 8px 8px 0 0;
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
+  background-color: #fff;
+  border-top: 1px solid #eaeaea;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -612,6 +662,7 @@ export default {
   border-radius: 4px;
   margin-right: 15px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  object-fit: cover;
 }
 
 .current-song-info {
@@ -636,12 +687,13 @@ export default {
 .player-controls {
   display: flex;
   align-items: center;
+  justify-content: center;
+  gap: 15px;
 }
 
 .control-btn {
   padding: 0.6rem 1.2rem;
-  background-color: #4a86e8;
-  color: white;
+  background-color: #f5f5f5;
   border: none;
   border-radius: 50px;
   cursor: pointer;
@@ -652,9 +704,35 @@ export default {
   justify-content: center;
 }
 
-.control-btn:hover {
+.control-btn:hover:not([disabled]) {
   transform: scale(1.05);
+  background-color: #e9e9e9;
+}
+
+.control-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.play-btn {
+  background-color: #4a86e8;
+  color: white;
+  padding: 0.6rem 1.5rem;
+  width: auto;
+  height: auto;
+  font-size: 1.2em;
+}
+
+.play-btn:hover:not([disabled]) {
   background-color: #3a76d8;
+}
+
+.prev-btn,
+.next-btn {
+  font-size: 1em;
+  background-color: #f5f5f5;
+  color: #333;
 }
 
 .download-btn {
