@@ -1,6 +1,5 @@
 use reqwest;
 use serde::{Deserialize, Serialize};
-use urlencoding::encode;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SongInfo {
@@ -10,7 +9,14 @@ pub struct SongInfo {
     pub album: String,
     pub duration: u64, // ms
     pub pic_url: String,
-    pub file_hash: String, // 用于获取播放地址
+    pub file_hash: String, // file hash for the song
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct SearchRequest {
+    pub keywords: String,
+    pub page: u32,
+    pub pagesize: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -21,48 +27,70 @@ pub struct SearchResult {
 
 const LOCAL_API_BASE: &str = "http://localhost:3000";
 
+/// return client
+fn get_client() -> Result<reqwest::Client, String> {
+    let client = reqwest::Client::builder()
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
+    Ok(client)
+}
+
+/// get client response
+async fn get_response(client: reqwest::Client, url: String) -> Result<reqwest::Response, String> {
+    let response = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("API请求失败: {}", e))?;
+    if response.status().is_client_error() {
+        return Err(format!("API请求失败: HTTP {}", response.status()));
+    }
+    Ok(response)
+}
+
+/// get response text
+async fn get_text(response: reqwest::Response) -> Result<String, String> {
+    let text = response
+        .text()
+        .await
+        .map_err(|e| format!("读取响应失败: {}", e))?;
+    Ok(text)
+}
+
+/// get response json
+async fn get_response_json(
+    client: reqwest::Client,
+    url: String,
+) -> Result<serde_json::Value, String> {
+    let response = get_response(client, url).await?;
+    let text = get_text(response).await?;
+    let json: serde_json::Value = serde_json::from_str(&text)
+        .map_err(|e| format!("解析JSON失败: {}，内容: {}", e, &text[..200]))?;
+    Ok(json)
+}
+
+/// search online songs by keywords
 #[tauri::command]
 pub async fn search_songs(
     keywords: String,
     page: Option<u32>,
     pagesize: Option<u32>,
 ) -> Result<SearchResult, String> {
-    let client = reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
-        .build()
-        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
-
-    let encoded_keywords = encode(&keywords);
-
-    let page = page.unwrap_or(1);
-    let pagesize = pagesize.unwrap_or(7);
+    let client = get_client()?;
+    let search_request = SearchRequest {
+        keywords: keywords.clone(),
+        page: page.unwrap_or(1),
+        pagesize: pagesize.unwrap_or(7),
+    };
 
     let url = format!(
         "{}/search?keywords={}&page={}&pagesize={}",
-        LOCAL_API_BASE, encoded_keywords, page, pagesize
+        LOCAL_API_BASE, search_request.keywords, search_request.page, search_request.pagesize
     );
 
-    let response = client
-        .get(&url)
-        .send()
-        .await
-        .map_err(|e| format!("API请求失败: {}", e))?;
+    let response_json: serde_json::Value = get_response_json(client, url).await?;
 
-    if !response.status().is_success() {
-        return Err(format!("API返回错误: HTTP {}", response.status()));
-    }
-
-    // 获取响应
-    let text = response
-        .text()
-        .await
-        .map_err(|e| format!("读取响应失败: {}", e))?;
-
-    // 解析JSON
-    let response_json: serde_json::Value = serde_json::from_str(&text)
-        .map_err(|e| format!("解析JSON失败: {}，内容: {}", e, &text[..200]))?;
-
-    // 判断是否有错误
     let error_code = response_json
         .get("error_code")
         .and_then(|v| v.as_u64())
@@ -86,7 +114,6 @@ pub async fn search_songs(
 
     let total = data.get("total").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
 
-    // 转换歌曲数据
     let mut songs = Vec::new();
     for song in songs_value {
         let file_hash = song["FileHash"].as_str().unwrap_or("").to_string();
@@ -100,25 +127,20 @@ pub async fn search_songs(
             .unwrap_or_default();
         let song_name = song["OriSongName"].as_str().unwrap_or("未知").to_string();
 
-        // 解析歌手信息
         let artists = if let Some(singers_array) = song["Singers"].as_array() {
             singers_array
                 .iter()
                 .filter_map(|singer| singer["name"].as_str().map(|s| s.to_string()))
                 .collect()
         } else {
-            // 备用歌手名获取方式
             let singer_name = song["SingerName"].as_str().unwrap_or("未知歌手");
             vec![singer_name.to_string()]
         };
 
-        // 专辑信息
         let album = song["AlbumName"].as_str().unwrap_or("未知专辑").to_string();
 
-        // 时长（秒转毫秒）
         let duration = song["Duration"].as_u64().unwrap_or(0) * 1000;
 
-        // 图片链接 - 替换{size}为合适的尺寸
         let mut pic_url = song["Image"].as_str().unwrap_or("").to_string();
         pic_url = pic_url.replace("{size}", "400");
 
@@ -139,36 +161,14 @@ pub async fn search_songs(
 // 获取歌曲URL和详细信息
 #[tauri::command]
 pub async fn get_song_url(id: String) -> Result<String, String> {
-    let client = reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
-        .build()
-        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
+    let client = get_client()?;
 
     // 构建请求URL - 使用file_hash获取歌曲URL
     let url = format!("{}/song/url/new?hash={}", LOCAL_API_BASE, id);
 
     println!("获取歌曲URL: {}", url);
 
-    // 发送请求
-    let response = client
-        .get(&url)
-        .send()
-        .await
-        .map_err(|e| format!("API请求失败: {}", e))?;
-
-    if !response.status().is_success() {
-        return Err(format!("API返回错误: HTTP {}", response.status()));
-    }
-
-    // 获取响应
-    let text = response
-        .text()
-        .await
-        .map_err(|e| format!("读取响应失败: {}", e))?;
-
-    // 解析JSON
-    let response_json: serde_json::Value = serde_json::from_str(&text)
-        .map_err(|e| format!("解析JSON失败: {}，内容: {}", e, &text[..200]))?;
+    let response_json: serde_json::Value = get_response_json(client, url).await?;
 
     // 检查API错误码
     let error_code = response_json
@@ -257,36 +257,14 @@ pub async fn get_song_url(id: String) -> Result<String, String> {
 // 获取歌曲详情
 #[tauri::command]
 pub async fn get_song_detail(id: String) -> Result<SongInfo, String> {
-    let client = reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
-        .build()
-        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
+    let client = get_client()?;
 
-    // 构建请求URL
     let url = format!("{}/song/detail?ids={}", LOCAL_API_BASE, id);
 
     println!("获取歌曲详情: {}", url);
 
-    // 发送请求
-    let response = client
-        .get(&url)
-        .send()
-        .await
-        .map_err(|e| format!("API请求失败: {}", e))?;
-
-    if !response.status().is_success() {
-        return Err(format!("API返回错误: HTTP {}", response.status()));
-    }
-
-    // 获取响应
-    let text = response
-        .text()
-        .await
-        .map_err(|e| format!("读取响应失败: {}", e))?;
-
     // 解析JSON
-    let response_json: serde_json::Value = serde_json::from_str(&text)
-        .map_err(|e| format!("解析JSON失败: {}，内容: {}", e, &text[..200]))?;
+    let response_json: serde_json::Value = get_response_json(client, url).await?;
 
     // 解析歌曲详情
     let songs = response_json
