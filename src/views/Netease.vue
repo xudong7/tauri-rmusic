@@ -61,6 +61,7 @@
                   v-if="song.pic_url"
                   :src="song.pic_url"
                   class="song-cover"
+                  @click="enterImmersiveMode(song)"
                 />
                 <span class="song-name">{{ song.name }}</span>
               </div>
@@ -172,6 +173,8 @@ export default {
   setup() {
     const searchKeyword = ref("");
     const playingUrl = ref("");
+    const isImmersiveMode = ref(false); // 是否处于沉浸模式
+    const lyrics = ref("暂无歌词"); // 歌词内容，目前没有实际获取歌词的功能
 
     const searchSongs = async () => {
       if (!searchKeyword.value.trim()) return;
@@ -311,6 +314,19 @@ export default {
       }
     };
 
+    const enterImmersiveMode = (song) => {
+      if (!song) return;
+      isImmersiveMode.value = true;
+      // 如果歌曲没有在播放，则开始播放
+      if (!isCurrentSong(song) || !musicState.state.neteaseMusic.isPlaying) {
+        playSong(song);
+      }
+    };
+
+    const exitImmersiveMode = () => {
+      isImmersiveMode.value = false;
+    };
+
     onBeforeUnmount(() => {
       console.log("Keep alive NeteaseView");
     });
@@ -343,6 +359,10 @@ export default {
       showDownloadMessage,
       downloadMessage,
       downloadStatus,
+      isImmersiveMode,
+      enterImmersiveMode,
+      exitImmersiveMode,
+      lyrics,
     };
   },
 };
@@ -573,7 +593,6 @@ export default {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 80px;
   display: flex;
   align-items: center;
   justify-content: space-between;
