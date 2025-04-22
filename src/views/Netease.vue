@@ -28,10 +28,11 @@
         <thead>
           <tr>
             <th style="width: 50px"></th>
-            <th style="width: 40%">Song</th>
-            <th style="width: 30%">Singer</th>
+            <th style="width: 35%">Song</th>
+            <th style="width: 25%">Singer</th>
             <th style="width: 20%">Album</th>
             <th style="width: 10%">Time</th>
+            <th style="width: 10%">Action</th>
           </tr>
         </thead>
         <tbody>
@@ -67,6 +68,17 @@
             <td>{{ song.artists.join(", ") }}</td>
             <td>{{ song.album }}</td>
             <td>{{ formatDuration(song.duration) }}</td>
+            <td>
+              <button
+                class="download-btn"
+                @click="downloadSong(song)"
+                :disabled="downloadingMap[song.id]"
+                :title="downloadingMap[song.id] ? 'Downloading...' : 'Download'"
+              >
+                <span v-if="downloadingMap[song.id]">⏳</span>
+                <span v-else>⬇️</span>
+              </button>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -77,7 +89,7 @@
           :disabled="musicState.state.neteaseMusic.currentPage === 1"
           class="page-btn"
         >
-          上一页
+          Last
         </button>
         <span class="page-info">
           {{ musicState.state.neteaseMusic.currentPage }} /
@@ -99,7 +111,7 @@
           "
           class="page-btn"
         >
-          下一页
+          Next
         </button>
       </div>
     </div>
@@ -108,7 +120,7 @@
       v-else-if="musicState.state.neteaseMusic.searchKeyword"
       class="no-results"
     >
-    No results found for "{{ musicState.state.neteaseMusic.searchKeyword }}"
+      No results found for "{{ musicState.state.neteaseMusic.searchKeyword }}"
     </div>
 
     <div v-else class="welcome-message">
@@ -139,6 +151,14 @@
         </button>
       </div>
     </div>
+
+    <div
+      v-if="showDownloadMessage"
+      class="download-message"
+      :class="downloadStatus"
+    >
+      {{ downloadMessage }}
+    </div>
   </div>
 </template>
 
@@ -155,21 +175,21 @@ export default {
 
     const searchSongs = async () => {
       if (!searchKeyword.value.trim()) return;
-      
+
       musicState.mutations.setNeteaseSearchKeyword(searchKeyword.value);
       musicState.mutations.setNeteaseLoading(true);
-      
+
       try {
-        const result = await invoke('search_songs', {
+        const result = await invoke("search_songs", {
           keywords: searchKeyword.value,
           page: musicState.state.neteaseMusic.currentPage,
-          pagesize: musicState.state.neteaseMusic.pageSize
+          pagesize: musicState.state.neteaseMusic.pageSize,
         });
-        
+
         musicState.mutations.setNeteaseSearchResults(result.songs);
         musicState.mutations.setNeteaseTotalCount(result.total);
       } catch (error) {
-        console.error('Search songs error:', error);
+        console.error("Search songs error:", error);
         musicState.mutations.setNeteaseSearchResults([]);
       } finally {
         musicState.mutations.setNeteaseLoading(false);
@@ -249,6 +269,48 @@ export default {
       );
     };
 
+    const downloadingMap = ref({});
+    const showDownloadMessage = ref(false);
+    const downloadMessage = ref("");
+    const downloadStatus = ref("");
+
+    const downloadSong = async (song) => {
+      try {
+        downloadingMap.value = { ...downloadingMap.value, [song.id]: true };
+
+        const artistName =
+          song.artists.length > 0 ? song.artists[0] : "unknown artist";
+
+        const fileName = await invoke("download_music", {
+          songHash: song.file_hash,
+          songName: song.name,
+          artist: artistName,
+        });
+
+        downloadMessage.value = `Song "${song.name}" Downloaded successfully!`;
+        downloadStatus.value = "success";
+        showDownloadMessage.value = true;
+
+        setTimeout(() => {
+          showDownloadMessage.value = false;
+        }, 3000);
+      } catch (error) {
+        console.error("Download error:", error);
+
+        downloadMessage.value = `Download error: ${error}`;
+        downloadStatus.value = "error";
+        showDownloadMessage.value = true;
+
+        setTimeout(() => {
+          showDownloadMessage.value = false;
+        }, 3000);
+      } finally {
+        const newDownloadingMap = { ...downloadingMap.value };
+        delete newDownloadingMap[song.id];
+        downloadingMap.value = newDownloadingMap;
+      }
+    };
+
     onBeforeUnmount(() => {
       console.log("Keep alive NeteaseView");
     });
@@ -276,6 +338,11 @@ export default {
       changePage,
       formatDuration,
       isCurrentSong,
+      downloadSong,
+      downloadingMap,
+      showDownloadMessage,
+      downloadMessage,
+      downloadStatus,
     };
   },
 };
@@ -529,5 +596,54 @@ export default {
 
 .control-btn:hover {
   background-color: #c0392b;
+}
+
+/* 下载按钮样式 */
+.download-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background-color: #4caf50;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.download-btn:hover:not([disabled]) {
+  background-color: #45a049;
+}
+
+.download-btn[disabled] {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* 下载提示框样式 */
+.download-message {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 24px;
+  border-radius: 4px;
+  color: white;
+  font-size: 14px;
+  z-index: 100;
+  transition: all 0.3s ease;
+  opacity: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.success {
+  background-color: #4caf50;
+}
+
+.error {
+  background-color: #f44336;
 }
 </style>
