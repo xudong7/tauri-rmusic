@@ -20,7 +20,7 @@ const state = reactive({
     searchKeyword: "", // 搜索关键词
     searchResults: [], // 搜索结果
     currentPage: 1, // 当前页码
-    pageSize: 6, // 每页显示数量
+    pageSize: 5, // 每页显示数量
     totalCount: 0, // 搜索结果总数
     currentSong: null, // 当前播放的歌曲
     isPlaying: false, // 是否正在播放
