@@ -5,7 +5,7 @@
 <template>
   <div class="app-container">
     <header class="app-header">
-      <h1>RMusic</h1>
+      <h1 class="title">RMusic</h1>
       <nav class="app-nav">
         <router-link to="/">本地音乐</router-link>
         <router-link to="/netease">网易云</router-link>
@@ -32,8 +32,13 @@ body {
   min-height: 100vh;
 }
 
+.title {
+  color: burlywood;
+}
+
 .app-header {
-  background-color: #1890ff;
+  /* background-color: #1890ff; */
+  background: linear-gradient(135deg, #0c1e2c 0%, #101820 50%, #0c1e2c 100%);
   color: white;
   padding: 10px 20px;
   display: flex;
@@ -67,6 +72,7 @@ body {
 .app-content {
   flex: 1;
   padding: 20px;
+  background: linear-gradient(135deg, #0c1e2c 0%, #101820 50%, #0c1e2c 100%);
 }
 
 /* .app-footer {

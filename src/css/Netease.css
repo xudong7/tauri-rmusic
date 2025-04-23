@@ -4,15 +4,15 @@
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  background-color: #fff;
-  color: #333;
+  background-color: #101820;
+  color: white;
 }
 
 .search-section {
   padding: 1.2rem;
-  background-color: #fff;
-  border-bottom: 1px solid #eaeaea;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  background-color: #0c1e2c;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   margin-bottom: 5px;
   display: flex;
   justify-content: space-between;
@@ -27,15 +27,17 @@
 .search-input {
   flex: 1;
   padding: 0.6rem 1.2rem;
-  border: 1px solid #ddd;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 6px 0 0 6px;
   font-size: 16px;
   outline: none;
+  background-color: rgba(255, 255, 255, 0.05);
+  color: white;
 }
 
 .search-button {
   padding: 0.6rem 1.2rem;
-  background-color: #4a86e8;
+  background-color: rgba(73, 134, 232, 0.8);
   color: white;
   border: none;
   border-radius: 0 6px 6px 0;
@@ -46,9 +48,9 @@
 }
 
 .search-button:hover {
-  background-color: #3a76d8;
+  background-color: rgb(73, 134, 232);
   transform: translateY(-1px);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
 .loading {
@@ -57,12 +59,13 @@
   align-items: center;
   justify-content: center;
   height: 200px;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .spinner {
   width: 30px;
   height: 30px;
-  border: 3px solid #4a86e8;
+  border: 3px solid rgba(73, 134, 232, 0.8);
   border-top: 3px solid transparent;
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -81,13 +84,22 @@
 .search-results {
   flex: 1;
   overflow-y: auto;
-  background-color: white;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
+  background-color: transparent;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
 .search-results::-webkit-scrollbar {
-  display: none;
+  width: 4px;
+}
+
+.search-results::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.search-results::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
 }
 
 .song-table {
@@ -99,14 +111,15 @@
 .song-table th {
   padding: 8px;
   text-align: left;
-  border-bottom: 2px solid #eaeaea;
-  color: #666;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
   font-weight: 500;
 }
 
 .song-table td {
   padding: 12px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .song-table tr {
@@ -114,12 +127,12 @@
 }
 
 .song-table tr:hover {
-  background-color: #f0f8ff;
+  background-color: rgba(255, 255, 255, 0.03);
 }
 
 .song-table tr.playing {
-  background-color: #e6f2ff;
-  border-left: 3px solid #4a86e8;
+  background-color: rgba(73, 134, 232, 0.2);
+  border-left: 3px solid rgb(73, 134, 232);
 }
 
 .song-info {
@@ -133,11 +146,12 @@
   border-radius: 4px;
   margin-right: 10px;
   object-fit: cover;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
 .song-name {
   font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .play-btn {
@@ -145,18 +159,18 @@
   height: 30px;
   border-radius: 50%;
   border: none;
-  background-color: #4a86e8;
+  background-color: rgba(73, 134, 232, 0.8);
   color: white;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .play-btn:hover {
-  background-color: #3a76d8;
+  background-color: rgb(73, 134, 232);
   transform: scale(1.05);
 }
 
@@ -170,7 +184,7 @@
 
 .page-btn {
   padding: 8px 15px;
-  background-color: #4a86e8;
+  background-color: rgba(73, 134, 232, 0.8);
   color: white;
   border: none;
   border-radius: 4px;
@@ -180,17 +194,18 @@
 }
 
 .page-btn:hover {
-  background-color: #3a76d8;
+  background-color: rgb(73, 134, 232);
 }
 
 .page-btn:disabled {
-  background-color: #ccc;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
   cursor: default;
 }
 
 .page-info {
   font-size: 16px;
-  color: #666;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .welcome-message {
@@ -200,12 +215,13 @@
   justify-content: center;
   height: 400px;
   text-align: center;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .welcome-icon {
   font-size: 60px;
   margin-bottom: 20px;
-  color: #4a86e8;
+  color: rgba(73, 134, 232, 0.8);
 }
 
 .no-results {
@@ -213,24 +229,23 @@
   align-items: center;
   justify-content: center;
   height: 200px;
-  color: #999;
+  color: rgba(255, 255, 255, 0.5);
   font-size: 18px;
 }
 
 .player-bar {
   padding: 1.2rem;
-  background-color: #f7f7f7;
+  background-color: #0c1e2c;
   border-radius: 8px 8px 0 0;
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  background-color: #fff;
-  border-top: 1px solid #eaeaea;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.2);
   z-index: 1000;
 }
 
@@ -245,7 +260,7 @@
   height: 48px;
   border-radius: 4px;
   margin-right: 15px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
   object-fit: cover;
 }
 
@@ -261,11 +276,12 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .current-song-artist {
   font-size: 14px;
-  color: #666;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .player-controls {
@@ -283,12 +299,13 @@
 
 .control-btn {
   padding: 0.6rem 1.2rem;
-  background-color: #f5f5f5;
+  background-color: rgba(255, 255, 255, 0.1);
   border: none;
   border-radius: 50px;
+  color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -296,43 +313,33 @@
 
 .control-btn:hover:not([disabled]) {
   transform: scale(1.05);
-  background-color: #e9e9e9;
+  color: white;
+  background-color: rgba(255, 255, 255, 0.15);
 }
 
 .control-btn:disabled {
-  background-color: #ccc;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
   cursor: not-allowed;
   opacity: 0.7;
-}
-
-.play-btn {
-  background-color: #4a86e8;
-  color: white;
-  padding: 0.6rem 1.5rem;
-  width: auto;
-  height: auto;
-  font-size: 1.2em;
-}
-
-.play-btn:hover:not([disabled]) {
-  background-color: #3a76d8;
 }
 
 .prev-btn,
 .next-btn {
   font-size: 1em;
-  background-color: #f5f5f5;
-  color: #333;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .normal-btn {
   padding: 0.6rem 1.2rem;
-  background-color: #f5f5f5;
+  background-color: rgba(255, 255, 255, 0.1);
   border: none;
   border-radius: 50px;
+  color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -340,11 +347,12 @@
 
 .normal-btn:hover {
   transform: scale(1.05);
-  background-color: #e9e9e9;
+  color: white;
+  background-color: rgba(255, 255, 255, 0.15);
 }
 
 .normal-play-btn {
-  background-color: #4a86e8;
+  background-color: rgba(73, 134, 232, 0.8);
   color: white;
   padding: 0.6rem 1.5rem;
   width: auto;
@@ -353,7 +361,7 @@
 }
 
 .normal-play-btn:hover {
-  background-color: #3a76d8;
+  background-color: rgb(73, 134, 232);
 }
 
 .download-btn {
@@ -361,23 +369,24 @@
   height: 30px;
   border-radius: 50%;
   border: none;
-  background-color: #4a86e8;
+  background-color: rgba(73, 134, 232, 0.8);
   color: white;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .download-btn:hover:not([disabled]) {
-  background-color: #3a76d8;
+  background-color: rgb(73, 134, 232);
   transform: scale(1.05);
 }
 
 .download-btn[disabled] {
-  background-color: #cccccc;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
   cursor: not-allowed;
   opacity: 0.7;
 }
