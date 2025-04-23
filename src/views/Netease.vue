@@ -285,6 +285,7 @@ export default {
     const currentTime = ref(0);
     const totalDuration = ref(0);
     const progressPercentage = ref(0);
+    const autoPlayCheckInterval = ref(null);
 
     const searchSongs = async () => {
       if (!searchKeyword.value.trim()) return;
@@ -713,6 +714,33 @@ export default {
       });
     };
 
+    const checkSongStatus = async () => {
+      try {
+        // 只有网易云音乐在播放且有当前歌曲时才检查
+        if (
+          musicState.state.globalMusic.currentSource === "netease" &&
+          musicState.state.neteaseMusic.isPlaying &&
+          musicState.state.neteaseMusic.currentSong
+        ) {
+          const isEmpty = await invoke("is_sink_empty");
+
+          // 如果音频播放器已经空了，但状态还是播放中，说明歌曲播放完毕
+          if (isEmpty && musicState.state.neteaseMusic.isPlaying) {
+            console.log("当前歌曲播放完毕，准备播放下一首");
+
+            // 如果有下一首歌，则自动播放下一首
+            if (hasNext.value) {
+              playNext();
+            } else {
+              console.log("已经是最后一首歌曲，不再自动播放");
+            }
+          }
+        }
+      } catch (error) {
+        console.error("检查歌曲状态出错:", error);
+      }
+    };
+
     watch(
       () => musicState.state.neteaseMusic.currentSong,
       (newSong) => {
@@ -780,6 +808,7 @@ export default {
 
     onBeforeUnmount(() => {
       console.log("Keep alive NeteaseView");
+      // 清除所有定时器
       if (lyricTimer.value) {
         clearInterval(lyricTimer.value);
         lyricTimer.value = null;
@@ -788,9 +817,15 @@ export default {
         clearTimeout(lyricFetchTimeout.value);
         lyricFetchTimeout.value = null;
       }
+      // 清除自动播放检查定时器
+      if (autoPlayCheckInterval.value) {
+        clearInterval(autoPlayCheckInterval.value);
+        autoPlayCheckInterval.value = null;
+      }
     });
 
     onMounted(() => {
+      // 初始化搜索和播放状态
       if (musicState.state.neteaseMusic.searchKeyword) {
         searchKeyword.value = musicState.state.neteaseMusic.searchKeyword;
         searchSongs();
@@ -805,6 +840,9 @@ export default {
           updateVisibleLyrics();
         }
       }
+
+      // 启动自动播放检查定时器，每秒检查一次
+      autoPlayCheckInterval.value = setInterval(checkSongStatus, 1000);
     });
 
     return {
@@ -841,6 +879,7 @@ export default {
       totalDuration,
       progressPercentage,
       updateVisibleLyrics,
+      checkSongStatus,
     };
   },
 };
