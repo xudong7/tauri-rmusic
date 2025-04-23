@@ -115,12 +115,110 @@
       <p>Search for your favorite songs!</p>
     </div>
 
+    <div v-if="isImmersiveMode" class="immersive-mode">
+      <div class="immersive-overlay"></div>
+      <div class="immersive-top-buttons">
+        <button class="minimize-btn" @click="exitImmersiveMode">
+          <span>﹀</span>
+        </button>
+      </div>
+      <div class="immersive-content">
+        <div class="immersive-main">
+          <div class="album-display">
+            <img
+              v-if="musicState.state.neteaseMusic.currentSong?.pic_url"
+              :src="musicState.state.neteaseMusic.currentSong.pic_url"
+              class="immersive-album-cover"
+            />
+          </div>
+          <div class="song-info-display">
+            <div class="song-title-section">
+              <h2 class="immersive-song-title">
+                {{ musicState.state.neteaseMusic.currentSong?.name }}
+              </h2>
+              <p class="artists-line">
+                {{
+                  musicState.state.neteaseMusic.currentSong?.artists.join(" / ")
+                }}
+              </p>
+            </div>
+
+            <div class="lyrics-container">
+              <div class="lyrics-wrapper" ref="lyricsWrapper">
+                <p
+                  v-for="(line, index) in visibleLyrics"
+                  :key="index"
+                  :class="{ active: currentVisibleIndex === index }"
+                  :ref="
+                    (el) => {
+                      if (el) lyricLineRefs[index] = el;
+                    }
+                  "
+                  class="lyric-line"
+                >
+                  {{ line.text }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="immersive-controls-container">
+          <div class="playback-info">
+            <div class="current-song-info-mini">
+              {{ musicState.state.neteaseMusic.currentSong?.artists[0] }} -
+              {{ musicState.state.neteaseMusic.currentSong?.name }}
+            </div>
+          </div>
+          <div class="playback-controls">
+            <button
+              class="player-control-btn prev-btn"
+              @click="playPrevious"
+              :disabled="!hasPrevious"
+            >
+              <span>⏮</span>
+            </button>
+            <button
+              class="player-control-btn play-pause-btn"
+              @click="togglePlay"
+            >
+              <span v-if="musicState.state.neteaseMusic.isPlaying">⏸</span>
+              <span v-else>▶</span>
+            </button>
+            <button
+              class="player-control-btn next-btn"
+              @click="playNext"
+              :disabled="!hasNext"
+            >
+              <span>⏭</span>
+            </button>
+
+            <button class="player-control-btn volume-btn">
+              <span>🔊</span>
+            </button>
+            <div class="progress-bar">
+              <div class="time-passed">{{ formatTime(currentTime) }}</div>
+              <div class="progress-track">
+                <div
+                  class="progress-fill"
+                  :style="{ width: progressPercentage + '%' }"
+                ></div>
+              </div>
+              <div class="time-total">{{ formatTime(totalDuration) }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div v-if="musicState.state.neteaseMusic.currentSong" class="player-bar">
       <div class="song-details">
         <img
           v-if="musicState.state.neteaseMusic.currentSong.pic_url"
           :src="musicState.state.neteaseMusic.currentSong.pic_url"
           class="current-song-cover"
+          @click="enterImmersiveMode(musicState.state.neteaseMusic.currentSong)"
+          style="cursor: pointer"
         />
         <div class="current-song-info">
           <div class="current-song-name">
@@ -134,18 +232,18 @@
       <div class="player-controls">
         <button
           @click="playPrevious"
-          class="control-btn prev-btn"
+          class="normal-btn prev-btn"
           :disabled="!hasPrevious"
         >
           <span>⏮</span>
         </button>
-        <button @click="togglePlay" class="control-btn play-btn">
+        <button @click="togglePlay" class="normal-btn normal-play-btn">
           <span v-if="musicState.state.neteaseMusic.isPlaying">⏸</span>
           <span v-else>▶</span>
         </button>
         <button
           @click="playNext"
-          class="control-btn next-btn"
+          class="normal-btn next-btn"
           :disabled="!hasNext"
         >
           <span>⏭</span>
@@ -164,7 +262,7 @@
 </template>
 
 <script>
-import { ref, computed, onBeforeUnmount, onMounted } from "vue";
+import { ref, computed, onBeforeUnmount, onMounted, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import musicState from "../store/musicState";
 
@@ -173,8 +271,20 @@ export default {
   setup() {
     const searchKeyword = ref("");
     const playingUrl = ref("");
-    const isImmersiveMode = ref(false); // 是否处于沉浸模式
-    const lyrics = ref("暂无歌词"); // 歌词内容，目前没有实际获取歌词的功能
+    const isImmersiveMode = ref(false);
+    const lyrics = ref("暂无歌词");
+    const parsedLyrics = ref([]);
+    const visibleLyrics = ref([]);
+    const currentLyricIndex = ref(0);
+    const currentVisibleIndex = ref(0);
+    const lyricLineRefs = ref({});
+    const lyricsWrapper = ref(null);
+    const lyricTimer = ref(null);
+    const lyricFetchTimeout = ref(null);
+    const originalTitle = ref("");
+    const currentTime = ref(0);
+    const totalDuration = ref(0);
+    const progressPercentage = ref(0);
 
     const searchSongs = async () => {
       if (!searchKeyword.value.trim()) return;
@@ -210,6 +320,16 @@ export default {
       return `${minutes}:${seconds.toString().padStart(2, "0")}`;
     };
 
+    const formatTime = (timeInSeconds) => {
+      if (!timeInSeconds || isNaN(timeInSeconds)) return "00:00";
+
+      const minutes = Math.floor(timeInSeconds / 60);
+      const seconds = Math.floor(timeInSeconds % 60);
+      return `${minutes.toString().padStart(2, "0")}:${seconds
+        .toString()
+        .padStart(2, "0")}`;
+    };
+
     const playSong = async (song) => {
       try {
         musicState.mutations.setNeteaseCurrentSong(song);
@@ -228,6 +348,10 @@ export default {
 
         musicState.mutations.setGlobalSource("netease");
         musicState.mutations.setGlobalPlayingUrl(songUrl);
+
+        // 设置开始播放时间
+        musicState.mutations.setGlobalStartTime(Date.now());
+        musicState.mutations.setGlobalPausedTime(0);
 
         await invoke("handle_event", {
           event: JSON.stringify({
@@ -248,12 +372,22 @@ export default {
     const togglePlay = async () => {
       try {
         if (musicState.state.neteaseMusic.isPlaying) {
+          // 记录暂停时的时间
+          const startTime =
+            musicState.state.globalMusic.startTime || Date.now();
+          const pausedTime = musicState.state.globalMusic.pausedTime || 0;
+          const currentTime = Date.now() - startTime + pausedTime;
+          musicState.mutations.setGlobalPausedTime(currentTime);
+
           await invoke("handle_event", {
             event: JSON.stringify({ action: "pause" }),
           });
           musicState.mutations.setNeteasePlaying(false);
           musicState.mutations.setGlobalPlaying(false);
         } else {
+          // 恢复播放时，记录新的开始时间
+          musicState.mutations.setGlobalStartTime(Date.now());
+
           await invoke("handle_event", {
             event: JSON.stringify({ action: "recovery" }),
           });
@@ -314,18 +448,294 @@ export default {
       }
     };
 
-    const enterImmersiveMode = (song) => {
+    const enterImmersiveMode = async (song) => {
       if (!song) return;
       isImmersiveMode.value = true;
-      // 如果歌曲没有在播放，则开始播放
       if (!isCurrentSong(song) || !musicState.state.neteaseMusic.isPlaying) {
-        playSong(song);
+        await playSong(song);
       }
+
+      await fetchLyrics(song);
+
+      startLyricScroll();
+
+      if (song.name.includes("-")) {
+        originalTitle.value = song.name;
+      } else if (song.artists.length > 0) {
+        originalTitle.value = `${song.name} - ${song.artists[0]}`;
+      }
+
+      totalDuration.value = song.duration / 1000;
+
+      document.body.style.overflow = "hidden";
+
+      startProgressUpdate();
+    };
+
+    const startProgressUpdate = () => {
+      const progressInterval = setInterval(() => {
+        if (!isImmersiveMode.value) {
+          clearInterval(progressInterval);
+          return;
+        }
+
+        getCurrentPlayTime()
+          .then((time) => {
+            currentTime.value = time;
+            if (totalDuration.value > 0) {
+              progressPercentage.value =
+                (currentTime.value / totalDuration.value) * 100;
+            }
+          })
+          .catch((err) => {
+            console.error("获取播放时间失败:", err);
+          });
+      }, 1000);
     };
 
     const exitImmersiveMode = () => {
       isImmersiveMode.value = false;
+      document.body.style.overflow = "";
+
+      clearInterval(lyricTimer.value);
+      lyricTimer.value = null;
+
+      if (lyricFetchTimeout.value) {
+        clearTimeout(lyricFetchTimeout.value);
+        lyricFetchTimeout.value = null;
+      }
     };
+
+    const fetchLyrics = async (song) => {
+      try {
+        lyrics.value = "正在加载歌词...";
+        parsedLyrics.value = [];
+        currentLyricIndex.value = 0;
+
+        if (!song || !song.file_hash) {
+          console.error("无效的歌曲信息或file_hash");
+          lyrics.value = "无法获取歌词: 缺少歌曲信息";
+          parsedLyrics.value = [{ time: 0, text: "无法获取歌词" }];
+          return;
+        }
+
+        console.log("获取歌词信息，hash:", song.file_hash);
+
+        const lyricInfo = await invoke("search_lyric", {
+          hash: song.file_hash,
+        }).catch((err) => {
+          console.error("获取歌词信息失败:", err);
+          return null;
+        });
+
+        if (lyricInfo && lyricInfo.id && lyricInfo.accesskey) {
+          console.log("成功获取歌词信息:", lyricInfo);
+
+          if (lyricFetchTimeout.value) {
+            clearTimeout(lyricFetchTimeout.value);
+          }
+
+          lyricFetchTimeout.value = setTimeout(() => {
+            if (parsedLyrics.value.length === 0) {
+              lyrics.value = "暂无歌词";
+              parsedLyrics.value = [{ time: 0, text: "暂无歌词" }];
+            }
+          }, 5000);
+
+          try {
+            const lyricContent = await invoke("get_lyric_decoded", {
+              id: lyricInfo.id,
+              accesskey: lyricInfo.accesskey,
+            });
+
+            if (lyricFetchTimeout.value) {
+              clearTimeout(lyricFetchTimeout.value);
+              lyricFetchTimeout.value = null;
+            }
+
+            if (lyricContent) {
+              lyrics.value = lyricContent;
+              parseLyrics(lyricContent);
+            } else {
+              console.log("未获取到歌词内容");
+              lyrics.value = "暂无歌词";
+              parsedLyrics.value = [{ time: 0, text: "暂无歌词" }];
+            }
+          } catch (error) {
+            console.error("获取歌词内容失败:", error);
+            lyrics.value =
+              "获取歌词失败: " +
+              (typeof error === "string" ? error : JSON.stringify(error));
+            parsedLyrics.value = [{ time: 0, text: "获取歌词失败" }];
+          }
+        } else {
+          console.log("未获取到歌词信息或信息不完整:", lyricInfo);
+          lyrics.value = "暂无歌词";
+          parsedLyrics.value = [{ time: 0, text: "暂无歌词" }];
+        }
+      } catch (error) {
+        console.error("获取歌词失败:", error);
+        lyrics.value =
+          "获取歌词失败: " +
+          (typeof error === "string" ? error : JSON.stringify(error));
+        parsedLyrics.value = [{ time: 0, text: "获取歌词失败" }];
+      }
+    };
+
+    const parseLyrics = (lyricContent) => {
+      const regex = /^\[(\d{2}):(\d{2})\.(\d{2})\](.*)/;
+
+      const lines = lyricContent.split("\n");
+      const result = [];
+
+      lines.forEach((line) => {
+        const match = line.match(regex);
+        if (match) {
+          const minutes = parseInt(match[1]);
+          const seconds = parseInt(match[2]);
+          const milliseconds = parseInt(match[3]) * 10;
+          const text = match[4].trim();
+
+          const time = minutes * 60000 + seconds * 1000 + milliseconds;
+          if (text) {
+            result.push({ time, text });
+          }
+        }
+      });
+
+      result.sort((a, b) => a.time - b.time);
+
+      if (result.length === 0) {
+        result.push({ time: 0, text: "暂无歌词" });
+      }
+
+      parsedLyrics.value = result;
+    };
+
+    const startLyricScroll = () => {
+      if (lyricTimer.value) {
+        clearInterval(lyricTimer.value);
+      }
+
+      currentLyricIndex.value = 0;
+
+      const immersiveControls = document.querySelector(
+        ".immersive-controls-container"
+      );
+      const albumDisplay = document.querySelector(".album-display");
+      if (immersiveControls) immersiveControls.style.display = "flex";
+      if (albumDisplay) albumDisplay.style.display = "flex";
+
+      lyricTimer.value = setInterval(() => {
+        if (!isImmersiveMode.value || parsedLyrics.value.length === 0) {
+          clearInterval(lyricTimer.value);
+          lyricTimer.value = null;
+          return;
+        }
+
+        getCurrentPlayTime()
+          .then((currentTime) => {
+            if (currentTime === null) return;
+
+            const currentTimeMs = currentTime * 1000;
+            let foundIndex = -1;
+
+            for (let i = 0; i < parsedLyrics.value.length; i++) {
+              if (parsedLyrics.value[i].time <= currentTimeMs) {
+                foundIndex = i;
+              } else {
+                break;
+              }
+            }
+
+            if (foundIndex !== -1 && foundIndex !== currentLyricIndex.value) {
+              currentLyricIndex.value = foundIndex;
+              updateVisibleLyrics();
+              scrollToCurrentLyric();
+            }
+          })
+          .catch((err) => {
+            console.error("获取播放时间失败:", err);
+          });
+      }, 100);
+    };
+
+    const updateVisibleLyrics = () => {
+      const start = Math.max(0, currentLyricIndex.value - 2);
+      const end = Math.min(
+        parsedLyrics.value.length,
+        currentLyricIndex.value + 4
+      );
+
+      visibleLyrics.value = parsedLyrics.value.slice(start, end);
+
+      currentVisibleIndex.value = currentLyricIndex.value - start;
+    };
+
+    const getCurrentPlayTime = async () => {
+      try {
+        // 这里假设歌曲一开始播放，模拟时间增长
+        const sinkEmpty = await invoke("is_sink_empty");
+        if (sinkEmpty) {
+          return 0;
+        }
+
+        const startTime = musicState.state.globalMusic.startTime || Date.now();
+        const pausedTime = musicState.state.globalMusic.pausedTime || 0;
+
+        if (!musicState.state.globalMusic.isPlaying) {
+          return pausedTime / 1000;
+        }
+
+        const currentTime = Date.now() - startTime + pausedTime;
+        return currentTime / 1000;
+      } catch (error) {
+        console.error("获取播放时间失败:", error);
+        return null;
+      }
+    };
+
+    const scrollToCurrentLyric = () => {
+      if (!lyricsWrapper.value) return;
+
+      const currentLine = lyricLineRefs.value[currentVisibleIndex.value];
+      if (!currentLine) return;
+
+      const containerHeight = lyricsWrapper.value.clientHeight;
+      const lineTop = currentLine.offsetTop;
+      const lineHeight = currentLine.clientHeight;
+
+      const scrollPosition = lineTop - containerHeight / 2 + lineHeight / 2;
+
+      lyricsWrapper.value.scrollTo({
+        top: Math.max(0, scrollPosition),
+        behavior: "smooth",
+      });
+    };
+
+    watch(
+      () => musicState.state.neteaseMusic.currentSong,
+      (newSong) => {
+        if (isImmersiveMode.value && newSong) {
+          fetchLyrics(newSong);
+          startLyricScroll();
+        }
+      }
+    );
+
+    watch(
+      () => musicState.state.neteaseMusic.isPlaying,
+      (isPlaying) => {
+        if (isImmersiveMode.value) {
+          if (isPlaying) {
+            startLyricScroll();
+          } else {
+            clearInterval(lyricTimer.value);
+            lyricTimer.value = null;
+          }
+        }
+      }
+    );
 
     const playPrevious = () => {
       const currentIndex =
@@ -370,6 +780,14 @@ export default {
 
     onBeforeUnmount(() => {
       console.log("Keep alive NeteaseView");
+      if (lyricTimer.value) {
+        clearInterval(lyricTimer.value);
+        lyricTimer.value = null;
+      }
+      if (lyricFetchTimeout.value) {
+        clearTimeout(lyricFetchTimeout.value);
+        lyricFetchTimeout.value = null;
+      }
     });
 
     onMounted(() => {
@@ -383,6 +801,9 @@ export default {
         musicState.state.globalMusic.isPlaying
       ) {
         musicState.mutations.setNeteasePlaying(true);
+        if (parsedLyrics.value.length > 0) {
+          updateVisibleLyrics();
+        }
       }
     });
 
@@ -394,6 +815,7 @@ export default {
       togglePlay,
       changePage,
       formatDuration,
+      formatTime,
       isCurrentSong,
       downloadSong,
       downloadingMap,
@@ -404,389 +826,26 @@ export default {
       enterImmersiveMode,
       exitImmersiveMode,
       lyrics,
+      parsedLyrics,
+      visibleLyrics,
+      currentLyricIndex,
+      currentVisibleIndex,
+      lyricsWrapper,
+      lyricLineRefs,
       playPrevious,
       playNext,
       hasPrevious,
       hasNext,
+      originalTitle,
+      currentTime,
+      totalDuration,
+      progressPercentage,
+      updateVisibleLyrics,
     };
   },
 };
 </script>
 
 <style scoped>
-.netease-container {
-  padding: 20px;
-  height: 100%;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  background-color: #fff;
-  color: #333;
-}
-
-.search-section {
-  padding: 1.2rem;
-  background-color: #fff;
-  border-bottom: 1px solid #eaeaea;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  margin-bottom: 5px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.search-bar {
-  display: flex;
-  width: 100%;
-}
-
-.search-input {
-  flex: 1;
-  padding: 0.6rem 1.2rem;
-  border: 1px solid #ddd;
-  border-radius: 6px 0 0 6px;
-  font-size: 16px;
-  outline: none;
-}
-
-.search-button {
-  padding: 0.6rem 1.2rem;
-  background-color: #4a86e8;
-  color: white;
-  border: none;
-  border-radius: 0 6px 6px 0;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.search-button:hover {
-  background-color: #3a76d8;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-.loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 200px;
-}
-
-.spinner {
-  width: 30px;
-  height: 30px;
-  border: 3px solid #4a86e8;
-  border-top: 3px solid transparent;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 10px;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.search-results {
-  flex: 1;
-  overflow-y: auto;
-  background-color: white;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
-}
-
-.search-results::-webkit-scrollbar {
-  display: none;
-}
-
-.song-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 20px;
-}
-
-.song-table th {
-  padding: 8px;
-  text-align: left;
-  border-bottom: 2px solid #eaeaea;
-  color: #666;
-  font-weight: 500;
-}
-
-.song-table td {
-  padding: 12px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.song-table tr {
-  transition: background-color 0.15s ease;
-}
-
-.song-table tr:hover {
-  background-color: #f0f8ff;
-}
-
-.song-table tr.playing {
-  background-color: #e6f2ff;
-  border-left: 3px solid #4a86e8;
-}
-
-.song-info {
-  display: flex;
-  align-items: center;
-}
-
-.song-cover {
-  width: 40px;
-  height: 40px;
-  border-radius: 4px;
-  margin-right: 10px;
-  object-fit: cover;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-.song-name {
-  font-weight: 500;
-}
-
-.play-btn {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  border: none;
-  background-color: #4a86e8;
-  color: white;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.play-btn:hover {
-  background-color: #3a76d8;
-  transform: scale(1.05);
-}
-
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 5px;
-  margin-bottom: 5px;
-}
-
-.page-btn {
-  padding: 8px 15px;
-  background-color: #4a86e8;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  margin: 0 10px;
-  transition: all 0.2s ease;
-}
-
-.page-btn:hover {
-  background-color: #3a76d8;
-}
-
-.page-btn:disabled {
-  background-color: #ccc;
-  cursor: default;
-}
-
-.page-info {
-  font-size: 16px;
-  color: #666;
-}
-
-.welcome-message {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 400px;
-  text-align: center;
-}
-
-.welcome-icon {
-  font-size: 60px;
-  margin-bottom: 20px;
-  color: #4a86e8;
-}
-
-.no-results {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 200px;
-  color: #999;
-  font-size: 18px;
-}
-
-.player-bar {
-  padding: 1.2rem;
-  background-color: #f7f7f7;
-  border-radius: 8px 8px 0 0;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: #fff;
-  border-top: 1px solid #eaeaea;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.03);
-  z-index: 1000;
-}
-
-.song-details {
-  display: flex;
-  align-items: center;
-  width: 40%;
-}
-
-.current-song-cover {
-  width: 48px;
-  height: 48px;
-  border-radius: 4px;
-  margin-right: 15px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  object-fit: cover;
-}
-
-.current-song-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.current-song-name {
-  font-size: 16px;
-  font-weight: 500;
-  margin-bottom: 5px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.current-song-artist {
-  font-size: 14px;
-  color: #666;
-}
-
-.player-controls {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 15px;
-}
-
-.control-btn {
-  padding: 0.6rem 1.2rem;
-  background-color: #f5f5f5;
-  border: none;
-  border-radius: 50px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.control-btn:hover:not([disabled]) {
-  transform: scale(1.05);
-  background-color: #e9e9e9;
-}
-
-.control-btn:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-.play-btn {
-  background-color: #4a86e8;
-  color: white;
-  padding: 0.6rem 1.5rem;
-  width: auto;
-  height: auto;
-  font-size: 1.2em;
-}
-
-.play-btn:hover:not([disabled]) {
-  background-color: #3a76d8;
-}
-
-.prev-btn,
-.next-btn {
-  font-size: 1em;
-  background-color: #f5f5f5;
-  color: #333;
-}
-
-.download-btn {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  border: none;
-  background-color: #4a86e8;
-  color: white;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.download-btn:hover:not([disabled]) {
-  background-color: #3a76d8;
-  transform: scale(1.05);
-}
-
-.download-btn[disabled] {
-  background-color: #cccccc;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-.download-message {
-  position: fixed;
-  bottom: 100px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 12px 24px;
-  border-radius: 6px;
-  color: white;
-  font-size: 14px;
-  z-index: 100;
-  transition: all 0.3s ease;
-  opacity: 1;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.success {
-  background-color: #4caf50;
-}
-
-.error {
-  background-color: #f44336;
-}
-
-@supports (-webkit-touch-callout: none) {
-  .search-results {
-    -webkit-overflow-scrolling: touch;
-  }
-}
+@import "../css/Netease.css";
 </style>

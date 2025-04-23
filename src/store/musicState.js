@@ -6,6 +6,8 @@ const state = reactive({
     isPlaying: false, // 是否正在播放
     currentSource: null, // 当前播放源 'local' 或 'netease'
     playingUrl: "", // 当前播放的URL
+    startTime: null, // 开始播放时间戳
+    pausedTime: 0, // 暂停时的累计播放时间
   },
   localMusic: {
     musicPath: "", // 选择的音乐文件夹路径
@@ -40,6 +42,14 @@ const mutations = {
 
   setGlobalPlayingUrl(url) {
     state.globalMusic.playingUrl = url;
+  },
+
+  setGlobalStartTime(time) {
+    state.globalMusic.startTime = time;
+  },
+
+  setGlobalPausedTime(time) {
+    state.globalMusic.pausedTime = time;
   },
 
   // 本地音乐相关操作
