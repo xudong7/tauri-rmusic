@@ -1,10 +1,42 @@
+// 音乐文件模型
 export interface MusicFile {
-    id: string;
-    file_name: string;
-    // online song need these fields
-    artists?: string[];
-    album?: String,
-    duration?: number, // duration in seconds
-    pic_url?: String,
-    file_hash?: String, // file hash for the song
+  id: number;
+  file_name: string;
+}
+
+// 在线音乐信息模型
+export interface SongInfo {
+  id: string;
+  name: string;
+  artists: string[]; // 艺术家列表
+  album: string; // 专辑名
+  duration: number; // 持续时间（毫秒）
+  pic_url: string; // 图片URL
+  file_hash: string; // 文件哈希值，用于播放
+}
+
+// 搜索结果模型
+export interface SearchResult {
+  songs: SongInfo[];
+  total: number;
+}
+
+// 歌词信息模型
+export interface LyricInfo {
+  id: string;
+  accesskey: string;
+}
+
+// 歌词内容模型
+export interface Lyric {
+  content: string;
+  fmt: string;
+  contenttype: number;
+  charset: string;
+}
+
+// 应用的视图模式
+export enum ViewMode {
+  LOCAL = "local", // 本地音乐模式
+  ONLINE = "online", // 在线音乐模式
 }
