@@ -3,19 +3,52 @@ import { ref, onMounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { ElMessage } from "element-plus";
-import { Folder, Search, Refresh } from "@element-plus/icons-vue";
 import HeaderBar from "./components/HeaderBar.vue";
 import MusicList from "./components/MusicList.vue";
 import PlayerBar from "./components/PlayerBar.vue";
+import type { MusicFile } from "./types/model"; 
 
 // 音乐文件列表
-const musicFiles = ref<Array<{ id: number; file_name: string }>>([]);
+const musicFiles = ref<Array<MusicFile>>([]);
 // 当前选择的目录
 const currentDirectory = ref("");
 // 当前播放的音乐
-const currentMusic = ref<{ id: number; file_name: string } | null>(null);
+const currentMusic = ref<MusicFile | null>(null);
 // 播放状态
 const isPlaying = ref(false);
+
+// 本地搜索
+async function localSearch(keyword: string) {
+  try {
+    // 本地搜索
+    const results = musicFiles.value.filter((music) =>
+      music.file_name.toLowerCase().includes(keyword.toLowerCase())
+    );
+    if (results.length === 0) {
+      ElMessage.info("没有找到匹配的音乐文件");
+    } else {
+      musicFiles.value = results;
+    }
+  } catch (error) {
+    console.error("本地搜索失败:", error);
+    ElMessage.error(`本地搜索失败: ${error}`);
+  }
+}
+
+// 搜索关键字
+async function searchByKeyword(keyword: string) {
+  // 如果keyword以//开头，则为在线搜索
+  if (keyword.startsWith("//")) {
+    const onlineKeyword = keyword.slice(2).trim();
+    if (!onlineKeyword) {
+      ElMessage.info("请输入有效的在线搜索关键词");
+      return;
+    }
+  } else {
+    // 本地搜索
+    await localSearch(keyword);
+  }
+}
 
 // 加载音乐文件
 async function loadMusicFiles(path: string) {
@@ -47,7 +80,7 @@ async function selectDirectory() {
 }
 
 // 播放音乐
-async function playMusic(music: { id: number; file_name: string }) {
+async function playMusic(music: MusicFile) {
   try {
     currentMusic.value = music;
     isPlaying.value = true;
@@ -95,6 +128,8 @@ async function adjustVolume(volume: number) {
 // 刷新当前目录
 async function refreshCurrentDirectory() {
   if (currentDirectory.value) {
+    // 可以设置为默认目录
+    // currentDirectory.value = await invoke("get_default_music_dir");
     await loadMusicFiles(currentDirectory.value);
   }
 }
@@ -119,6 +154,7 @@ onMounted(async () => {
       :currentDirectory="currentDirectory"
       @select-directory="selectDirectory"
       @refresh="refreshCurrentDirectory"
+      @search="searchByKeyword"
     />
 
     <!-- 主内容区域 - 歌曲列表 -->

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { CaretRight, VideoPause } from "@element-plus/icons-vue";
+import type { MusicFile } from "../types/model";
 
 const props = defineProps<{
-  musicFiles: Array<{ id: number; file_name: string }>;
-  currentMusic: { id: number; file_name: string } | null;
+  musicFiles: Array<MusicFile>;
+  currentMusic: MusicFile | null;
   isPlaying: boolean;
 }>();
 
@@ -23,7 +24,7 @@ function getDisplayName(path: string): string {
 }
 
 // 是否为当前播放的歌曲
-const isCurrentMusic = (music: { id: number; file_name: string }) => {
+const isCurrentMusic = (music: MusicFile) => {
   return props.currentMusic && props.currentMusic.id === music.id;
 };
 </script>

@@ -8,9 +8,10 @@ import {
   Mute,
   Headset,
 } from "@element-plus/icons-vue";
+import type { MusicFile } from "@/types/model";
 
 const props = defineProps<{
-  currentMusic: { id: number; file_name: string } | null;
+  currentMusic: MusicFile | null;
   isPlaying: boolean;
 }>();
 
