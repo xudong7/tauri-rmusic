@@ -14,9 +14,16 @@ const props = defineProps<{
   currentMusic: MusicFile | null;
   currentOnlineSong: SongInfo | null;
   isPlaying: boolean;
+  currentTime: number; // 当前播放时间（毫秒）
 }>();
 
-const emit = defineEmits(["toggle-play", "volume-change", "next", "previous"]);
+const emit = defineEmits([
+  "toggle-play",
+  "volume-change",
+  "next",
+  "previous",
+  "show-immersive",
+]);
 
 // 音量
 const volume = ref(50);
@@ -33,9 +40,7 @@ function getFileName(path: string): string {
 const currentSongName = computed(() => {
   // 优先显示在线歌曲信息
   if (props.currentOnlineSong) {
-    return `${
-      props.currentOnlineSong.name
-    } - ${props.currentOnlineSong.artists.join(", ")}`;
+    return props.currentOnlineSong.name;
   }
 
   // 否则显示本地歌曲信息
@@ -44,9 +49,32 @@ const currentSongName = computed(() => {
     : "未选择歌曲";
 });
 
+// 当前艺术家
+const currentArtist = computed(() => {
+  if (props.currentOnlineSong && props.currentOnlineSong.artists.length) {
+    return props.currentOnlineSong.artists.join(", ");
+  }
+  return "";
+});
+
+// 当前封面
+const coverUrl = computed(() => {
+  if (props.currentOnlineSong && props.currentOnlineSong.pic_url) {
+    return props.currentOnlineSong.pic_url;
+  }
+  return null;
+});
+
 // 处理音量变化
 function handleVolumeChange() {
   emit("volume-change", volume.value);
+}
+
+// 进入沉浸模式
+function enterImmersiveMode() {
+  if (props.currentOnlineSong) {
+    emit("show-immersive");
+  }
 }
 
 // 监听音量变化
@@ -57,6 +85,29 @@ watch(volume, () => {
 
 <template>
   <div class="player-bar">
+    <div class="player-left">
+      <div
+        class="cover-container"
+        @click="enterImmersiveMode"
+        :class="{ 'clickable': currentOnlineSong }"
+      >
+        <img
+          v-if="coverUrl"
+          :src="coverUrl"
+          class="cover-image"
+          alt="Album Cover"
+        />
+        <div v-else class="no-cover">
+          <el-icon><Headset /></el-icon>
+        </div>
+      </div>
+
+      <div class="song-info">
+        <div class="song-name">{{ currentSongName }}</div>
+        <div v-if="currentArtist" class="artist-name">{{ currentArtist }}</div>
+      </div>
+    </div>
+
     <div class="player-controls">
       <el-button
         circle
@@ -80,12 +131,6 @@ watch(volume, () => {
         :disabled="!currentMusic && !currentOnlineSong"
         @click="emit('next')"
       />
-    </div>
-
-    <div class="song-info">
-      <el-icon v-if="isPlaying" class="playing-icon"><Headset /></el-icon>
-      <el-icon v-else><Mute /></el-icon>
-      <span class="song-name">{{ currentSongName }}</span>
     </div>
 
     <div class="volume-control">
@@ -114,49 +159,83 @@ watch(volume, () => {
   padding: 0 20px;
 }
 
-.player-controls {
+.player-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  width: 280px;
+}
+
+.cover-container {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-right: 12px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.clickable {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.clickable:hover {
+  transform: scale(1.05);
+}
+
+.cover-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.no-cover {
+  width: 100%;
+  height: 100%;
+  background-color: #e0e0e0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 24px;
+  color: #909399;
 }
 
 .song-info {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .song-name {
   font-size: 16px;
   font-weight: bold;
   color: #303133;
-  max-width: 400px;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.artist-name {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.playing-icon {
-  color: #409eff;
-  animation: pulsate 1.5s infinite;
-}
-
-@keyframes pulsate {
-  0% {
-    opacity: 0.6;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0.6;
-  }
+.player-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .volume-control {
   display: flex;
   align-items: center;
   gap: 10px;
+  width: 180px;
 }
 
 .volume-label {

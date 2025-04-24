@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { ElMessage } from "element-plus";
@@ -7,6 +7,7 @@ import HeaderBar from "./components/HeaderBar.vue";
 import MusicList from "./components/MusicList.vue";
 import OnlineMusicList from "./components/OnlineMusicList.vue";
 import PlayerBar from "./components/PlayerBar.vue";
+import ImmersiveView from "./components/ImmersiveView.vue";
 import type { MusicFile, SongInfo, SearchResult } from "./types/model";
 import { ViewMode } from "./types/model";
 
@@ -36,6 +37,12 @@ const currentMusic = ref<MusicFile | null>(null);
 const currentOnlineSong = ref<SongInfo | null>(null);
 // 播放状态
 const isPlaying = ref(false);
+// 当前播放时间（毫秒）
+const currentTime = ref(0);
+// 定时器ID
+let timeUpdateTimer: number | null = null;
+// 是否显示沉浸模式
+const showImmersiveMode = ref(false);
 
 // 加载音乐文件
 async function loadMusicFiles(path: string) {
@@ -72,6 +79,7 @@ async function playMusic(music: MusicFile) {
     currentMusic.value = music;
     currentOnlineSong.value = null;
     isPlaying.value = true;
+    currentTime.value = 0;
     const fullPath = `${currentDirectory.value}/${music.file_name}`;
     await invoke("handle_event", {
       event: JSON.stringify({
@@ -79,6 +87,9 @@ async function playMusic(music: MusicFile) {
         path: fullPath,
       }),
     });
+
+    // 启动时间更新
+    startTimeTracking();
   } catch (error) {
     console.error("播放音乐失败:", error);
     ElMessage.error(`播放音乐失败: ${error}`);
@@ -91,6 +102,7 @@ async function playOnlineSong(song: SongInfo) {
     currentOnlineSong.value = song;
     currentMusic.value = null;
     isPlaying.value = true;
+    currentTime.value = 0;
 
     // 获取播放URL
     const url = await invoke("play_netease_song", { id: song.file_hash });
@@ -105,6 +117,9 @@ async function playOnlineSong(song: SongInfo) {
         path: url,
       }),
     });
+
+    // 启动时间更新
+    startTimeTracking();
 
     ElMessage.success(`正在播放: ${song.name} - ${song.artists.join(", ")}`);
   } catch (error) {
@@ -127,10 +142,10 @@ async function downloadOnlineSong(song: SongInfo) {
 
     ElMessage.success(`歌曲已下载: ${fileName}`);
 
-    // // 如果在本地模式，刷新文件列表
-    // if (viewMode.value === ViewMode.LOCAL && currentDirectory.value) {
-    //   await loadMusicFiles(currentDirectory.value);
-    // }
+    // 如果在本地模式，刷新文件列表
+    if (viewMode.value === ViewMode.LOCAL && currentDirectory.value) {
+      await loadMusicFiles(currentDirectory.value);
+    }
   } catch (error) {
     console.error("下载歌曲失败:", error);
     ElMessage.error(`下载歌曲失败: ${error}`);
@@ -164,12 +179,18 @@ async function togglePlay() {
         action: "pause",
       }),
     });
+
+    // 暂停时间更新
+    stopTimeTracking();
   } else {
     await invoke("handle_event", {
       event: JSON.stringify({
         action: "recovery",
       }),
     });
+
+    // 恢复时间更新
+    startTimeTracking();
   }
   isPlaying.value = !isPlaying.value;
 }
@@ -270,6 +291,49 @@ function switchViewMode(mode: ViewMode) {
   }
 }
 
+// 启动时间更新
+function startTimeTracking() {
+  stopTimeTracking(); // 先停止可能存在的定时器
+
+  const updateInterval = 500; // 每500ms更新一次
+  const song = currentOnlineSong.value;
+
+  if (song) {
+    timeUpdateTimer = window.setInterval(() => {
+      // 增加播放时间
+      currentTime.value += updateInterval;
+
+      // 检查是否播放结束
+      if (song.duration && currentTime.value >= song.duration) {
+        currentTime.value = song.duration;
+        isPlaying.value = false;
+        stopTimeTracking();
+        // TODO: 自动播放下一首
+      }
+    }, updateInterval);
+  }
+}
+
+// 停止时间更新
+function stopTimeTracking() {
+  if (timeUpdateTimer !== null) {
+    clearInterval(timeUpdateTimer);
+    timeUpdateTimer = null;
+  }
+}
+
+// 显示沉浸模式
+function showImmersive() {
+  if (currentOnlineSong.value) {
+    showImmersiveMode.value = true;
+  }
+}
+
+// 关闭沉浸模式
+function exitImmersive() {
+  showImmersiveMode.value = false;
+}
+
 // 初始化加载默认音乐目录
 onMounted(async () => {
   try {
@@ -280,6 +344,11 @@ onMounted(async () => {
   } catch (error) {
     console.error("加载默认目录失败:", error);
   }
+});
+
+// 组件卸载时清理定时器
+onUnmounted(() => {
+  stopTimeTracking();
 });
 </script>
 
@@ -325,10 +394,24 @@ onMounted(async () => {
       :currentMusic="currentMusic"
       :currentOnlineSong="currentOnlineSong"
       :isPlaying="isPlaying"
+      :currentTime="currentTime"
       @toggle-play="togglePlay"
       @volume-change="adjustVolume"
       @previous="playNextOrPreviousMusic(-1)"
       @next="playNextOrPreviousMusic(1)"
+      @show-immersive="showImmersive"
+    />
+
+    <!-- 沉浸模式 -->
+    <ImmersiveView
+      v-if="showImmersiveMode"
+      :currentSong="currentOnlineSong"
+      :isPlaying="isPlaying"
+      :currentTime="currentTime"
+      @toggle-play="togglePlay"
+      @next="playNextOrPreviousMusic(1)"
+      @previous="playNextOrPreviousMusic(-1)"
+      @exit="exitImmersive"
     />
   </div>
 </template>
