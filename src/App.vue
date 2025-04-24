@@ -97,6 +97,39 @@ async function playMusic(music: MusicFile) {
   }
 }
 
+// 播放上一首音乐
+async function playPreviousMusic() {
+  try {
+    if (currentMusic.value) {
+      const currentIndex = musicFiles.value.findIndex(
+        (music) => music.file_name === currentMusic.value?.file_name
+      );
+      const previousIndex =
+        (currentIndex - 1 + musicFiles.value.length) % musicFiles.value.length;
+      await playMusic(musicFiles.value[previousIndex]);
+    }
+  } catch (error) {
+    console.error("播放上一首音乐失败:", error);
+    ElMessage.error(`播放上一首音乐失败: ${error}`);
+  }
+}
+
+// 播放下一首音乐
+async function playNextMusic() {
+  try {
+    if (currentMusic.value) {
+      const currentIndex = musicFiles.value.findIndex(
+        (music) => music.file_name === currentMusic.value?.file_name
+      );
+      const nextIndex = (currentIndex + 1) % musicFiles.value.length;
+      await playMusic(musicFiles.value[nextIndex]);
+    }
+  } catch (error) {
+    console.error("播放下一首音乐失败:", error);
+    ElMessage.error(`播放下一首音乐失败: ${error}`);
+  }
+}
+
 // 暂停/恢复播放
 async function togglePlay() {
   if (isPlaying.value) {
@@ -148,7 +181,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="music-app">
+  <div v-if="!isImmersiveMode" class="music-app">
     <!-- 顶部搜索和文件夹选择 -->
     <HeaderBar
       :currentDirectory="currentDirectory"
@@ -173,6 +206,8 @@ onMounted(async () => {
       :isPlaying="isPlaying"
       @toggle-play="togglePlay"
       @volume-change="adjustVolume"
+      @previous="playPreviousMusic"
+      @next="playNextMusic"
     />
   </div>
 </template>

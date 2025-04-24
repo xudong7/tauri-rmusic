@@ -75,7 +75,7 @@ function handleSearch() {
   margin-left: 10px;
   font-size: 14px;
   color: #606266;
-  max-width: 400px;
+  max-width: 500px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
