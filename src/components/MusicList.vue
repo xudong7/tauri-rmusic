@@ -71,7 +71,7 @@ const isCurrentMusic = (music: MusicFile) => {
           </template>
         </el-table-column>
 
-        <el-table-column label="文件路径" min-width="300">
+        <el-table-column label="文件路径" min-width="100">
           <template #default="{ row }">
             <span class="file-path">{{ row.file_name }}</span>
           </template>
@@ -128,6 +128,6 @@ const isCurrentMusic = (music: MusicFile) => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 300px;
+  max-width: 400px;
 }
 </style>
