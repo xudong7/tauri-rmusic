@@ -8,10 +8,11 @@ import {
   Mute,
   Headset,
 } from "@element-plus/icons-vue";
-import type { MusicFile } from "@/types/model";
+import type { MusicFile, SongInfo } from "@/types/model";
 
 const props = defineProps<{
   currentMusic: MusicFile | null;
+  currentOnlineSong: SongInfo | null;
   isPlaying: boolean;
 }>();
 
@@ -20,7 +21,7 @@ const emit = defineEmits(["toggle-play", "volume-change", "next", "previous"]);
 // 音量
 const volume = ref(50);
 
-// 获取不带扩展名的文件名
+// 获取不带扩展名的文件名（本地文件）
 function getFileName(path: string): string {
   if (!path) return "未选择歌曲";
   const parts = path.split(/[\/\\]/);
@@ -30,6 +31,14 @@ function getFileName(path: string): string {
 
 // 当前播放的歌曲名
 const currentSongName = computed(() => {
+  // 优先显示在线歌曲信息
+  if (props.currentOnlineSong) {
+    return `${
+      props.currentOnlineSong.name
+    } - ${props.currentOnlineSong.artists.join(", ")}`;
+  }
+
+  // 否则显示本地歌曲信息
   return props.currentMusic
     ? getFileName(props.currentMusic.file_name)
     : "未选择歌曲";
@@ -52,7 +61,7 @@ watch(volume, () => {
       <el-button
         circle
         :icon="ArrowLeft"
-        :disabled="!currentMusic"
+        :disabled="!currentMusic && !currentOnlineSong"
         @click="emit('previous')"
       />
 
@@ -60,7 +69,7 @@ watch(volume, () => {
         circle
         size="large"
         :icon="isPlaying ? VideoPause : VideoPlay"
-        :disabled="!currentMusic"
+        :disabled="!currentMusic && !currentOnlineSong"
         @click="emit('toggle-play')"
         type="primary"
       />
@@ -68,7 +77,7 @@ watch(volume, () => {
       <el-button
         circle
         :icon="ArrowRight"
-        :disabled="!currentMusic"
+        :disabled="!currentMusic && !currentOnlineSong"
         @click="emit('next')"
       />
     </div>
@@ -121,7 +130,7 @@ watch(volume, () => {
   font-size: 16px;
   font-weight: bold;
   color: #303133;
-  max-width: 500px;
+  max-width: 400px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

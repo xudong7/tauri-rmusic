@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed } from "vue";
 import { CaretRight, VideoPause } from "@element-plus/icons-vue";
 import type { MusicFile } from "../types/model";
 

@@ -5,50 +5,37 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { ElMessage } from "element-plus";
 import HeaderBar from "./components/HeaderBar.vue";
 import MusicList from "./components/MusicList.vue";
+import OnlineMusicList from "./components/OnlineMusicList.vue";
 import PlayerBar from "./components/PlayerBar.vue";
-import type { MusicFile } from "./types/model"; 
+import type { MusicFile, SongInfo, SearchResult } from "./types/model";
+import { ViewMode } from "./types/model";
+
+// 视图模式（本地/在线）
+const viewMode = ref<ViewMode>(ViewMode.LOCAL);
 
 // 音乐文件列表
-const musicFiles = ref<Array<MusicFile>>([]);
+const musicFiles = ref<MusicFile[]>([]);
+// 在线音乐列表
+const onlineSongs = ref<SongInfo[]>([]);
+// 在线音乐总数
+const onlineSongsTotal = ref(0);
+// 在线搜索是否加载中
+const isSearchLoading = ref(false);
+// 当前搜索关键词
+const searchKeyword = ref("");
+// 当前页码
+const currentPage = ref(1);
+// 每页大小
+const pageSize = ref(20);
+
 // 当前选择的目录
 const currentDirectory = ref("");
-// 当前播放的音乐
+// 当前播放的本地音乐
 const currentMusic = ref<MusicFile | null>(null);
+// 当前播放的在线音乐
+const currentOnlineSong = ref<SongInfo | null>(null);
 // 播放状态
 const isPlaying = ref(false);
-
-// 本地搜索
-async function localSearch(keyword: string) {
-  try {
-    // 本地搜索
-    const results = musicFiles.value.filter((music) =>
-      music.file_name.toLowerCase().includes(keyword.toLowerCase())
-    );
-    if (results.length === 0) {
-      ElMessage.info("没有找到匹配的音乐文件");
-    } else {
-      musicFiles.value = results;
-    }
-  } catch (error) {
-    console.error("本地搜索失败:", error);
-    ElMessage.error(`本地搜索失败: ${error}`);
-  }
-}
-
-// 搜索关键字
-async function searchByKeyword(keyword: string) {
-  // 如果keyword以//开头，则为在线搜索
-  if (keyword.startsWith("//")) {
-    const onlineKeyword = keyword.slice(2).trim();
-    if (!onlineKeyword) {
-      ElMessage.info("请输入有效的在线搜索关键词");
-      return;
-    }
-  } else {
-    // 本地搜索
-    await localSearch(keyword);
-  }
-}
 
 // 加载音乐文件
 async function loadMusicFiles(path: string) {
@@ -79,10 +66,11 @@ async function selectDirectory() {
   }
 }
 
-// 播放音乐
+// 播放本地音乐
 async function playMusic(music: MusicFile) {
   try {
     currentMusic.value = music;
+    currentOnlineSong.value = null;
     isPlaying.value = true;
     const fullPath = `${currentDirectory.value}/${music.file_name}`;
     await invoke("handle_event", {
@@ -97,36 +85,74 @@ async function playMusic(music: MusicFile) {
   }
 }
 
-// 播放上一首音乐
-async function playPreviousMusic() {
+// 播放在线音乐
+async function playOnlineSong(song: SongInfo) {
   try {
-    if (currentMusic.value) {
-      const currentIndex = musicFiles.value.findIndex(
-        (music) => music.file_name === currentMusic.value?.file_name
-      );
-      const previousIndex =
-        (currentIndex - 1 + musicFiles.value.length) % musicFiles.value.length;
-      await playMusic(musicFiles.value[previousIndex]);
+    currentOnlineSong.value = song;
+    currentMusic.value = null;
+    isPlaying.value = true;
+
+    // 获取播放URL
+    const url = await invoke("play_netease_song", { id: song.file_hash });
+    if (!url) {
+      throw new Error("获取播放URL失败");
     }
+
+    // 播放歌曲
+    await invoke("handle_event", {
+      event: JSON.stringify({
+        action: "play",
+        path: url,
+      }),
+    });
+
+    ElMessage.success(`正在播放: ${song.name} - ${song.artists.join(", ")}`);
   } catch (error) {
-    console.error("播放上一首音乐失败:", error);
-    ElMessage.error(`播放上一首音乐失败: ${error}`);
+    console.error("播放在线音乐失败:", error);
+    isPlaying.value = false;
+    ElMessage.error(`播放在线音乐失败: ${error}`);
   }
 }
 
-// 播放下一首音乐
-async function playNextMusic() {
+// 下载在线音乐
+async function downloadOnlineSong(song: SongInfo) {
   try {
-    if (currentMusic.value) {
-      const currentIndex = musicFiles.value.findIndex(
-        (music) => music.file_name === currentMusic.value?.file_name
-      );
-      const nextIndex = (currentIndex + 1) % musicFiles.value.length;
-      await playMusic(musicFiles.value[nextIndex]);
-    }
+    ElMessage.info("开始下载歌曲，请稍候...");
+
+    const fileName = await invoke("download_music", {
+      songHash: song.file_hash,
+      songName: song.name,
+      artist: song.artists.join(", "),
+    });
+
+    ElMessage.success(`歌曲已下载: ${fileName}`);
+
+    // // 如果在本地模式，刷新文件列表
+    // if (viewMode.value === ViewMode.LOCAL && currentDirectory.value) {
+    //   await loadMusicFiles(currentDirectory.value);
+    // }
   } catch (error) {
-    console.error("播放下一首音乐失败:", error);
-    ElMessage.error(`播放下一首音乐失败: ${error}`);
+    console.error("下载歌曲失败:", error);
+    ElMessage.error(`下载歌曲失败: ${error}`);
+  }
+}
+
+// 播放下一首或上一首音乐
+async function playNextOrPreviousMusic(step: number) {
+  // 本地
+  if (viewMode.value === ViewMode.LOCAL) {
+    const currentIndex = musicFiles.value.findIndex(
+      (file) => file.id === currentMusic.value?.id
+    );
+    const nextIndex = (currentIndex + step) % musicFiles.value.length;
+    await playMusic(musicFiles.value[nextIndex]);
+  } else {
+    // 在线
+    const currentIndex = onlineSongs.value.findIndex(
+      (song) => song.id === currentOnlineSong.value?.id
+    );
+    const nextIndex = (currentIndex + step) % onlineSongs.value.length;
+    await playOnlineSong(onlineSongs.value[nextIndex]);
   }
 }
 
@@ -161,9 +187,86 @@ async function adjustVolume(volume: number) {
 // 刷新当前目录
 async function refreshCurrentDirectory() {
   if (currentDirectory.value) {
-    // 可以设置为默认目录
-    // currentDirectory.value = await invoke("get_default_music_dir");
     await loadMusicFiles(currentDirectory.value);
+  }
+}
+
+// 搜索音乐
+async function searchMusic(keyword: string) {
+  // 如果是本地模式，执行本地搜索
+  if (viewMode.value === ViewMode.LOCAL) {
+    // 只留下与搜索关键词相关的音乐文件
+    const filteredFiles = musicFiles.value.filter((file) =>
+      file.file_name.toLowerCase().includes(keyword.toLowerCase())
+    );
+    musicFiles.value = filteredFiles;
+    if (filteredFiles.length === 0) {
+      ElMessage.info("未找到相关歌曲");
+    } else {
+      ElMessage.success(`找到 ${filteredFiles.length} 首相关歌曲`);
+    }
+    return;
+  }
+
+  // 执行在线搜索
+  await searchOnlineMusic(keyword);
+}
+
+// 在线搜索音乐
+async function searchOnlineMusic(keyword: string, page = 1) {
+  try {
+    // 如果是第一页，则重置搜索状态
+    if (page === 1) {
+      onlineSongs.value = [];
+      onlineSongsTotal.value = 0;
+    }
+
+    searchKeyword.value = keyword;
+    currentPage.value = page;
+    isSearchLoading.value = true;
+
+    // 调用后端API
+    const result = await invoke<SearchResult>("search_songs", {
+      keywords: keyword,
+      page,
+      pagesize: pageSize.value,
+    });
+
+    // 如果是第一页，直接赋值；否则追加结果
+    if (page === 1) {
+      onlineSongs.value = result.songs;
+    } else {
+      onlineSongs.value = [...onlineSongs.value, ...result.songs];
+    }
+
+    onlineSongsTotal.value = result.total;
+
+    if (result.songs.length === 0 && page === 1) {
+      ElMessage.info("未找到相关歌曲");
+    }
+  } catch (error) {
+    console.error("在线搜索失败:", error);
+    ElMessage.error(`在线搜索失败: ${error}`);
+  } finally {
+    isSearchLoading.value = false;
+  }
+}
+
+// 加载更多
+function loadMoreResults() {
+  if (searchKeyword.value) {
+    searchOnlineMusic(searchKeyword.value, currentPage.value + 1);
+  }
+}
+
+// 切换视图模式
+function switchViewMode(mode: ViewMode) {
+  viewMode.value = mode;
+
+  // 如果切换到在线模式，清空在线搜索结果
+  if (mode === ViewMode.ONLINE) {
+    onlineSongs.value = [];
+    onlineSongsTotal.value = 0;
   }
 }
 
@@ -181,33 +284,51 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div v-if="!isImmersiveMode" class="music-app">
+  <div class="music-app">
     <!-- 顶部搜索和文件夹选择 -->
     <HeaderBar
       :currentDirectory="currentDirectory"
+      :viewMode="viewMode"
       @select-directory="selectDirectory"
       @refresh="refreshCurrentDirectory"
-      @search="searchByKeyword"
+      @search="searchMusic"
+      @switch-view="switchViewMode"
     />
 
     <!-- 主内容区域 - 歌曲列表 -->
     <div class="main-content">
+      <!-- 本地音乐列表 -->
       <MusicList
+        v-if="viewMode === ViewMode.LOCAL"
         :musicFiles="musicFiles"
         :currentMusic="currentMusic"
         :isPlaying="isPlaying"
         @play="playMusic"
+      />
+
+      <!-- 在线音乐列表 -->
+      <OnlineMusicList
+        v-else
+        :onlineSongs="onlineSongs"
+        :currentSong="currentOnlineSong"
+        :isPlaying="isPlaying"
+        :loading="isSearchLoading"
+        :totalCount="onlineSongsTotal"
+        @play="playOnlineSong"
+        @download="downloadOnlineSong"
+        @load-more="loadMoreResults"
       />
     </div>
 
     <!-- 底部播放控制栏 -->
     <PlayerBar
       :currentMusic="currentMusic"
+      :currentOnlineSong="currentOnlineSong"
       :isPlaying="isPlaying"
       @toggle-play="togglePlay"
       @volume-change="adjustVolume"
-      @previous="playPreviousMusic"
-      @next="playNextMusic"
+      @previous="playNextOrPreviousMusic(-1)"
+      @next="playNextOrPreviousMusic(1)"
     />
   </div>
 </template>

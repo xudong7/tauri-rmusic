@@ -1,49 +1,56 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import { ElMessage } from "element-plus";
-import { Folder, Search, Refresh } from "@element-plus/icons-vue";
+import { ref } from 'vue';
+import { ElMessage } from 'element-plus';
+import { Folder, Search, Refresh, Switch } from '@element-plus/icons-vue';
+import { ViewMode } from '../types/model';
 
-defineProps<{
+const props = defineProps<{
   currentDirectory: string;
+  viewMode: ViewMode;
 }>();
 
-const emit = defineEmits(["select-directory", "refresh", "search"]);
+const emit = defineEmits(['select-directory', 'refresh', 'search', 'switch-view']);
 
 // 搜索关键字
-const searchKeyword = ref("");
+const searchKeyword = ref('');
 
 // 执行搜索
 function handleSearch() {
   if (!searchKeyword.value.trim()) {
-    ElMessage.info("请输入搜索关键词");
+    ElMessage.info('请输入搜索关键词');
     return;
   }
-  emit("search", searchKeyword.value);
+  emit('search', searchKeyword.value);
+}
+
+// 切换视图模式
+function toggleViewMode() {
+  const newMode = props.viewMode === ViewMode.LOCAL ? ViewMode.ONLINE : ViewMode.LOCAL;
+  emit('switch-view', newMode);
 }
 </script>
 
 <template>
   <div class="header-bar">
     <div class="directory-section">
-      <el-button
-        @click="emit('select-directory')"
-        :icon="Folder"
-        type="primary"
-      >
+      <el-button @click="emit('select-directory')" :icon="Folder" type="primary" :disabled="viewMode === ViewMode.ONLINE">
         选择目录
       </el-button>
-      <el-button @click="emit('refresh')" :icon="Refresh" type="info">
+      <el-button @click="emit('refresh')" :icon="Refresh" type="info" :disabled="viewMode === ViewMode.ONLINE">
         刷新
       </el-button>
-      <div class="current-path">
-        当前目录: <span>{{ currentDirectory || "未选择" }}</span>
+      <el-button @click="toggleViewMode" :icon="Switch" :type="viewMode === ViewMode.ONLINE ? 'success' : 'default'">
+        {{ viewMode === ViewMode.LOCAL ? '在线搜索' : '本地音乐' }}
+      </el-button>
+      <div v-if="viewMode === ViewMode.LOCAL" class="current-path">
+        当前目录: <span>{{ currentDirectory || '未选择' }}</span>
       </div>
     </div>
-
+    
     <div class="search-section">
       <el-input
         v-model="searchKeyword"
-        placeholder="搜索歌曲..."
+        :placeholder="viewMode === ViewMode.LOCAL ? '搜索本地歌曲...' : '搜索在线歌曲...'"
         class="search-input"
         @keyup.enter="handleSearch"
       >
