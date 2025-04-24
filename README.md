@@ -2,6 +2,14 @@
 
 A modern cross-platform desktop music player built with Tauri and Vue.js.
 
+## Screenshots
+
+![Screenshot](/screenshots/image.png)
+
+![Screenshot](/screenshots/image-1.png)
+
+![Screenshot](/screenshots/image-2.png)
+
 [中文文档](README_zh.md)
 
 p.s. If you need online music function, you need to start [KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi) at the same time.

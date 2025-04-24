@@ -2,6 +2,14 @@
 
 一个使用 Tauri 和 Vue.js 构建的现代跨平台桌面音乐播放器。
 
+## 屏幕截图
+
+![截图](/screenshots/image.png)
+
+![截图](/screenshots/image-1.png)
+
+![截图](/screenshots/image-2.png)
+
 [English Documentation](README.md)
 
 p.s. 如果需要在线听歌功能，需要同时启动[KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi)

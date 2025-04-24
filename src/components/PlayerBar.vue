@@ -89,7 +89,7 @@ watch(volume, () => {
       <div
         class="cover-container"
         @click="enterImmersiveMode"
-        :class="{ 'clickable': currentOnlineSong }"
+        :class="{ clickable: currentOnlineSong }"
       >
         <img
           v-if="coverUrl"
@@ -98,7 +98,9 @@ watch(volume, () => {
           alt="Album Cover"
         />
         <div v-else class="no-cover">
-          <el-icon><Headset /></el-icon>
+          <el-icon style="width: 100%; height: 100%; object-fit: cover"
+            ><Headset
+          /></el-icon>
         </div>
       </div>
 
@@ -134,7 +136,7 @@ watch(volume, () => {
     </div>
 
     <div class="volume-control">
-      <span class="volume-label">音量:</span>
+      <!-- <span class="volume-label">音量:</span> -->
       <el-slider
         v-model="volume"
         :max="100"
@@ -162,7 +164,10 @@ watch(volume, () => {
 .player-left {
   display: flex;
   align-items: center;
-  width: 280px;
+  width: 40%;
+  @media (max-width: 320px) {
+    display: none;
+  }
 }
 
 .cover-container {
@@ -229,13 +234,20 @@ watch(volume, () => {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 45%;
+  @media (max-width: 320px) {
+    min-width: 100%;
+  }
 }
 
 .volume-control {
   display: flex;
   align-items: center;
   gap: 10px;
-  width: 180px;
+  width: 15%;
+  @media (max-width: 480px) {
+    display: none;
+  }
 }
 
 .volume-label {
