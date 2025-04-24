@@ -296,19 +296,26 @@ function startTimeTracking() {
   stopTimeTracking(); // 先停止可能存在的定时器
 
   const updateInterval = 500; // 每500ms更新一次
-  const song = currentOnlineSong.value;
-
-  if (song) {
-    timeUpdateTimer = window.setInterval(() => {
+  
+  // 只有在有歌曲在播放时才启动定时器
+  if (currentOnlineSong.value || currentMusic.value) {
+    timeUpdateTimer = window.setInterval(async () => {
       // 增加播放时间
       currentTime.value += updateInterval;
-
-      // 检查是否播放结束
-      if (song.duration && currentTime.value >= song.duration) {
-        currentTime.value = song.duration;
-        isPlaying.value = false;
-        stopTimeTracking();
-        // TODO: 自动播放下一首
+      
+      try {
+        // 检查sink中是否还存在歌曲
+        const isSinkEmpty = await invoke<boolean>("is_sink_empty");
+        
+        // 如果后端播放器已经停止播放且前端状态还是播放中，说明歌曲自然结束
+        if (isSinkEmpty && isPlaying.value) {
+          isPlaying.value = false;
+          stopTimeTracking();
+          // 自动播放下一首
+          playNextOrPreviousMusic(1);
+        }
+      } catch (error) {
+        console.error("检查播放状态失败:", error);
       }
     }, updateInterval);
   }
