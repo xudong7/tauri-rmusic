@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { VideoPlay, VideoPause, Back, ArrowLeft, ArrowRight, Headset } from "@element-plus/icons-vue";
 import type { SongInfo, MusicFile } from "../types/model";
 import LyricView from "./LyricView.vue";
@@ -124,6 +124,18 @@ const estimatedDuration = computed(() => {
   // 本地音乐估算4分钟
   return "4:00";
 });
+
+watch (
+  // 监听 更新cover
+  () => props.currentMusic,
+  (newVal) => {
+    if (newVal) {
+      loadLocalCoverAndLyric();
+    }
+  },
+  { immediate: true }
+);
+
 </script>
 
 <template>
@@ -282,7 +294,7 @@ const estimatedDuration = computed(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 300px;
+  max-width: 600px;
 }
 
 .song-artist {

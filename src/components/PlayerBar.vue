@@ -6,7 +6,6 @@ import {
   VideoPause,
   ArrowLeft,
   ArrowRight,
-  Mute,
   Headset,
 } from "@element-plus/icons-vue";
 import type { MusicFile, SongInfo } from "@/types/model";
