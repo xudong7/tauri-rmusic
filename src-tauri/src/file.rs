@@ -94,7 +94,8 @@ pub async fn download_music(
     song_name: String,
     artist: String,
 ) -> Result<String, String> {
-    let song_url = get_song_url(song_hash).await?;
+    // 获取歌曲下载URL
+    let song_url = get_song_url(song_hash.clone()).await?;
 
     let client = reqwest::Client::builder()
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
@@ -102,6 +103,7 @@ pub async fn download_music(
         .build()
         .map_err(|e| format!("create client error: {}", e))?;
 
+    // 下载歌曲文件
     let response = client
         .get(&song_url)
         .send()
@@ -119,7 +121,31 @@ pub async fn download_music(
         .map_err(|e| format!("read bytes data error: {}", e))?;
 
     // get default music directory
-    let music_dir = get_default_music_dir(app_handle)?;
+    let app_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("unable to get dir: {}", e))?;
+    
+    let music_dir = app_dir.join("music");
+    
+    if !music_dir.exists() {
+        create_dir_all(&music_dir)
+            .map_err(|e| format!("create music dir error: {}", e))?;
+    }
+
+    // 创建封面和歌词存放目录
+    let cover_dir = app_dir.join("cover");
+    let lyrics_dir = app_dir.join("lyrics");
+    
+    if !cover_dir.exists() {
+        create_dir_all(&cover_dir)
+            .map_err(|e| format!("create cover dir error: {}", e))?;
+    }
+    
+    if !lyrics_dir.exists() {
+        create_dir_all(&lyrics_dir)
+            .map_err(|e| format!("create lyrics dir error: {}", e))?;
+    }
 
     // create file name
     let file_name = format!(
@@ -127,7 +153,7 @@ pub async fn download_music(
         sanitize_filename(&artist),
         sanitize_filename(&song_name)
     );
-    let file_path = Path::new(&music_dir).join(&file_name);
+    let file_path = Path::new(&music_dir.to_str().unwrap()).join(&file_name);
 
     // check if the file exists
     if file_path.exists() {
@@ -137,8 +163,89 @@ pub async fn download_music(
 
     file.write_all(&bytes)
         .map_err(|e| format!("write error: {}", e))?;
+    
+    // 下载封面图片
+    let base_filename = file_name.replace(".mp3", "");
+    
+    // 1. 从酷狗API获取搜索结果，包含图片URL
+    use crate::netease::search_songs;
+    
+    let search_result = search_songs(format!("{} {}", song_name, artist), Some(1), Some(1)).await;
+    if let Ok(result) = search_result {
+        if !result.songs.is_empty() && !result.songs[0].pic_url.is_empty() {
+            // 2. 下载封面图片
+            match client.get(&result.songs[0].pic_url).send().await {
+                Ok(pic_response) => {
+                    if pic_response.status().is_success() {
+                        if let Ok(pic_bytes) = pic_response.bytes().await {
+                            let cover_path = cover_dir.join(format!("{}.jpg", base_filename));
+                            if let Ok(mut cover_file) = File::create(&cover_path) {
+                                let _ = cover_file.write_all(&pic_bytes);
+                            }
+                        }
+                    }
+                }
+                Err(e) => println!("下载封面失败: {}", e),
+            }
+        }
+    }
+    
+    // 3. 尝试下载歌词
+    use crate::netease::{search_lyric, get_lyric_decoded};
+    
+    let lyric_info = search_lyric(song_hash.clone()).await;
+    if let Ok(info) = lyric_info {
+        match get_lyric_decoded(info.id, info.accesskey).await {
+            Ok(lyric_content) => {
+                if !lyric_content.is_empty() {
+                    let lyric_path = lyrics_dir.join(format!("{}.lrc", base_filename));
+                    if let Ok(mut lyric_file) = File::create(&lyric_path) {
+                        let _ = lyric_file.write_all(lyric_content.as_bytes());
+                    }
+                }
+            }
+            Err(e) => println!("下载歌词失败: {}", e),
+        }
+    }
 
     Ok(file_name)
+}
+
+/// load cover image and lyrics of certain song
+#[tauri::command]
+pub async fn load_cover_and_lyric(
+    app_handle: AppHandle,
+    file_name: String,
+) -> Result<(String, String), String> {
+    // 获取应用数据目录
+    let app_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("无法获取应用目录: {}", e))?;
+    
+    // 构建封面和歌词文件路径
+    let cover_path = app_dir.join("cover").join(format!("{}.jpg", file_name.replace(".mp3", "")));
+    let lyrics_path = app_dir.join("lyrics").join(format!("{}.lrc", file_name.replace(".mp3", "")));
+    
+    // 初始化返回值
+    let mut cover_content = String::new();
+    let mut lyrics_content = String::new();
+    
+    // 读取封面图片（如果存在）
+    if cover_path.exists() {
+        // 封面是二进制文件，需要转为base64
+        let cover_bytes = std::fs::read(&cover_path)
+            .map_err(|e| format!("读取封面文件失败: {}", e))?;
+        cover_content = format!("data:image/jpeg;base64,{}", base64::encode(&cover_bytes));
+    }
+    
+    // 读取歌词文件（如果存在）
+    if lyrics_path.exists() {
+        lyrics_content = std::fs::read_to_string(&lyrics_path)
+            .map_err(|e| format!("读取歌词文件失败: {}", e))?;
+    }
+    
+    Ok((cover_content, lyrics_content))
 }
 
 /// clean file name

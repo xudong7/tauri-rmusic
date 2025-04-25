@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from "vue";
 import { invoke } from "@tauri-apps/api/core";
-import { ElMessage, ElScrollbar } from "element-plus";
-import type { SongInfo } from "../types/model";
+import { ElScrollbar } from "element-plus";
+import type { SongInfo, MusicFile } from "../types/model";
 
 const props = defineProps<{
   currentSong: SongInfo | null;
+  currentMusic: MusicFile | null;
   currentTime: number; // 当前播放时间（毫秒）
   isPlaying: boolean;
 }>();
@@ -80,6 +81,32 @@ async function loadLyric(song: SongInfo) {
   }
 }
 
+// 加载本地歌词
+async function loadLocalLyric(music: MusicFile) {
+  if (!music || !music.file_name) return;
+
+  loading.value = true;
+  lyricData.value = [];
+
+  try {
+    const [_, lyricContent] = await invoke("load_cover_and_lyric", {
+      fileName: music.file_name,
+    });
+
+    if (lyricContent) {
+      // 解析歌词
+      lyricData.value = parseLyric(lyricContent as string);
+    } else {
+      lyricData.value = [{ time: 0, text: "暂无歌词" }];
+    }
+  } catch (error) {
+    console.error("加载本地歌词失败:", error);
+    lyricData.value = [{ time: 0, text: "歌词加载失败" }];
+  } finally {
+    loading.value = false;
+  }
+}
+
 // 根据当前播放时间更新显示的歌词
 function updateCurrentLine() {
   if (lyricData.value.length === 0) return;
@@ -131,7 +158,26 @@ watch(
       await loadLyric(newSong);
       currentIndex.value = -1;
     } else {
-      lyricData.value = [];
+      // 如果不是在线歌曲，尝试加载本地歌词
+      if (props.currentMusic) {
+        await loadLocalLyric(props.currentMusic);
+        currentIndex.value = -1;
+      } else {
+        lyricData.value = [];
+        currentIndex.value = -1;
+      }
+    }
+  },
+  { immediate: true }
+);
+
+// 监听本地歌曲变化
+watch(
+  () => props.currentMusic,
+  async (newMusic) => {
+    // 仅当不是在线歌曲时加载本地歌词
+    if (newMusic && !props.currentSong) {
+      await loadLocalLyric(newMusic);
       currentIndex.value = -1;
     }
   },

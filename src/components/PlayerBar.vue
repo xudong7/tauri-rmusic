@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
+import { invoke } from "@tauri-apps/api/core";
 import {
   VideoPlay,
   VideoPause,
@@ -62,8 +63,51 @@ const coverUrl = computed(() => {
   if (props.currentOnlineSong && props.currentOnlineSong.pic_url) {
     return props.currentOnlineSong.pic_url;
   }
+  
+  if (props.currentMusic && localCoverUrl.value) {
+    return localCoverUrl.value;
+  }
+  
   return null;
 });
+
+// 本地音乐封面
+const localCoverUrl = ref('');
+
+// 加载本地封面和歌词
+async function loadLocalCoverAndLyric() {
+  if (props.currentMusic) {
+    try {
+      const [coverData, _] = await invoke("load_cover_and_lyric", {
+        fileName: props.currentMusic.file_name
+      });
+      
+      if (coverData) {
+        localCoverUrl.value = coverData;
+      } else {
+        localCoverUrl.value = '';
+      }
+    } catch (error) {
+      console.error("加载本地封面失败:", error);
+      localCoverUrl.value = '';
+    }
+  } else {
+    localCoverUrl.value = '';
+  }
+}
+
+// 监听当前歌曲变化，加载本地封面
+watch(
+  () => props.currentMusic,
+  (newMusic) => {
+    if (newMusic) {
+      loadLocalCoverAndLyric();
+    } else {
+      localCoverUrl.value = '';
+    }
+  },
+  { immediate: true }
+);
 
 // 处理音量变化
 function handleVolumeChange() {
@@ -72,7 +116,8 @@ function handleVolumeChange() {
 
 // 进入沉浸模式
 function enterImmersiveMode() {
-  if (props.currentOnlineSong) {
+  // 只要有当前歌曲（在线或本地）就可以进入沉浸模式
+  if (props.currentOnlineSong || props.currentMusic) {
     emit("show-immersive");
   }
 }
@@ -89,7 +134,7 @@ watch(volume, () => {
       <div
         class="cover-container"
         @click="enterImmersiveMode"
-        :class="{ clickable: currentOnlineSong }"
+        :class="{ clickable: currentOnlineSong || currentMusic }"
       >
         <img
           v-if="coverUrl"
