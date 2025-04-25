@@ -331,7 +331,8 @@ function stopTimeTracking() {
 
 // 显示沉浸模式
 function showImmersive() {
-  if (currentOnlineSong.value) {
+  // 如果有在线歌曲或本地音乐，都可以进入沉浸模式
+  if (currentOnlineSong.value || currentMusic.value) {
     showImmersiveMode.value = true;
   }
 }
@@ -413,6 +414,7 @@ onUnmounted(() => {
     <ImmersiveView
       v-if="showImmersiveMode"
       :currentSong="currentOnlineSong"
+      :currentMusic="currentMusic"
       :isPlaying="isPlaying"
       :currentTime="currentTime"
       @toggle-play="togglePlay"

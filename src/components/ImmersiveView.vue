@@ -1,16 +1,56 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { VideoPlay, VideoPause, Back, ArrowLeft, ArrowRight } from "@element-plus/icons-vue";
-import type { SongInfo } from "../types/model";
+import { VideoPlay, VideoPause, Back, ArrowLeft, ArrowRight, Headset } from "@element-plus/icons-vue";
+import type { SongInfo, MusicFile } from "../types/model";
 import LyricView from "./LyricView.vue";
+import { invoke } from "@tauri-apps/api/core";
 
 const props = defineProps<{
   currentSong: SongInfo | null;
+  currentMusic: MusicFile | null;
   isPlaying: boolean;
   currentTime: number; // 当前播放时间（毫秒）
 }>();
 
 const emit = defineEmits(["toggle-play", "previous", "next", "exit"]);
+
+// 本地音乐封面
+const localCoverUrl = ref('');
+
+// 加载本地封面和歌词
+async function loadLocalCoverAndLyric() {
+  if (props.currentMusic) {
+    try {
+      const [coverData, _] = await invoke("load_cover_and_lyric", {
+        fileName: props.currentMusic.file_name
+      });
+      
+      if (coverData) {
+        localCoverUrl.value = coverData;
+      } else {
+        localCoverUrl.value = '';
+      }
+    } catch (error) {
+      console.error("加载本地封面失败:", error);
+      localCoverUrl.value = '';
+    }
+  } else {
+    localCoverUrl.value = '';
+  }
+}
+
+// 组件挂载时加载本地封面
+if (props.currentMusic) {
+  loadLocalCoverAndLyric();
+}
+
+// 获取不带扩展名的文件名（本地文件）
+function getFileName(path: string): string {
+  if (!path) return "未知歌曲";
+  const parts = path.split(/[\/\\]/);
+  const fileName = parts[parts.length - 1];
+  return fileName.replace(/\.[^/.]+$/, "");
+}
 
 // 格式化艺术家列表
 function formatArtists(artists: string[]): string {
@@ -33,10 +73,56 @@ function formatDuration(ms: number): string {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
+// 当前歌曲名称
+const currentSongName = computed(() => {
+  if (props.currentSong) {
+    return props.currentSong.name;
+  } else if (props.currentMusic) {
+    return getFileName(props.currentMusic.file_name);
+  }
+  return "未知歌曲";
+});
+
+// 当前艺术家
+const currentArtistName = computed(() => {
+  if (props.currentSong) {
+    return formatArtists(props.currentSong.artists);
+  }
+  return "";
+});
+
+// 当前封面
+const currentCoverUrl = computed(() => {
+  if (props.currentSong && props.currentSong.pic_url) {
+    return props.currentSong.pic_url;
+  } else if (localCoverUrl.value) {
+    return localCoverUrl.value;
+  }
+  return null;
+});
+
 // 进度百分比
 const progressPercentage = computed(() => {
-  if (!props.currentSong || !props.currentTime) return 0;
-  return (props.currentTime / props.currentSong.duration) * 100;
+  if (!props.currentTime) return 0;
+  
+  if (props.currentSong) {
+    return (props.currentTime / props.currentSong.duration) * 100;
+  }
+  
+  // 本地音乐没有直接的持续时间信息，这里返回一个估算值
+  // 假设一般歌曲持续时间为4分钟
+  const estimatedDuration = 4 * 60 * 1000;
+  return Math.min((props.currentTime / estimatedDuration) * 100, 100);
+});
+
+// 估算的总时长（用于本地音乐）
+const estimatedDuration = computed(() => {
+  if (props.currentSong) {
+    return formatDuration(props.currentSong.duration);
+  }
+  
+  // 本地音乐估算4分钟
+  return "4:00";
 });
 </script>
 
@@ -49,8 +135,8 @@ const progressPercentage = computed(() => {
     <div class="content-section">
       <div class="cover-container">
         <img
-          v-if="currentSong && currentSong.pic_url"
-          :src="currentSong.pic_url"
+          v-if="currentCoverUrl"
+          :src="currentCoverUrl"
           class="song-cover"
           alt="封面"
         />
@@ -60,15 +146,16 @@ const progressPercentage = computed(() => {
       </div>
 
       <div class="song-info">
-        <h2 class="song-title">{{ currentSong?.name || "未知歌曲" }}</h2>
-        <p class="song-artist">
-          {{ currentSong ? formatArtists(currentSong.artists) : "未知艺术家" }}
+        <h2 class="song-title">{{ currentSongName }}</h2>
+        <p v-if="currentArtistName" class="song-artist">
+          {{ currentArtistName }}
         </p>
       </div>
 
       <div class="lyric-view-container">
         <LyricView
           :currentSong="currentSong"
+          :currentMusic="currentMusic"
           :currentTime="currentTime"
           :isPlaying="isPlaying"
         />
@@ -84,16 +171,13 @@ const progressPercentage = computed(() => {
             :style="{ width: `${progressPercentage}%` }"
           ></div>
         </div>
-        <span>{{
-          currentSong ? formatDuration(currentSong.duration) : "0:00"
-        }}</span>
+        <span>{{ estimatedDuration }}</span>
       </div>
 
       <div class="controls">
         <el-button
           circle
           :icon="ArrowLeft"
-          :disabled="!currentSong"
           @click="emit('previous')"
         />
 
@@ -101,7 +185,6 @@ const progressPercentage = computed(() => {
           circle
           size="large"
           :icon="isPlaying ? VideoPause : VideoPlay"
-          :disabled="!currentSong"
           @click="emit('toggle-play')"
           type="primary"
         />
@@ -109,7 +192,6 @@ const progressPercentage = computed(() => {
         <el-button
           circle
           :icon="ArrowRight"
-          :disabled="!currentSong"
           @click="emit('next')"
         />
       </div>
