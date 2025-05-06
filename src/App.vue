@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { ElMessage } from "element-plus";
@@ -10,6 +10,10 @@ import PlayerBar from "./components/PlayerBar.vue";
 import ImmersiveView from "./components/ImmersiveView.vue";
 import type { MusicFile, SongInfo, SearchResult } from "./types/model";
 import { ViewMode } from "./types/model";
+
+// 主题设置
+const isDarkMode = ref(false);
+const isAutoTheme = ref(true);
 
 // 视图模式（本地/在线）
 const viewMode = ref<ViewMode>(ViewMode.LOCAL);
@@ -291,22 +295,67 @@ function switchViewMode(mode: ViewMode) {
   }
 }
 
+// 根据当前时间设置主题
+function setThemeByTime() {
+  const now = new Date();
+  const hours = now.getHours();
+
+  // 早上8点到晚上6点为亮色模式，其余为暗色模式
+  const shouldBeDark = hours < 8 || hours >= 18;
+
+  if (isDarkMode.value !== shouldBeDark) {
+    isDarkMode.value = shouldBeDark;
+    applyTheme();
+  }
+}
+
+// 应用主题
+function applyTheme() {
+  if (isDarkMode.value) {
+    document.documentElement.classList.add("dark");
+    document.body.setAttribute("data-theme", "dark");
+  } else {
+    document.documentElement.classList.remove("dark");
+    document.body.setAttribute("data-theme", "light");
+  }
+}
+
+// 切换主题
+function toggleTheme() {
+  isDarkMode.value = !isDarkMode.value;
+  isAutoTheme.value = false; // 手动切换后禁用自动主题
+  applyTheme();
+}
+
+// 启用自动主题
+function enableAutoTheme() {
+  isAutoTheme.value = true;
+  setThemeByTime(); // 立即应用基于时间的主题
+}
+
+// 监视自动主题状态
+watch(isAutoTheme, (newValue) => {
+  if (newValue) {
+    setThemeByTime();
+  }
+});
+
 // 启动时间更新
 function startTimeTracking() {
   stopTimeTracking(); // 先停止可能存在的定时器
 
   const updateInterval = 500; // 每500ms更新一次
-  
+
   // 只有在有歌曲在播放时才启动定时器
   if (currentOnlineSong.value || currentMusic.value) {
     timeUpdateTimer = window.setInterval(async () => {
       // 增加播放时间
       currentTime.value += updateInterval;
-      
+
       try {
         // 检查sink中是否还存在歌曲
         const isSinkEmpty = await invoke<boolean>("is_sink_empty");
-        
+
         // 如果后端播放器已经停止播放且前端状态还是播放中，说明歌曲自然结束
         if (isSinkEmpty && isPlaying.value) {
           isPlaying.value = false;
@@ -352,24 +401,39 @@ onMounted(async () => {
   } catch (error) {
     console.error("加载默认目录失败:", error);
   }
+
+  // 初始化主题 - 仅启动时根据时间自动设置一次
+  setThemeByTime();
+  isAutoTheme.value = false; // 关闭自动主题模式，之后仅允许手动切换
+  applyTheme();
 });
 
 // 组件卸载时清理定时器
 onUnmounted(() => {
   stopTimeTracking();
 });
+
+// 导出主题相关函数以供组件使用
+defineExpose({
+  toggleTheme,
+  isDarkMode,
+});
 </script>
 
 <template>
-  <div class="music-app">
+  <div class="music-app" :class="{ 'dark-theme': isDarkMode }">
     <!-- 顶部搜索和文件夹选择 -->
     <HeaderBar
       :currentDirectory="currentDirectory"
       :viewMode="viewMode"
+      :isDarkMode="isDarkMode"
+      :isAutoTheme="isAutoTheme"
       @select-directory="selectDirectory"
       @refresh="refreshCurrentDirectory"
       @search="searchMusic"
       @switch-view="switchViewMode"
+      @toggle-theme="toggleTheme"
+      @toggle-auto-theme="enableAutoTheme"
     />
 
     <!-- 主内容区域 - 歌曲列表 -->
@@ -432,6 +496,9 @@ onUnmounted(() => {
   height: 100vh;
   width: 100%;
   overflow: hidden; /* 防止出现滑动条 */
+  color: var(--el-text-color-primary);
+  background-color: var(--el-bg-color);
+  transition: background-color 0.3s, color 0.3s;
 }
 
 .main-content {
@@ -452,4 +519,59 @@ body {
 html {
   overflow: hidden; /* 防止html出现滑动条 */
 }
+
+/* 暗色主题变量 */
+.dark-theme {
+  --el-color-primary: #31c27c; /* 绿色主色调，亮绿色 */
+  --el-bg-color: #252525; /* 主背景颜色 */
+  --el-bg-color-overlay: #2d2d2d; /* 浮层背景 */
+  --el-text-color-primary: #ffffff; /* 主要文本颜色 */
+  --el-text-color-regular: #b1b1b1; /* 常规文本颜色 */
+  --el-border-color: #373737; /* 边框颜色 */
+  --el-border-color-light: #373737; /* 浅色边框 */
+  --el-fill-color: #2d2d2d; /* 填充色 */
+  --el-fill-color-light: #333333; /* 浅色填充 */
+  --el-fill-color-blank: #252525; /* 空白填充 */
+  --el-mask-color: rgba(0, 0, 0, 0.7); /* 遮罩颜色 */
+  --el-disabled-bg-color: #333333; /* 禁用状态背景色 */
+  --el-disabled-text-color: #666666; /* 禁用状态文本颜色 */
+
+  /* 自定义颜色 */
+  --player-bg-color: #1a1a1a; /* 播放器背景色，更深一些 */
+  --header-bg-color: #212121; /* 顶部栏背景 */
+  --hover-bg-color: #383838; /* 悬停背景色 */
+  --active-item-bg: #31c27c1a; /* 激活项的背景色，主色调的透明版本 */
+  color-scheme: dark;
+}
+
+/* 应用样式到组件 */
+.music-app.dark-theme .header-bar {
+  background-color: var(--header-bg-color);
+  border-bottom: 1px solid var(--el-border-color);
+}
+
+.music-app.dark-theme .main-content {
+  background-color: var(--el-bg-color);
+}
+
+/* 美化滚动条 */
+.dark-theme ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark-theme ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dark-theme ::-webkit-scrollbar-thumb {
+  background-color: #555;
+  border-radius: 4px;
+}
+
+.dark-theme ::-webkit-scrollbar-thumb:hover {
+  background-color: #666;
+}
+
+/* 亮色主题变量保持默认值 */
 </style>

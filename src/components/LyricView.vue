@@ -238,12 +238,12 @@ const lyricContainerClass = computed(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  color: #606266;
+  color: var(--el-text-color-regular);
   transition: all 0.3s;
 }
 
 .is-playing {
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .lyric-loading,
@@ -253,7 +253,7 @@ const lyricContainerClass = computed(() => {
   align-items: center;
   height: 100%;
   font-size: 14px;
-  color: #909399;
+  color: var(--el-text-color-secondary);
 }
 
 .lyric-lines {
@@ -270,7 +270,7 @@ const lyricContainerClass = computed(() => {
 }
 
 .active-lyric {
-  color: #409eff;
+  color: var(--el-color-primary);
   font-size: 16px;
   font-weight: bold;
 }

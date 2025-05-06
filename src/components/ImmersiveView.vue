@@ -218,12 +218,14 @@ watch (
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: var(--el-bg-color);
+  background: linear-gradient(135deg, rgba(25, 25, 25, 0.95) 0%, rgba(20, 20, 20, 0.97) 100%);
   z-index: 1000;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   animation: fadeIn 0.3s ease;
+  color: var(--el-text-color-primary);
 }
 
 @keyframes fadeIn {
@@ -242,9 +244,15 @@ watch (
 }
 
 .back-btn {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
   border: none;
+  color: var(--el-text-color-primary);
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--el-color-primary);
 }
 
 .content-section {
@@ -261,8 +269,13 @@ watch (
   height: 240px;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   margin-bottom: 24px;
+  transition: transform 0.3s ease;
+}
+
+.cover-container:hover {
+  transform: scale(1.02);
 }
 
 .song-cover {
@@ -274,12 +287,12 @@ watch (
 .no-cover {
   width: 100%;
   height: 100%;
-  background-color: #e0e0e0;
+  background-color: var(--el-fill-color);
   display: flex;
   justify-content: center;
   align-items: center;
   font-size: 60px;
-  color: #909399;
+  color: var(--el-text-color-secondary);
 }
 
 .song-info {
@@ -290,7 +303,7 @@ watch (
 .song-title {
   margin: 0;
   font-size: 24px;
-  color: #303133;
+  color: var(--el-text-color-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -300,7 +313,7 @@ watch (
 .song-artist {
   margin: 8px 0 0 0;
   font-size: 16px;
-  color: #606266;
+  color: var(--el-text-color-secondary);
 }
 
 .lyric-view-container {
@@ -318,7 +331,7 @@ watch (
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: #606266;
+  color: var(--el-text-color-secondary);
   font-size: 14px;
   margin-bottom: 20px;
 }
@@ -326,7 +339,7 @@ watch (
 .progress-bar {
   flex: 1;
   height: 4px;
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: rgba(255, 255, 255, 0.1);
   border-radius: 2px;
   margin: 0 12px;
   overflow: hidden;
@@ -334,7 +347,7 @@ watch (
 
 .progress-inner {
   height: 100%;
-  background-color: #409eff;
+  background-color: var(--el-color-primary);
   border-radius: 2px;
   transition: width 0.1s linear;
 }
@@ -345,5 +358,27 @@ watch (
   align-items: center;
   gap: 16px;
   margin-top: 10px;
+}
+
+.controls .el-button {
+  background-color: transparent;
+  border-color: transparent;
+  color: var(--el-text-color-primary);
+}
+
+.controls .el-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--el-color-primary);
+}
+
+.controls .el-button--primary {
+  background-color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  color: #fff;
+}
+
+.controls .el-button--primary:hover {
+  background-color: var(--el-color-primary-light-3);
+  border-color: var(--el-color-primary-light-3);
 }
 </style>
