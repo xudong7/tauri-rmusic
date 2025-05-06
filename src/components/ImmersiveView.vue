@@ -101,6 +101,19 @@ const currentCoverUrl = computed(() => {
   return null;
 });
 
+// 用于背景的模糊封面样式
+const backgroundStyle = computed(() => {
+  if (currentCoverUrl.value) {
+    return {
+      backgroundImage: `url(${currentCoverUrl.value})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat'
+    };
+  }
+  return {};
+});
+
 // 进度百分比
 const progressPercentage = computed(() => {
   if (!props.currentTime) return 0;
@@ -140,6 +153,9 @@ watch (
 
 <template>
   <div class="immersive-view">
+    <div v-if="currentCoverUrl" class="background-cover" :style="backgroundStyle"></div>
+    <div class="overlay"></div>
+    
     <div class="top-section">
       <el-button @click="emit('exit')" :icon="Back" circle class="back-btn" />
     </div>
@@ -218,8 +234,6 @@ watch (
   left: 0;
   width: 100%;
   height: 100%;
-  background: var(--el-bg-color);
-  background: linear-gradient(135deg, rgba(25, 25, 25, 0.95) 0%, rgba(20, 20, 20, 0.97) 100%);
   z-index: 1000;
   display: flex;
   flex-direction: column;
@@ -237,16 +251,40 @@ watch (
   }
 }
 
+.background-cover {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  width: calc(100% + 20px);
+  height: calc(100% + 20px);
+  filter: blur(30px) brightness(0.7);
+  transform: scale(1.10);
+  z-index: -2;
+  transition: background-image 1s ease;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.85) 100%);
+  z-index: -1;
+}
+
 .top-section {
+  position: relative;
   padding: 20px;
   display: flex;
   justify-content: flex-start;
+  z-index: 1;
 }
 
 .back-btn {
   background: rgba(255, 255, 255, 0.1);
   border: none;
-  color: var(--el-text-color-primary);
+  /* color: var(--el-text-color-primary); */
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
@@ -256,12 +294,14 @@ watch (
 }
 
 .content-section {
+  position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 0 40px;
   overflow: hidden;
+  z-index: 1;
 }
 
 .cover-container {
@@ -269,7 +309,7 @@ watch (
   height: 240px;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   margin-bottom: 24px;
   transition: transform 0.3s ease;
 }
@@ -303,7 +343,8 @@ watch (
 .song-title {
   margin: 0;
   font-size: 24px;
-  color: var(--el-text-color-primary);
+  color: #fff;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -313,7 +354,8 @@ watch (
 .song-artist {
   margin: 8px 0 0 0;
   font-size: 16px;
-  color: var(--el-text-color-secondary);
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .lyric-view-container {
@@ -324,14 +366,16 @@ watch (
 }
 
 .control-section {
+  position: relative;
   padding: 20px 40px 40px;
+  z-index: 1;
 }
 
 .time-display {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: var(--el-text-color-secondary);
+  color: rgba(255, 255, 255, 0.8);
   font-size: 14px;
   margin-bottom: 20px;
 }
@@ -339,7 +383,7 @@ watch (
 .progress-bar {
   flex: 1;
   height: 4px;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.2);
   border-radius: 2px;
   margin: 0 12px;
   overflow: hidden;
@@ -363,11 +407,11 @@ watch (
 .controls .el-button {
   background-color: transparent;
   border-color: transparent;
-  color: var(--el-text-color-primary);
+  color: #fff;
 }
 
 .controls .el-button:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.15);
   color: var(--el-color-primary);
 }
 
@@ -375,6 +419,7 @@ watch (
   background-color: var(--el-color-primary);
   border-color: var(--el-color-primary);
   color: #fff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
 }
 
 .controls .el-button--primary:hover {
