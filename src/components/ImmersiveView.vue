@@ -17,6 +17,13 @@ const emit = defineEmits(["toggle-play", "previous", "next", "exit"]);
 // 本地音乐封面
 const localCoverUrl = ref('');
 
+// 图片亮度分析状态
+const imageAnalysisState = ref({
+  brightness: 0.7, // 默认亮度
+  isAnalyzing: false,
+  isAnalyzed: false
+});
+
 // 加载本地封面和歌词
 async function loadLocalCoverAndLyric() {
   if (props.currentMusic) {
@@ -36,6 +43,83 @@ async function loadLocalCoverAndLyric() {
     }
   } else {
     localCoverUrl.value = '';
+  }
+}
+
+// 分析图片亮度
+async function analyzeCoverBrightness(imageUrl: string) {
+  if (!imageUrl || imageAnalysisState.value.isAnalyzing) return;
+  
+  imageAnalysisState.value.isAnalyzing = true;
+  
+  try {
+    // 创建一个隐藏的图片元素来加载图片
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+      img.src = imageUrl;
+    });
+    
+    // 使用 canvas 分析图片亮度
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+    
+    // 获取图像数据
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    
+    // 计算平均亮度 (0-255)
+    let totalBrightness = 0;
+    let count = 0;
+    
+    // 每隔几个像素采样一次，提高性能
+    const sampleStep = Math.max(1, Math.floor(data.length / 4 / 1000));
+    
+    for (let i = 0; i < data.length; i += 4 * sampleStep) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      
+      // 加权亮度计算 (人眼对绿色最敏感)
+      const pixelBrightness = 0.299 * r + 0.587 * g + 0.114 * b;
+      totalBrightness += pixelBrightness;
+      count++;
+    }
+    
+    // 计算平均亮度并归一化到 0-1 范围
+    const averageBrightness = totalBrightness / count / 255;
+    
+    // 根据图片亮度计算合适的背景亮度值
+    // 亮图片需要降低背景亮度，暗图片需要提高背景亮度
+    let adjustedBrightness;
+    
+    if (averageBrightness < 0.3) {
+      // 暗图片，稍微提高亮度
+      adjustedBrightness = 0.9;
+    } else if (averageBrightness < 0.6) {
+      // 中等亮度，适中调整
+      adjustedBrightness = 0.7;
+    } else {
+      // 亮图片，降低亮度
+      adjustedBrightness = 0.5;
+    }
+    
+    imageAnalysisState.value.brightness = adjustedBrightness;
+    imageAnalysisState.value.isAnalyzed = true;
+  } catch (error) {
+    console.error("分析封面图片亮度失败:", error);
+    // 使用默认值
+    imageAnalysisState.value.brightness = 0.7;
+  } finally {
+    imageAnalysisState.value.isAnalyzing = false;
   }
 }
 
@@ -114,6 +198,36 @@ const backgroundStyle = computed(() => {
   return {};
 });
 
+// 背景滤镜样式
+const backgroundFilterStyle = computed(() => {
+  return `blur(30px) brightness(${imageAnalysisState.value.brightness})`;
+});
+
+// 覆盖层透明度样式
+const overlayStyle = computed(() => {
+  // 根据图片亮度调整覆盖层透明度
+  // 亮图片需要更暗的覆盖层，暗图片需要更透明的覆盖层
+  let opacity;
+  
+  if (imageAnalysisState.value.brightness > 0.8) {
+    // 如果背景很亮，覆盖层应该更暗
+    opacity = 0.8;
+  } else if (imageAnalysisState.value.brightness > 0.6) {
+    // 中等亮度
+    opacity = 0.7;
+  } else {
+    // 背景较暗，覆盖层应该更透明
+    opacity = 0.6;
+  }
+  
+  return {
+    background: `linear-gradient(to bottom, 
+      rgba(0, 0, 0, ${opacity * 0.6}) 0%, 
+      rgba(0, 0, 0, ${opacity * 0.8}) 50%,
+      rgba(0, 0, 0, ${opacity * 0.9}) 100%)`
+  };
+});
+
 // 进度百分比
 const progressPercentage = computed(() => {
   if (!props.currentTime) return 0;
@@ -149,12 +263,24 @@ watch (
   { immediate: true }
 );
 
+// 监听封面URL变化，重新分析亮度
+watch(
+  () => currentCoverUrl.value,
+  (newUrl) => {
+    if (newUrl) {
+      imageAnalysisState.value.isAnalyzed = false;
+      analyzeCoverBrightness(newUrl);
+    }
+  },
+  { immediate: true }
+);
+
 </script>
 
 <template>
   <div class="immersive-view">
-    <div v-if="currentCoverUrl" class="background-cover" :style="backgroundStyle"></div>
-    <div class="overlay"></div>
+    <div v-if="currentCoverUrl" class="background-cover" :style="[backgroundStyle, { filter: backgroundFilterStyle }]"></div>
+    <div class="overlay" :style="overlayStyle"></div>
     
     <div class="top-section">
       <el-button @click="emit('exit')" :icon="Back" circle class="back-btn" />
@@ -257,7 +383,6 @@ watch (
   left: -10px;
   width: calc(100% + 20px);
   height: calc(100% + 20px);
-  filter: blur(30px) brightness(0.7);
   transform: scale(1.10);
   z-index: -2;
   transition: all 1.2s cubic-bezier(0.22, 1, 0.36, 1);
@@ -269,10 +394,6 @@ watch (
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to bottom, 
-    rgba(0, 0, 0, 0.5) 0%, 
-    rgba(0, 0, 0, 0.7) 50%,
-    rgba(0, 0, 0, 0.85) 100%);
   z-index: -1;
 }
 
@@ -287,7 +408,7 @@ watch (
 .back-btn {
   background: rgba(255, 255, 255, 0.1);
   border: none;
-  /* color: var(--el-text-color-primary); */
+  color: var(--el-text-color-primary);
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
