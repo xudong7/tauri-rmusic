@@ -3,9 +3,9 @@
   backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 0 20px;
   transition: all 0.3s ease;
+  position: relative;
 
   /* 亮色模式样式 */
   background-color: rgba(245, 245, 247, 0.95);
@@ -25,7 +25,16 @@ html.dark .player-bar {
 .player-left {
   display: flex;
   align-items: center;
-  width: 40%;
+  width: 30%;
+  min-width: 200px;
+  z-index: 1;
+  @media (max-width: 768px) {
+    width: 40%;
+    min-width: 150px;
+  }
+  @media (max-width: 480px) {
+    width: 50%;
+  }
   @media (max-width: 320px) {
     display: none;
   }
@@ -145,10 +154,15 @@ html.dark .player-left:hover .artist-name {
   display: flex;
   align-items: center;
   gap: 20px;
-  min-width: 45%;
-  justify-content: center;
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: fit-content;
+  z-index: 0;
   @media (max-width: 320px) {
-    min-width: 100%;
+    position: relative;
+    width: 100%;
   }
 }
 
@@ -242,7 +256,15 @@ html.dark .player-controls .el-button--primary {
   display: flex;
   align-items: center;
   gap: 10px;
-  width: 15%;
+  width: 30%;
+  min-width: 140px;
+  z-index: 1;
+  justify-content: flex-end;
+  margin-left: auto;
+  @media (max-width: 768px) {
+    width: 20%;
+    min-width: 120px;
+  }
   @media (max-width: 480px) {
     display: none;
   }

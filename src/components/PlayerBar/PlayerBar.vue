@@ -36,6 +36,13 @@ function getFileName(path: string): string {
   return fileName.replace(/\.[^/.]+$/, "");
 }
 
+// 从歌曲名中提取"-"后面的部分
+function extractSongTitle(fullName: string): string {
+  if (!fullName) return "未知歌曲";
+  const match = fullName.match(/\s*-\s*(.+)$/);
+  return match ? match[1].trim() : fullName;
+}
+
 // 当前播放的歌曲名
 const currentSongName = computed(() => {
   // 优先显示在线歌曲信息
@@ -47,6 +54,11 @@ const currentSongName = computed(() => {
   return props.currentMusic
     ? getFileName(props.currentMusic.file_name)
     : "未选择歌曲";
+});
+
+// 当前歌曲的实际标题（只显示"-"后面的部分）
+const songTitle = computed(() => {
+  return extractSongTitle(currentSongName.value);
 });
 
 // 当前艺术家
@@ -149,7 +161,7 @@ watch(volume, () => {
       </div>
 
       <div class="song-info">
-        <div class="song-name">{{ currentSongName }}</div>
+        <div class="song-name">{{ songTitle }}</div>
         <div v-if="currentArtist" class="artist-name">{{ currentArtist }}</div>
       </div>
     </div>

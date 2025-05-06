@@ -41,8 +41,60 @@
 
 .search-section {
   width: 300px;
+  position: relative;
 }
 
 .search-input {
   width: 100%;
+  transition: all 0.3s ease;
+}
+
+/* 搜索按钮动画效果 */
+.search-input :deep(.el-input-group__append) {
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.search-input :deep(.el-input-group__append .el-button) {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.search-input :deep(.el-input-group__append .el-button:hover) {
+  transform: scale(1.05);
+  background-color: var(--el-color-primary);
+  color: white;
+}
+
+.search-input :deep(.el-input-group__append .el-button:active) {
+  transform: scale(0.95);
+}
+
+.search-input :deep(.el-input-group__append .el-button .el-icon) {
+  transition: transform 0.3s ease;
+}
+
+.search-input :deep(.el-input-group__append .el-button:hover .el-icon) {
+  animation: searchIconSpin 0.5s ease-out;
+}
+
+@keyframes searchIconSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(90deg);
+  }
+}
+
+/* 当搜索框获得焦点时，整个搜索区域微微扩大 */
+.search-input:focus-within {
+  transform: scale(1.02);
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* 深色模式下的特殊效果 */
+html.dark .search-input :deep(.el-input-group__append .el-button:hover) {
+  background-color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 10px var(--el-color-primary-light-5);
 }

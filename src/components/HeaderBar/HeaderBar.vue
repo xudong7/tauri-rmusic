@@ -74,7 +74,7 @@ function toggleTheme() {
         :icon="Switch"
         :type="viewMode === ViewMode.ONLINE ? 'success' : 'default'"
       >
-        {{ viewMode === ViewMode.LOCAL ? "在线搜索" : "本地音乐" }}
+        {{ viewMode === ViewMode.LOCAL ? "本地音乐" : "在线搜索" }}
       </el-button>
       <div v-if="viewMode === ViewMode.LOCAL" class="current-path">
         <span>{{ currentDirectory || "未选择" }}</span>
@@ -83,13 +83,13 @@ function toggleTheme() {
 
     <div class="right-controls">
       <div class="theme-controls">
-        <el-tooltip :content="isDarkMode ? '切换到亮色模式' : '切换到暗色模式'">
+        <!-- <el-tooltip :content="isDarkMode ? '切换到亮色模式' : '切换到暗色模式'"> -->
           <el-button
             circle
             @click="toggleTheme"
             :icon="isDarkMode ? Moon : Sunny"
           />
-        </el-tooltip>
+        <!-- </el-tooltip> -->
       </div>
 
       <div class="search-section">
