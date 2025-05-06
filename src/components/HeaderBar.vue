@@ -159,41 +159,4 @@ function toggleTheme() {
 .search-input {
   width: 100%;
 }
-
-/* 暗色主题样式覆盖 */
-:deep(.el-button) {
-  --el-button-hover-bg-color: var(--hover-bg-color, rgba(255, 255, 255, 0.1));
-  --el-button-hover-text-color: var(--el-color-primary);
-}
-
-:deep(.el-button--primary) {
-  --el-button-hover-bg-color: var(--el-color-primary-light-3);
-  --el-button-hover-border-color: var(--el-color-primary-light-3);
-}
-
-:deep(.el-button--info) {
-  --el-button-hover-bg-color: var(--el-fill-color-light);
-  --el-button-hover-border-color: var(--el-border-color-light);
-}
-
-:deep(.el-button--success) {
-  --el-button-bg-color: var(--el-color-primary);
-  --el-button-border-color: var(--el-color-primary);
-  --el-button-hover-bg-color: var(--el-color-primary-light-3);
-  --el-button-hover-border-color: var(--el-color-primary-light-3);
-}
-
-:deep(.el-button--default) {
-  --el-button-bg-color: var(--el-fill-color-blank);
-  --el-button-border-color: var(--el-border-color);
-  --el-button-hover-bg-color: var(--hover-bg-color, rgba(255, 255, 255, 0.1));
-  --el-button-hover-border-color: var(--el-color-primary);
-  --el-button-hover-text-color: var(--el-color-primary);
-}
-
-:deep(.el-button.is-disabled) {
-  --el-button-disabled-bg-color: var(--el-fill-color-blank);
-  --el-button-disabled-border-color: var(--el-border-color-light);
-  --el-button-disabled-text-color: var(--el-text-color-placeholder);
-}
 </style>
