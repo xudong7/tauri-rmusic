@@ -306,37 +306,29 @@
   margin-top: 10px;
 }
 
+/* 使用主题变量来定义按钮样式，移除特定样式定义 */
 .controls .el-button {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-color: transparent;
-  color: #fff;
   transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
   transform: translateY(0);
+  border-radius: 50%;
 }
 
 .controls .el-button:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-  color: var(--el-color-primary);
   transform: translateY(-3px);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
 .controls .el-button:active {
   transform: translateY(0);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
+/* 主按钮的特殊处理，保留动画效果但使用主题变量 */
 .controls .el-button--primary {
-  background-color: var(--el-color-primary);
-  border-color: var(--el-color-primary);
-  color: #fff;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   transform: scale(1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 .controls .el-button--primary:hover {
-  background-color: var(--el-color-primary-light-3);
-  border-color: var(--el-color-primary-light-3);
   transform: scale(1.1);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
 }
