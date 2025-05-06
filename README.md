@@ -4,8 +4,6 @@ A modern cross-platform desktop music player built with Tauri and Vue.js.
 
 ## Screenshots
 
-![Screenshot](/screenshots/image.png)
-
 ![Screenshot](/screenshots/image-1.png)
 
 ![Screenshot](/screenshots/image-2.png)
