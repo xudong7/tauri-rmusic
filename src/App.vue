@@ -492,70 +492,8 @@ defineExpose({
   box-sizing: border-box; /* 确保padding不会导致超出容器 */
 }
 
-body {
-  margin: 0;
-  padding: 0; /* 确保body没有padding */
-  font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB",
-    "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
-  overflow: hidden; /* 防止body出现滑动条 */
-}
-
-html {
-  overflow: hidden; /* 防止html出现滑动条 */
-}
-
-/* 暗色主题变量 */
+/* 仅保留应用特定的类名样式，移除全局主题变量定义 */
 .dark-theme {
-  --el-color-primary: #31c27c; /* 绿色主色调，亮绿色 */
-  --el-bg-color: #252525; /* 主背景颜色 */
-  --el-bg-color-overlay: #2d2d2d; /* 浮层背景 */
-  --el-text-color-primary: #ffffff; /* 主要文本颜色 */
-  --el-text-color-regular: #b1b1b1; /* 常规文本颜色 */
-  --el-border-color: #373737; /* 边框颜色 */
-  --el-border-color-light: #373737; /* 浅色边框 */
-  --el-fill-color: #2d2d2d; /* 填充色 */
-  --el-fill-color-light: #333333; /* 浅色填充 */
-  --el-fill-color-blank: #252525; /* 空白填充 */
-  --el-mask-color: rgba(0, 0, 0, 0.7); /* 遮罩颜色 */
-  --el-disabled-bg-color: #333333; /* 禁用状态背景色 */
-  --el-disabled-text-color: #666666; /* 禁用状态文本颜色 */
-
-  /* 自定义颜色 */
-  --player-bg-color: #1a1a1a; /* 播放器背景色，更深一些 */
-  --header-bg-color: #212121; /* 顶部栏背景 */
-  --hover-bg-color: #383838; /* 悬停背景色 */
-  --active-item-bg: #31c27c1a; /* 激活项的背景色，主色调的透明版本 */
   color-scheme: dark;
 }
-
-/* 应用样式到组件 */
-.music-app.dark-theme .header-bar {
-  background-color: var(--header-bg-color);
-  border-bottom: 1px solid var(--el-border-color);
-}
-
-.music-app.dark-theme .main-content {
-  background-color: var(--el-bg-color);
-}
-
-/* 美化滚动条 */
-.dark-theme ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.dark-theme ::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.dark-theme ::-webkit-scrollbar-thumb {
-  background-color: #555;
-  border-radius: 4px;
-}
-
-.dark-theme ::-webkit-scrollbar-thumb:hover {
-  background-color: #666;
-}
-
-/* 亮色主题变量保持默认值 */
 </style>

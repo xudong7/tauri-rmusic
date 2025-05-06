@@ -1,0 +1,215 @@
+/* themes.css - 应用主题配色 */
+
+/* 通用样式 */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+  overflow: hidden;
+}
+
+html {
+  overflow: hidden;
+}
+
+/* 亮色主题 (默认) */
+:root {
+  /* Element Plus 默认变量使用默认值 */
+
+  /* 自定义变量 */
+  --header-bg-color: #f5f5f7;
+  --player-bg-color: #f8f8fa;
+  --hover-bg-color: #f5f7fa;
+  --active-item-bg: rgba(64, 158, 255, 0.1);
+
+  /* 按钮相关变量，为每种按钮类型单独定义 */
+  /* Primary按钮（蓝色按钮）*/
+  --primary-button-bg: var(--el-color-primary);
+  --primary-button-text: var(--el-color-white);
+  --primary-button-border: var(--el-color-primary);
+  --primary-button-hover-bg: var(--el-color-primary-light-3);
+  --primary-button-hover-border: var(--el-color-primary-light-3);
+  --primary-button-active-bg: var(--el-color-primary-dark-2);
+  --primary-button-active-border: var(--el-color-primary-dark-2);
+  
+  /* Success按钮（绿色按钮）*/
+  --success-button-bg: var(--el-color-success);
+  --success-button-text: var(--el-color-white);
+  --success-button-border: var(--el-color-success);
+  --success-button-hover-bg: var(--el-color-success-light-3);
+  --success-button-hover-border: var(--el-color-success-light-3);
+  --success-button-active-bg: var(--el-color-success-dark-2);
+  --success-button-active-border: var(--el-color-success-dark-2);
+  
+  /* Info按钮（灰色按钮）*/
+  --info-button-bg: var(--el-color-info);
+  --info-button-text: var(--el-color-white);
+  --info-button-border: var(--el-color-info);
+  --info-button-hover-bg: var(--el-color-info-light-3);
+  --info-button-hover-border: var(--el-color-info-light-3);
+  --info-button-active-bg: var(--el-color-info-dark-2);
+  --info-button-active-border: var(--el-color-info-dark-2);
+  
+  /* Default按钮（默认按钮）*/
+  --default-button-bg: var(--el-fill-color-blank);
+  --default-button-text: var(--el-text-color-regular);
+  --default-button-border: var(--el-border-color);
+  --default-button-hover-bg: var(--hover-bg-color);
+  --default-button-hover-text: var(--el-color-primary);
+  --default-button-hover-border: var(--el-color-primary);
+  --default-button-active-bg: rgba(64, 158, 255, 0.1);
+  --default-button-active-text: var(--el-color-primary);
+  --default-button-active-border: var(--el-color-primary);
+}
+
+/* 深色主题 */
+html.dark {
+  /* Element Plus 变量覆盖 */
+  --el-color-primary: #31c27c; /* 绿色主色调，亮绿色 */
+  --el-bg-color: #252525; /* 主背景颜色 */
+  --el-bg-color-overlay: #2d2d2d; /* 浮层背景 */
+  --el-text-color-primary: #ffffff; /* 主要文本颜色 */
+  --el-text-color-regular: #b1b1b1; /* 常规文本颜色 */
+  --el-border-color: #373737; /* 边框颜色 */
+  --el-border-color-light: #373737; /* 浅色边框 */
+  --el-fill-color: #2d2d2d; /* 填充色 */
+  --el-fill-color-light: #333333; /* 浅色填充 */
+  --el-fill-color-blank: #252525; /* 空白填充 */
+  --el-mask-color: rgba(0, 0, 0, 0.7); /* 遮罩颜色 */
+  --el-disabled-bg-color: #333333; /* 禁用状态背景色 */
+  --el-disabled-text-color: #666666; /* 禁用状态文本颜色 */
+
+  /* 自定义颜色 */
+  --player-bg-color: #1a1a1a; /* 播放器背景色，更深一些 */
+  --header-bg-color: #212121; /* 顶部栏背景 */
+  --hover-bg-color: #383838; /* 悬停背景色 */
+  --active-item-bg: #31c27c1a; /* 激活项的背景色，主色调的透明版本 */
+  color-scheme: dark;
+
+  /* 按钮相关变量，为每种按钮类型单独定义 */
+  /* Primary按钮（绿色按钮）*/
+  --primary-button-bg: var(--el-color-primary);
+  --primary-button-text: var(--el-color-white);
+  --primary-button-border: var(--el-color-primary);
+  --primary-button-hover-bg: #266f4b; /* 改为较深的绿色，增加与白色文字的对比度 */
+  --primary-button-hover-border: #266f4b;
+  --primary-button-hover-text: #ffffff; /* 确保悬停时文字为纯白色 */
+  --primary-button-active-bg: #1e5c3e; /* 点击时更深 */
+  --primary-button-active-border: #1e5c3e;
+  
+  /* Success按钮（同样使用绿色）*/
+  --success-button-bg: var(--el-color-primary);
+  --success-button-text: var(--el-color-white);
+  --success-button-border: var(--el-color-primary);
+  --success-button-hover-bg: #266f4b; /* 与primary保持一致 */
+  --success-button-hover-border: #266f4b;
+  --success-button-hover-text: #ffffff;
+  --success-button-active-bg: #1e5c3e;
+  --success-button-active-border: #1e5c3e;
+  
+  /* Info按钮（灰色按钮）*/
+  --info-button-bg: var(--el-fill-color-light);
+  --info-button-text: var(--el-text-color-regular);
+  --info-button-border: var(--el-border-color);
+  --info-button-hover-bg: #444444; /* 稍微亮一点的灰色 */
+  --info-button-hover-border: #4a4a4a;
+  --info-button-active-bg: #2f2f2f;
+  --info-button-active-border: #2f2f2f;
+  
+  /* Default按钮（默认按钮）*/
+  --default-button-bg: var(--el-fill-color-blank);
+  --default-button-text: var(--el-text-color-regular);
+  --default-button-border: var(--el-border-color);
+  --default-button-hover-bg: rgba(49, 194, 124, 0.15); /* 透明绿色悬停 */
+  --default-button-hover-text: #42d58b; /* 悬停时文字颜色变绿 */
+  --default-button-hover-border: #42d58b;
+  --default-button-active-bg: rgba(49, 194, 124, 0.2);
+  --default-button-active-text: #31c27c;
+  --default-button-active-border: #31c27c;
+}
+
+/* 按钮样式配置 */
+.el-button {
+  --el-button-hover-bg-color: var(--hover-bg-color, rgba(255, 255, 255, 0.1));
+  --el-button-hover-text-color: var(--el-color-primary);
+}
+
+.el-button--primary {
+  --el-button-bg-color: var(--primary-button-bg);
+  --el-button-text-color: var(--primary-button-text);
+  --el-button-border-color: var(--primary-button-border);
+  --el-button-hover-bg-color: var(--primary-button-hover-bg);
+  --el-button-hover-border-color: var(--primary-button-hover-border);
+  --el-button-hover-text-color: var(--primary-button-hover-text, #ffffff);
+  --el-button-active-bg-color: var(--primary-button-active-bg);
+  --el-button-active-border-color: var(--primary-button-active-border);
+}
+
+.el-button--success {
+  --el-button-bg-color: var(--success-button-bg);
+  --el-button-text-color: var(--success-button-text);
+  --el-button-border-color: var(--success-button-border);
+  --el-button-hover-bg-color: var(--success-button-hover-bg);
+  --el-button-hover-border-color: var(--success-button-hover-border);
+  --el-button-hover-text-color: var(--success-button-hover-text, #ffffff);
+  --el-button-active-bg-color: var(--success-button-active-bg);
+  --el-button-active-border-color: var(--success-button-active-border);
+}
+
+.el-button--info {
+  --el-button-bg-color: var(--info-button-bg);
+  --el-button-text-color: var(--info-button-text);
+  --el-button-border-color: var(--info-button-border);
+  --el-button-hover-bg-color: var(--info-button-hover-bg);
+  --el-button-hover-border-color: var(--info-button-hover-border);
+  --el-button-active-bg-color: var(--info-button-active-bg);
+  --el-button-active-border-color: var(--info-button-active-border);
+}
+
+.el-button--default {
+  --el-button-bg-color: var(--default-button-bg);
+  --el-button-text-color: var(--default-button-text);
+  --el-button-border-color: var(--default-button-border);
+  --el-button-hover-bg-color: var(--default-button-hover-bg);
+  --el-button-hover-text-color: var(--default-button-hover-text);
+  --el-button-hover-border-color: var(--default-button-hover-border);
+  --el-button-active-bg-color: var(--default-button-active-bg);
+  --el-button-active-text-color: var(--default-button-active-text);
+  --el-button-active-border-color: var(--default-button-active-border);
+}
+
+.el-button.is-disabled {
+  --el-button-disabled-bg-color: var(--el-fill-color-blank);
+  --el-button-disabled-border-color: var(--el-border-color-light);
+  --el-button-disabled-text-color: var(--el-text-color-placeholder);
+}
+
+/* 美化滚动条 */
+html.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+html.dark ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background-color: #555;
+  border-radius: 4px;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background-color: #666;
+}
+
+/* 页面组件样式适配 */
+html.dark .header-bar {
+  background-color: var(--header-bg-color);
+  border-bottom: 1px solid var(--el-border-color);
+}
+
+html.dark .main-content {
+  background-color: var(--el-bg-color);
+}
