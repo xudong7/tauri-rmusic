@@ -1,0 +1,48 @@
+.header-bar {
+  padding: 16px;
+  background-color: var(--header-bg-color, var(--el-bg-color));
+  border-bottom: 1px solid var(--el-border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.directory-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.current-path {
+  margin-left: 10px;
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+  max-width: 500px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.current-path span {
+  color: var(--el-color-primary);
+  font-weight: bold;
+}
+
+.right-controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.theme-controls {
+  display: flex;
+  align-items: center;
+}
+
+.search-section {
+  width: 300px;
+}
+
+.search-input {
+  width: 100%;
+}
