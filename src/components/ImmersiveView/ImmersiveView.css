@@ -122,12 +122,24 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  animation: fadeInUp 0.8s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* 歌曲标题样式 */
 .song-title {
   margin: 0;
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 600;
   color: #fff;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
@@ -136,6 +148,31 @@
   text-overflow: ellipsis;
   max-width: 90%;
   margin-bottom: 8px;
+  position: relative;
+  padding-bottom: 4px;
+  transition: all 0.3s ease;
+}
+
+.song-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: var(--el-color-primary);
+  transform: translateX(-50%);
+  transition: width 0.5s ease;
+  border-radius: 2px;
+}
+
+.song-info:hover .song-title::after {
+  width: 80px;
+}
+
+.song-title:hover {
+  transform: translateY(-2px);
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 /* 歌手名称容器 */
@@ -143,18 +180,49 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  overflow: hidden;
 }
 
 /* 歌手名称样式 */
 .song-artist {
   margin: 0;
-  font-size: 16px;
+  font-size: 18px;
   color: rgba(255, 255, 255, 0.85);
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100%;
+  max-width: 90%;
+  position: relative;
+  transition: all 0.3s ease;
+  padding: 4px 16px;
+  border-radius: 20px;
+}
+
+.song-artist::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to right, transparent, rgba(var(--el-color-primary-rgb), 0.2), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+  z-index: -1;
+  border-radius: 20px;
+  opacity: 0;
+}
+
+.song-info:hover .song-artist::before {
+  transform: translateX(100%);
+  opacity: 1;
+}
+
+.song-artist:hover {
+  transform: scale(1.05);
+  color: #fff;
 }
 
 /* 歌词容器样式 */
