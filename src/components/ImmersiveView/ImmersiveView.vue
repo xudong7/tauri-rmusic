@@ -136,6 +136,20 @@ function getFileName(path: string): string {
   return fileName.replace(/\.[^/.]+$/, "");
 }
 
+// 从歌曲名中提取"-"前面的部分（歌手名）
+function extractArtistName(fullName: string): string {
+  if (!fullName) return "未知歌手";
+  const match = fullName.match(/^(.+?)\s*-\s*.+$/);
+  return match ? match[1].trim() : "";
+}
+
+// 从歌曲名中提取"-"后面的部分（歌曲名）
+function extractSongTitle(fullName: string): string {
+  if (!fullName) return "未知歌曲";
+  const match = fullName.match(/\s*-\s*(.+)$/);
+  return match ? match[1].trim() : fullName;
+}
+
 // 格式化艺术家列表
 function formatArtists(artists: string[]): string {
   return artists ? artists.join(", ") : "";
@@ -157,7 +171,7 @@ function formatDuration(ms: number): string {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
-// 当前歌曲名称
+// 当前歌曲名称 (原始)
 const currentSongName = computed(() => {
   if (props.currentSong) {
     return props.currentSong.name;
@@ -167,12 +181,38 @@ const currentSongName = computed(() => {
   return "未知歌曲";
 });
 
-// 当前艺术家
-const currentArtistName = computed(() => {
+// 当前歌曲标题 (只包含"-"后面的部分)
+const songTitle = computed(() => {
   if (props.currentSong) {
-    return formatArtists(props.currentSong.artists);
+    // 对在线歌曲，也尝试解析名称中的歌曲标题部分
+    return extractSongTitle(props.currentSong.name);
+  } else if (props.currentMusic) {
+    return extractSongTitle(getFileName(props.currentMusic.file_name));
+  }
+  return "未知歌曲";
+});
+
+// 当前歌手名 (从文件名中提取，"-"前面的部分)
+const extractedArtistName = computed(() => {
+  if (props.currentSong) {
+    // 优先使用在线歌曲的艺术家信息
+    if (props.currentSong.artists && props.currentSong.artists.length) {
+      return formatArtists(props.currentSong.artists);
+    }
+    // 如果没有艺术家信息，尝试从歌曲名解析
+    return extractArtistName(props.currentSong.name);
+  } else if (props.currentMusic) {
+    return extractArtistName(getFileName(props.currentMusic.file_name));
   }
   return "";
+});
+
+// 当前艺术家（整合了从API获取的和从文件名提取的）
+const currentArtistName = computed(() => {
+  if (props.currentSong && props.currentSong.artists && props.currentSong.artists.length) {
+    return formatArtists(props.currentSong.artists);
+  }
+  return extractedArtistName.value;
 });
 
 // 当前封面
@@ -300,10 +340,10 @@ watch(
       </div>
 
       <div class="song-info">
-        <h2 class="song-title">{{ currentSongName }}</h2>
-        <p v-if="currentArtistName" class="song-artist">
-          {{ currentArtistName }}
-        </p>
+        <h1 class="song-title">{{ songTitle }}</h1>
+        <div class="song-artist-container">
+          <p class="song-artist">{{ currentArtistName || '未知歌手' }}</p>
+        </div>
       </div>
 
       <div class="lyric-view-container">

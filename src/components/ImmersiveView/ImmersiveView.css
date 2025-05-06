@@ -67,9 +67,12 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0 40px;
+  justify-content: flex-start;
+  padding: 0 20px;
   overflow: hidden;
   z-index: 1;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .cover-container {
@@ -78,7 +81,7 @@
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 15px 30px rgba(0, 0, 0, 0.6);
-  margin-bottom: 28px;
+  margin-bottom: 40px;
   transition: transform 0.5s cubic-bezier(0.21, 1.02, 0.73, 1);
   position: relative;
 }
@@ -110,74 +113,58 @@
   color: var(--el-text-color-secondary);
 }
 
+/* 歌曲信息部分 */
 .song-info {
   text-align: center;
-  margin-bottom: 20px;
-  animation: slideUp 0.6s ease forwards;
+  width: 100%;
+  max-width: 700px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
+/* 歌曲标题样式 */
 .song-title {
   margin: 0;
-  font-size: 24px;
+  font-size: 28px;
+  font-weight: 600;
   color: #fff;
-  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 600px;
-  position: relative;
-  display: inline-block;
-  padding-bottom: 5px;
+  max-width: 90%;
+  margin-bottom: 8px;
 }
 
-.song-title::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  width: 0;
-  height: 2px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    var(--el-color-primary),
-    transparent
-  );
-  transform: translateX(-50%);
-  transition: width 0.3s ease;
+/* 歌手名称容器 */
+.song-artist-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.song-title:hover::after {
-  width: 80%;
-}
-
+/* 歌手名称样式 */
 .song-artist {
-  margin: 8px 0 0 0;
+  margin: 0;
   font-size: 16px;
-  color: rgba(255, 255, 255, 0.8);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-  transition: color 0.3s ease;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
-.song-info:hover .song-artist {
-  color: var(--el-color-primary-light-5);
-}
-
+/* 歌词容器样式 */
 .lyric-view-container {
-  flex: 1;
   width: 100%;
-  max-width: 500px;
+  max-width: 700px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   overflow: hidden;
 }
 
