@@ -15,7 +15,6 @@ const props = defineProps<{
   currentDirectory: string;
   viewMode: ViewMode;
   isDarkMode: boolean;
-  isAutoTheme: boolean;
 }>();
 
 const emit = defineEmits([
@@ -24,7 +23,6 @@ const emit = defineEmits([
   "search",
   "switch-view",
   "toggle-theme",
-  "toggle-auto-theme",
 ]);
 
 // 搜索关键字
@@ -49,11 +47,6 @@ function toggleViewMode() {
 // 切换主题模式
 function toggleTheme() {
   emit("toggle-theme");
-}
-
-// 切换自动主题
-function toggleAutoTheme() {
-  emit("toggle-auto-theme");
 }
 </script>
 

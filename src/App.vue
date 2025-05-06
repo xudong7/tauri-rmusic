@@ -13,7 +13,8 @@ import { ViewMode } from "./types/model";
 
 // 主题设置
 const isDarkMode = ref(false);
-const isAutoTheme = ref(true);
+// 移除不再需要的自动主题变量
+// const isAutoTheme = ref(true);
 
 // 视图模式（本地/在线）
 const viewMode = ref<ViewMode>(ViewMode.LOCAL);
@@ -323,22 +324,8 @@ function applyTheme() {
 // 切换主题
 function toggleTheme() {
   isDarkMode.value = !isDarkMode.value;
-  isAutoTheme.value = false; // 手动切换后禁用自动主题
   applyTheme();
 }
-
-// 启用自动主题
-function enableAutoTheme() {
-  isAutoTheme.value = true;
-  setThemeByTime(); // 立即应用基于时间的主题
-}
-
-// 监视自动主题状态
-watch(isAutoTheme, (newValue) => {
-  if (newValue) {
-    setThemeByTime();
-  }
-});
 
 // 启动时间更新
 function startTimeTracking() {
@@ -404,7 +391,6 @@ onMounted(async () => {
 
   // 初始化主题 - 仅启动时根据时间自动设置一次
   setThemeByTime();
-  isAutoTheme.value = false; // 关闭自动主题模式，之后仅允许手动切换
   applyTheme();
 });
 
@@ -427,13 +413,11 @@ defineExpose({
       :currentDirectory="currentDirectory"
       :viewMode="viewMode"
       :isDarkMode="isDarkMode"
-      :isAutoTheme="isAutoTheme"
       @select-directory="selectDirectory"
       @refresh="refreshCurrentDirectory"
       @search="searchMusic"
       @switch-view="switchViewMode"
       @toggle-theme="toggleTheme"
-      @toggle-auto-theme="enableAutoTheme"
     />
 
     <!-- 主内容区域 - 歌曲列表 -->
