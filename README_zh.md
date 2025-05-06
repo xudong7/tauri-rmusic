@@ -10,6 +10,10 @@
 
 ![截图](/screenshots/image-2.png)
 
+![截图](/screenshots/image-3.png)
+
+![截图](/screenshots/image-4.png)
+
 [English Documentation](README.md)
 
 p.s. 如果需要在线听歌功能，需要同时启动[KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi)
@@ -49,6 +53,7 @@ Rmusic 现已支持在线音乐播放功能，您可以：
 - **音量控制**: 轻松调节播放音量
 - **在线音乐**: 通过酷狗音乐API搜索和播放在线音乐
 - **持续播放**: 在不同页面间切换时保持音乐播放状态
+- **深色模式**: 支持深色模式，适合低光环境下使用
 
 ## 技术栈
 

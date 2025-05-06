@@ -10,6 +10,10 @@ A modern cross-platform desktop music player built with Tauri and Vue.js.
 
 ![Screenshot](/screenshots/image-2.png)
 
+![Screenshot](/screenshots/image-3.png)
+
+![Screenshot](/screenshots/image-4.png)
+
 [中文文档](README_zh.md)
 
 p.s. If you need online music function, you need to start [KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi) at the same time.
@@ -49,6 +53,7 @@ Rmusic now supports online music streaming. You can:
 - **Volume Control**: Easily adjust playback volume
 - **Online Music**: Search and play online music through KuGou Music API
 - **Continuous Playback**: Maintains music playback state when switching between different pages
+- **Dark Mode**: Supports dark mode for better user experience in low-light environments
 
 ## Technology Stack
 
