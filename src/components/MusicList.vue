@@ -92,7 +92,7 @@ const isCurrentMusic = (music: MusicFile) => {
 .list-title {
   margin-top: 0;
   margin-bottom: 16px;
-  color: #303133;
+  color: var(--el-text-color-primary);
   font-size: 18px;
 }
 
@@ -110,17 +110,17 @@ const isCurrentMusic = (music: MusicFile) => {
 }
 
 .file-path {
-  color: #909399;
+  color: var(--el-text-color-secondary, #909399);
   font-size: 13px;
 }
 
 .playing-song {
   font-weight: bold;
-  color: #409eff;
+  color: var(--el-color-primary);
 }
 
 .current-playing {
-  background-color: rgba(64, 158, 255, 0.1);
+  background-color: var(--active-item-bg, rgba(64, 158, 255, 0.1));
 }
 
 .song-name {
@@ -128,5 +128,29 @@ const isCurrentMusic = (music: MusicFile) => {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 400px;
+}
+
+:deep(.el-table) {
+  --el-table-header-bg-color: var(--el-bg-color);
+  --el-table-border-color: var(--el-border-color);
+  --el-table-header-text-color: var(--el-text-color-secondary);
+  background-color: var(--el-bg-color);
+  color: var(--el-text-color-primary);
+}
+
+:deep(.el-table th.el-table__cell) {
+  background-color: var(--el-bg-color);
+}
+
+:deep(.el-table tr) {
+  background-color: var(--el-bg-color);
+}
+
+:deep(.el-table--enable-row-hover .el-table__body tr:hover > td.el-table__cell) {
+  background-color: var(--hover-bg-color, #f5f7fa);
+}
+
+:deep(.el-table__body tr.current-playing td.el-table__cell) {
+  background-color: var(--active-item-bg, rgba(64, 158, 255, 0.1));
 }
 </style>

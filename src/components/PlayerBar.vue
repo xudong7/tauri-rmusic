@@ -197,12 +197,13 @@ watch(volume, () => {
 <style scoped>
 .player-bar {
   height: 80px;
-  background-color: #f5f7fa;
-  border-top: 1px solid #e4e7ed;
+  background-color: var(--player-bg-color, #f5f7fa);
+  border-top: 1px solid var(--el-border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
+  color: var(--el-text-color-primary);
 }
 
 .player-left {
@@ -220,7 +221,7 @@ watch(volume, () => {
   border-radius: 8px;
   overflow: hidden;
   margin-right: 12px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.2);
 }
 
 .clickable {
@@ -241,12 +242,12 @@ watch(volume, () => {
 .no-cover {
   width: 100%;
   height: 100%;
-  background-color: #e0e0e0;
+  background-color: var(--el-fill-color);
   display: flex;
   justify-content: center;
   align-items: center;
   font-size: 24px;
-  color: #909399;
+  color: var(--el-text-color-secondary);
 }
 
 .song-info {
@@ -259,7 +260,7 @@ watch(volume, () => {
 .song-name {
   font-size: 16px;
   font-weight: bold;
-  color: #303133;
+  color: var(--el-text-color-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -267,7 +268,7 @@ watch(volume, () => {
 
 .artist-name {
   font-size: 12px;
-  color: #909399;
+  color: var(--el-text-color-secondary, #909399);
   margin-top: 4px;
   white-space: nowrap;
   overflow: hidden;
@@ -277,11 +278,40 @@ watch(volume, () => {
 .player-controls {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   min-width: 45%;
+  justify-content: center;
   @media (max-width: 320px) {
     min-width: 100%;
   }
+}
+
+.player-controls .el-button {
+  background-color: transparent;
+  border-color: transparent;
+  color: var(--el-text-color-primary);
+}
+
+.player-controls .el-button:hover {
+  background-color: var(--hover-bg-color, rgba(255, 255, 255, 0.1));
+  color: var(--el-color-primary);
+}
+
+.player-controls .el-button.is-disabled {
+  color: var(--el-disabled-text-color);
+  background-color: transparent;
+  border-color: transparent;
+}
+
+.player-controls .el-button--primary {
+  background-color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  color: #fff;
+}
+
+.player-controls .el-button--primary:hover {
+  background-color: var(--el-color-primary-light-3);
+  border-color: var(--el-color-primary-light-3);
 }
 
 .volume-control {
@@ -295,7 +325,19 @@ watch(volume, () => {
 }
 
 .volume-label {
-  color: #606266;
+  color: var(--el-text-color-regular);
   font-size: 14px;
+}
+
+:deep(.el-slider__runway) {
+  background-color: var(--el-fill-color-light);
+}
+
+:deep(.el-slider__bar) {
+  background-color: var(--el-color-primary);
+}
+
+:deep(.el-slider__button) {
+  border-color: var(--el-color-primary);
 }
 </style>

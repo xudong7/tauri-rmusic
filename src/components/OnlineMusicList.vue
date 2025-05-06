@@ -124,7 +124,7 @@ const isCurrentSong = (song: SongInfo) => {
 .list-title {
   margin-top: 0;
   margin-bottom: 16px;
-  color: #303133;
+  color: var(--el-text-color-primary);
   font-size: 18px;
 }
 
@@ -144,11 +144,11 @@ const isCurrentSong = (song: SongInfo) => {
 
 .playing-song {
   font-weight: bold;
-  color: #409eff;
+  color: var(--el-color-primary);
 }
 
 .current-playing {
-  background-color: rgba(64, 158, 255, 0.1);
+  background-color: var(--active-item-bg, rgba(64, 158, 255, 0.1));
 }
 
 .song-name {
@@ -161,5 +161,41 @@ const isCurrentSong = (song: SongInfo) => {
 .load-more {
   text-align: center;
   margin: 20px 0;
+}
+
+/* 暗色主题适配 */
+:deep(.el-table) {
+  --el-table-header-bg-color: var(--el-bg-color);
+  --el-table-border-color: var(--el-border-color);
+  --el-table-header-text-color: var(--el-text-color-secondary);
+  background-color: var(--el-bg-color);
+  color: var(--el-text-color-primary);
+}
+
+:deep(.el-table th.el-table__cell) {
+  background-color: var(--el-bg-color);
+}
+
+:deep(.el-table tr) {
+  background-color: var(--el-bg-color);
+}
+
+:deep(.el-table--enable-row-hover .el-table__body tr:hover > td.el-table__cell) {
+  background-color: var(--hover-bg-color, #f5f7fa);
+}
+
+:deep(.el-table__body tr.current-playing td.el-table__cell) {
+  background-color: var(--active-item-bg, rgba(64, 158, 255, 0.1));
+}
+
+/* 按钮样式优化 */
+:deep(.el-button--success) {
+  background-color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+
+:deep(.el-button--success:hover) {
+  background-color: var(--el-color-primary-light-3);
+  border-color: var(--el-color-primary-light-3);
 }
 </style>
