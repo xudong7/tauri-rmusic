@@ -43,6 +43,13 @@ function extractSongTitle(fullName: string): string {
   return match ? match[1].trim() : fullName;
 }
 
+// 从歌曲名中提取"-"前面的部分(歌手名)
+function extractArtistName(fullName: string): string {
+  if (!fullName) return "";
+  const match = fullName.match(/^(.+?)\s*-\s*.+$/);
+  return match ? match[1].trim() : "";
+}
+
 // 当前播放的歌曲名
 const currentSongName = computed(() => {
   // 优先显示在线歌曲信息
@@ -63,9 +70,18 @@ const songTitle = computed(() => {
 
 // 当前艺术家
 const currentArtist = computed(() => {
+  // 优先显示在线歌曲的艺术家信息
   if (props.currentOnlineSong && props.currentOnlineSong.artists.length) {
     return props.currentOnlineSong.artists.join(", ");
   }
+  
+  // 从本地音乐文件名中提取歌手名
+  if (props.currentMusic) {
+    const fileName = getFileName(props.currentMusic.file_name);
+    const artistName = extractArtistName(fileName);
+    return artistName || "未知歌手";
+  }
+  
   return "";
 });
 
