@@ -238,12 +238,13 @@ const lyricContainerClass = computed(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  color: var(--el-text-color-regular);
-  transition: all 0.3s;
+  color: rgba(255, 255, 255, 0.6);
+  transition: all 0.3s ease;
+  padding: 0 10px;
 }
 
 .is-playing {
-  color: var(--el-text-color-primary);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .lyric-loading,
@@ -253,7 +254,8 @@ const lyricContainerClass = computed(() => {
   align-items: center;
   height: 100%;
   font-size: 14px;
-  color: var(--el-text-color-secondary);
+  color: rgba(255, 255, 255, 0.5);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .lyric-lines {
@@ -262,17 +264,25 @@ const lyricContainerClass = computed(() => {
 
 .lyric-line {
   text-align: center;
-  margin: 16px 0;
+  margin: 18px 0;
   font-size: 14px;
   line-height: 1.5;
-  transition: all 0.3s;
+  transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
   padding: 0 20px;
+  opacity: 0.7;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transform: scale(0.95);
 }
 
 .active-lyric {
+  /* color: #fff; */
   color: var(--el-color-primary);
   font-size: 16px;
-  font-weight: bold;
+  font-weight: 500;
+  opacity: 1;
+  transform: scale(1);
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .lyric-placeholder {
@@ -282,5 +292,15 @@ const lyricContainerClass = computed(() => {
 
 .lyric-scroll-view {
   scroll-behavior: smooth;
+}
+
+/* 优化滚动条样式 */
+.lyric-container :deep(.el-scrollbar__bar) {
+  opacity: 0.2;
+  width: 4px;
+}
+
+.lyric-container:hover :deep(.el-scrollbar__bar) {
+  opacity: 0.3;
 }
 </style>
