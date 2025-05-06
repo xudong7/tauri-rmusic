@@ -260,7 +260,7 @@ watch (
   filter: blur(30px) brightness(0.7);
   transform: scale(1.10);
   z-index: -2;
-  transition: background-image 1s ease;
+  transition: all 1.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .overlay {
@@ -269,7 +269,10 @@ watch (
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.85) 100%);
+  background: linear-gradient(to bottom, 
+    rgba(0, 0, 0, 0.5) 0%, 
+    rgba(0, 0, 0, 0.7) 50%,
+    rgba(0, 0, 0, 0.85) 100%);
   z-index: -1;
 }
 
@@ -305,23 +308,30 @@ watch (
 }
 
 .cover-container {
-  width: 240px;
-  height: 240px;
-  border-radius: 12px;
+  width: 280px;
+  height: 280px;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  margin-bottom: 24px;
-  transition: transform 0.3s ease;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.6);
+  margin-bottom: 28px;
+  transition: transform 0.5s cubic-bezier(0.21, 1.02, 0.73, 1);
+  position: relative;
 }
 
 .cover-container:hover {
-  transform: scale(1.02);
+  transform: scale(1.05) translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
 }
 
 .song-cover {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.8s ease;
+}
+
+.song-cover:hover {
+  transform: scale(1.1);
 }
 
 .no-cover {
@@ -338,6 +348,18 @@ watch (
 .song-info {
   text-align: center;
   margin-bottom: 20px;
+  animation: slideUp 0.6s ease forwards;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .song-title {
@@ -349,6 +371,25 @@ watch (
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 600px;
+  position: relative;
+  display: inline-block;
+  padding-bottom: 5px;
+}
+
+.song-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--el-color-primary), transparent);
+  transform: translateX(-50%);
+  transition: width 0.3s ease;
+}
+
+.song-title:hover::after {
+  width: 80%;
 }
 
 .song-artist {
@@ -356,6 +397,11 @@ watch (
   font-size: 16px;
   color: rgba(255, 255, 255, 0.8);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  transition: color 0.3s ease;
+}
+
+.song-info:hover .song-artist {
+  color: var(--el-color-primary-light-5);
 }
 
 .lyric-view-container {
@@ -384,46 +430,90 @@ watch (
   flex: 1;
   height: 4px;
   background-color: rgba(255, 255, 255, 0.2);
-  border-radius: 2px;
+  border-radius: 4px;
   margin: 0 12px;
   overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  transition: height 0.2s ease;
+}
+
+.progress-bar:hover {
+  height: 6px;
 }
 
 .progress-inner {
   height: 100%;
-  background-color: var(--el-color-primary);
-  border-radius: 2px;
+  background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3));
+  border-radius: 4px;
   transition: width 0.1s linear;
+  position: relative;
+}
+
+.progress-inner::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  background-color: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.progress-bar:hover .progress-inner::after {
+  opacity: 1;
 }
 
 .controls {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
   margin-top: 10px;
 }
 
 .controls .el-button {
-  background-color: transparent;
+  background-color: rgba(255, 255, 255, 0.1);
   border-color: transparent;
   color: #fff;
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  transform: translateY(0);
 }
 
 .controls .el-button:hover {
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: rgba(255, 255, 255, 0.2);
   color: var(--el-color-primary);
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.controls .el-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .controls .el-button--primary {
   background-color: var(--el-color-primary);
   border-color: var(--el-color-primary);
   color: #fff;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  transform: scale(1);
 }
 
 .controls .el-button--primary:hover {
   background-color: var(--el-color-primary-light-3);
   border-color: var(--el-color-primary-light-3);
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.controls .el-button--primary:active {
+  transform: scale(1);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
 }
 </style>

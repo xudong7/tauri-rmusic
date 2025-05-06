@@ -62,36 +62,36 @@ const coverUrl = computed(() => {
   if (props.currentOnlineSong && props.currentOnlineSong.pic_url) {
     return props.currentOnlineSong.pic_url;
   }
-  
+
   if (props.currentMusic && localCoverUrl.value) {
     return localCoverUrl.value;
   }
-  
+
   return null;
 });
 
 // 本地音乐封面
-const localCoverUrl = ref('');
+const localCoverUrl = ref("");
 
 // 加载本地封面和歌词
 async function loadLocalCoverAndLyric() {
   if (props.currentMusic) {
     try {
       const [coverData, _] = await invoke("load_cover_and_lyric", {
-        fileName: props.currentMusic.file_name
+        fileName: props.currentMusic.file_name,
       });
-      
+
       if (coverData) {
         localCoverUrl.value = coverData;
       } else {
-        localCoverUrl.value = '';
+        localCoverUrl.value = "";
       }
     } catch (error) {
       console.error("加载本地封面失败:", error);
-      localCoverUrl.value = '';
+      localCoverUrl.value = "";
     }
   } else {
-    localCoverUrl.value = '';
+    localCoverUrl.value = "";
   }
 }
 
@@ -102,7 +102,7 @@ watch(
     if (newMusic) {
       loadLocalCoverAndLyric();
     } else {
-      localCoverUrl.value = '';
+      localCoverUrl.value = "";
     }
   },
   { immediate: true }
@@ -197,13 +197,26 @@ watch(volume, () => {
 <style scoped>
 .player-bar {
   height: 80px;
-  background-color: var(--player-bg-color, #f5f7fa);
-  border-top: 1px solid var(--el-border-color);
+  backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
+  transition: all 0.3s ease;
+
+  /* 亮色模式样式 */
+  background-color: rgba(245, 245, 247, 0.95);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
   color: var(--el-text-color-primary);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* 深色模式样式 */
+html.dark .player-bar {
+  background-color: rgba(30, 30, 32, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
 }
 
 .player-left {
@@ -218,25 +231,38 @@ watch(volume, () => {
 .cover-container {
   width: 60px;
   height: 60px;
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
-  margin-right: 12px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.2);
+  margin-right: 16px;
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+
+  /* 亮色模式 */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 深色模式 */
+html.dark .cover-container {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .clickable {
   cursor: pointer;
-  transition: transform 0.2s;
 }
 
 .clickable:hover {
-  transform: scale(1.05);
+  transform: translateY(-3px) scale(1.08);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
 }
 
 .cover-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.cover-container:hover .cover-image {
+  transform: scale(1.1);
 }
 
 .no-cover {
@@ -255,30 +281,67 @@ watch(volume, () => {
   flex-direction: column;
   justify-content: center;
   overflow: hidden;
+  transition: transform 0.3s ease;
+}
+
+.player-left:hover .song-info {
+  transform: translateX(4px);
 }
 
 .song-name {
   font-size: 16px;
   font-weight: bold;
-  color: var(--el-text-color-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: color 0.3s ease;
+
+  /* 亮色模式 */
+  color: var(--el-text-color-primary);
+  text-shadow: none;
+}
+
+/* 深色模式 */
+html.dark .song-name {
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.player-left:hover .song-name {
+  color: var(--el-color-primary);
 }
 
 .artist-name {
-  font-size: 12px;
-  color: var(--el-text-color-secondary, #909399);
+  font-size: 13px;
   margin-top: 4px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: color 0.3s ease;
+
+  /* 亮色模式 */
+  color: var(--el-text-color-secondary);
+}
+
+/* 深色模式 */
+html.dark .artist-name {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.player-left:hover .artist-name {
+  /* 亮色模式 */
+  color: var(--el-text-color-primary);
+}
+
+/* 深色模式 */
+html.dark .player-left:hover .artist-name {
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .player-controls {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 20px;
   min-width: 45%;
   justify-content: center;
   @media (max-width: 320px) {
@@ -287,31 +350,89 @@ watch(volume, () => {
 }
 
 .player-controls .el-button {
-  background-color: transparent;
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  transform: translateY(0);
   border-color: transparent;
+
+  /* 亮色模式 */
+  background-color: rgba(0, 0, 0, 0.05);
   color: var(--el-text-color-primary);
 }
 
+/* 深色模式 */
+html.dark .player-controls .el-button {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
 .player-controls .el-button:hover {
-  background-color: var(--hover-bg-color, rgba(255, 255, 255, 0.1));
+  transform: translateY(-3px);
+
+  /* 亮色模式 */
+  background-color: rgba(0, 0, 0, 0.08);
   color: var(--el-color-primary);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* 深色模式 */
+html.dark .player-controls .el-button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.player-controls .el-button:active {
+  transform: translateY(0);
+
+  /* 亮色模式 */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* 深色模式 */
+html.dark .player-controls .el-button:active {
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .player-controls .el-button.is-disabled {
+  transform: none;
+  box-shadow: none;
+
+  /* 亮色模式 */
   color: var(--el-disabled-text-color);
-  background-color: transparent;
+  background-color: rgba(0, 0, 0, 0.02);
   border-color: transparent;
+}
+
+/* 深色模式 */
+html.dark .player-controls .el-button.is-disabled {
+  color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .player-controls .el-button--primary {
   background-color: var(--el-color-primary);
   border-color: var(--el-color-primary);
   color: #fff;
+  transform: scale(1);
+
+  /* 亮色模式 */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* 深色模式 */
+html.dark .player-controls .el-button--primary {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 .player-controls .el-button--primary:hover {
   background-color: var(--el-color-primary-light-3);
   border-color: var(--el-color-primary-light-3);
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.player-controls .el-button--primary:active {
+  transform: scale(1);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
 }
 
 .volume-control {
@@ -325,19 +446,50 @@ watch(volume, () => {
 }
 
 .volume-label {
-  color: var(--el-text-color-regular);
   font-size: 14px;
+
+  /* 亮色模式 */
+  color: var(--el-text-color-secondary);
+}
+
+/* 深色模式 */
+html.dark .volume-label {
+  color: rgba(255, 255, 255, 0.7);
 }
 
 :deep(.el-slider__runway) {
-  background-color: var(--el-fill-color-light);
+  height: 4px;
+  transition: height 0.2s ease;
+
+  /* 亮色模式 */
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* 深色模式 */
+html.dark :deep(.el-slider__runway) {
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 :deep(.el-slider__bar) {
   background-color: var(--el-color-primary);
+  background-image: linear-gradient(
+    90deg,
+    var(--el-color-primary),
+    var(--el-color-primary-light-3)
+  );
 }
 
 :deep(.el-slider__button) {
-  border-color: var(--el-color-primary);
+  width: 12px;
+  height: 12px;
+  border: none;
+  background-color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
+}
+
+:deep(.el-slider:hover .el-slider__button) {
+  transform: scale(1.2);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
 }
 </style>
