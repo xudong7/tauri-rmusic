@@ -3,11 +3,11 @@ import { ref, onMounted, onUnmounted, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { ElMessage } from "element-plus";
-import HeaderBar from "./components/HeaderBar.vue";
-import MusicList from "./components/MusicList.vue";
-import OnlineMusicList from "./components/OnlineMusicList.vue";
-import PlayerBar from "./components/PlayerBar.vue";
-import ImmersiveView from "./components/ImmersiveView.vue";
+import HeaderBar from "./components/HeaderBar/HeaderBar.vue";
+import MusicList from "./components/MusicList/MusicList.vue";
+import OnlineMusicList from "./components/OnlineMusicList/OnlineMusicList.vue";
+import PlayerBar from "./components/PlayerBar/PlayerBar.vue";
+import ImmersiveView from "./components/ImmersiveView/ImmersiveView.vue";
 import type { MusicFile, SongInfo, SearchResult } from "./types/model";
 import { ViewMode } from "./types/model";
 

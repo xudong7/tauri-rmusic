@@ -2,7 +2,7 @@
 import { ref, computed, watch, onMounted, nextTick } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { ElScrollbar } from "element-plus";
-import type { SongInfo, MusicFile } from "../types/model";
+import type { SongInfo, MusicFile } from "../../types/model";
 
 const props = defineProps<{
   currentSong: SongInfo | null;
@@ -231,76 +231,5 @@ const lyricContainerClass = computed(() => {
   </div>
 </template>
 
-<style scoped>
-.lyric-container {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  color: rgba(255, 255, 255, 0.6);
-  transition: all 0.3s ease;
-  padding: 0 10px;
-}
+<style scoped src="./LyricView.css" />
 
-.is-playing {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.lyric-loading,
-.lyric-empty {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.5);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-.lyric-lines {
-  padding: 20px 0;
-}
-
-.lyric-line {
-  text-align: center;
-  margin: 18px 0;
-  font-size: 14px;
-  line-height: 1.5;
-  transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
-  padding: 0 20px;
-  opacity: 0.7;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  transform: scale(0.95);
-}
-
-.active-lyric {
-  /* color: #fff; */
-  color: var(--el-color-primary);
-  font-size: 16px;
-  font-weight: 500;
-  opacity: 1;
-  transform: scale(1);
-  letter-spacing: 0.5px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-.lyric-placeholder {
-  height: 150px;
-  opacity: 0;
-}
-
-.lyric-scroll-view {
-  scroll-behavior: smooth;
-}
-
-/* 优化滚动条样式 */
-.lyric-container :deep(.el-scrollbar__bar) {
-  opacity: 0.2;
-  width: 4px;
-}
-
-.lyric-container:hover :deep(.el-scrollbar__bar) {
-  opacity: 0.3;
-}
-</style>
