@@ -4,8 +4,6 @@
 
 ## 屏幕截图
 
-![截图](/screenshots/image.png)
-
 ![截图](/screenshots/image-1.png)
 
 ![截图](/screenshots/image-2.png)
