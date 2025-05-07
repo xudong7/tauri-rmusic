@@ -395,16 +395,19 @@ watch(
     </div>
 
     <div class="content-section">
-      <div class="cover-container">
-        <img
-          v-if="currentCoverUrl"
-          :src="currentCoverUrl"
-          class="song-cover"
-          alt="封面"
-        />
-        <div v-else class="no-cover">
-          <el-icon><Headset /></el-icon>
+      <div class="cover-container" :class="{ 'cover-rotate': isPlaying }">
+        <div class="cover-image-wrapper">
+          <img
+            v-if="currentCoverUrl"
+            :src="currentCoverUrl"
+            class="song-cover"
+            alt="封面"
+          />
+          <div v-else class="no-cover">
+            <el-icon><Headset /></el-icon>
+          </div>
         </div>
+        <div class="cover-reflection"></div>
       </div>
 
       <div class="song-info">

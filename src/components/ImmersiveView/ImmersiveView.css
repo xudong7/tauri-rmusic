@@ -164,16 +164,58 @@
 }
 
 .cover-container {
-  width: 320px;
-  height: 320px;
-  border-radius: 20px;
+  min-width: 260px;
+  min-height: 260px;
+  border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 10px 15px rgba(0, 0, 0, 0.3);
   margin-bottom: 50px;
-  transition: transform 0.6s cubic-bezier(0.21, 1.02, 0.73, 1);
+  transition: all 0.6s cubic-bezier(0.21, 1.02, 0.73, 1);
   position: relative;
-  border: 3px solid rgba(255, 255, 255, 0.2);
-  animation: floatAnimation 4s infinite ease-in-out alternate;
+  aspect-ratio: 1/1;
+}
+
+/* 添加封面旋转动画 */
+@keyframes rotateAnimation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.cover-rotate {
+  animation: rotateAnimation 30s infinite linear, floatAnimation 4s infinite ease-in-out alternate;
+}
+
+.cover-image-wrapper {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 12px;
+  box-sizing: border-box;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background-color: rgba(0, 0, 0, 0.2);
+  position: relative;
+  z-index: 1;
+}
+
+/* 添加封面倒影效果 */
+.cover-reflection {
+  position: absolute;
+  bottom: -40%;
+  left: 5%;
+  width: 90%;
+  height: 30%;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.3), transparent);
+  filter: blur(3px);
+  transform: rotateX(180deg) scale(0.9, 0.4);
+  opacity: 0.5;
+  border-radius: 50%;
+  z-index: -1;
+  transition: all 0.6s ease;
+  pointer-events: none;
 }
 
 @keyframes floatAnimation {
@@ -196,6 +238,8 @@
   height: 100%;
   object-fit: cover;
   transition: transform 1s ease;
+  aspect-ratio: 1/1;
+  display: block;
 }
 
 .cover-container:hover .song-cover {
@@ -239,7 +283,7 @@
 /* 歌曲标题样式 */
 .song-title {
   margin: 0;
-  font-size: 36px;
+  font-size: 24px;
   font-weight: 700;
   color: #fff;
   text-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
@@ -288,7 +332,7 @@
 /* 歌手名称样式 */
 .song-artist {
   margin: 0;
-  font-size: 20px;
+  font-size: 16px;
   color: rgba(255, 255, 255, 0.9);
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
   white-space: nowrap;
@@ -341,13 +385,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  overflow: hidden;
+  overflow: visible;
   background: transparent;
   border-radius: 0;
   backdrop-filter: none;
-  padding: 20px;
+  padding: 0;
   box-shadow: none;
   border: none;
+  min-height: 180px;
+  margin-bottom: 10px;
+  position: relative;
+  z-index: 5;
 }
 
 .control-section {
