@@ -98,15 +98,17 @@ function handleRowDblClick(row: MusicFile) {
 
         <el-table-column label="歌手" min-width="150">
           <template #default="{ row }">
-            <span class="artist-name">
+            <div class="ellipsis-text artist-name">
               {{ extractArtistName(getDisplayName(row.file_name)) }}
-            </span>
+            </div>
           </template>
         </el-table-column>
 
         <el-table-column label="文件路径" min-width="180">
           <template #default="{ row }">
-            <span class="file-path">{{ row.file_name }}</span>
+            <div class="ellipsis-text file-path">
+              {{ row.file_name }}
+            </div>
           </template>
         </el-table-column>
       </el-table>

@@ -55,11 +55,11 @@
   background-color: var(--active-item-bg, rgba(64, 158, 255, 0.1));
 }
 
-.song-name {
+.song-name, .ellipsis-text {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 400px;
+  max-width: 300px;
 }
 
 :deep(.el-table) {
