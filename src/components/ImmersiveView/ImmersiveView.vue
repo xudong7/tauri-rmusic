@@ -377,11 +377,20 @@ watch(
     <div class="overlay" :style="overlayStyle"></div>
 
     <div class="top-section">
-      <el-button @click="emit('exit')" :icon="Back" circle class="back-btn" />
+      <el-tooltip content="返回" placement="bottom" effect="dark">
+        <el-button @click="emit('exit')" :icon="Back" circle class="back-btn" />
+      </el-tooltip>
+      
       <div class="window-controls">
-        <el-button @click="minimize" :icon="Minus" circle />
-        <el-button @click="toggleMaximize" :icon="maximizeIcon" circle />
-        <el-button @click="close" :icon="Close" circle />
+        <el-tooltip content="最小化" placement="bottom" effect="dark">
+          <el-button @click="minimize" :icon="Minus" circle />
+        </el-tooltip>
+        <el-tooltip :content="isMaximized ? '还原' : '最大化'" placement="bottom" effect="dark">
+          <el-button @click="toggleMaximize" :icon="maximizeIcon" circle />
+        </el-tooltip>
+        <el-tooltip content="关闭" placement="bottom" effect="dark">
+          <el-button @click="close" :icon="Close" circle />
+        </el-tooltip>
       </div>
     </div>
 
@@ -399,9 +408,11 @@ watch(
       </div>
 
       <div class="song-info">
-        <h1 class="song-title">{{ songTitle }}</h1>
+        <h1 class="song-title" :title="songTitle">{{ songTitle }}</h1>
         <div class="song-artist-container">
-          <p class="song-artist">{{ currentArtistName || "未知歌手" }}</p>
+          <p class="song-artist" :title="currentArtistName || '未知歌手'">
+            {{ currentArtistName || "未知歌手" }}
+          </p>
         </div>
       </div>
 
@@ -428,17 +439,23 @@ watch(
       </div>
 
       <div class="controls">
-        <el-button circle :icon="ArrowLeft" @click="emit('previous')" />
+        <el-tooltip content="上一曲" placement="top" effect="dark">
+          <el-button circle :icon="ArrowLeft" @click="emit('previous')" />
+        </el-tooltip>
 
-        <el-button
-          circle
-          size="large"
-          :icon="isPlaying ? VideoPause : VideoPlay"
-          @click="emit('toggle-play')"
-          type="primary"
-        />
+        <el-tooltip :content="isPlaying ? '暂停' : '播放'" placement="top" effect="dark">
+          <el-button
+            circle
+            size="large"
+            :icon="isPlaying ? VideoPause : VideoPlay"
+            @click="emit('toggle-play')"
+            type="primary"
+          />
+        </el-tooltip>
 
-        <el-button circle :icon="ArrowRight" @click="emit('next')" />
+        <el-tooltip content="下一曲" placement="top" effect="dark">
+          <el-button circle :icon="ArrowRight" @click="emit('next')" />
+        </el-tooltip>
       </div>
     </div>
   </div>

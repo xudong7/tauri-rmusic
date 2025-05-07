@@ -74,14 +74,14 @@ const currentArtist = computed(() => {
   if (props.currentOnlineSong && props.currentOnlineSong.artists.length) {
     return props.currentOnlineSong.artists.join(", ");
   }
-  
+
   // 从本地音乐文件名中提取歌手名
   if (props.currentMusic) {
     const fileName = getFileName(props.currentMusic.file_name);
     const artistName = extractArtistName(fileName);
     return artistName || "未知歌手";
   }
-  
+
   return "";
 });
 
@@ -170,45 +170,75 @@ watch(volume, () => {
           alt="Album Cover"
         />
         <div v-else class="no-cover">
-          <el-icon style="width: 100%; height: 100%; object-fit: cover"
-            ><Headset
-          /></el-icon>
+          <el-icon
+            style="
+              width: 100%;
+              height: 100%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            "
+          >
+            <Headset />
+          </el-icon>
         </div>
       </div>
 
       <div class="song-info">
-        <div class="song-name">{{ songTitle }}</div>
-        <div v-if="currentArtist" class="artist-name">{{ currentArtist }}</div>
+        <div class="song-name" :title="songTitle">{{ songTitle }}</div>
+        <div v-if="currentArtist" class="artist-name" :title="currentArtist">
+          {{ currentArtist }}
+        </div>
       </div>
     </div>
 
     <div class="player-controls">
-      <el-button
-        circle
-        :icon="ArrowLeft"
+      <el-tooltip
+        content="上一曲"
+        placement="top"
+        effect="light"
         :disabled="!currentMusic && !currentOnlineSong"
-        @click="emit('previous')"
-      />
+      >
+        <el-button
+          circle
+          :icon="ArrowLeft"
+          :disabled="!currentMusic && !currentOnlineSong"
+          @click="emit('previous')"
+        />
+      </el-tooltip>
 
-      <el-button
-        circle
-        size="large"
-        :icon="isPlaying ? VideoPause : VideoPlay"
+      <el-tooltip
+        :content="isPlaying ? '暂停' : '播放'"
+        placement="top"
+        effect="light"
         :disabled="!currentMusic && !currentOnlineSong"
-        @click="emit('toggle-play')"
-        type="primary"
-      />
+      >
+        <el-button
+          circle
+          size="large"
+          :icon="isPlaying ? VideoPause : VideoPlay"
+          :disabled="!currentMusic && !currentOnlineSong"
+          @click="emit('toggle-play')"
+          type="primary"
+        />
+      </el-tooltip>
 
-      <el-button
-        circle
-        :icon="ArrowRight"
+      <el-tooltip
+        content="下一曲"
+        placement="top"
+        effect="light"
         :disabled="!currentMusic && !currentOnlineSong"
-        @click="emit('next')"
-      />
+      >
+        <el-button
+          circle
+          :icon="ArrowRight"
+          :disabled="!currentMusic && !currentOnlineSong"
+          @click="emit('next')"
+        />
+      </el-tooltip>
     </div>
 
     <div class="volume-control">
-      <!-- <span class="volume-label">音量:</span> -->
       <el-slider
         v-model="volume"
         :max="100"
@@ -223,4 +253,3 @@ watch(volume, () => {
 </template>
 
 <style scoped src="./PlayerBar.css" />
-
