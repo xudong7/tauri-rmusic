@@ -13,6 +13,7 @@
     "windows": [
       {
         "title": "rmusic",
+        "decorations": false,
         "width": 1200,
         "height": 800
       }

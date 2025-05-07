@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { ElMessage } from "element-plus";
+import TitleBar from "./components/TitleBar/TitleBar.vue";
 import HeaderBar from "./components/HeaderBar/HeaderBar.vue";
 import MusicList from "./components/MusicList/MusicList.vue";
 import OnlineMusicList from "./components/OnlineMusicList/OnlineMusicList.vue";
@@ -408,6 +409,9 @@ defineExpose({
 
 <template>
   <div class="music-app" :class="{ 'dark-theme': isDarkMode }">
+    <!-- 自定义标题栏 -->
+    <TitleBar />
+    
     <!-- 顶部搜索和文件夹选择 -->
     <HeaderBar
       :currentDirectory="currentDirectory"

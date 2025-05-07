@@ -1,0 +1,54 @@
+.title-bar {
+  height: 32px;
+  background-color: var(--el-bg-color-overlay);
+  border-bottom: 1px solid var(--el-border-color-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  user-select: none;
+  -webkit-app-region: drag; /* 使区域可拖动 */
+}
+
+.title-bar-left {
+  display: flex;
+  align-items: center;
+}
+
+.title-bar-logo {
+  height: 20px;
+  width: 20px;
+  margin-right: 8px;
+}
+
+.title-bar-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
+
+.title-bar-controls {
+  display: flex;
+  align-items: center;
+  -webkit-app-region: no-drag; /* 按钮区域不可拖动 */
+}
+
+.title-bar-button {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-left: 4px;
+}
+
+.title-bar-button:hover {
+  background-color: var(--el-fill-color-light);
+}
+
+.title-bar-button.close:hover {
+  background-color: #ff4d4f;
+  color: white;
+}
