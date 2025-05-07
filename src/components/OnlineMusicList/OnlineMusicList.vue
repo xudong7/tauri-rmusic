@@ -61,7 +61,7 @@ const isCurrentSong = (song: SongInfo) => {
           </template>
         </el-table-column>
 
-        <el-table-column label="歌名" min-width="200">
+        <el-table-column label="歌名" min-width="120">
           <template #default="{ row }">
             <div
               :class="{ 'playing-song': isCurrentSong(row) }"
@@ -74,13 +74,17 @@ const isCurrentSong = (song: SongInfo) => {
 
         <el-table-column label="歌手" min-width="150">
           <template #default="{ row }">
-            {{ formatArtists(row.artists) }}
+            <div class="ellipsis-text">
+              {{ formatArtists(row.artists) }}
+            </div>
           </template>
         </el-table-column>
 
         <el-table-column label="专辑" min-width="150">
           <template #default="{ row }">
-            {{ row.album }}
+            <div class="ellipsis-text">
+              {{ row.album }}
+            </div>
           </template>
         </el-table-column>
 
