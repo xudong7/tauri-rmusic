@@ -1,9 +1,21 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { VideoPlay, VideoPause, Back, ArrowLeft, ArrowRight, Headset } from "@element-plus/icons-vue";
+import {
+  VideoPlay,
+  VideoPause,
+  Back,
+  ArrowLeft,
+  ArrowRight,
+  Headset,
+  Minus,
+  FullScreen,
+  ScaleToOriginal,
+  Close,
+} from "@element-plus/icons-vue";
 import type { SongInfo, MusicFile } from "../../types/model";
 import LyricView from "../LyricView/LyricView.vue";
 import { invoke } from "@tauri-apps/api/core";
+import { Window } from "@tauri-apps/api/window";
 
 const props = defineProps<{
   currentSong: SongInfo | null;
@@ -14,14 +26,49 @@ const props = defineProps<{
 
 const emit = defineEmits(["toggle-play", "previous", "next", "exit"]);
 
+// 窗口控制功能
+const appWindow = Window.getCurrent();
+const isMaximized = ref(false);
+
+// 检查窗口当前是否已最大化
+async function checkMaximized() {
+  isMaximized.value = await appWindow.isMaximized();
+}
+
+// 窗口控制功能
+const minimize = async () => {
+  await appWindow.minimize();
+};
+
+const toggleMaximize = async () => {
+  if (isMaximized.value) {
+    await appWindow.unmaximize();
+  } else {
+    await appWindow.maximize();
+  }
+  isMaximized.value = !isMaximized.value;
+};
+
+const close = async () => {
+  await appWindow.close();
+};
+
+// 计算最大化/恢复的图标
+const maximizeIcon = computed(() => {
+  return isMaximized.value ? ScaleToOriginal : FullScreen;
+});
+
+// 初始化窗口状态
+checkMaximized();
+
 // 本地音乐封面
-const localCoverUrl = ref('');
+const localCoverUrl = ref("");
 
 // 图片亮度分析状态
 const imageAnalysisState = ref({
   brightness: 0.7, // 默认亮度
   isAnalyzing: false,
-  isAnalyzed: false
+  isAnalyzed: false,
 });
 
 // 加载本地封面和歌词
@@ -29,78 +76,78 @@ async function loadLocalCoverAndLyric() {
   if (props.currentMusic) {
     try {
       const [coverData, _] = await invoke("load_cover_and_lyric", {
-        fileName: props.currentMusic.file_name
+        fileName: props.currentMusic.file_name,
       });
-      
+
       if (coverData) {
         localCoverUrl.value = coverData;
       } else {
-        localCoverUrl.value = '';
+        localCoverUrl.value = "";
       }
     } catch (error) {
       console.error("加载本地封面失败:", error);
-      localCoverUrl.value = '';
+      localCoverUrl.value = "";
     }
   } else {
-    localCoverUrl.value = '';
+    localCoverUrl.value = "";
   }
 }
 
 // 分析图片亮度
 async function analyzeCoverBrightness(imageUrl: string) {
   if (!imageUrl || imageAnalysisState.value.isAnalyzing) return;
-  
+
   imageAnalysisState.value.isAnalyzing = true;
-  
+
   try {
     // 创建一个隐藏的图片元素来加载图片
     const img = new Image();
     img.crossOrigin = "Anonymous";
-    
+
     await new Promise((resolve, reject) => {
       img.onload = resolve;
       img.onerror = reject;
       img.src = imageUrl;
     });
-    
+
     // 使用 canvas 分析图片亮度
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    
+
     canvas.width = img.width;
     canvas.height = img.height;
     ctx.drawImage(img, 0, 0);
-    
+
     // 获取图像数据
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
-    
+
     // 计算平均亮度 (0-255)
     let totalBrightness = 0;
     let count = 0;
-    
+
     // 每隔几个像素采样一次，提高性能
     const sampleStep = Math.max(1, Math.floor(data.length / 4 / 1000));
-    
+
     for (let i = 0; i < data.length; i += 4 * sampleStep) {
       const r = data[i];
       const g = data[i + 1];
       const b = data[i + 2];
-      
+
       // 加权亮度计算 (人眼对绿色最敏感)
       const pixelBrightness = 0.299 * r + 0.587 * g + 0.114 * b;
       totalBrightness += pixelBrightness;
       count++;
     }
-    
+
     // 计算平均亮度并归一化到 0-1 范围
     const averageBrightness = totalBrightness / count / 255;
-    
+
     // 根据图片亮度计算合适的背景亮度值
     // 亮图片需要降低背景亮度，暗图片需要提高背景亮度
     let adjustedBrightness;
-    
+
     if (averageBrightness < 0.3) {
       // 暗图片，稍微提高亮度
       adjustedBrightness = 0.9;
@@ -111,7 +158,7 @@ async function analyzeCoverBrightness(imageUrl: string) {
       // 亮图片，降低亮度
       adjustedBrightness = 0.5;
     }
-    
+
     imageAnalysisState.value.brightness = adjustedBrightness;
     imageAnalysisState.value.isAnalyzed = true;
   } catch (error) {
@@ -209,7 +256,11 @@ const extractedArtistName = computed(() => {
 
 // 当前艺术家（整合了从API获取的和从文件名提取的）
 const currentArtistName = computed(() => {
-  if (props.currentSong && props.currentSong.artists && props.currentSong.artists.length) {
+  if (
+    props.currentSong &&
+    props.currentSong.artists &&
+    props.currentSong.artists.length
+  ) {
     return formatArtists(props.currentSong.artists);
   }
   return extractedArtistName.value;
@@ -230,9 +281,9 @@ const backgroundStyle = computed(() => {
   if (currentCoverUrl.value) {
     return {
       backgroundImage: `url(${currentCoverUrl.value})`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat'
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
     };
   }
   return {};
@@ -248,7 +299,7 @@ const overlayStyle = computed(() => {
   // 根据图片亮度调整覆盖层透明度
   // 亮图片需要更暗的覆盖层，暗图片需要更透明的覆盖层
   let opacity;
-  
+
   if (imageAnalysisState.value.brightness > 0.8) {
     // 如果背景很亮，覆盖层应该更暗
     opacity = 0.8;
@@ -259,23 +310,23 @@ const overlayStyle = computed(() => {
     // 背景较暗，覆盖层应该更透明
     opacity = 0.6;
   }
-  
+
   return {
     background: `linear-gradient(to bottom, 
       rgba(0, 0, 0, ${opacity * 0.6}) 0%, 
       rgba(0, 0, 0, ${opacity * 0.8}) 50%,
-      rgba(0, 0, 0, ${opacity * 0.9}) 100%)`
+      rgba(0, 0, 0, ${opacity * 0.9}) 100%)`,
   };
 });
 
 // 进度百分比
 const progressPercentage = computed(() => {
   if (!props.currentTime) return 0;
-  
+
   if (props.currentSong) {
     return (props.currentTime / props.currentSong.duration) * 100;
   }
-  
+
   // 本地音乐没有直接的持续时间信息，这里返回一个估算值
   // 假设一般歌曲持续时间为4分钟
   const estimatedDuration = 4 * 60 * 1000;
@@ -287,12 +338,12 @@ const estimatedDuration = computed(() => {
   if (props.currentSong) {
     return formatDuration(props.currentSong.duration);
   }
-  
+
   // 本地音乐估算4分钟
   return "4:00";
 });
 
-watch (
+watch(
   // 监听 更新cover
   () => props.currentMusic,
   (newVal) => {
@@ -314,16 +365,24 @@ watch(
   },
   { immediate: true }
 );
-
 </script>
 
 <template>
   <div class="immersive-view">
-    <div v-if="currentCoverUrl" class="background-cover" :style="[backgroundStyle, { filter: backgroundFilterStyle }]"></div>
+    <div
+      v-if="currentCoverUrl"
+      class="background-cover"
+      :style="[backgroundStyle, { filter: backgroundFilterStyle }]"
+    ></div>
     <div class="overlay" :style="overlayStyle"></div>
-    
+
     <div class="top-section">
       <el-button @click="emit('exit')" :icon="Back" circle class="back-btn" />
+      <div class="window-controls">
+        <el-button @click="minimize" :icon="Minus" circle />
+        <el-button @click="toggleMaximize" :icon="maximizeIcon" circle />
+        <el-button @click="close" :icon="Close" circle />
+      </div>
     </div>
 
     <div class="content-section">
@@ -342,7 +401,7 @@ watch(
       <div class="song-info">
         <h1 class="song-title">{{ songTitle }}</h1>
         <div class="song-artist-container">
-          <p class="song-artist">{{ currentArtistName || '未知歌手' }}</p>
+          <p class="song-artist">{{ currentArtistName || "未知歌手" }}</p>
         </div>
       </div>
 
@@ -369,11 +428,7 @@ watch(
       </div>
 
       <div class="controls">
-        <el-button
-          circle
-          :icon="ArrowLeft"
-          @click="emit('previous')"
-        />
+        <el-button circle :icon="ArrowLeft" @click="emit('previous')" />
 
         <el-button
           circle
@@ -383,15 +438,10 @@ watch(
           type="primary"
         />
 
-        <el-button
-          circle
-          :icon="ArrowRight"
-          @click="emit('next')"
-        />
+        <el-button circle :icon="ArrowRight" @click="emit('next')" />
       </div>
     </div>
   </div>
 </template>
 
 <style scoped src="./ImmersiveView.css" />
-
