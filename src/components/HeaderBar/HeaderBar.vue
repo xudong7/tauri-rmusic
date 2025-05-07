@@ -110,6 +110,7 @@ onMounted(async () => {
           :content="currentDirectory || '未选择文件夹'"
           placement="bottom"
           :disabled="viewMode === ViewMode.ONLINE"
+          effect="light"
         >
           <el-button
             @click="emit('select-directory')"
@@ -117,6 +118,7 @@ onMounted(async () => {
             type="primary"
             :disabled="viewMode === ViewMode.ONLINE"
             class="header-button"
+            size="default"
           >
             选择目录
           </el-button>
@@ -124,8 +126,9 @@ onMounted(async () => {
         <el-button
           @click="toggleViewMode"
           :icon="Switch"
-          :type="viewMode === ViewMode.ONLINE ? 'success' : 'default'"
+          :type="viewMode === ViewMode.ONLINE ? 'success' : 'info'"
           class="header-button"
+          size="default"
         >
           {{ viewMode === ViewMode.LOCAL ? "本地音乐" : "在线搜索" }}
         </el-button>
