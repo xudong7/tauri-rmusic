@@ -1,49 +1,198 @@
 .header-bar {
-  padding: 16px;
-  background-color: var(--header-bg-color, var(--el-bg-color));
-  border-bottom: 1px solid var(--el-border-color);
+  height: 60px;
+  background: var(--el-bg-color-overlay);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--el-border-color-lighter);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 0 12px;
+  user-select: none;
+  -webkit-app-region: drag; /* 整个头部区域默认可拖动 */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 1000;
 }
 
-.directory-section {
+.is-maximized {
+  border-radius: 0;
+}
+
+.is-dark-mode {
+  background-color: var(--el-bg-color-dark);
+  color: var(--el-text-color-light);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(
+    to right,
+    rgba(30, 30, 30, 0.9),
+    rgba(40, 40, 40, 0.9)
+  );
+  border-bottom: 1px solid rgba(50, 50, 50, 0.9);
+}
+
+.header-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  -webkit-app-region: drag; /* 左侧区域可拖动 */
 }
 
-.current-path {
-  margin-left: 10px;
-  font-size: 14px;
-  color: var(--el-text-color-regular);
-  max-width: 500px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.header-logo {
+  height: 24px;
+  width: 24px;
+  margin-right: 2px;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.1));
+  transition: transform 0.2s ease;
+  -webkit-app-region: drag; /* Logo可拖动 */
 }
 
-.current-path span {
-  color: var(--el-color-primary);
-  font-weight: bold;
+.header-logo:hover {
+  transform: scale(1.05);
+  cursor: default; /* 提示用户此处可拖动 */
 }
 
-.right-controls {
+.directory-controls {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 8px;
+  -webkit-app-region: no-drag; /* 按钮区域不可拖动 */
 }
 
-.theme-controls {
+.header-center {
+  flex: 1;
   display: flex;
-  align-items: center;
+  justify-content: center;
+  padding: 0 20px;
+  -webkit-app-region: drag; /* 中间区域默认可拖动 */
 }
 
 .search-section {
-  width: 300px;
+  width: 100%;
+  max-width: 400px;
   position: relative;
+  -webkit-app-region: no-drag; /* 搜索区域不可拖动 */
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  -webkit-app-region: no-drag; /* 右侧控制区域不可拖动 */
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+}
+
+.window-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.header-button {
+  -webkit-app-region: no-drag; /* 确保所有按钮不可拖动 */
+}
+
+.window-button {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+  color: var(--el-text-color-secondary);
+  transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+.window-button:after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--el-color-primary-light-9);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: -1;
+  border-radius: inherit;
+}
+
+.window-button:hover {
+  color: var(--el-color-primary);
+  transform: translateY(-1px);
+}
+
+.window-button:hover:after {
+  opacity: 0.8;
+}
+
+.window-button:active {
+  transform: translateY(0);
+}
+
+.window-button .el-icon {
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.window-button.close {
+  color: var(--el-text-color-secondary);
+}
+
+.window-button.close:hover {
+  color: white;
+  background-color: #f56c6c;
+}
+
+.window-button.close:hover:after {
+  opacity: 0;
+}
+
+.icon-button {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 6px;
+  color: var(--el-text-color-secondary);
+  transition: all 0.2s ease;
+}
+
+.icon-button:hover {
+  color: var(--el-color-primary);
+  background-color: var(--el-color-primary-light-9);
+}
+
+button,
+a,
+input,
+.el-button,
+.el-input,
+.el-input__wrapper,
+.theme-toggle,
+.window-controls,
+.icon-button,
+.window-button {
+  -webkit-app-region: no-drag !important;
+}
+
+.search-section {
+  width: 100%;
+  max-width: 400px;
+  position: relative;
+  -webkit-app-region: no-drag; /* 搜索区域不可拖动 */
+}
+
+/* 保留现有搜索框样式 */
 .search-input {
   width: 100%;
   transition: all 0.3s ease;
@@ -97,4 +246,25 @@ html.dark .search-input :deep(.el-input-group__append .el-button:hover) {
   background-color: var(--el-color-primary);
   border-color: var(--el-color-primary);
   box-shadow: 0 0 10px var(--el-color-primary-light-5);
+}
+
+/* 响应式布局调整 */
+@media (max-width: 768px) {
+  .header-center {
+    padding: 0 10px;
+  }
+
+  .search-section {
+    max-width: 250px;
+  }
+}
+
+@media (max-width: 600px) {
+  .header-bar {
+    padding: 0 8px;
+  }
+
+  .directory-controls {
+    gap: 4px;
+  }
 }

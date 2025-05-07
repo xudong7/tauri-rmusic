@@ -294,6 +294,9 @@ function switchViewMode(mode: ViewMode) {
   if (mode === ViewMode.ONLINE) {
     onlineSongs.value = [];
     onlineSongsTotal.value = 0;
+  } else if (mode === ViewMode.LOCAL && currentDirectory.value) {
+    // 如果切换到本地模式，自动刷新本地音乐列表
+    refreshCurrentDirectory();
   }
 }
 
@@ -410,7 +413,7 @@ defineExpose({
 <template>
   <div class="music-app" :class="{ 'dark-theme': isDarkMode }">
     <!-- 自定义标题栏 -->
-    <TitleBar :isDarkMode="isDarkMode" />
+    <!-- <TitleBar :isDarkMode="isDarkMode" /> -->
     
     <!-- 顶部搜索和文件夹选择 -->
     <HeaderBar
