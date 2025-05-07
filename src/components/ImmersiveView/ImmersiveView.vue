@@ -395,7 +395,7 @@ watch(
     </div>
 
     <div class="content-section">
-      <div class="cover-container" :class="{ 'cover-rotate': isPlaying }">
+      <div class="cover-container">
         <div class="cover-image-wrapper">
           <img
             v-if="currentCoverUrl"
@@ -407,7 +407,6 @@ watch(
             <el-icon><Headset /></el-icon>
           </div>
         </div>
-        <div class="cover-reflection"></div>
       </div>
 
       <div class="song-info">
