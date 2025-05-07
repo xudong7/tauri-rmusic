@@ -10,7 +10,22 @@
   margin-top: 0;
   margin-bottom: 16px;
   color: var(--el-text-color-primary);
-  font-size: 18px;
+  font-size: 20px;
+  font-weight: 600;
+  position: relative;
+  padding-left: 12px;
+}
+
+.list-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 70%;
+  background: var(--el-color-primary);
+  border-radius: 2px;
 }
 
 .music-scrollbar {
