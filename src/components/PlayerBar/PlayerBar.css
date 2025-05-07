@@ -15,6 +15,7 @@
 }
 
 /* 深色模式样式 */
+.dark-theme .player-bar,
 html.dark .player-bar {
   background-color: rgba(30, 30, 32, 0.95);
   border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -53,6 +54,7 @@ html.dark .player-bar {
 }
 
 /* 深色模式 */
+.dark-theme .cover-container,
 html.dark .cover-container {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
@@ -114,6 +116,7 @@ html.dark .cover-container {
 }
 
 /* 深色模式 */
+.dark-theme .song-name,
 html.dark .song-name {
   color: #fff;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
@@ -136,6 +139,7 @@ html.dark .song-name {
 }
 
 /* 深色模式 */
+.dark-theme .artist-name,
 html.dark .artist-name {
   color: rgba(255, 255, 255, 0.7);
 }
@@ -146,6 +150,7 @@ html.dark .artist-name {
 }
 
 /* 深色模式 */
+.dark-theme .player-left:hover .artist-name,
 html.dark .player-left:hover .artist-name {
   color: rgba(255, 255, 255, 0.9);
 }
@@ -177,6 +182,7 @@ html.dark .player-left:hover .artist-name {
 }
 
 /* 深色模式 */
+.dark-theme .player-controls .el-button,
 html.dark .player-controls .el-button {
   background-color: rgba(255, 255, 255, 0.1);
   color: #fff;
@@ -192,6 +198,7 @@ html.dark .player-controls .el-button {
 }
 
 /* 深色模式 */
+.dark-theme .player-controls .el-button:hover,
 html.dark .player-controls .el-button:hover {
   background-color: rgba(255, 255, 255, 0.2);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
@@ -205,6 +212,7 @@ html.dark .player-controls .el-button:hover {
 }
 
 /* 深色模式 */
+.dark-theme .player-controls .el-button:active,
 html.dark .player-controls .el-button:active {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
@@ -220,6 +228,7 @@ html.dark .player-controls .el-button:active {
 }
 
 /* 深色模式 */
+.dark-theme .player-controls .el-button.is-disabled,
 html.dark .player-controls .el-button.is-disabled {
   color: rgba(255, 255, 255, 0.3);
   background-color: rgba(255, 255, 255, 0.05);
@@ -236,6 +245,7 @@ html.dark .player-controls .el-button.is-disabled {
 }
 
 /* 深色模式 */
+.dark-theme .player-controls .el-button--primary,
 html.dark .player-controls .el-button--primary {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
@@ -278,6 +288,7 @@ html.dark .player-controls .el-button--primary {
 }
 
 /* 深色模式 */
+.dark-theme .volume-label,
 html.dark .volume-label {
   color: rgba(255, 255, 255, 0.7);
 }
@@ -291,6 +302,7 @@ html.dark .volume-label {
 }
 
 /* 深色模式 */
+.dark-theme :deep(.el-slider__runway),
 html.dark :deep(.el-slider__runway) {
   background-color: rgba(255, 255, 255, 0.2);
 }
