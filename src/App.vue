@@ -220,6 +220,10 @@ async function refreshCurrentDirectory() {
 async function searchMusic(keyword: string) {
   // 如果是本地模式，执行本地搜索
   if (viewMode.value === ViewMode.LOCAL) {
+    if (!keyword.trim()) {
+      refreshCurrentDirectory();
+      return;
+    }
     // 只留下与搜索关键词相关的音乐文件
     const filteredFiles = musicFiles.value.filter((file) =>
       file.file_name.toLowerCase().includes(keyword.toLowerCase())
