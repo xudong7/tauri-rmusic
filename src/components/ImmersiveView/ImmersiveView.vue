@@ -395,34 +395,38 @@ watch(
     </div>
 
     <div class="content-section">
-      <div class="cover-container">
-        <img
-          v-if="currentCoverUrl"
-          :src="currentCoverUrl"
-          class="song-cover"
-          alt="封面"
-        />
-        <div v-else class="no-cover">
-          <el-icon><Headset /></el-icon>
+      <div class="left-section">
+        <div class="cover-container">
+          <img
+            v-if="currentCoverUrl"
+            :src="currentCoverUrl"
+            class="song-cover"
+            alt="封面"
+          />
+          <div v-else class="no-cover">
+            <el-icon><Headset /></el-icon>
+          </div>
         </div>
       </div>
 
-      <div class="song-info">
-        <h1 class="song-title" :title="songTitle">{{ songTitle }}</h1>
-        <div class="song-artist-container">
-          <p class="song-artist" :title="currentArtistName || '未知歌手'">
-            {{ currentArtistName || "未知歌手" }}
-          </p>
+      <div class="right-section">
+        <div class="song-info">
+          <h1 class="song-title" :title="songTitle">{{ songTitle }}</h1>
+          <div class="song-artist-container">
+            <p class="song-artist" :title="currentArtistName || '未知歌手'">
+              {{ currentArtistName || "未知歌手" }}
+            </p>
+          </div>
         </div>
-      </div>
 
-      <div class="lyric-view-container">
-        <LyricView
-          :currentSong="currentSong"
-          :currentMusic="currentMusic"
-          :currentTime="currentTime"
-          :isPlaying="isPlaying"
-        />
+        <div class="lyric-view-container">
+          <LyricView
+            :currentSong="currentSong"
+            :currentMusic="currentMusic"
+            :currentTime="currentTime"
+            :isPlaying="isPlaying"
+          />
+        </div>
       </div>
     </div>
 
