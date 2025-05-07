@@ -14,8 +14,6 @@ import { ViewMode } from "./types/model";
 
 // 主题设置
 const isDarkMode = ref(false);
-// 移除不再需要的自动主题变量
-// const isAutoTheme = ref(true);
 
 // 视图模式（本地/在线）
 const viewMode = ref<ViewMode>(ViewMode.LOCAL);
@@ -382,6 +380,32 @@ function exitImmersive() {
   showImmersiveMode.value = false;
 }
 
+// 处理键盘快捷键
+function handleKeyDown(event: KeyboardEvent) {
+  // 如果是在输入框中按下快捷键，则不处理
+  if (
+    event.target instanceof HTMLInputElement || 
+    event.target instanceof HTMLTextAreaElement
+  ) {
+    return;
+  }
+
+  switch (event.key) {
+    case "ArrowLeft":
+      playNextOrPreviousMusic(-1);
+      event.preventDefault();
+      break;
+    case " ":
+      togglePlay();
+      event.preventDefault();
+      break;
+    case "ArrowRight":
+      playNextOrPreviousMusic(1);
+      event.preventDefault();
+      break;
+  }
+}
+
 // 初始化加载默认音乐目录
 onMounted(async () => {
   try {
@@ -396,11 +420,15 @@ onMounted(async () => {
   // 初始化主题 - 仅启动时根据时间自动设置一次
   setThemeByTime();
   applyTheme();
+  
+  // 添加全局键盘事件监听
+  window.addEventListener("keydown", handleKeyDown);
 });
 
-// 组件卸载时清理定时器
+// 组件卸载时清理定时器和事件监听器
 onUnmounted(() => {
   stopTimeTracking();
+  window.removeEventListener("keydown", handleKeyDown);
 });
 
 // 导出主题相关函数以供组件使用
@@ -425,6 +453,9 @@ defineExpose({
       @search="searchMusic"
       @switch-view="switchViewMode"
       @toggle-theme="toggleTheme"
+      @previous-track="playNextOrPreviousMusic(-1)"
+      @toggle-play="togglePlay"
+      @next-track="playNextOrPreviousMusic(1)"
     />
 
     <!-- 主内容区域 - 歌曲列表 -->
