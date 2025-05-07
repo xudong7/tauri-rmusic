@@ -38,10 +38,10 @@ const isMaximized = ref(false);
 
 // 执行搜索
 function handleSearch() {
-  if (!searchKeyword.value.trim()) {
-    ElMessage.info("请输入搜索关键词");
-    return;
-  }
+  // if (!searchKeyword.value.trim()) {
+  //   ElMessage.info("请输入搜索关键词");
+  //   return;
+  // }
   emit("search", searchKeyword.value);
 }
 
