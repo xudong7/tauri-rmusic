@@ -7,7 +7,7 @@
   color: rgba(255, 255, 255, 0.65);
   transition: all 0.3s ease;
   padding: 0;
-  align-items: center;
+  align-items: flex-start; /* 改为左对齐 */
 }
 
 .is-playing {
@@ -30,26 +30,28 @@
 .lyric-lines {
   padding: 30px 0;
   width: 100%;
-  text-align: center;
+  text-align: left; /* 左对齐 */
+  padding-left: 5px; /* 添加左侧内边距 */
 }
 
 .lyric-line {
-  text-align: center;
+  text-align: left; /* 左对齐 */
   margin: 22px 0;
-  font-size: 15px;
+  font-size: 15px; 
   line-height: 1.6;
   transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
-  padding: 0;
+  padding: 0 0 0 5px; /* 添加左侧内边距 */
   opacity: 0.75;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   transform: scale(0.95);
   width: 100%;
   letter-spacing: 0.3px;
+  overflow: visible; /* 确保内容不被裁剪 */
 }
 
 .active-lyric {
   color: #fff;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   opacity: 1;
   transform: scale(1.02);
@@ -62,16 +64,15 @@
   content: "";
   position: absolute;
   bottom: -8px;
-  left: 50%;
+  left: 0; /* 改为左对齐 */
   width: 60px;
   height: 2px;
   background: linear-gradient(
     90deg,
-    transparent,
     rgba(var(--el-color-primary-rgb), 0.5),
     transparent
   );
-  transform: translateX(-50%);
+  transform: translateX(0); /* 移除居中变换 */
   border-radius: 2px;
   opacity: 0.7;
 }
@@ -84,9 +85,9 @@
 .lyric-scroll-view {
   scroll-behavior: smooth;
   width: 100%;
-  text-align: center;
+  text-align: left; /* 改为左对齐 */
   margin: 0;
-  padding: 0 20px;
+  padding: 0;
 }
 
 /* 优化滚动条样式 */
