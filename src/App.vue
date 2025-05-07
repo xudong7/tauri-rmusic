@@ -410,7 +410,7 @@ defineExpose({
 <template>
   <div class="music-app" :class="{ 'dark-theme': isDarkMode }">
     <!-- 自定义标题栏 -->
-    <TitleBar />
+    <TitleBar :isDarkMode="isDarkMode" />
     
     <!-- 顶部搜索和文件夹选择 -->
     <HeaderBar
