@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CaretRight, VideoPause, Download } from "@element-plus/icons-vue";
-import type { SongInfo } from "../types/model";
+import type { SongInfo } from "../../types/model";
 
 const props = defineProps<{
   onlineSongs: SongInfo[];

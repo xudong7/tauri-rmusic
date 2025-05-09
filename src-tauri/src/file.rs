@@ -162,19 +162,16 @@ pub async fn download_music(
     let mut file = File::create(&file_path).map_err(|e| format!("create file error: {}", e))?;
 
     file.write_all(&bytes)
-        .map_err(|e| format!("write error: {}", e))?;
-    
-    // 下载封面图片
+        .map_err(|e| format!("write error: {}", e))?;    // 下载封面图片
     let base_filename = file_name.replace(".mp3", "");
     
-    // 1. 从酷狗API获取搜索结果，包含图片URL
-    use crate::netease::search_songs;
+    use crate::netease::get_song_cover;
     
-    let search_result = search_songs(format!("{} {}", song_name, artist), Some(1), Some(1)).await;
-    if let Ok(result) = search_result {
-        if !result.songs.is_empty() && !result.songs[0].pic_url.is_empty() {
+    let cover_url_result = get_song_cover(song_hash.clone(), song_name.clone(), artist.clone()).await;
+    if let Ok(cover_url) = cover_url_result {
+        if !cover_url.is_empty() {
             // 2. 下载封面图片
-            match client.get(&result.songs[0].pic_url).send().await {
+            match client.get(&cover_url).send().await {
                 Ok(pic_response) => {
                     if pic_response.status().is_success() {
                         if let Ok(pic_bytes) = pic_response.bytes().await {
