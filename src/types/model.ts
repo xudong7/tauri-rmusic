@@ -35,6 +35,14 @@ export interface Lyric {
   charset: string;
 }
 
+// 播放歌曲结果模型
+export interface PlaySongResult {
+  url: string;
+  id: string;
+  name: string;
+  artist: string;
+}
+
 // 应用的视图模式
 export enum ViewMode {
   LOCAL = "local", // 本地音乐模式

@@ -1,7 +1,7 @@
 use file::{download_music, get_default_music_dir, load_cover_and_lyric, scan_files};
 use music::{Music, MusicState};
 use netease::{
-    get_lyric, get_lyric_decoded, get_song_detail, get_song_url, play_netease_song, search_lyric,
+    get_lyric, get_lyric_decoded, get_song_cover, get_song_url, play_netease_song, search_lyric,
     search_songs,
 };
 use rodio::Sink;
@@ -68,7 +68,8 @@ pub fn run() {
             search_lyric,
             get_lyric,
             get_lyric_decoded,
-            load_cover_and_lyric
+            load_cover_and_lyric,
+            get_song_cover
         ])
         // share sender and sink with the frontend
         .manage(music.event_sender)

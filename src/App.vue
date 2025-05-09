@@ -9,7 +9,7 @@ import MusicList from "./components/MusicList/MusicList.vue";
 import OnlineMusicList from "./components/OnlineMusicList/OnlineMusicList.vue";
 import PlayerBar from "./components/PlayerBar/PlayerBar.vue";
 import ImmersiveView from "./components/ImmersiveView/ImmersiveView.vue";
-import type { MusicFile, SongInfo, SearchResult } from "./types/model";
+import type { MusicFile, SongInfo, SearchResult, PlaySongResult } from "./types/model";
 import { ViewMode } from "./types/model";
 
 // 主题设置
@@ -106,19 +106,40 @@ async function playOnlineSong(song: SongInfo) {
     currentOnlineSong.value = song;
     currentMusic.value = null;
     isPlaying.value = true;
-    currentTime.value = 0;
-
-    // 获取播放URL
-    const url = await invoke("play_netease_song", { id: song.file_hash });
-    if (!url) {
+    currentTime.value = 0;    // 获取播放URL和信息
+    const songResult = await invoke<PlaySongResult>("play_netease_song", { 
+      id: song.file_hash,
+      name: song.name,
+      artist: song.artists.join(", ")
+    });
+    
+    // 检查返回结果
+    if (!songResult || !songResult.url) {
       throw new Error("获取播放URL失败");
+    }
+
+    // 获取歌曲封面
+    try {
+      const coverUrl = await invoke("get_song_cover", {
+        id: song.file_hash,
+        name: song.name,
+        artist: song.artists.join(", ")
+      });
+      
+      if (coverUrl && typeof coverUrl === 'string') {
+        // 更新当前歌曲的封面URL
+        currentOnlineSong.value.pic_url = coverUrl;
+      }
+    } catch (coverError) {
+      console.error("获取歌曲封面失败:", coverError);
+      // 获取封面失败不影响播放
     }
 
     // 播放歌曲
     await invoke("handle_event", {
       event: JSON.stringify({
         action: "play",
-        path: url,
+        path: songResult.url,
       }),
     });
 
