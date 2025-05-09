@@ -1,9 +1,6 @@
 use file::{download_music, get_default_music_dir, load_cover_and_lyric, scan_files};
 use music::{Music, MusicState};
-use netease::{
-    get_lyric, get_lyric_decoded, get_song_cover, get_song_lyric, get_song_url, play_netease_song, search_lyric,
-    search_songs,
-};
+use netease::{get_song_cover, get_song_lyric, get_song_url, play_netease_song, search_songs};
 use rodio::Sink;
 use std::sync::Arc;
 use tokio::sync::broadcast::Sender;
@@ -64,9 +61,7 @@ pub fn run() {
             get_song_url,
             play_netease_song,
             get_default_music_dir,
-            download_music,            search_lyric,
-            get_lyric,
-            get_lyric_decoded,
+            download_music,
             get_song_lyric,
             load_cover_and_lyric,
             get_song_cover

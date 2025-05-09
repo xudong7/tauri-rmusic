@@ -325,7 +325,7 @@ pub async fn get_song_lyric(id: String) -> Result<String, String> {
 
     // We can directly get the lyrics with the song ID
     let url = format!("{}/lyric?id={}", LOCAL_API_BASE, id);
-    
+
     println!("Fetching lyrics from: {}", url);
     let response_json: serde_json::Value = get_response_json(client, url).await?;
 
@@ -333,7 +333,7 @@ pub async fn get_song_lyric(id: String) -> Result<String, String> {
     let lrc = response_json
         .get("lrc")
         .ok_or_else(|| "No lrc field in response".to_string())?;
-    
+
     // Extract the lyric content from the lrc field
     let content = lrc
         .get("lyric")
@@ -346,43 +346,4 @@ pub async fn get_song_lyric(id: String) -> Result<String, String> {
     }
 
     Ok(content)
-}
-
-/// get lyric info (id and accesskey) by song id (保留向后兼容性)
-#[tauri::command]
-pub async fn search_lyric(hash: String) -> Result<LyricInfo, String> {
-    // 尝试获取歌词，检查歌词是否存在
-    match get_song_lyric(hash.clone()).await {
-        Ok(_) => {
-            // 歌词存在，返回有效的 LyricInfo
-            println!("Successfully prepared lyric info: id={}", hash);
-            Ok(LyricInfo {
-                id: hash,
-                accesskey: "".to_string(), // 新 API 不需要 accesskey
-            })
-        },
-        Err(e) => Err(e),
-    }
-}
-
-/// get lyric content by id and accesskey (保留向后兼容性)
-#[tauri::command]
-pub async fn get_lyric(id: String, accesskey: String) -> Result<Lyric, String> {
-    // 获取歌词内容
-    let content = get_song_lyric(id).await?;
-    
-    // 包装为旧的 Lyric 结构体
-    Ok(Lyric {
-        content,
-        fmt: "lrc".to_string(),
-        contenttype: 1, // 默认内容类型 (1 = LRC 格式)
-        charset: "utf-8".to_string(),
-    })
-}
-
-/// get decoded lyric content by id and accesskey (保留向后兼容性)
-#[tauri::command]
-pub async fn get_lyric_decoded(id: String, accesskey: String) -> Result<String, String> {
-    // 直接调用我们新的简化函数
-    get_song_lyric(id).await
 }
