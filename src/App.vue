@@ -9,7 +9,12 @@ import MusicList from "./components/MusicList/MusicList.vue";
 import OnlineMusicList from "./components/OnlineMusicList/OnlineMusicList.vue";
 import PlayerBar from "./components/PlayerBar/PlayerBar.vue";
 import ImmersiveView from "./components/ImmersiveView/ImmersiveView.vue";
-import type { MusicFile, SongInfo, SearchResult, PlaySongResult } from "./types/model";
+import type {
+  MusicFile,
+  SongInfo,
+  SearchResult,
+  PlaySongResult,
+} from "./types/model";
 import { ViewMode } from "./types/model";
 
 // 主题设置
@@ -106,13 +111,13 @@ async function playOnlineSong(song: SongInfo) {
     currentOnlineSong.value = song;
     currentMusic.value = null;
     isPlaying.value = true;
-    currentTime.value = 0;    // 获取播放URL和信息
-    const songResult = await invoke<PlaySongResult>("play_netease_song", { 
+    currentTime.value = 0; // 获取播放URL和信息
+    const songResult = await invoke<PlaySongResult>("play_netease_song", {
       id: song.file_hash,
       name: song.name,
-      artist: song.artists.join(", ")
+      artist: song.artists.join(", "),
     });
-    
+
     // 检查返回结果
     if (!songResult || !songResult.url) {
       throw new Error("获取播放URL失败");
@@ -123,10 +128,10 @@ async function playOnlineSong(song: SongInfo) {
       const coverUrl = await invoke("get_song_cover", {
         id: song.file_hash,
         name: song.name,
-        artist: song.artists.join(", ")
+        artist: song.artists.join(", "),
       });
-      
-      if (coverUrl && typeof coverUrl === 'string') {
+
+      if (coverUrl && typeof coverUrl === "string") {
         // 更新当前歌曲的封面URL
         currentOnlineSong.value.pic_url = coverUrl;
       }
@@ -362,6 +367,10 @@ function startTimeTracking() {
 
   // 只有在有歌曲在播放时才启动定时器
   if (currentOnlineSong.value || currentMusic.value) {
+    // 跟踪连续检测歌曲为空的次数
+    let emptyDetectionCount = 0;
+    const maxEmptyDetections = 3; // 连续3次检测为空才认为歌曲真的结束
+
     timeUpdateTimer = window.setInterval(async () => {
       // 增加播放时间
       currentTime.value += updateInterval;
@@ -370,12 +379,26 @@ function startTimeTracking() {
         // 检查sink中是否还存在歌曲
         const isSinkEmpty = await invoke<boolean>("is_sink_empty");
 
-        // 如果后端播放器已经停止播放且前端状态还是播放中，说明歌曲自然结束
+        // 处理空检测计数
         if (isSinkEmpty && isPlaying.value) {
-          isPlaying.value = false;
-          stopTimeTracking();
-          // 自动播放下一首
-          playNextOrPreviousMusic(1);
+          emptyDetectionCount++;
+
+          // 如果是在线歌曲，需要更多的检测次数才确认结束
+          const requiredEmptyDetections = currentOnlineSong.value
+            ? maxEmptyDetections
+            : 1;
+
+          // 只有连续多次检测为空才认为歌曲结束
+          if (emptyDetectionCount >= requiredEmptyDetections) {
+            console.log("歌曲播放完成，准备播放下一首");
+            isPlaying.value = false;
+            stopTimeTracking();
+            // 自动播放下一首
+            playNextOrPreviousMusic(1);
+          }
+        } else {
+          // 如果不为空，重置计数
+          emptyDetectionCount = 0;
         }
       } catch (error) {
         console.error("检查播放状态失败:", error);
@@ -409,7 +432,7 @@ function exitImmersive() {
 function handleKeyDown(event: KeyboardEvent) {
   // 如果是在输入框中按下快捷键，则不处理
   if (
-    event.target instanceof HTMLInputElement || 
+    event.target instanceof HTMLInputElement ||
     event.target instanceof HTMLTextAreaElement
   ) {
     return;
@@ -445,7 +468,7 @@ onMounted(async () => {
   // 初始化主题 - 仅启动时根据时间自动设置一次
   setThemeByTime();
   applyTheme();
-  
+
   // 添加全局键盘事件监听
   window.addEventListener("keydown", handleKeyDown);
 });
@@ -467,7 +490,7 @@ defineExpose({
   <div class="music-app" :class="{ 'dark-theme': isDarkMode }">
     <!-- 自定义标题栏 -->
     <!-- <TitleBar :isDarkMode="isDarkMode" /> -->
-    
+
     <!-- 顶部搜索和文件夹选择 -->
     <HeaderBar
       :currentDirectory="currentDirectory"

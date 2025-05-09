@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick } from "vue";
+import { ref, computed, watch, nextTick } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { ElScrollbar } from "element-plus";
 import type { SongInfo, MusicFile } from "../../types/model";
@@ -54,22 +54,12 @@ async function loadLyric(song: SongInfo) {
   lyricData.value = [];
 
   try {
-    // 1. 搜索歌词信息
-    const lyricInfo = await invoke("search_lyric", { hash: song.file_hash });
-
-    // 2. 获取歌词内容
-    if (lyricInfo && lyricInfo.id && lyricInfo.accesskey) {
-      const decodedLyric = await invoke("get_lyric_decoded", {
-        id: lyricInfo.id,
-        accesskey: lyricInfo.accesskey,
-      });
-
-      if (decodedLyric) {
-        // 3. 解析歌词
-        lyricData.value = parseLyric(decodedLyric as string);
-      } else {
-        lyricData.value = [{ time: 0, text: "暂无歌词" }];
-      }
+    // 直接获取歌词内容
+    const lyricContent = await invoke<string>("get_song_lyric", { id: song.id });
+    
+    if (lyricContent) {
+      // 解析歌词
+      lyricData.value = parseLyric(lyricContent);
     } else {
       lyricData.value = [{ time: 0, text: "暂无歌词" }];
     }
@@ -87,11 +77,12 @@ async function loadLocalLyric(music: MusicFile) {
 
   loading.value = true;
   lyricData.value = [];
-
   try {
-    const [_, lyricContent] = await invoke("load_cover_and_lyric", {
+    const result = await invoke<[string, string]>("load_cover_and_lyric", {
       fileName: music.file_name,
     });
+
+    const [_, lyricContent] = result;
 
     if (lyricContent) {
       // 解析歌词

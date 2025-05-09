@@ -48,6 +48,7 @@ pub struct PlaySongResult {
 }
 
 const LOCAL_API_BASE: &str = "http://localhost:3000";
+const KUGOU_API_BASE: &str = "http://localhost:3001";
 
 /// return client
 fn get_client() -> Result<reqwest::Client, String> {
@@ -310,137 +311,78 @@ pub async fn play_netease_song(
 #[tauri::command]
 pub async fn get_song_cover(id: String, name: String, artist: String) -> Result<String, String> {
     // Use Kugou API to search for the song's cover image
-    let kugou_url = "http://localhost:3001";
     let search_term = format!("{} {}", name, artist);
 
     println!("Getting cover image for song: {} by {}", name, artist);
-    search_cover_image(search_term, Some(1), Some(1), kugou_url.to_string()).await
+    search_cover_image(search_term, Some(1), Some(1), KUGOU_API_BASE.to_string()).await
 }
 
-/// get lyric info (id and accesskey) by song hash
+/// Get song lyrics directly with a single function call
+/// Instead of using search_lyric -> get_lyric -> get_lyric_decoded
 #[tauri::command]
-pub async fn search_lyric(hash: String) -> Result<LyricInfo, String> {
+pub async fn get_song_lyric(id: String) -> Result<String, String> {
     let client = get_client()?;
 
-    let url = format!("{}/search/lyric?hash={}", LOCAL_API_BASE, hash);
-
-    println!("Fetching lyric info from: {}", url);
+    // We can directly get the lyrics with the song ID
+    let url = format!("{}/lyric?id={}", LOCAL_API_BASE, id);
+    
+    println!("Fetching lyrics from: {}", url);
     let response_json: serde_json::Value = get_response_json(client, url).await?;
 
-    let status = response_json
-        .get("status")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
-    if status != 200 {
-        let errmsg = response_json
-            .get("errmsg")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unknown error");
-        return Err(format!("API return error: {}", errmsg));
-    }
-
-    let candidates = response_json
-        .get("candidates")
-        .and_then(|v| v.as_array())
-        .ok_or_else(|| "No candidates found".to_string())?;
-
-    if candidates.is_empty() {
-        return Err("No lyric candidates available".to_string());
-    }
-
-    let candidate = &candidates[0];
-
-    let id = candidate
-        .get("id")
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| "No lyric id".to_string())?
-        .to_string();
-
-    let accesskey = candidate
-        .get("accesskey")
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| "No accesskey".to_string())?
-        .to_string();
-
-    println!(
-        "Successfully got lyric info: id={}, accesskey={}",
-        id, accesskey
-    );
-    Ok(LyricInfo { id, accesskey })
-}
-
-/// get lyric content by id and accesskey
-#[tauri::command]
-pub async fn get_lyric(id: String, accesskey: String) -> Result<Lyric, String> {
-    let client = get_client()?;
-
-    let url = format!(
-        "{}/lyric?id={}&accesskey={}&decode=true&fmt=lrc",
-        LOCAL_API_BASE, id, accesskey
-    );
-
-    let response_json: serde_json::Value = get_response_json(client, url).await?;
-
-    let status = response_json
-        .get("status")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(500);
-    if status != 200 {
-        let error = response_json
-            .get("error")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unknown error");
-        return Err(format!("API return error: {}", error));
-    }
-
-    let content = response_json
-        .get("content")
+    // Check if the response contains the lrc field
+    let lrc = response_json
+        .get("lrc")
+        .ok_or_else(|| "No lrc field in response".to_string())?;
+    
+    // Extract the lyric content from the lrc field
+    let content = lrc
+        .get("lyric")
         .and_then(|v| v.as_str())
         .ok_or_else(|| "No lyric content".to_string())?
         .to_string();
 
-    let fmt = response_json
-        .get("fmt")
-        .and_then(|v| v.as_str())
-        .unwrap_or("lrc")
-        .to_string();
+    if content.trim().is_empty() {
+        return Err("No lyrics available for this song".to_string());
+    }
 
-    let contenttype = response_json
-        .get("contenttype")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(1) as u32;
+    Ok(content)
+}
 
-    let charset = response_json
-        .get("charset")
-        .and_then(|v| v.as_str())
-        .unwrap_or("utf8")
-        .to_string();
+/// get lyric info (id and accesskey) by song id (保留向后兼容性)
+#[tauri::command]
+pub async fn search_lyric(hash: String) -> Result<LyricInfo, String> {
+    // 尝试获取歌词，检查歌词是否存在
+    match get_song_lyric(hash.clone()).await {
+        Ok(_) => {
+            // 歌词存在，返回有效的 LyricInfo
+            println!("Successfully prepared lyric info: id={}", hash);
+            Ok(LyricInfo {
+                id: hash,
+                accesskey: "".to_string(), // 新 API 不需要 accesskey
+            })
+        },
+        Err(e) => Err(e),
+    }
+}
 
+/// get lyric content by id and accesskey (保留向后兼容性)
+#[tauri::command]
+pub async fn get_lyric(id: String, accesskey: String) -> Result<Lyric, String> {
+    // 获取歌词内容
+    let content = get_song_lyric(id).await?;
+    
+    // 包装为旧的 Lyric 结构体
     Ok(Lyric {
         content,
-        fmt,
-        contenttype,
-        charset,
+        fmt: "lrc".to_string(),
+        contenttype: 1, // 默认内容类型 (1 = LRC 格式)
+        charset: "utf-8".to_string(),
     })
 }
 
-/// get decoded lyric content by id and accesskey
+/// get decoded lyric content by id and accesskey (保留向后兼容性)
 #[tauri::command]
 pub async fn get_lyric_decoded(id: String, accesskey: String) -> Result<String, String> {
-    let client = get_client()?;
-
-    let url = format!(
-        "{}/lyric?id={}&accesskey={}&decode=true&fmt=lrc",
-        LOCAL_API_BASE, id, accesskey
-    );
-
-    let response_json: serde_json::Value = get_response_json(client, url).await?;
-
-    let decoded_content = response_json
-        .get("decodeContent")
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| "No decoded lyric content".to_string())?
-        .to_string();
-
-    Ok(decoded_content)
+    // 直接调用我们新的简化函数
+    get_song_lyric(id).await
 }
