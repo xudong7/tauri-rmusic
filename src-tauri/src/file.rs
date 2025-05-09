@@ -185,24 +185,20 @@ pub async fn download_music(
                 Err(e) => println!("下载封面失败: {}", e),
             }
         }
-    }
-    
+    }    
     // 3. 尝试下载歌词
-    use crate::netease::{search_lyric, get_lyric_decoded};
+    use crate::netease::get_song_lyric;
     
-    let lyric_info = search_lyric(song_hash.clone()).await;
-    if let Ok(info) = lyric_info {
-        match get_lyric_decoded(info.id, info.accesskey).await {
-            Ok(lyric_content) => {
-                if !lyric_content.is_empty() {
-                    let lyric_path = lyrics_dir.join(format!("{}.lrc", base_filename));
-                    if let Ok(mut lyric_file) = File::create(&lyric_path) {
-                        let _ = lyric_file.write_all(lyric_content.as_bytes());
-                    }
+    match get_song_lyric(song_hash.clone()).await {
+        Ok(lyric_content) => {
+            if !lyric_content.is_empty() {
+                let lyric_path = lyrics_dir.join(format!("{}.lrc", base_filename));
+                if let Ok(mut lyric_file) = File::create(&lyric_path) {
+                    let _ = lyric_file.write_all(lyric_content.as_bytes());
                 }
             }
-            Err(e) => println!("下载歌词失败: {}", e),
         }
+        Err(e) => println!("下载歌词失败: {}", e),
     }
 
     Ok(file_name)
