@@ -41,6 +41,7 @@ export interface PlaySongResult {
   id: string;
   name: string;
   artist: string;
+  pic_url: string;
 }
 
 // 应用的视图模式

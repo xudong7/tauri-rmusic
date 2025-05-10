@@ -1,4 +1,5 @@
 use std::fs::{read_dir, create_dir_all, File};
+use crate::netease;
 use crate::netease::get_song_url;
 use crate::music::MusicFile;
 use std::io::Write;
@@ -97,22 +98,10 @@ pub async fn download_music(
     // 获取歌曲下载URL
     let song_url = get_song_url(song_hash.clone()).await?;
 
-    let client = reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-        .timeout(std::time::Duration::from_secs(60)) 
-        .build()
-        .map_err(|e| format!("create client error: {}", e))?;
+    let client = netease::get_client()?;
 
     // 下载歌曲文件
-    let response = client
-        .get(&song_url)
-        .send()
-        .await
-        .map_err(|e| format!("get response error: {}", e))?;
-
-    if !response.status().is_success() {
-        return Err(format!("get response data error, status code: {}", response.status()));
-    }
+    let response = netease::get_response(client.clone(), song_url).await?;
 
     // get bytes data
     let bytes = response

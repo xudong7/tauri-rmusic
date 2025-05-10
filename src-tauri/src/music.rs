@@ -50,7 +50,7 @@ impl Music {
                         {
                             let sink = sink_clone.lock().await;
                             sink.clear();
-                        } 
+                        }
 
                         // check if the path is a URL
                         if path.starts_with("http://") || path.starts_with("https://") {
@@ -112,71 +112,42 @@ impl Music {
 }
 
 async fn online_play(url: &str, sink: Arc<Mutex<Sink>>) -> Result<(), String> {
-    println!("Downloading online song: {}", url);
-    
     let client = netease::get_client()?;
-    
-    let max_retries = 3;
-    let mut retry_count = 0;
-    let mut last_error = String::from("unknown error");
-    
-    while retry_count < max_retries {
-        match try_online_play(&client, url, Arc::clone(&sink)).await {
-            Ok(_) => {
-                if retry_count > 0 {
-                    println!("after {} retries, download online song successfully", retry_count + 1);
-                }
-                return Ok(());
-            },
-            Err(e) => {
-                retry_count += 1;
-                last_error = e.to_string();
-                println!("download online song error: {}, retrying {}/{}", last_error, retry_count, max_retries);
-                
-                tokio::time::sleep(std::time::Duration::from_millis(1000 * retry_count)).await;
-            }
-        }
-    }
-    
-    Err(format!("download online song error: {}, after {} retries", last_error, max_retries))
-}
-
-async fn try_online_play(client: &reqwest::Client, url: &str, sink: Arc<Mutex<Sink>>) -> Result<(), String> {
-    let response = client.get(url)
+    let response = client
+        .get(url)
         .send()
         .await
         .map_err(|e| format!("request error: {}", e))?;
-    
+
     if !response.status().is_success() {
         return Err(format!("response status fail: {}", response.status()));
     }
-    
-    let bytes = response.bytes()
+
+    let bytes = response
+        .bytes()
         .await
         .map_err(|e| format!("read response data error: {}", e))?;
-    
-    println!("download online song successfully, size: {} bytes", bytes.len());
-    
+
     let cursor = std::io::Cursor::new(bytes);
-    
+
     let source = match Decoder::new(cursor) {
         Ok(s) => s,
         Err(e) => {
             return Err(format!("decode online song error: {}", e));
         }
     };
-    
+
     let sink_lock = match sink.try_lock() {
         Ok(lock) => lock,
         Err(_) => {
             return Err("cannot get lock".to_string());
         }
     };
-    
+
     sink_lock.append(source);
     if sink_lock.is_paused() {
         sink_lock.play();
     }
-    
+
     Ok(())
 }

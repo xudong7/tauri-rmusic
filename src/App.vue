@@ -3,7 +3,6 @@ import { ref, onMounted, onUnmounted, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { ElMessage } from "element-plus";
-import TitleBar from "./components/TitleBar/TitleBar.vue";
 import HeaderBar from "./components/HeaderBar/HeaderBar.vue";
 import MusicList from "./components/MusicList/MusicList.vue";
 import OnlineMusicList from "./components/OnlineMusicList/OnlineMusicList.vue";
@@ -46,10 +45,6 @@ const currentMusic = ref<MusicFile | null>(null);
 const currentOnlineSong = ref<SongInfo | null>(null);
 // 播放状态
 const isPlaying = ref(false);
-// 当前播放时间（毫秒）
-const currentTime = ref(0);
-// 定时器ID
-let timeUpdateTimer: number | null = null;
 // 是否显示沉浸模式
 const showImmersiveMode = ref(false);
 
@@ -85,11 +80,15 @@ async function selectDirectory() {
 // 播放本地音乐
 async function playMusic(music: MusicFile) {
   try {
+    // 先将播放状态设置为 false，避免在加载过程中触发自动检测下一首机制
+    isPlaying.value = false;
+
     currentMusic.value = music;
     currentOnlineSong.value = null;
-    isPlaying.value = true;
-    currentTime.value = 0;
+
     const fullPath = `${currentDirectory.value}/${music.file_name}`;
+
+    // 播放歌曲
     await invoke("handle_event", {
       event: JSON.stringify({
         action: "play",
@@ -97,8 +96,11 @@ async function playMusic(music: MusicFile) {
       }),
     });
 
-    // 启动时间更新
-    startTimeTracking();
+    // 短暂延迟后设置播放状态，确保音频引擎已经成功加载
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    isPlaying.value = true;
+
+    ElMessage.success(`正在播放: ${music.file_name}`);
   } catch (error) {
     console.error("播放音乐失败:", error);
     ElMessage.error(`播放音乐失败: ${error}`);
@@ -108,10 +110,13 @@ async function playMusic(music: MusicFile) {
 // 播放在线音乐
 async function playOnlineSong(song: SongInfo) {
   try {
+    // 先将播放状态设置为 false，避免在加载过程中触发自动检测下一首机制
+    isPlaying.value = false;
+
     currentOnlineSong.value = song;
     currentMusic.value = null;
-    isPlaying.value = true;
-    currentTime.value = 0; // 获取播放URL和信息
+
+    // 获取播放URL和信息
     const songResult = await invoke<PlaySongResult>("play_netease_song", {
       id: song.file_hash,
       name: song.name,
@@ -128,6 +133,9 @@ async function playOnlineSong(song: SongInfo) {
       currentOnlineSong.value.pic_url = songResult.pic_url;
     }
 
+    // sleep 2秒，确保歌曲信息更新和资源加载
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
     // 播放歌曲
     await invoke("handle_event", {
       event: JSON.stringify({
@@ -136,8 +144,8 @@ async function playOnlineSong(song: SongInfo) {
       }),
     });
 
-    // 启动时间更新
-    startTimeTracking();
+    // 所有准备工作完成后，设置播放状态为 true
+    isPlaying.value = true;
 
     ElMessage.success(`正在播放: ${song.name} - ${song.artists.join(", ")}`);
   } catch (error) {
@@ -197,18 +205,12 @@ async function togglePlay() {
         action: "pause",
       }),
     });
-
-    // 暂停时间更新
-    stopTimeTracking();
   } else {
     await invoke("handle_event", {
       event: JSON.stringify({
         action: "recovery",
       }),
     });
-
-    // 恢复时间更新
-    startTimeTracking();
   }
   isPlaying.value = !isPlaying.value;
 }
@@ -347,62 +349,6 @@ function toggleTheme() {
   applyTheme();
 }
 
-// 启动时间更新
-function startTimeTracking() {
-  stopTimeTracking(); // 先停止可能存在的定时器
-
-  const updateInterval = 500; // 每500ms更新一次
-
-  // 只有在有歌曲在播放时才启动定时器
-  if (currentOnlineSong.value || currentMusic.value) {
-    // 跟踪连续检测歌曲为空的次数
-    let emptyDetectionCount = 0;
-    const maxEmptyDetections = 3; // 连续3次检测为空才认为歌曲真的结束
-
-    timeUpdateTimer = window.setInterval(async () => {
-      // 增加播放时间
-      currentTime.value += updateInterval;
-
-      try {
-        // 检查sink中是否还存在歌曲
-        const isSinkEmpty = await invoke<boolean>("is_sink_empty");
-
-        // 处理空检测计数
-        if (isSinkEmpty && isPlaying.value) {
-          emptyDetectionCount++;
-
-          // 如果是在线歌曲，需要更多的检测次数才确认结束
-          const requiredEmptyDetections = currentOnlineSong.value
-            ? maxEmptyDetections
-            : 1;
-
-          // 只有连续多次检测为空才认为歌曲结束
-          if (emptyDetectionCount >= requiredEmptyDetections) {
-            console.log("歌曲播放完成，准备播放下一首");
-            isPlaying.value = false;
-            stopTimeTracking();
-            // 自动播放下一首
-            playNextOrPreviousMusic(1);
-          }
-        } else {
-          // 如果不为空，重置计数
-          emptyDetectionCount = 0;
-        }
-      } catch (error) {
-        console.error("检查播放状态失败:", error);
-      }
-    }, updateInterval);
-  }
-}
-
-// 停止时间更新
-function stopTimeTracking() {
-  if (timeUpdateTimer !== null) {
-    clearInterval(timeUpdateTimer);
-    timeUpdateTimer = null;
-  }
-}
-
 // 显示沉浸模式
 function showImmersive() {
   // 如果有在线歌曲或本地音乐，都可以进入沉浸模式
@@ -442,6 +388,79 @@ function handleKeyDown(event: KeyboardEvent) {
   }
 }
 
+// 设置监听播放结束的定时器
+function setupPlaybackEndDetection() {
+  let checkInterval: number | null = null;
+  console.log("初始化播放结束检测机制");
+
+  // 监听播放状态变化
+  watch(
+    isPlaying,
+    (playing) => {
+      // 如果开始播放，则启动定时器检查是否播放结束
+      if (playing) {
+        console.log("播放状态变为播放中，开始监听播放结束");
+
+        if (checkInterval !== null) {
+          clearInterval(checkInterval);
+          console.log("清除旧的检测定时器");
+        } // 添加歌曲开始播放的时间戳，用于避免歌曲刚开始播放就检测到结束
+        const playStartTime = Date.now();
+
+        checkInterval = window.setInterval(() => {
+          // 检查歌曲是否结束，添加3秒保护期，避免刚开始播放就误判为结束
+          const currentTime = Date.now();
+          const playingTime = currentTime - playStartTime;
+
+          // 只有播放超过3秒后才检查是否结束
+          if (playingTime < 3000) {
+            return;
+          }
+
+          invoke<boolean>("is_sink_empty")
+            .then((isEmpty) => {
+              if (isEmpty && isPlaying.value) {
+                // 添加日志，帮助调试
+                console.log("检测到歌曲播放完成，已播放时长(ms):", playingTime);
+
+                // 歌曲已结束，自动播放下一首
+                console.log("歌曲播放完成，准备播放下一首");
+                isPlaying.value = false;
+
+                if (checkInterval !== null) {
+                  clearInterval(checkInterval);
+                  checkInterval = null;
+                }
+
+                // 自动播放下一首
+                playNextOrPreviousMusic(1);
+              }
+            })
+            .catch((error) => {
+              console.error("检查播放状态失败:", error);
+            });
+        }, 1000); // 每秒检查一次
+      }
+      // 如果停止播放，则清除定时器
+      else if (checkInterval !== null) {
+        console.log("播放状态变为暂停，清除检测定时器");
+        clearInterval(checkInterval);
+        checkInterval = null;
+      }
+    },
+    { immediate: true }
+  );
+
+  // 组件卸载时清除定时器
+  onUnmounted(() => {
+    console.log("组件卸载，清除检测定时器");
+    if (checkInterval !== null) {
+      clearInterval(checkInterval);
+      checkInterval = null;
+    }
+  });
+}
+
 // 初始化加载默认音乐目录
 onMounted(async () => {
   try {
@@ -452,18 +471,19 @@ onMounted(async () => {
   } catch (error) {
     console.error("加载默认目录失败:", error);
   }
-
   // 初始化主题 - 仅启动时根据时间自动设置一次
   setThemeByTime();
   applyTheme();
 
   // 添加全局键盘事件监听
   window.addEventListener("keydown", handleKeyDown);
+
+  // 设置播放结束检测
+  setupPlaybackEndDetection();
 });
 
-// 组件卸载时清理定时器和事件监听器
+// 组件卸载时清理事件监听器
 onUnmounted(() => {
-  stopTimeTracking();
   window.removeEventListener("keydown", handleKeyDown);
 });
 
@@ -518,27 +538,23 @@ defineExpose({
         @load-more="loadMoreResults"
       />
     </div>
-
     <!-- 底部播放控制栏 -->
     <PlayerBar
       :currentMusic="currentMusic"
       :currentOnlineSong="currentOnlineSong"
       :isPlaying="isPlaying"
-      :currentTime="currentTime"
       @toggle-play="togglePlay"
       @volume-change="adjustVolume"
       @previous="playNextOrPreviousMusic(-1)"
       @next="playNextOrPreviousMusic(1)"
       @show-immersive="showImmersive"
     />
-
     <!-- 沉浸模式 -->
     <ImmersiveView
       v-if="showImmersiveMode"
       :currentSong="currentOnlineSong"
       :currentMusic="currentMusic"
       :isPlaying="isPlaying"
-      :currentTime="currentTime"
       @toggle-play="togglePlay"
       @next="playNextOrPreviousMusic(1)"
       @previous="playNextOrPreviousMusic(-1)"

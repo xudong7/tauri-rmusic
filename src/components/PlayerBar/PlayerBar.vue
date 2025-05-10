@@ -14,7 +14,6 @@ const props = defineProps<{
   currentMusic: MusicFile | null;
   currentOnlineSong: SongInfo | null;
   isPlaying: boolean;
-  currentTime: number; // 当前播放时间（毫秒）
 }>();
 
 const emit = defineEmits([
@@ -105,12 +104,13 @@ const localCoverUrl = ref("");
 async function loadLocalCoverAndLyric() {
   if (props.currentMusic) {
     try {
-      const [coverData, _] = await invoke("load_cover_and_lyric", {
+      const result = await invoke("load_cover_and_lyric", {
         fileName: props.currentMusic.file_name,
       });
-
-      if (coverData) {
-        localCoverUrl.value = coverData;
+      
+      // Handle the result as array
+      if (Array.isArray(result) && result.length > 0) {
+        localCoverUrl.value = result[0] || "";
       } else {
         localCoverUrl.value = "";
       }

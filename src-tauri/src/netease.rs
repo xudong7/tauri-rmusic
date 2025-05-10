@@ -61,7 +61,7 @@ pub fn get_client() -> Result<reqwest::Client, String> {
 }
 
 /// get client response
-async fn get_response(client: reqwest::Client, url: String) -> Result<reqwest::Response, String> {
+pub async fn get_response(client: reqwest::Client, url: String) -> Result<reqwest::Response, String> {
     let response = client
         .get(&url)
         .send()
@@ -284,7 +284,6 @@ pub async fn get_song_url(id: String) -> Result<String, String> {
         return Err("Empty song URL".to_string());
     }
 
-    println!("Using NetEase API for song URL");
     Ok(play_url.to_string())
 }
 

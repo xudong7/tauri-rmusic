@@ -21,7 +21,6 @@ const props = defineProps<{
   currentSong: SongInfo | null;
   currentMusic: MusicFile | null;
   isPlaying: boolean;
-  currentTime: number; // 当前播放时间（毫秒）
 }>();
 
 const emit = defineEmits(["toggle-play", "previous", "next", "exit"]);
@@ -75,12 +74,13 @@ const imageAnalysisState = ref({
 async function loadLocalCoverAndLyric() {
   if (props.currentMusic) {
     try {
-      const [coverData, _] = await invoke("load_cover_and_lyric", {
+      const result = await invoke("load_cover_and_lyric", {
         fileName: props.currentMusic.file_name,
       });
-
-      if (coverData) {
-        localCoverUrl.value = coverData;
+      
+      // Handle the result as array
+      if (Array.isArray(result) && result.length > 0) {
+        localCoverUrl.value = result[0] || "";
       } else {
         localCoverUrl.value = "";
       }
@@ -202,32 +202,6 @@ function formatArtists(artists: string[]): string {
   return artists ? artists.join(", ") : "";
 }
 
-// 格式化当前播放时间
-function formatTime(ms: number): string {
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-}
-
-// 格式化总时长
-function formatDuration(ms: number): string {
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-}
-
-// 当前歌曲名称 (原始)
-const currentSongName = computed(() => {
-  if (props.currentSong) {
-    return props.currentSong.name;
-  } else if (props.currentMusic) {
-    return getFileName(props.currentMusic.file_name);
-  }
-  return "未知歌曲";
-});
-
 // 当前歌曲标题 (只包含"-"后面的部分)
 const songTitle = computed(() => {
   if (props.currentSong) {
@@ -310,37 +284,12 @@ const overlayStyle = computed(() => {
     // 背景较暗，覆盖层应该更透明
     opacity = 0.6;
   }
-
   return {
     background: `linear-gradient(to bottom, 
       rgba(0, 0, 0, ${opacity * 0.6}) 0%, 
       rgba(0, 0, 0, ${opacity * 0.8}) 50%,
       rgba(0, 0, 0, ${opacity * 0.9}) 100%)`,
   };
-});
-
-// 进度百分比
-const progressPercentage = computed(() => {
-  if (!props.currentTime) return 0;
-
-  if (props.currentSong) {
-    return (props.currentTime / props.currentSong.duration) * 100;
-  }
-
-  // 本地音乐没有直接的持续时间信息，这里返回一个估算值
-  // 假设一般歌曲持续时间为4分钟
-  const estimatedDuration = 4 * 60 * 1000;
-  return Math.min((props.currentTime / estimatedDuration) * 100, 100);
-});
-
-// 估算的总时长（用于本地音乐）
-const estimatedDuration = computed(() => {
-  if (props.currentSong) {
-    return formatDuration(props.currentSong.duration);
-  }
-
-  // 本地音乐估算4分钟
-  return "4:00";
 });
 
 watch(
@@ -423,25 +372,11 @@ watch(
           <LyricView
             :currentSong="currentSong"
             :currentMusic="currentMusic"
-            :currentTime="currentTime"
             :isPlaying="isPlaying"
           />
         </div>
       </div>
-    </div>
-
-    <div class="control-section">
-      <div class="time-display">
-        <span>{{ formatTime(currentTime) }}</span>
-        <div class="progress-bar">
-          <div
-            class="progress-inner"
-            :style="{ width: `${progressPercentage}%` }"
-          ></div>
-        </div>
-        <span>{{ estimatedDuration }}</span>
-      </div>
-
+    </div>    <div class="control-section">
       <div class="controls">
         <el-tooltip content="上一曲" placement="top" effect="dark">
           <el-button circle :icon="ArrowLeft" @click="emit('previous')" />
