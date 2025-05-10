@@ -107,7 +107,7 @@ async function loadLocalCoverAndLyric() {
       const result = await invoke("load_cover_and_lyric", {
         fileName: props.currentMusic.file_name,
       });
-      
+
       // Handle the result as array
       if (Array.isArray(result) && result.length > 0) {
         localCoverUrl.value = result[0] || "";

@@ -21,6 +21,7 @@ const props = defineProps<{
   currentSong: SongInfo | null;
   currentMusic: MusicFile | null;
   isPlaying: boolean;
+  currentTime?: number; // 从父组件传入的当前播放时间
 }>();
 
 const emit = defineEmits(["toggle-play", "previous", "next", "exit"]);
@@ -77,7 +78,7 @@ async function loadLocalCoverAndLyric() {
       const result = await invoke("load_cover_and_lyric", {
         fileName: props.currentMusic.file_name,
       });
-      
+
       // Handle the result as array
       if (Array.isArray(result) && result.length > 0) {
         localCoverUrl.value = result[0] || "";
@@ -329,12 +330,16 @@ watch(
       <el-tooltip content="返回" placement="bottom" effect="dark">
         <el-button @click="emit('exit')" :icon="Back" circle class="back-btn" />
       </el-tooltip>
-      
+
       <div class="window-controls">
         <el-tooltip content="最小化" placement="bottom" effect="dark">
           <el-button @click="minimize" :icon="Minus" circle />
         </el-tooltip>
-        <el-tooltip :content="isMaximized ? '还原' : '最大化'" placement="bottom" effect="dark">
+        <el-tooltip
+          :content="isMaximized ? '还原' : '最大化'"
+          placement="bottom"
+          effect="dark"
+        >
           <el-button @click="toggleMaximize" :icon="maximizeIcon" circle />
         </el-tooltip>
         <el-tooltip content="关闭" placement="bottom" effect="dark">
@@ -373,16 +378,22 @@ watch(
             :currentSong="currentSong"
             :currentMusic="currentMusic"
             :isPlaying="isPlaying"
+            :currentTime="currentTime"
           />
         </div>
       </div>
-    </div>    <div class="control-section">
+    </div>
+    <div class="control-section">
       <div class="controls">
         <el-tooltip content="上一曲" placement="top" effect="dark">
           <el-button circle :icon="ArrowLeft" @click="emit('previous')" />
         </el-tooltip>
 
-        <el-tooltip :content="isPlaying ? '暂停' : '播放'" placement="top" effect="dark">
+        <el-tooltip
+          :content="isPlaying ? '暂停' : '播放'"
+          placement="top"
+          effect="dark"
+        >
           <el-button
             circle
             size="large"
