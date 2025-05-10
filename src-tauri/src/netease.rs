@@ -45,13 +45,14 @@ pub struct PlaySongResult {
     pub id: String,
     pub name: String,
     pub artist: String,
+    pub pic_url: String,
 }
 
 const LOCAL_API_BASE: &str = "http://localhost:3000";
 const KUGOU_API_BASE: &str = "http://localhost:3001";
 
 /// return client
-fn get_client() -> Result<reqwest::Client, String> {
+pub fn get_client() -> Result<reqwest::Client, String> {
     let client = reqwest::Client::builder()
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
         .build()
@@ -294,15 +295,23 @@ pub async fn play_netease_song(
     name: String,
     artist: String,
 ) -> Result<PlaySongResult, String> {
+    let search_term = format!("{} {}", name, artist);
+    let pic_url = match search_cover_image(search_term, Some(1), Some(1), KUGOU_API_BASE.to_string()).await {
+        Ok(url) => url,
+        Err(e) => {
+            println!("Error fetching cover image: {}", e);
+            "".to_string()
+        }
+    };
     // 获取歌曲URL
     let url = get_song_url(id.clone()).await?;
-
     // 组装结果
     let result = PlaySongResult {
         url,
         id,
         name,
         artist,
+        pic_url,
     };
 
     Ok(result)

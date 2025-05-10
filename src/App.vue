@@ -123,21 +123,9 @@ async function playOnlineSong(song: SongInfo) {
       throw new Error("获取播放URL失败");
     }
 
-    // 获取歌曲封面
-    try {
-      const coverUrl = await invoke("get_song_cover", {
-        id: song.file_hash,
-        name: song.name,
-        artist: song.artists.join(", "),
-      });
-
-      if (coverUrl && typeof coverUrl === "string") {
-        // 更新当前歌曲的封面URL
-        currentOnlineSong.value.pic_url = coverUrl;
-      }
-    } catch (coverError) {
-      console.error("获取歌曲封面失败:", coverError);
-      // 获取封面失败不影响播放
+    // 更新歌曲封面
+    if (songResult.pic_url) {
+      currentOnlineSong.value.pic_url = songResult.pic_url;
     }
 
     // 播放歌曲

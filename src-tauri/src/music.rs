@@ -9,6 +9,8 @@ use std::sync::Arc;
 use tokio::sync::broadcast::Sender;
 use tokio::sync::{broadcast, Mutex};
 
+use crate::netease;
+
 pub struct Music {
     pub event_sender: Sender<MusicState>,
     _stream: OutputStream,
@@ -112,11 +114,7 @@ impl Music {
 async fn online_play(url: &str, sink: Arc<Mutex<Sink>>) -> Result<(), String> {
     println!("Downloading online song: {}", url);
     
-    let client = reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-        .timeout(std::time::Duration::from_secs(30)) 
-        .build()
-        .map_err(|e| format!("create client error: {}", e))?;
+    let client = netease::get_client()?;
     
     let max_retries = 3;
     let mut retry_count = 0;
@@ -168,7 +166,7 @@ async fn try_online_play(client: &reqwest::Client, url: &str, sink: Arc<Mutex<Si
         }
     };
     
-    let mut sink_lock = match sink.try_lock() {
+    let sink_lock = match sink.try_lock() {
         Ok(lock) => lock,
         Err(_) => {
             return Err("cannot get lock".to_string());
