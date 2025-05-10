@@ -294,14 +294,7 @@ pub async fn play_netease_song(
     name: String,
     artist: String,
 ) -> Result<PlaySongResult, String> {
-    let search_term = format!("{} {}", name, artist);
-    let pic_url = match search_cover_image(search_term, Some(1), Some(1), KUGOU_API_BASE.to_string()).await {
-        Ok(url) => url,
-        Err(e) => {
-            println!("Error fetching cover image: {}", e);
-            "".to_string()
-        }
-    };
+    let pic_url = get_song_cover(id.clone(), name.clone(), artist.clone()).await?;
     // 获取歌曲URL
     let url = get_song_url(id.clone()).await?;
     // 组装结果

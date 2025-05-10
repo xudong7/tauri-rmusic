@@ -48,6 +48,11 @@ const isPlaying = ref(false);
 // 是否显示沉浸模式
 const showImmersiveMode = ref(false);
 
+// 播放队列ID - 用于处理连续点击下一首的情况
+const playQueueId = ref(0);
+// 是否正在处理播放请求
+const isProcessingPlayRequest = ref(false);
+
 // 加载音乐文件
 async function loadMusicFiles(path: string) {
   try {
@@ -112,42 +117,86 @@ async function playOnlineSong(song: SongInfo) {
   try {
     // 先将播放状态设置为 false，避免在加载过程中触发自动检测下一首机制
     isPlaying.value = false;
-
+    
+    // 更新播放队列ID
+    playQueueId.value++;
+    const currentQueueId = playQueueId.value;
+    
+    // 设置当前播放的在线音乐（更新UI）
     currentOnlineSong.value = song;
     currentMusic.value = null;
-
-    // 获取播放URL和信息
-    const songResult = await invoke<PlaySongResult>("play_netease_song", {
-      id: song.file_hash,
-      name: song.name,
-      artist: song.artists.join(", "),
-    });
-
-    // 检查返回结果
-    if (!songResult || !songResult.url) {
-      throw new Error("获取播放URL失败");
+    
+    // 如果已经有正在处理的请求，不执行后续操作，只更新UI
+    if (isProcessingPlayRequest.value) {
+      console.log(`[队列] 已加入队列，ID: ${currentQueueId}，歌曲: ${song.name}`);
+      return;    }
+    
+    // 标记开始处理请求
+    isProcessingPlayRequest.value = true;
+    console.log(`[队列] 开始处理播放请求`);
+    
+    try {
+      // 开始循环处理队列中的最后一个请求
+      while (true) {
+        // 保存当前处理的歌曲
+        const songToPlay = currentOnlineSong.value;
+        // 保存当前队列ID
+        const queueIdAtStart = playQueueId.value;
+        
+        console.log(`[队列] 开始处理，ID: ${queueIdAtStart}，歌曲: ${songToPlay.name}`);
+        
+        // 获取播放URL和信息
+        const songResult = await invoke<PlaySongResult>("play_netease_song", {
+          id: songToPlay.file_hash,
+          name: songToPlay.name,
+          artist: songToPlay.artists.join(", "),
+        });
+        
+        // 检查队列ID是否已经更新，如果更新了说明有新的播放请求
+        if (queueIdAtStart !== playQueueId.value) {
+          console.log(`[队列] 检测到新请求，中止当前处理。原ID: ${queueIdAtStart}，新ID: ${playQueueId.value}`);
+          continue; // 如果队列ID已更改，放弃当前处理，处理新的请求
+        }
+        
+        // 检查返回结果
+        if (!songResult || !songResult.url) {
+          throw new Error("获取播放URL失败");
+        }
+        
+        // 更新歌曲封面
+        if (songResult.pic_url && currentOnlineSong.value) {
+          currentOnlineSong.value.pic_url = songResult.pic_url;
+        }
+        
+        // sleep 2秒，确保歌曲信息更新和资源加载
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        
+        // 再次检查队列ID
+        if (queueIdAtStart !== playQueueId.value) {
+          console.log(`[队列] 加载后检测到新请求，中止播放。原ID: ${queueIdAtStart}，新ID: ${playQueueId.value}`);
+          continue; // 如果队列ID已更改，放弃当前处理，处理新的请求
+        }
+        
+        // 播放歌曲
+        await invoke("handle_event", {
+          event: JSON.stringify({
+            action: "play",
+            path: songResult.url,
+          }),
+        });
+        
+        // 所有准备工作完成后，设置播放状态为 true
+        isPlaying.value = true;
+        
+        ElMessage.success(`正在播放: ${songToPlay.name} - ${songToPlay.artists.join(", ")}`);
+        
+        // 处理完成，跳出循环
+        break;
+      }
+    } finally {      // 无论如何，处理结束后标记为未处理状态
+      isProcessingPlayRequest.value = false;
+      console.log(`[队列] 播放请求处理完成`);
     }
-
-    // 更新歌曲封面
-    if (songResult.pic_url) {
-      currentOnlineSong.value.pic_url = songResult.pic_url;
-    }
-
-    // sleep 2秒，确保歌曲信息更新和资源加载
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    // 播放歌曲
-    await invoke("handle_event", {
-      event: JSON.stringify({
-        action: "play",
-        path: songResult.url,
-      }),
-    });
-
-    // 所有准备工作完成后，设置播放状态为 true
-    isPlaying.value = true;
-
-    ElMessage.success(`正在播放: ${song.name} - ${song.artists.join(", ")}`);
   } catch (error) {
     console.error("播放在线音乐失败:", error);
     isPlaying.value = false;
@@ -182,18 +231,53 @@ async function downloadOnlineSong(song: SongInfo) {
 async function playNextOrPreviousMusic(step: number) {
   // 本地
   if (viewMode.value === ViewMode.LOCAL) {
-    const currentIndex = musicFiles.value.findIndex(
+    if (musicFiles.value.length === 0) {
+      ElMessage.warning("没有可播放的本地音乐");
+      return;
+    }
+    
+    let currentIndex = musicFiles.value.findIndex(
       (file) => file.id === currentMusic.value?.id
     );
-    const nextIndex = (currentIndex + step) % musicFiles.value.length;
+    
+    // 如果没有找到当前音乐（或没有当前音乐），从0开始
+    if (currentIndex === -1) {
+      currentIndex = 0;
+    }
+    
+    // 计算下一首/上一首索引，确保不会出现负数索引
+    let nextIndex = (currentIndex + step) % musicFiles.value.length;
+    if (nextIndex < 0) {
+      nextIndex = musicFiles.value.length + nextIndex;
+    }
+    
     await playMusic(musicFiles.value[nextIndex]);
   } else {
     // 在线
-    const currentIndex = onlineSongs.value.findIndex(
+    if (onlineSongs.value.length === 0) {
+      ElMessage.warning("没有可播放的在线音乐");
+      return;
+    }
+    
+    let currentIndex = onlineSongs.value.findIndex(
       (song) => song.id === currentOnlineSong.value?.id
     );
-    const nextIndex = (currentIndex + step) % onlineSongs.value.length;
-    await playOnlineSong(onlineSongs.value[nextIndex]);
+    
+    // 如果没有找到当前音乐（或没有当前音乐），从0开始
+    if (currentIndex === -1) {
+      currentIndex = 0;
+    }
+    
+    // 计算下一首/上一首索引，确保不会出现负数索引
+    let nextIndex = (currentIndex + step) % onlineSongs.value.length;
+    if (nextIndex < 0) {
+      nextIndex = onlineSongs.value.length + nextIndex;
+    }
+    
+    console.log(`[播放控制] 播放${step > 0 ? '下' : '上'}一首，当前索引: ${currentIndex}，目标索引: ${nextIndex}`);
+    
+    // 对于在线音乐，我们只更新UI和加入队列
+    playOnlineSong(onlineSongs.value[nextIndex]);
   }
 }
 
