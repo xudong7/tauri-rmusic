@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from "vue";
+import { ref, computed, watch, nextTick, onUnmounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { ElScrollbar } from "element-plus";
 import type { SongInfo, MusicFile } from "../../types/model";
@@ -7,7 +7,6 @@ import type { SongInfo, MusicFile } from "../../types/model";
 const props = defineProps<{
   currentSong: SongInfo | null;
   currentMusic: MusicFile | null;
-  currentTime: number; // 当前播放时间（毫秒）
   isPlaying: boolean;
 }>();
 
@@ -19,6 +18,45 @@ const loading = ref(false);
 const currentIndex = ref(-1);
 // 歌词滚动容器引用
 const lyricScrollRef = ref<InstanceType<typeof ElScrollbar> | null>(null);
+// 通过状态模拟实现简单的歌词滚动
+const currentLyricTime = ref(0);
+let lyricUpdateInterval: number | null = null;
+
+// 监听播放状态变化
+watch(
+  () => props.isPlaying, 
+  (isPlaying) => {
+    if (isPlaying) {
+      // 开始模拟歌词滚动
+      startLyricUpdate();
+    } else {
+      // 停止模拟歌词滚动
+      stopLyricUpdate();
+    }
+  },
+  { immediate: true }
+);
+
+// 开始模拟歌词滚动
+function startLyricUpdate() {
+  // 清除之前的定时器
+  stopLyricUpdate();
+  
+  // 开始新的定时器
+  lyricUpdateInterval = window.setInterval(() => {
+    // 模拟每秒增加1000毫秒
+    currentLyricTime.value += 1000;
+    updateCurrentLine();
+  }, 1000);
+}
+
+// 停止模拟歌词滚动
+function stopLyricUpdate() {
+  if (lyricUpdateInterval !== null) {
+    clearInterval(lyricUpdateInterval);
+    lyricUpdateInterval = null;
+  }
+}
 
 // 解析LRC歌词
 function parseLyric(lrc: string): Array<{ time: number; text: string }> {
@@ -103,8 +141,8 @@ function updateCurrentLine() {
   if (lyricData.value.length === 0) return;
 
   // 找到当前时间对应的歌词行
-  const currentTime = props.currentTime;
-  let index = lyricData.value.findIndex((item) => item.time > currentTime);
+  const time = currentLyricTime.value;
+  let index = lyricData.value.findIndex((item) => item.time > time);
 
   // 如果没找到或者超过范围，取最后一行
   if (index === -1) {
@@ -145,6 +183,9 @@ async function scrollToCurrentLine() {
 watch(
   () => props.currentSong,
   async (newSong) => {
+    // 重置当前时间
+    currentLyricTime.value = 0;
+    
     if (newSong) {
       await loadLyric(newSong);
       currentIndex.value = -1;
@@ -158,6 +199,11 @@ watch(
         currentIndex.value = -1;
       }
     }
+    
+    // 如果正在播放，启动歌词滚动
+    if (props.isPlaying) {
+      startLyricUpdate();
+    }
   },
   { immediate: true }
 );
@@ -166,23 +212,27 @@ watch(
 watch(
   () => props.currentMusic,
   async (newMusic) => {
+    // 重置当前时间
+    currentLyricTime.value = 0;
+    
     // 仅当不是在线歌曲时加载本地歌词
     if (newMusic && !props.currentSong) {
       await loadLocalLyric(newMusic);
       currentIndex.value = -1;
+      
+      // 如果正在播放，启动歌词滚动
+      if (props.isPlaying) {
+        startLyricUpdate();
+      }
     }
   },
   { immediate: true }
 );
 
-// 监听播放时间变化
-watch(
-  () => props.currentTime,
-  () => {
-    updateCurrentLine();
-  },
-  { immediate: true }
-);
+// 组件卸载时清除定时器
+onUnmounted(() => {
+  stopLyricUpdate();
+});
 
 // 歌词容器类
 const lyricContainerClass = computed(() => {
