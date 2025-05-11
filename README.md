@@ -14,7 +14,7 @@ A modern cross-platform desktop music player built with Tauri and Vue.js.
 
 [中文文档](README_zh.md)
 
-p.s. If you need online music function, you need to start [KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi) at the same time.
+p.s. If you need online music function, you need to start [KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi) and [NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) at the same time.
 
 ## Online Music Feature
 
@@ -26,8 +26,8 @@ Rmusic now supports online music streaming. You can:
 
 ### How to Use
 
-1. First download and start the [KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi) local proxy server
-2. Make sure it's running on <http://localhost:3000>
+1. First download and start the [KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi) and [NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) local proxy server
+2. Make sure **NeteaseCloudMusicApiBackup** is running on <http://localhost:3000> and **KuGouMusicApi** is running on <http://localhost:3001>
 3. In Rmusic, click the navigation menu to enter the "Online Music" page
 4. Enter keywords to search for songs and play them
 
@@ -124,3 +124,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [Rodio](https://github.com/RustAudio/rodio) - For audio playback capabilities
 - [Element Plus](https://element-plus.org/) - For UI components
 - [KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi) - For enabling online music functionality
+- [NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) - For enabling online music functionality
