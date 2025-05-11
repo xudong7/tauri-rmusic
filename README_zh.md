@@ -14,7 +14,7 @@
 
 [English Documentation](README.md)
 
-p.s. 如果需要在线听歌功能，需要同时启动[KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi)
+p.s. 如果需要在线听歌功能，需要同时启动[KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi)和[NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup)两个本地代理服务器，前者用于酷狗音乐，后者用于网易云音乐。
 
 ## 在线音乐功能
 
@@ -26,8 +26,8 @@ Rmusic 现已支持在线音乐播放功能，您可以：
 
 ### 使用方法
 
-1. 先下载并启动 [KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi) 本地代理服务器
-2. 确保其在 <http://localhost:3000> 端口运行
+1. 先下载并启动 [KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi) 和 [NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) 本地代理服务器
+2. 确保 **NeteaseCloudMusicApiBackup** 运行在 `http://localhost:3000`，**KuGouMusicApi** 运行在 `http://localhost:3001`
 3. 在 Rmusic 中点击导航菜单进入"在线音乐"页面
 4. 输入关键词搜索歌曲并播放
 
@@ -124,3 +124,4 @@ npm run tauri build
 - [Rodio](https://github.com/RustAudio/rodio) - 音频播放功能
 - [Element Plus](https://element-plus.org/) - UI 组件
 - [KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi) - 启用在线音乐功能
+- [NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) - 启用在线音乐功能
