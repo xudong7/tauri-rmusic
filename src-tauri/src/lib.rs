@@ -3,6 +3,10 @@ use music::{Music, MusicState};
 use netease::{get_song_cover, get_song_lyric, get_song_url, play_netease_song, search_songs};
 use rodio::Sink;
 use std::sync::Arc;
+use tauri::Emitter;
+use tauri::Manager;
+use tauri_plugin_shell::process::CommandEvent;
+use tauri_plugin_shell::ShellExt;
 use tokio::sync::broadcast::Sender;
 use tokio::sync::Mutex;
 use tray::setup_tray;
@@ -45,14 +49,60 @@ async fn is_sink_empty(sink: tauri::State<'_, Arc<Mutex<Sink>>>) -> Result<bool,
 pub fn run() {
     let music = Music::new();
     tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             // setup the tray icon
             setup_tray(app).unwrap();
 
+            // Get the main window - use "main" as the default window label
+            let window = app
+                .get_webview_window("main")
+                .expect("failed to get main window");
+            let window_for_app = window.clone();
+            let window_for_app_win = window.clone();
+
+            // Handle first sidecar (app)
+            let app_sidecar_command = app.shell().sidecar("app").unwrap();
+            let (mut rx, mut child) = app_sidecar_command
+                .spawn()
+                .expect("Failed to spawn sidecar");
+            tauri::async_runtime::spawn(async move {
+                // 读取诸如 stdout 之类的事件
+                while let Some(event) = rx.recv().await {
+                    if let CommandEvent::Stdout(line) = event {
+                        window_for_app
+                            .emit("message", Some(format!("{:?}", line)))
+                            .expect("failed to emit event");
+                        // 写入 stdin
+                        child.write("message from Rust\n".as_bytes()).unwrap();
+                    }
+                }
+            });
+
+            // Handle second sidecar (app_win)
+            let app_win_sidecar_command = app.shell().sidecar("app_win").unwrap();
+            let (mut rx, mut child) = app_win_sidecar_command
+                .spawn()
+                .expect("Failed to spawn sidecar");
+            tauri::async_runtime::spawn(async move {
+                // 读取诸如 stdout 之类的事件
+                while let Some(event) = rx.recv().await {
+                    if let CommandEvent::Stdout(line) = event {
+                        window_for_app_win
+                            .emit("message_win", Some(format!("{:?}", line)))
+                            .expect("failed to emit event");
+                        // 写入 stdin
+                        child
+                            .write("message from Rust to Windows sidecar\n".as_bytes())
+                            .unwrap();
+                    }
+                }
+            });
+
             Ok(())
         })
-        .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             is_sink_empty,
             handle_event,
