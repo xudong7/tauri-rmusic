@@ -2,6 +2,13 @@
 
 一个使用 Tauri 和 Vue.js 构建的现代跨平台桌面音乐播放器。
 
+[English](README.md) | [中文](README_zh.md)
+
+![GitHub License](https://img.shields.io/github/license/xudong7/tauri-rmusic)
+![GitHub release](https://img.shields.io/github/v/release/xudong7/tauri-rmusic)
+![Tauri](https://img.shields.io/badge/Tauri-2.0-blue)
+![Vue](https://img.shields.io/badge/Vue.js-3.5-green)
+
 ## 屏幕截图
 
 ![截图](/screenshots/image-1.png)
@@ -12,9 +19,7 @@
 
 ![截图](/screenshots/image-4.png)
 
-[English Documentation](README.md)
-
-p.s. 如果需要在线听歌功能，需要同时启动[KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi)和[NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup)两个本地代理服务器，前者用于酷狗音乐，后者用于网易云音乐。
+> **注意**: 如果需要在线听歌功能，需要同时启动[KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi)和[NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup)两个本地代理服务器。
 
 ## 在线音乐功能
 
@@ -47,19 +52,29 @@ Rmusic 现已支持在线音乐播放功能，您可以：
 - **轻量级**: 使用 Rust 和 Tauri 构建，性能优异
 - **音乐文件夹扫描**: 自动扫描和索引您的音乐库
 - **文件格式支持**: 播放 MP3、WAV、OGG 和 FLAC 音频格式
-- **简洁界面**: 使用 Vue.js 和 Element Plus 构建的清晰直观的用户界面
-- **音量控制**: 轻松调节播放音量
-- **在线音乐**: 通过酷狗音乐API搜索和播放在线音乐
+- **美观界面**: 使用 Vue.js 和 Element Plus 构建的清晰直观的用户界面
+- **音量控制**: 使用滑块轻松调节播放音量
+- **在线音乐**: 通过酷狗音乐 API 和网易云音乐 API 搜索和播放在线音乐
 - **持续播放**: 在不同页面间切换时保持音乐播放状态
 - **深色模式**: 支持深色模式，适合低光环境下使用
+- **沉浸模式**: 全屏播放界面，展示精美专辑封面和歌词
+- **歌词支持**: 显示本地和在线音乐的同步歌词
+- **音乐下载**: 下载在线音乐到本地存储，包含封面和歌词
+- **系统托盘**: 最小化到系统托盘，快速访问控制
+- **键盘快捷键**: 支持空格键（播放/暂停）和方向键（上一首/下一首）
+- **设置窗口**: 专用设置界面，配置主题和下载偏好
+- **自动主题**: 根据时间自动切换浅色和深色主题
 
 ## 技术栈
 
-- **前端**: Vue.js 3, Element Plus UI
-- **后端**: Rust, Tauri
+- **前端**: Vue.js 3, Element Plus UI, Vue Router, Pinia (状态管理)
+- **后端**: Rust, Tauri 2.0
 - **音频播放**: Rodio (Rust 音频播放库)
-- **异步运行时**: Tokio
+- **HTTP 客户端**: Reqwest (用于在线音乐 API)
+- **异步运行时**: Tokio (Rust 异步操作)
 - **构建工具**: Vite, Cargo
+- **UI 组件**: Element Plus Icons, 自定义 CSS
+- **打包**: Tauri bundler 跨平台分发
 
 ## 快速开始
 
@@ -71,11 +86,12 @@ Rmusic 现已支持在线音乐播放功能，您可以：
 
 ### 安装
 
-1. 克隆仓库
-
-   ```bash
-   git clone https://github.com/yourusername/rmusic.git
+1. 克隆仓库 ```bash
+   git clone https://github.com/xudong7/tauri-rmusic.git
    cd rmusic
+
+   ```
+
    ```
 
 2. 安装依赖
@@ -102,16 +118,42 @@ npm run tauri build
 
 ## 使用方法
 
-1. 启动应用程序
-2. 点击"选择音乐文件夹"选择包含音乐文件的目录
-3. 应用程序将扫描选定文件夹中支持的音频文件
-4. 点击列表中的歌曲开始播放
-5. 使用播放控制来播放、暂停和调节音量
-6. 对于在线音乐，导航到"在线音乐"页面，搜索歌曲并播放
+1. **启动应用程序**
+2. **本地音乐**:
+   - 点击"选择音乐文件夹"选择包含音乐文件的目录
+   - 应用程序将扫描选定文件夹中支持的音频文件
+   - 点击列表中的歌曲开始播放
+3. **在线音乐**:
+   - 使用标题导航栏进入"在线音乐"页面
+   - 使用关键词搜索歌曲
+   - 点击播放按钮在线播放音乐
+   - 使用下载按钮将歌曲保存到本地
+4. **播放控制**:
+   - 使用播放控制来播放、暂停和调节音量
+   - 使用空格键切换播放/暂停
+   - 使用方向键切换到上一首/下一首
+5. **沉浸模式**:
+   - 点击播放栏中的专辑封面进入全屏沉浸模式
+   - 查看同步歌词并享受美丽的视觉效果
+6. **设置**:
+   - 点击设置图标打开偏好设置窗口
+   - 自定义主题、下载位置和其他偏好设置
 
 ## 贡献
 
 欢迎贡献！请随时提交 Pull Request。
+
+## TODO
+
+- [ ] **重复模式**: 单曲循环、播放列表循环和随机播放模式
+- [ ] **增强的设置窗口**:
+  - [ ] 音乐库扫描偏好设置
+  - [ ] 缓存管理选项
+- [ ] **主题自定义**: 自定义配色方案和强调色
+- [ ] **语言支持**: 国际化 (i18n) 支持多种语言
+- [ ] **更多音乐源**: 集成其他音乐流媒体 API
+- [ ] **导入/导出**: 备份和恢复音乐库和播放列表
+- [ ] **通知支持**: 正在播放的通知和控制
 
 ## 许可证
 

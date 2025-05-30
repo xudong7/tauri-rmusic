@@ -81,11 +81,6 @@
   -webkit-app-region: no-drag; /* 右侧控制区域不可拖动 */
 }
 
-.theme-toggle {
-  display: flex;
-  align-items: center;
-}
-
 .window-controls {
   display: flex;
   align-items: center;
@@ -206,65 +201,13 @@
   opacity: 0;
 }
 
-.icon-button {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  border-radius: 8px;
-  color: var(--el-text-color-secondary);
-  transition: all 0.2s ease;
-  margin-right: 4px;
-  position: relative;
-  overflow: hidden;
-}
-
-.icon-button:hover {
-  color: var(--el-color-primary);
-  background-color: var(--el-color-primary-light-9);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
-}
-
-.icon-button:active {
-  transform: translateY(0);
-  box-shadow: none;
-}
-
-.icon-button::before {
-  content: "";
-  position: absolute;
-  width: 50px;
-  height: 50px;
-  background: radial-gradient(
-    circle,
-    rgba(255, 255, 255, 0.3) 0%,
-    rgba(255, 255, 255, 0) 70%
-  );
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) scale(0);
-  transition: transform 0.4s ease;
-  opacity: 0;
-  border-radius: 50%;
-}
-
-.icon-button:hover::before {
-  transform: translate(-50%, -50%) scale(2);
-  opacity: 1;
-}
-
 button,
 a,
 input,
 .el-button,
 .el-input,
 .el-input__wrapper,
-.theme-toggle,
 .window-controls,
-.icon-button,
 .window-button {
   -webkit-app-region: no-drag !important;
 }
