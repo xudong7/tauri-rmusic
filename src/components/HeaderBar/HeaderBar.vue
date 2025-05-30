@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { useRouter } from "vue-router";
 import {
   Folder,
   Search,
@@ -10,6 +10,7 @@ import {
   Minus,
   FullScreen,
   ScaleToOriginal,
+  Setting,
   Close,
 } from "@element-plus/icons-vue";
 import { ViewMode } from "../../types/model";
@@ -25,9 +26,11 @@ const emit = defineEmits([
   "select-directory",
   "refresh",
   "search",
-  "switch-view",
   "toggle-theme",
 ]);
+
+// 路由实例
+const router = useRouter();
 
 // 搜索关键字
 const searchKeyword = ref("");
@@ -45,11 +48,13 @@ function handleSearch() {
   emit("search", searchKeyword.value);
 }
 
-// 切换视图模式
+// 切换视图模式 - 现在通过路由导航
 function toggleViewMode() {
-  const newMode =
-    props.viewMode === ViewMode.LOCAL ? ViewMode.ONLINE : ViewMode.LOCAL;
-  emit("switch-view", newMode);
+  if (props.viewMode === ViewMode.LOCAL) {
+    router.push("/online");
+  } else {
+    router.push("/");
+  }
 }
 
 // 切换主题模式
@@ -77,7 +82,7 @@ const toggleMaximize = async () => {
 };
 
 const close = async () => {
-  await appWindow.close();
+  await appWindow.hide();
 };
 
 // 计算最大化/恢复的图标
@@ -166,6 +171,9 @@ onMounted(async () => {
       </div>
 
       <div class="window-controls">
+        <div class="header-button window-button" title="设置">
+          <el-icon><Setting /></el-icon>
+        </div>
         <div
           class="header-button window-button"
           @click="minimize"
