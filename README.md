@@ -140,7 +140,40 @@ The built application will be available in the `src-tauri/target/release` direct
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+We warmly welcome community contributors to join the Rmusic project! 🎵
+
+### How to Contribute
+
+We welcome all forms of contributions, including but not limited to:
+
+- **🐛 Bug Fixes**: Find and fix bugs in the project
+- **✨ New Features**: Implement new music playback features or UI improvements
+- **📝 Documentation**: Improve README, comments, or add tutorials
+- **🎨 UI/UX Optimization**: Interface design improvements and user experience enhancements
+- **🌍 Internationalization**: Add multi-language support
+- **🧪 Testing**: Write unit tests or integration tests
+- **💡 Suggestions**: Propose feature suggestions or improvements in Issues
+
+### Contribution Process
+
+1. **Fork this repository** to your GitHub account
+2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
+3. **Commit your changes**: `git commit -m 'Add some amazing feature'`
+4. **Push to the branch**: `git push origin feature/amazing-feature`
+5. **Submit a Pull Request**
+
+### Code Guidelines
+
+- Follow existing code style and naming conventions
+- Write clear comments for new features
+- Ensure code passes existing tests
+- For major changes, please create an Issue for discussion first
+
+### Development Setup
+
+Please refer to the [Getting Started](#getting-started) section to set up your development environment.
+
+Thank you to all contributors who make Rmusic better! ❤️
 
 ## TODO
 
