@@ -50,7 +50,7 @@ const toggleMaximize = async () => {
 };
 
 const close = async () => {
-  await appWindow.close();
+  await appWindow.hide();
 };
 
 // 计算最大化/恢复的图标
