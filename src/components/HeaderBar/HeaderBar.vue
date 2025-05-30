@@ -15,6 +15,7 @@ import {
 } from "@element-plus/icons-vue";
 import { ViewMode } from "../../types/model";
 import { Window } from "@tauri-apps/api/window";
+import { createSettingsWindow } from "../../utils/settingsWindow";
 
 const props = defineProps<{
   currentDirectory: string;
@@ -47,6 +48,14 @@ function handleSearch() {
   // }
   emit("search", searchKeyword.value);
 }
+
+const openSettingWindow = async () => {
+  try {
+    createSettingsWindow();
+  } catch (error) {
+    console.error("打开设置窗口失败:", error);
+  }
+};
 
 // 切换视图模式 - 现在通过路由导航
 function toggleViewMode() {
@@ -158,9 +167,9 @@ onMounted(async () => {
     </div>
 
     <div class="header-right">
-      <div class="theme-toggle">
+      <div class="window-controls">
         <div
-          class="header-button icon-button"
+          class="header-button window-button"
           @click="toggleTheme"
           :title="isDarkMode ? '切换到亮色模式' : '切换到暗色模式'"
         >
@@ -168,10 +177,11 @@ onMounted(async () => {
             <component :is="isDarkMode ? Moon : Sunny" />
           </el-icon>
         </div>
-      </div>
-
-      <div class="window-controls">
-        <div class="header-button window-button" title="设置">
+        <div
+          class="header-button window-button"
+          @click="openSettingWindow"
+          title="设置"
+        >
           <el-icon><Setting /></el-icon>
         </div>
         <div

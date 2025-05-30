@@ -1,11 +1,16 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, watch } from "vue";
+import { onMounted, onUnmounted, watch, ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import HeaderBar from "./components/HeaderBar/HeaderBar.vue";
 import PlayerBar from "./components/PlayerBar/PlayerBar.vue";
 import ImmersiveView from "./components/ImmersiveView/ImmersiveView.vue";
 import { useMusicStore } from "./stores/musicStore";
 import { ViewMode } from "./types/model";
+
+// 获取当前窗口标签，用于判断是否显示HeaderBar和PlayerBar
+const windowLabel = ref<string>("");
+const isSettingsWindow = ref<boolean>(false);
 
 const musicStore = useMusicStore();
 
@@ -121,19 +126,33 @@ function setupPlaybackEndDetection() {
 
 // 初始化
 onMounted(async () => {
-  await musicStore.initialize();
+  // 获取当前窗口标签
+  const webviewWindow = getCurrentWebviewWindow();
+  windowLabel.value = webviewWindow.label;
+  isSettingsWindow.value = webviewWindow.label === "settings";
 
-  // 添加全局键盘事件监听
-  window.addEventListener("keydown", handleKeyDown);
+  console.log("当前窗口标签:", windowLabel.value);
+  console.log("是否为设置窗口:", isSettingsWindow.value);
 
-  // 设置播放结束检测
-  setupPlaybackEndDetection();
+  // 只有非设置窗口才初始化音乐功能
+  if (!isSettingsWindow.value) {
+    await musicStore.initialize();
+
+    // 添加全局键盘事件监听
+    window.addEventListener("keydown", handleKeyDown);
+
+    // 设置播放结束检测
+    setupPlaybackEndDetection();
+  }
 });
 
 // 组件卸载时清理事件监听器和定时器
 onUnmounted(() => {
-  window.removeEventListener("keydown", handleKeyDown);
-  musicStore.stopPlayTimeTracking();
+  // 只有非设置窗口才清理这些监听器
+  if (!isSettingsWindow.value) {
+    window.removeEventListener("keydown", handleKeyDown);
+    musicStore.stopPlayTimeTracking();
+  }
 });
 </script>
 
@@ -143,8 +162,9 @@ onUnmounted(() => {
     :class="{ 'dark-theme': musicStore.isDarkMode }"
     @contextmenu.prevent
   >
-    <!-- 顶部搜索和文件夹选择 -->
+    <!-- 顶部搜索和文件夹选择 - 只在主窗口显示 -->
     <HeaderBar
+      v-if="!isSettingsWindow"
       :currentDirectory="musicStore.currentDirectory"
       :viewMode="musicStore.viewMode"
       :isDarkMode="musicStore.isDarkMode"
@@ -158,12 +178,13 @@ onUnmounted(() => {
     />
 
     <!-- 主内容区域 - 路由出口 -->
-    <div class="main-content">
+    <div class="main-content" :class="{ 'settings-content': isSettingsWindow }">
       <router-view />
     </div>
 
-    <!-- 底部播放控制栏 -->
+    <!-- 底部播放控制栏 - 只在主窗口显示 -->
     <PlayerBar
+      v-if="!isSettingsWindow"
       :currentMusic="musicStore.currentMusic"
       :currentOnlineSong="musicStore.currentOnlineSong"
       :isPlaying="musicStore.isPlaying"
@@ -174,9 +195,9 @@ onUnmounted(() => {
       @show-immersive="musicStore.showImmersive"
     />
 
-    <!-- 沉浸模式 -->
+    <!-- 沉浸模式 - 只在主窗口显示 -->
     <ImmersiveView
-      v-if="musicStore.showImmersiveMode"
+      v-if="!isSettingsWindow && musicStore.showImmersiveMode"
       :currentSong="musicStore.currentOnlineSong"
       :currentMusic="musicStore.currentMusic"
       :isPlaying="musicStore.isPlaying"
@@ -206,6 +227,11 @@ onUnmounted(() => {
   overflow: hidden; /* 修改为hidden，让子组件控制滚动 */
   padding: 16px;
   box-sizing: border-box; /* 确保padding不会导致超出容器 */
+}
+
+/* 设置窗口的内容样式 */
+.settings-content {
+  padding: 0; /* 设置窗口不需要额外的padding */
 }
 
 /* 仅保留应用特定的类名样式，移除全局主题变量定义 */

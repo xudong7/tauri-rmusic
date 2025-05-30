@@ -2,6 +2,13 @@
 
 A modern cross-platform desktop music player built with Tauri and Vue.js.
 
+[English](README.md) | [中文](README_zh.md)
+
+![GitHub License](https://img.shields.io/github/license/xudong7/tauri-rmusic)
+![GitHub release](https://img.shields.io/github/v/release/xudong7/tauri-rmusic)
+![Tauri](https://img.shields.io/badge/Tauri-2.0-blue)
+![Vue](https://img.shields.io/badge/Vue.js-3.5-green)
+
 ## Screenshots
 
 ![Screenshot](/screenshots/image-1.png)
@@ -12,9 +19,7 @@ A modern cross-platform desktop music player built with Tauri and Vue.js.
 
 ![Screenshot](/screenshots/image-4.png)
 
-[中文文档](README_zh.md)
-
-p.s. If you need online music function, you need to start [KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi) and [NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) at the same time.
+> **Note**: If you need online music functionality, you need to start [KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi) and [NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) at the same time.
 
 ## Online Music Feature
 
@@ -47,19 +52,29 @@ Rmusic now supports online music streaming. You can:
 - **Lightweight**: Built with Rust and Tauri for optimal performance
 - **Music Folder Scanning**: Automatically scans and indexes your music library
 - **File Format Support**: Plays MP3, WAV, OGG, and FLAC audio formats
-- **Simple Interface**: Clean and intuitive UI built with Vue.js and Element Plus
-- **Volume Control**: Easily adjust playback volume
-- **Online Music**: Search and play online music through KuGou Music API
+- **Beautiful Interface**: Clean and intuitive UI built with Vue.js and Element Plus
+- **Volume Control**: Easily adjust playback volume with slider
+- **Online Music**: Search and play online music through KuGou Music API and NetEase Cloud Music API
 - **Continuous Playback**: Maintains music playback state when switching between different pages
 - **Dark Mode**: Supports dark mode for better user experience in low-light environments
+- **Immersive Mode**: Full-screen playback with beautiful album art and lyrics display
+- **Lyrics Support**: Display synchronized lyrics for both local and online music
+- **Music Download**: Download online music to local storage with cover art and lyrics
+- **System Tray**: Minimize to system tray with quick access controls
+- **Keyboard Shortcuts**: Support for space (play/pause) and arrow keys (next/previous)
+- **Settings Window**: Dedicated settings interface for theme and download preferences
+- **Auto Theme**: Automatically switch between light and dark themes based on time
 
 ## Technology Stack
 
-- **Frontend**: Vue.js 3, Element Plus UI
-- **Backend**: Rust, Tauri
+- **Frontend**: Vue.js 3, Element Plus UI, Vue Router, Pinia (State Management)
+- **Backend**: Rust, Tauri 2.0
 - **Audio Playback**: Rodio (Rust audio playback library)
-- **Tokio**: For asynchronous runtime in Rust
+- **HTTP Client**: Reqwest (for online music APIs)
+- **Async Runtime**: Tokio (for asynchronous operations in Rust)
 - **Build Tools**: Vite, Cargo
+- **UI Components**: Element Plus Icons, Custom CSS
+- **Packaging**: Tauri bundler for cross-platform distribution
 
 ## Getting Started
 
@@ -102,16 +117,42 @@ The built application will be available in the `src-tauri/target/release` direct
 
 ## Usage
 
-1. Launch the application
-2. Click "Choose Music Folder" to select a directory containing your music files
-3. The application will scan the selected folder for supported audio files
-4. Click on a song from the list to start playback
-5. Use the playback controls to play, pause, and adjust volume
-6. For online music, navigate to the "Online Music" page, search for songs, and play them
+1. **Launch the application**
+2. **Local Music**:
+   - Click "Choose Music Folder" to select a directory containing your music files
+   - The application will scan the selected folder for supported audio files
+   - Click on a song from the list to start playback
+3. **Online Music**:
+   - Navigate to the "Online Music" page using the header navigation
+   - Search for songs using keywords
+   - Click play button to stream music online
+   - Use download button to save songs locally
+4. **Playback Controls**:
+   - Use the playback controls to play, pause, and adjust volume
+   - Use space bar to toggle play/pause
+   - Use arrow keys to skip to next/previous track
+5. **Immersive Mode**:
+   - Click the album art in the player bar to enter full-screen immersive mode
+   - View synchronized lyrics and enjoy beautiful visual effects
+6. **Settings**:
+   - Click the settings icon to open preferences window
+   - Customize theme, download location, and other preferences
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+## TODO
+
+- [ ] **Repeat Modes**: Single track repeat, playlist repeat, and shuffle modes
+- [ ] **Enhanced Settings Window**:
+  - [ ] Library scan preferences
+  - [ ] Cache management options
+- [ ] **Theme Customization**: Custom color schemes and accent colors
+- [ ] **Language Support**: Internationalization (i18n) for multiple languages
+- [ ] **More Music Sources**: Integration with additional music streaming APIs
+- [ ] **Import/Export**: Backup and restore music library and playlists
+- [ ] **Notification Support**: Now playing notifications with controls
 
 ## License
 

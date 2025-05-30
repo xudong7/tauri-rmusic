@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import LocalMusic from '../views/LocalMusicView.vue';
 import OnlineMusic from '../views/OnlineMusicView.vue';
+import Settings from '../views/SettingsView.vue';
 
 const routes = [
   {
@@ -12,6 +13,11 @@ const routes = [
     path: '/online',
     name: 'OnlineMusic',
     component: OnlineMusic
+  },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: Settings
   }
 ];
 

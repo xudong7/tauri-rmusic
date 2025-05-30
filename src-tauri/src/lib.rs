@@ -45,6 +45,38 @@ async fn is_sink_empty(sink: tauri::State<'_, Arc<Mutex<Sink>>>) -> Result<bool,
     Ok(sink.empty())
 }
 
+/// set up the service for the sidecar
+fn setup_service(
+    app: &tauri::App,
+    service_name: &str,
+    window: tauri::webview::WebviewWindow,
+) -> Result<(), String> {
+    let app_sidecar_command = app
+        .shell()
+        .sidecar(service_name)
+        .map_err(|e| format!("Failed to get sidecar command for {}: {}", service_name, e))?;
+
+    let (mut rx, mut child) = app_sidecar_command
+        .spawn()
+        .map_err(|e| format!("Failed to spawn sidecar {}: {}", service_name, e))?;
+
+    tauri::async_runtime::spawn(async move {
+        // 读取诸如 stdout 之类的事件
+        while let Some(event) = rx.recv().await {
+            if let CommandEvent::Stdout(line) = event {
+                if let Err(e) = window.emit("message", Some(format!("{:?}", line))) {
+                    eprintln!("Failed to emit event: {}", e);
+                }
+                // 写入 stdin
+                if let Err(e) = child.write("message from Rust\n".as_bytes()) {
+                    eprintln!("Failed to write to stdin: {}", e);
+                }
+            }
+        }
+    });
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let music = Music::new();
@@ -64,42 +96,12 @@ pub fn run() {
             let window_for_app_win = window.clone();
 
             // Handle first sidecar (app)
-            let app_sidecar_command = app.shell().sidecar("app").unwrap();
-            let (mut rx, mut child) = app_sidecar_command
-                .spawn()
-                .expect("Failed to spawn sidecar");
-            tauri::async_runtime::spawn(async move {
-                // 读取诸如 stdout 之类的事件
-                while let Some(event) = rx.recv().await {
-                    if let CommandEvent::Stdout(line) = event {
-                        window_for_app
-                            .emit("message", Some(format!("{:?}", line)))
-                            .expect("failed to emit event");
-                        // 写入 stdin
-                        child.write("message from Rust\n".as_bytes()).unwrap();
-                    }
-                }
-            });
+            setup_service(app, "app", window_for_app)
+                .unwrap_or_else(|e| println!("Failed to setup app sidecar: {}", e));
 
             // Handle second sidecar (app_win)
-            let app_win_sidecar_command = app.shell().sidecar("app_win").unwrap();
-            let (mut rx, mut child) = app_win_sidecar_command
-                .spawn()
-                .expect("Failed to spawn sidecar");
-            tauri::async_runtime::spawn(async move {
-                // 读取诸如 stdout 之类的事件
-                while let Some(event) = rx.recv().await {
-                    if let CommandEvent::Stdout(line) = event {
-                        window_for_app_win
-                            .emit("message_win", Some(format!("{:?}", line)))
-                            .expect("failed to emit event");
-                        // 写入 stdin
-                        child
-                            .write("message from Rust to Windows sidecar\n".as_bytes())
-                            .unwrap();
-                    }
-                }
-            });
+            setup_service(app, "app_win", window_for_app_win)
+                .unwrap_or_else(|e| println!("Failed to setup app_win sidecar: {}", e));
 
             Ok(())
         })
