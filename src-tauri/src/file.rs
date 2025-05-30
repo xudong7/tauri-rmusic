@@ -1,11 +1,11 @@
-use std::fs::{read_dir, create_dir_all, File};
+use crate::music::MusicFile;
 use crate::netease;
 use crate::netease::get_song_url;
-use crate::music::MusicFile;
+use std::fs::{create_dir_all, read_dir, File};
 use std::io::Write;
 use std::path::Path;
-use tauri::Manager;
 use tauri::AppHandle;
+use tauri::Manager;
 
 /// recursive scan the directory
 /// and add the files to the list
@@ -74,15 +74,15 @@ pub fn get_default_music_dir(app_handle: AppHandle) -> Result<String, String> {
         .path()
         .app_data_dir()
         .map_err(|e| format!("unable to get dir: {}", e))?;
-    
+
     let music_dir = app_dir.join("music");
-    
+
     if !music_dir.exists() {
-        create_dir_all(&music_dir)
-            .map_err(|e| format!("create default dir error: {}", e))?;
+        create_dir_all(&music_dir).map_err(|e| format!("create default dir error: {}", e))?;
     }
-    
-    music_dir.to_str()
+
+    music_dir
+        .to_str()
         .map(|s| s.to_string())
         .ok_or_else(|| "path trans error".to_string())
 }
@@ -114,26 +114,23 @@ pub async fn download_music(
         .path()
         .app_data_dir()
         .map_err(|e| format!("unable to get dir: {}", e))?;
-    
+
     let music_dir = app_dir.join("music");
-    
+
     if !music_dir.exists() {
-        create_dir_all(&music_dir)
-            .map_err(|e| format!("create music dir error: {}", e))?;
+        create_dir_all(&music_dir).map_err(|e| format!("create music dir error: {}", e))?;
     }
 
     // 创建封面和歌词存放目录
     let cover_dir = app_dir.join("cover");
     let lyrics_dir = app_dir.join("lyrics");
-    
+
     if !cover_dir.exists() {
-        create_dir_all(&cover_dir)
-            .map_err(|e| format!("create cover dir error: {}", e))?;
+        create_dir_all(&cover_dir).map_err(|e| format!("create cover dir error: {}", e))?;
     }
-    
+
     if !lyrics_dir.exists() {
-        create_dir_all(&lyrics_dir)
-            .map_err(|e| format!("create lyrics dir error: {}", e))?;
+        create_dir_all(&lyrics_dir).map_err(|e| format!("create lyrics dir error: {}", e))?;
     }
 
     // create file name
@@ -151,12 +148,13 @@ pub async fn download_music(
     let mut file = File::create(&file_path).map_err(|e| format!("create file error: {}", e))?;
 
     file.write_all(&bytes)
-        .map_err(|e| format!("write error: {}", e))?;    // 下载封面图片
+        .map_err(|e| format!("write error: {}", e))?; // 下载封面图片
     let base_filename = file_name.replace(".mp3", "");
-    
+
     use crate::netease::get_song_cover;
-    
-    let cover_url_result = get_song_cover(song_hash.clone(), song_name.clone(), artist.clone()).await;
+
+    let cover_url_result =
+        get_song_cover(song_hash.clone(), song_name.clone(), artist.clone()).await;
     if let Ok(cover_url) = cover_url_result {
         if !cover_url.is_empty() {
             // 2. 下载封面图片
@@ -174,10 +172,10 @@ pub async fn download_music(
                 Err(e) => println!("下载封面失败: {}", e),
             }
         }
-    }    
+    }
     // 3. 尝试下载歌词
     use crate::netease::get_song_lyric;
-    
+
     match get_song_lyric(song_hash.clone()).await {
         Ok(lyric_content) => {
             if !lyric_content.is_empty() {
@@ -204,29 +202,33 @@ pub async fn load_cover_and_lyric(
         .path()
         .app_data_dir()
         .map_err(|e| format!("无法获取应用目录: {}", e))?;
-    
+
     // 构建封面和歌词文件路径
-    let cover_path = app_dir.join("cover").join(format!("{}.jpg", file_name.replace(".mp3", "")));
-    let lyrics_path = app_dir.join("lyrics").join(format!("{}.lrc", file_name.replace(".mp3", "")));
-    
+    let cover_path = app_dir
+        .join("cover")
+        .join(format!("{}.jpg", file_name.replace(".mp3", "")));
+    let lyrics_path = app_dir
+        .join("lyrics")
+        .join(format!("{}.lrc", file_name.replace(".mp3", "")));
+
     // 初始化返回值
     let mut cover_content = String::new();
     let mut lyrics_content = String::new();
-    
+
     // 读取封面图片（如果存在）
     if cover_path.exists() {
         // 封面是二进制文件，需要转为base64
-        let cover_bytes = std::fs::read(&cover_path)
-            .map_err(|e| format!("读取封面文件失败: {}", e))?;
+        let cover_bytes =
+            std::fs::read(&cover_path).map_err(|e| format!("读取封面文件失败: {}", e))?;
         cover_content = format!("data:image/jpeg;base64,{}", base64::encode(&cover_bytes));
     }
-    
+
     // 读取歌词文件（如果存在）
     if lyrics_path.exists() {
         lyrics_content = std::fs::read_to_string(&lyrics_path)
             .map_err(|e| format!("读取歌词文件失败: {}", e))?;
     }
-    
+
     Ok((cover_content, lyrics_content))
 }
 

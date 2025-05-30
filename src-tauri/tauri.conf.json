@@ -24,7 +24,8 @@
     "security": {
       "csp": null
     }
-  },  "bundle": {
+  },  
+  "bundle": {
     "active": true,
     "targets": "all",
     "icon": [
