@@ -61,7 +61,10 @@ pub fn get_client() -> Result<reqwest::Client, String> {
 }
 
 /// get client response
-pub async fn get_response(client: reqwest::Client, url: String) -> Result<reqwest::Response, String> {
+pub async fn get_response(
+    client: reqwest::Client,
+    url: String,
+) -> Result<reqwest::Response, String> {
     let response = client
         .get(&url)
         .send()

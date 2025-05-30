@@ -84,6 +84,18 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
+            let window = app
+                .get_webview_window("main")
+                .expect("failed to get main window");
+            // If the app is already running, we can just focus the main window
+            if let Err(e) = window.show() {
+                eprintln!("Failed to show main window: {}", e);
+            }
+            if let Err(e) = window.set_focus() {
+                eprintln!("Failed to focus main window: {}", e);
+            }
+        }))
         .setup(|app| {
             // setup the tray icon
             setup_tray(app).unwrap();
