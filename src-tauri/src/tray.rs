@@ -2,6 +2,7 @@ use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::App;
 use tauri::Manager;
+use tauri_plugin_window_state::{StateFlags, WindowExt, AppHandleExt};
 
 /// set up the tray
 pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
@@ -42,6 +43,8 @@ pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
             "quit" => {
+                // save the window state before quitting
+                app.save_window_state(StateFlags::all()).unwrap();
                 println!("quit menu item was clicked");
                 app.exit(0);
             }

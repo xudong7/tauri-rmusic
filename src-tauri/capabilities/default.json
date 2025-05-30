@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for the main window",
-  "windows": ["main", "settings"],
+  "windows": ["main", "settings"],  
   "permissions": [
     "core:default",
     "opener:default",
@@ -15,6 +15,7 @@
     "core:window:allow-minimize",
     "core:window:allow-unmaximize",
     "core:window:allow-set-focus",
-    "dialog:allow-open"
+    "dialog:allow-open",
+    "window-state:default"
   ]
 }
