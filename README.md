@@ -178,9 +178,9 @@ Thank you to all contributors who make Rmusic better! ❤️
 ## TODO
 
 - [ ] **Repeat Modes**: Single track repeat, playlist repeat, and shuffle modes
-- [ ] **Enhanced Settings Window**:
-  - [ ] Library scan preferences
-  - [ ] Cache management options
+- [x] **Enhanced Settings Window**:
+  - [x] Library scan preferences
+  - [x] Cache management options
 - [ ] **Theme Customization**: Custom color schemes and accent colors
 - [ ] **Language Support**: Internationalization (i18n) for multiple languages
 - [ ] **More Music Sources**: Integration with additional music streaming APIs

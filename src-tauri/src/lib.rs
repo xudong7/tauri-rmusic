@@ -7,6 +7,7 @@ use tauri::Emitter;
 use tauri::Manager;
 use tauri_plugin_shell::process::CommandEvent;
 use tauri_plugin_shell::ShellExt;
+use tauri_plugin_window_state::{AppHandleExt, StateFlags, WindowExt};
 use tokio::sync::broadcast::Sender;
 use tokio::sync::Mutex;
 use tray::setup_tray;
@@ -84,6 +85,19 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_window_state::Builder::new().build())
+        .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
+            let window = app
+                .get_webview_window("main")
+                .expect("failed to get main window");
+            // If the app is already running, we can just focus the main window
+            if let Err(e) = window.show() {
+                eprintln!("Failed to show main window: {}", e);
+            }
+            if let Err(e) = window.set_focus() {
+                eprintln!("Failed to focus main window: {}", e);
+            }
+        }))
         .setup(|app| {
             // setup the tray icon
             setup_tray(app).unwrap();
@@ -91,7 +105,13 @@ pub fn run() {
             // Get the main window - use "main" as the default window label
             let window = app
                 .get_webview_window("main")
+                .and_then(|w| {
+                    // Restore the window state if it exists
+                    w.restore_state(StateFlags::all()).ok()?;
+                    Some(w)
+                })
                 .expect("failed to get main window");
+
             let window_for_app = window.clone();
             let window_for_app_win = window.clone();
 
