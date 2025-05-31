@@ -42,13 +42,27 @@ pub fn scan_directory(
 /// filter -> mp3, wav, ogg, flac
 /// if path include a dir, the dir also need to be scanned
 #[tauri::command]
-pub fn scan_files(path: &str) -> Vec<MusicFile> {
+pub fn scan_files(path: Option<String>, default_directory: Option<String>, app_handle: AppHandle) -> Vec<MusicFile> {
     let mut music_files = Vec::new();
     let mut id_counter = 0;
 
-    let base_path = std::path::Path::new(path).to_path_buf();
+    // Determine which path to use
+    let scan_path = if let Some(custom_path) = path {
+        // If a specific path is provided, use it directly (for manual folder selection)
+        custom_path
+    } else if let Some(default_dir) = default_directory {
+        // If default_directory is provided, scan the music subfolder within it
+        std::path::Path::new(&default_dir).join("music").to_string_lossy().to_string()
+    } else {
+        // Fall back to the default music directory
+        match get_default_music_dir(app_handle) {
+            Ok(default_path) => default_path,
+            Err(_) => return music_files, // Return empty if we can't get default path
+        }
+    };
 
-    let path_obj = std::path::Path::new(path);
+    let base_path = std::path::Path::new(&scan_path).to_path_buf();
+    let path_obj = std::path::Path::new(&scan_path);
     if path_obj.is_dir() {
         scan_directory(&base_path, &base_path, &mut music_files, &mut id_counter);
     } else {
@@ -94,6 +108,7 @@ pub async fn download_music(
     song_hash: String,
     song_name: String,
     artist: String,
+    default_directory: Option<String>,
 ) -> Result<String, String> {
     // 获取歌曲下载URL
     let song_url = get_song_url(song_hash.clone()).await?;
@@ -109,21 +124,27 @@ pub async fn download_music(
         .await
         .map_err(|e| format!("read bytes data error: {}", e))?;
 
-    // get default music directory
-    let app_dir = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("unable to get dir: {}", e))?;
+    // Determine the base directory to use
+    let base_dir = if let Some(custom_dir) = default_directory {
+        // Use the custom directory as base, create subdirectories within it
+        std::path::PathBuf::from(custom_dir)
+    } else {
+        // Fall back to app data directory
+        app_handle
+            .path()
+            .app_data_dir()
+            .map_err(|e| format!("unable to get dir: {}", e))?
+    };
 
-    let music_dir = app_dir.join("music");
+    // Create subdirectories under the base directory
+    let music_dir = base_dir.join("music");
+    let cover_dir = base_dir.join("cover");
+    let lyrics_dir = base_dir.join("lyrics");
 
+    // Create directories if they don't exist
     if !music_dir.exists() {
         create_dir_all(&music_dir).map_err(|e| format!("create music dir error: {}", e))?;
     }
-
-    // 创建封面和歌词存放目录
-    let cover_dir = app_dir.join("cover");
-    let lyrics_dir = app_dir.join("lyrics");
 
     if !cover_dir.exists() {
         create_dir_all(&cover_dir).map_err(|e| format!("create cover dir error: {}", e))?;
@@ -196,18 +217,25 @@ pub async fn download_music(
 pub async fn load_cover_and_lyric(
     app_handle: AppHandle,
     file_name: String,
+    default_directory: Option<String>,
 ) -> Result<(String, String), String> {
-    // 获取应用数据目录
-    let app_dir = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("无法获取应用目录: {}", e))?;
+    // Determine the base directory to use
+    let base_dir = if let Some(custom_dir) = default_directory {
+        // Use the custom directory as base, look for subdirectories within it
+        std::path::PathBuf::from(custom_dir)
+    } else {
+        // Fall back to app data directory
+        app_handle
+            .path()
+            .app_data_dir()
+            .map_err(|e| format!("无法获取应用目录: {}", e))?
+    };
 
-    // 构建封面和歌词文件路径
-    let cover_path = app_dir
+    // 构建封面和歌词文件路径 - 从base_dir的子目录中查找
+    let cover_path = base_dir
         .join("cover")
         .join(format!("{}.jpg", file_name.replace(".mp3", "")));
-    let lyrics_path = app_dir
+    let lyrics_path = base_dir
         .join("lyrics")
         .join(format!("{}.lrc", file_name.replace(".mp3", "")));
 
@@ -220,7 +248,9 @@ pub async fn load_cover_and_lyric(
         // 封面是二进制文件，需要转为base64
         let cover_bytes =
             std::fs::read(&cover_path).map_err(|e| format!("读取封面文件失败: {}", e))?;
-        cover_content = format!("data:image/jpeg;base64,{}", base64::encode(&cover_bytes));
+        use base64::engine::general_purpose::STANDARD;
+        use base64::Engine;
+        cover_content = format!("data:image/jpeg;base64,{}", STANDARD.encode(&cover_bytes));
     }
 
     // 读取歌词文件（如果存在）

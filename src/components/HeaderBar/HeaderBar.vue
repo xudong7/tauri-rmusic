@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import {
-  Folder,
+  // Folder,
   Search,
   Switch,
   Moon,
@@ -24,7 +24,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits([
-  "select-directory",
+  // "select-directory",
   "refresh",
   "search",
   "toggle-theme",
@@ -120,7 +120,7 @@ onMounted(async () => {
   >
     <div class="header-left">
       <div class="directory-controls">
-        <el-tooltip
+        <!-- <el-tooltip
           :content="currentDirectory || '未选择文件夹'"
           placement="bottom"
           :disabled="viewMode === ViewMode.ONLINE"
@@ -136,7 +136,7 @@ onMounted(async () => {
           >
             选择目录
           </el-button>
-        </el-tooltip>
+        </el-tooltip> -->
         <el-button
           @click="toggleViewMode"
           :icon="Switch"
