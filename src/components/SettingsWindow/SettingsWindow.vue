@@ -1,27 +1,87 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { Close, Minus } from "@element-plus/icons-vue";
+import { ref, onMounted, watch, computed } from "vue";
+import {
+  Close,
+  Minus,
+  ScaleToOriginal,
+  FullScreen,
+} from "@element-plus/icons-vue";
 import { Window } from "@tauri-apps/api/window";
+import { useMusicStore } from "@/stores/musicStore";
 
 // 窗口引用
 const appWindow = Window.getCurrent();
+const isMaximized = ref(false);
+
+// 使用 musicStore
+const musicStore = useMusicStore();
 
 // 设置数据
-const isDarkMode = ref(false);
 const downloadPath = ref("");
+
+// 监听主题变化
+watch(
+  () => musicStore.isDarkMode,
+  () => {
+    // 主题变化时，应用到当前窗口
+    musicStore.applyTheme();
+  }
+);
+
+// 监听 localStorage 变化以同步主题
+window.addEventListener("storage", (e) => {
+  if (e.key === "theme" && e.newValue) {
+    const shouldBeDark = e.newValue === "dark";
+    if (musicStore.isDarkMode !== shouldBeDark) {
+      // 使用不保存到 localStorage 的方法（避免循环）
+      musicStore.setThemeWithoutSave(shouldBeDark);
+    }
+  }
+});
+
+// 计算最大化/恢复的图标
+const maximizeIcon = computed(() => {
+  return isMaximized.value ? ScaleToOriginal : FullScreen;
+});
+
+// 检查窗口当前是否已最大化
+async function checkMaximized() {
+  isMaximized.value = await appWindow.isMaximized();
+}
 
 // 窗口控制函数
 const minimize = async () => {
   await appWindow.minimize();
 };
 
+const toggleMaximize = async () => {
+  if (isMaximized.value) {
+    await appWindow.unmaximize();
+  } else {
+    await appWindow.maximize();
+  }
+  isMaximized.value = !isMaximized.value;
+};
+
 const close = async () => {
   await appWindow.close();
+};
+
+// 主题切换处理
+const handleThemeChange = (value: boolean) => {
+  // 使用新的 setTheme 方法
+  musicStore.setTheme(value);
+  console.log("Theme changed to:", value ? "dark" : "light");
 };
 
 onMounted(async () => {
   try {
     console.log("Settings window mounted");
+    // 直接初始化 musicStore 和应用主题
+    await musicStore.initialize();
+
+    console.log("Settings window theme state:", musicStore.isDarkMode);
+    console.log("LocalStorage theme:", localStorage.getItem("theme"));
   } catch (error) {
     console.error("Settings window error:", error);
   }
@@ -45,6 +105,13 @@ onMounted(async () => {
             <el-icon><Minus /></el-icon>
           </div>
           <div
+            class="header-button window-button"
+            @click="toggleMaximize"
+            :title="isMaximized ? '还原' : '最大化'"
+          >
+            <el-icon><component :is="maximizeIcon" /></el-icon>
+          </div>
+          <div
             class="header-button window-button close"
             @click="close"
             title="关闭"
@@ -62,9 +129,10 @@ onMounted(async () => {
         <div class="setting-item">
           <label>主题模式</label>
           <el-switch
-            v-model="isDarkMode"
+            v-model="musicStore.isDarkMode"
             active-text="深色"
             inactive-text="浅色"
+            @change="handleThemeChange"
           />
         </div>
       </div>
