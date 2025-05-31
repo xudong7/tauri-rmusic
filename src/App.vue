@@ -124,6 +124,16 @@ function setupPlaybackEndDetection() {
   });
 }
 
+// 处理跨窗口主题同步
+function handleStorageChange(event: StorageEvent) {
+  if (event.key === "theme" && event.newValue) {
+    console.log("主窗口检测到主题变化:", event.newValue);
+    // 如果主题变化，更新音乐商店的主题状态
+    // 使用不保存到 localStorage 的方法，避免循环调用
+    musicStore.setThemeWithoutSave(event.newValue === "dark");
+  }
+}
+
 // 初始化
 onMounted(async () => {
   // 获取当前窗口标签
@@ -141,6 +151,9 @@ onMounted(async () => {
     // 添加全局键盘事件监听
     window.addEventListener("keydown", handleKeyDown);
 
+    // 添加跨窗口主题同步监听
+    window.addEventListener("storage", handleStorageChange);
+
     // 设置播放结束检测
     setupPlaybackEndDetection();
   }
@@ -151,24 +164,26 @@ onUnmounted(() => {
   // 只有非设置窗口才清理这些监听器
   if (!isSettingsWindow.value) {
     window.removeEventListener("keydown", handleKeyDown);
+    window.removeEventListener("storage", handleStorageChange);
     musicStore.stopPlayTimeTracking();
   }
 });
 </script>
 
 <template>
+  <!-- @contextmenu.prevent -->
   <div
     class="music-app"
     :class="{ 'dark-theme': musicStore.isDarkMode }"
     @contextmenu.prevent
-  >
+    >
     <!-- 顶部搜索和文件夹选择 - 只在主窗口显示 -->
+    <!-- @select-directory="musicStore.selectDirectory" -->
     <HeaderBar
       v-if="!isSettingsWindow"
       :currentDirectory="musicStore.currentDirectory"
       :viewMode="musicStore.viewMode"
       :isDarkMode="musicStore.isDarkMode"
-      @select-directory="musicStore.selectDirectory"
       @refresh="musicStore.refreshCurrentDirectory"
       @search="handleSearch"
       @toggle-theme="musicStore.toggleTheme"

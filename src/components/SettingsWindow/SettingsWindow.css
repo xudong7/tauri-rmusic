@@ -174,9 +174,16 @@
 }
 
 /* 深色模式适配 */
-.dark .settings-header {
+.dark .settings-window,
+html.dark .settings-window {
+  background: var(--el-bg-color);
+  color: var(--el-text-color-primary);
+}
+
+.dark .settings-header,
+html.dark .settings-header {
   background-color: rgba(30, 30, 35, 0.85);
-  color: var(--el-text-color-light);
+  color: var(--el-text-color-primary);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   background: linear-gradient(
     to right,
@@ -184,6 +191,40 @@
     rgba(35, 35, 40, 0.9)
   );
   border-bottom: 1px solid rgba(60, 60, 70, 0.5);
+}
+
+.dark .settings-content,
+html.dark .settings-content {
+  background: var(--el-bg-color);
+}
+
+.dark .settings-section,
+html.dark .settings-section {
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.dark .settings-section:hover,
+html.dark .settings-section:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  border-color: var(--el-color-primary);
+}
+
+.dark .settings-section h3,
+html.dark .settings-section h3 {
+  color: var(--el-text-color-primary);
+  border-bottom: 2px solid var(--el-color-primary);
+}
+
+.dark .setting-item label,
+html.dark .setting-item label {
+  color: var(--el-text-color-regular);
+}
+
+.dark .setting-item p,
+html.dark .setting-item p {
+  color: var(--el-text-color-secondary);
 }
 
 /* 滚动条样式 */
@@ -198,8 +239,41 @@
 .settings-content::-webkit-scrollbar-thumb {
   background: var(--el-border-color);
   border-radius: 3px;
+  transition: background 0.3s ease;
 }
 
 .settings-content::-webkit-scrollbar-thumb:hover {
   background: var(--el-border-color-darker);
+}
+
+/* 深色模式滚动条样式 */
+.dark .settings-content::-webkit-scrollbar-track,
+html.dark .settings-content::-webkit-scrollbar-track {
+  background: var(--el-bg-color);
+}
+
+.dark .settings-content::-webkit-scrollbar-thumb,
+html.dark .settings-content::-webkit-scrollbar-thumb {
+  background: #555;
+}
+
+.dark .settings-content::-webkit-scrollbar-thumb:hover,
+html.dark .settings-content::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+/* 下载路径容器样式 */
+.download-path-container {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.download-path-container .el-input {
+  flex: 1;
+}
+
+.download-path-container .el-button {
+  flex-shrink: 0;
+  min-width: 70px;
 }

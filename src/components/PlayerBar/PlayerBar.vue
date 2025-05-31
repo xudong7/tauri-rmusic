@@ -9,6 +9,7 @@ import {
   Headset,
 } from "@element-plus/icons-vue";
 import type { MusicFile, SongInfo } from "@/types/model";
+import { useMusicStore } from "@/stores/musicStore";
 
 const props = defineProps<{
   currentMusic: MusicFile | null;
@@ -23,6 +24,9 @@ const emit = defineEmits([
   "previous",
   "show-immersive",
 ]);
+
+// 使用 musicStore
+const musicStore = useMusicStore();
 
 // 音量
 const volume = ref(50);
@@ -106,6 +110,7 @@ async function loadLocalCoverAndLyric() {
     try {
       const result = await invoke("load_cover_and_lyric", {
         fileName: props.currentMusic.file_name,
+        defaultDirectory: musicStore.getDefaultDirectory(),
       });
 
       // Handle the result as array

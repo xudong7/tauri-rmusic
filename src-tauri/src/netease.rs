@@ -61,7 +61,10 @@ pub fn get_client() -> Result<reqwest::Client, String> {
 }
 
 /// get client response
-pub async fn get_response(client: reqwest::Client, url: String) -> Result<reqwest::Response, String> {
+pub async fn get_response(
+    client: reqwest::Client,
+    url: String,
+) -> Result<reqwest::Response, String> {
     let response = client
         .get(&url)
         .send()
@@ -310,7 +313,11 @@ pub async fn play_netease_song(
 }
 
 #[tauri::command]
-pub async fn get_song_cover(id: String, name: String, artist: String) -> Result<String, String> {
+pub async fn get_song_cover(
+    _id: String, 
+    name: String, 
+    artist: String
+) -> Result<String, String> {
     // Use Kugou API to search for the song's cover image
     let search_term = format!("{} {}", name, artist);
 
