@@ -1,7 +1,7 @@
 import { ref, computed } from "vue";
 import { defineStore } from "pinia";
 import { invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
+// import { open } from "@tauri-apps/plugin-dialog";
 import { ElMessage } from "element-plus";
 import type {
   MusicFile,
@@ -23,6 +23,8 @@ export const useMusicStore = defineStore("music", () => {
   const musicFiles = ref<MusicFile[]>([]);
   const currentDirectory = ref("");
   const currentMusic = ref<MusicFile | null>(null);
+  // 默认目录
+  const defaultDirectory = ref<string | null>(null);
 
   // 在线音乐相关
   const onlineSongs = ref<SongInfo[]>([]);
@@ -64,13 +66,16 @@ export const useMusicStore = defineStore("music", () => {
       };
     }
     return null;
-  });
-
-  // 加载音乐文件
-  async function loadMusicFiles(path: string) {
+  }); // 加载音乐文件
+  async function loadMusicFiles(path?: string) {
     try {
-      currentDirectory.value = path;
-      musicFiles.value = await invoke("scan_files", { path });
+      if (path) {
+        currentDirectory.value = path;
+      }
+      musicFiles.value = await invoke("scan_files", {
+        path: path || null,
+        defaultDirectory: defaultDirectory.value,
+      });
     } catch (error) {
       console.error("加载音乐文件失败:", error);
       ElMessage.error(`加载音乐文件失败: ${error}`);
@@ -78,22 +83,22 @@ export const useMusicStore = defineStore("music", () => {
   }
 
   // 选择文件夹
-  async function selectDirectory() {
-    try {
-      const selected = await open({
-        directory: true,
-        multiple: false,
-        title: "选择音乐文件夹",
-      });
+  // async function selectDirectory() {
+  //   try {
+  //     const selected = await open({
+  //       directory: true,
+  //       multiple: false,
+  //       title: "选择音乐文件夹",
+  //     });
 
-      if (selected && typeof selected === "string") {
-        await loadMusicFiles(selected);
-      }
-    } catch (error) {
-      console.error("选择文件夹失败:", error);
-      ElMessage.error(`选择文件夹失败: ${error}`);
-    }
-  }
+  //     if (selected && typeof selected === "string") {
+  //       await loadMusicFiles(selected);
+  //     }
+  //   } catch (error) {
+  //     console.error("选择文件夹失败:", error);
+  //     ElMessage.error(`选择文件夹失败: ${error}`);
+  //   }
+  // }
 
   // 开始跟踪播放时间
   function startPlayTimeTracking() {
@@ -233,7 +238,6 @@ export const useMusicStore = defineStore("music", () => {
       ElMessage.error(`播放在线音乐失败: ${error}`);
     }
   }
-
   // 下载在线音乐
   async function downloadOnlineSong(song: SongInfo) {
     try {
@@ -243,12 +247,17 @@ export const useMusicStore = defineStore("music", () => {
         songHash: song.file_hash,
         songName: song.name,
         artist: song.artists.join(", "),
+        defaultDirectory: defaultDirectory.value,
       });
-
-      ElMessage.success(`歌曲已下载: ${fileName}`);
-
-      if (viewMode.value === ViewMode.LOCAL && currentDirectory.value) {
-        await loadMusicFiles(currentDirectory.value);
+      ElMessage.success(`歌曲已下载: ${fileName}`); // 如果当前是本地模式且当前目录是默认目录的music子目录，则刷新文件列表
+      if (viewMode.value === ViewMode.LOCAL && defaultDirectory.value) {
+        const expectedMusicDir = `${defaultDirectory.value}/music`;
+        if (
+          currentDirectory.value === expectedMusicDir ||
+          currentDirectory.value.replace(/\\/g, "/") === expectedMusicDir
+        ) {
+          await loadMusicFiles();
+        }
       }
     } catch (error) {
       console.error("下载歌曲失败:", error);
@@ -476,13 +485,26 @@ export const useMusicStore = defineStore("music", () => {
 
   function exitImmersive() {
     showImmersiveMode.value = false;
-  }
-  // 初始化
+  } // 初始化
   async function initialize() {
     try {
-      const defaultDir = await invoke("get_default_music_dir");
-      if (defaultDir) {
-        await loadMusicFiles(defaultDir as string);
+      // 首先尝试从 localStorage 加载保存的默认目录
+      const savedDefaultDir = localStorage.getItem("defaultDirectory");
+      if (savedDefaultDir) {
+        defaultDirectory.value = savedDefaultDir;
+        // 设置当前目录为默认目录下的music子目录
+        currentDirectory.value = `${savedDefaultDir}/music`;
+        await loadMusicFiles();
+      } else {
+        // 如果没有保存的目录，使用系统默认目录
+        const defaultDir = await invoke("get_default_music_dir");
+        if (defaultDir) {
+          // 系统默认目录已经是music目录，所以直接使用父目录作为defaultDirectory
+          const parentDir = (defaultDir as string).replace(/[\/\\]music$/, "");
+          defaultDirectory.value = parentDir;
+          currentDirectory.value = defaultDir as string;
+          await loadMusicFiles();
+        }
       }
     } catch (error) {
       console.error("加载默认目录失败:", error);
@@ -498,6 +520,42 @@ export const useMusicStore = defineStore("music", () => {
     }
   }
 
+  // 设置默认下载目录
+  async function setDefaultDirectory(path: string) {
+    try {
+      defaultDirectory.value = path;
+      // 保存到本地存储
+      localStorage.setItem("defaultDirectory", path);
+      ElMessage.success("默认下载目录设置成功");
+    } catch (error) {
+      console.error("设置默认目录失败:", error);
+      ElMessage.error(`设置默认目录失败: ${error}`);
+    }
+  }
+
+  // 获取默认下载目录
+  function getDefaultDirectory(): string | null {
+    return defaultDirectory.value;
+  }
+
+  // 重置默认下载目录为系统默认
+  async function resetDefaultDirectory() {
+    try {
+      const systemDefaultDir = await invoke("get_default_music_dir");
+      if (systemDefaultDir) {
+        defaultDirectory.value = systemDefaultDir as string;
+        // 移除本地存储的自定义目录
+        localStorage.removeItem("defaultDirectory");
+        // 重新加载音乐文件
+        await loadMusicFiles(systemDefaultDir as string);
+        ElMessage.success("已重置为默认下载目录");
+      }
+    } catch (error) {
+      console.error("重置默认目录失败:", error);
+      ElMessage.error(`重置默认目录失败: ${error}`);
+    }
+  }
+
   return {
     // 状态
     isDarkMode,
@@ -505,6 +563,7 @@ export const useMusicStore = defineStore("music", () => {
     musicFiles,
     currentDirectory,
     currentMusic,
+    defaultDirectory,
     onlineSongs,
     onlineSongsTotal,
     isSearchLoading,
@@ -519,9 +578,13 @@ export const useMusicStore = defineStore("music", () => {
     // 计算属性
     hasCurrentTrack,
     currentTrackInfo,
+
     // 方法
     loadMusicFiles,
-    selectDirectory,
+    // selectDirectory,
+    setDefaultDirectory,
+    getDefaultDirectory,
+    resetDefaultDirectory,
     playMusic,
     playOnlineSong,
     downloadOnlineSong,

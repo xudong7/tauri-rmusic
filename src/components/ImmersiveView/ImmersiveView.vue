@@ -14,6 +14,7 @@ import {
 } from "@element-plus/icons-vue";
 import type { SongInfo, MusicFile } from "../../types/model";
 import LyricView from "../LyricView/LyricView.vue";
+import { useMusicStore } from "@/stores/musicStore";
 import { invoke } from "@tauri-apps/api/core";
 import { Window } from "@tauri-apps/api/window";
 
@@ -25,6 +26,9 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits(["toggle-play", "previous", "next", "exit"]);
+
+// 使用 musicStore
+const musicStore = useMusicStore();
 
 // 窗口控制功能
 const appWindow = Window.getCurrent();
@@ -77,6 +81,7 @@ async function loadLocalCoverAndLyric() {
     try {
       const result = await invoke("load_cover_and_lyric", {
         fileName: props.currentMusic.file_name,
+        defaultDirectory: musicStore.getDefaultDirectory(),
       });
 
       // Handle the result as array

@@ -261,3 +261,19 @@ html.dark .settings-content::-webkit-scrollbar-thumb {
 html.dark .settings-content::-webkit-scrollbar-thumb:hover {
   background: #666;
 }
+
+/* 下载路径容器样式 */
+.download-path-container {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.download-path-container .el-input {
+  flex: 1;
+}
+
+.download-path-container .el-button {
+  flex-shrink: 0;
+  min-width: 70px;
+}

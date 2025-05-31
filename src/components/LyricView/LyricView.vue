@@ -3,6 +3,7 @@ import { ref, computed, watch, nextTick, onUnmounted, onMounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { ElScrollbar } from "element-plus";
 import type { SongInfo, MusicFile } from "../../types/model";
+import { useMusicStore } from "@/stores/musicStore";
 
 const props = defineProps<{
   currentSong: SongInfo | null;
@@ -10,6 +11,9 @@ const props = defineProps<{
   isPlaying: boolean;
   currentTime?: number; // 从父组件传入的当前播放时间
 }>();
+
+// 使用 musicStore
+const musicStore = useMusicStore();
 
 // 监听当前播放时间变化
 watch(
@@ -154,6 +158,7 @@ async function loadLocalLyric(music: MusicFile) {
   try {
     const result = await invoke<[string, string]>("load_cover_and_lyric", {
       fileName: music.file_name,
+      defaultDirectory: musicStore.getDefaultDirectory(),
     });
 
     const [_, lyricContent] = result;

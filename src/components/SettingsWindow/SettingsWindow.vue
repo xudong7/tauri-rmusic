@@ -5,8 +5,10 @@ import {
   Minus,
   ScaleToOriginal,
   FullScreen,
+  FolderOpened,
 } from "@element-plus/icons-vue";
 import { Window } from "@tauri-apps/api/window";
+import { open } from "@tauri-apps/plugin-dialog";
 import { useMusicStore } from "@/stores/musicStore";
 
 // 窗口引用
@@ -44,11 +46,6 @@ const maximizeIcon = computed(() => {
   return isMaximized.value ? ScaleToOriginal : FullScreen;
 });
 
-// 检查窗口当前是否已最大化
-async function checkMaximized() {
-  isMaximized.value = await appWindow.isMaximized();
-}
-
 // 窗口控制函数
 const minimize = async () => {
   await appWindow.minimize();
@@ -74,11 +71,49 @@ const handleThemeChange = (value: boolean) => {
   console.log("Theme changed to:", value ? "dark" : "light");
 };
 
+// 选择下载目录
+const selectDownloadPath = async () => {
+  try {
+    const selected = await open({
+      directory: true,
+      multiple: false,
+      title: "选择下载位置",
+    });
+
+    if (selected && typeof selected === "string") {
+      downloadPath.value = selected;
+      await musicStore.setDefaultDirectory(selected);
+    }
+  } catch (error) {
+    console.error("选择下载目录失败:", error);
+  }
+};
+
+// 重置下载目录为默认
+const resetDownloadPath = async () => {
+  try {
+    await musicStore.resetDefaultDirectory();
+    // 更新显示的路径
+    const currentDefaultDir = musicStore.getDefaultDirectory();
+    if (currentDefaultDir) {
+      downloadPath.value = currentDefaultDir;
+    }
+  } catch (error) {
+    console.error("重置下载目录失败:", error);
+  }
+};
+
 onMounted(async () => {
   try {
     console.log("Settings window mounted");
     // 直接初始化 musicStore 和应用主题
     await musicStore.initialize();
+
+    // 加载当前的默认下载目录
+    const currentDefaultDir = musicStore.getDefaultDirectory();
+    if (currentDefaultDir) {
+      downloadPath.value = currentDefaultDir;
+    }
 
     console.log("Settings window theme state:", musicStore.isDarkMode);
     console.log("LocalStorage theme:", localStorage.getItem("theme"));
@@ -136,12 +171,27 @@ onMounted(async () => {
           />
         </div>
       </div>
-
       <div class="settings-section">
         <h3>下载设置</h3>
         <div class="setting-item">
           <label>下载位置</label>
-          <el-input v-model="downloadPath" placeholder="选择下载位置" />
+          <div class="download-path-container">
+            <el-input
+              v-model="downloadPath"
+              placeholder="选择下载位置"
+              readonly
+            />
+            <el-button
+              @click="selectDownloadPath"
+              :icon="FolderOpened"
+              type="primary"
+            >
+              浏览
+            </el-button>
+            <el-button @click="resetDownloadPath" type="default">
+              重置
+            </el-button>
+          </div>
         </div>
       </div>
 
