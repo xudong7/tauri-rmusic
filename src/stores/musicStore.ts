@@ -34,13 +34,11 @@ export const useMusicStore = defineStore("music", () => {
   const currentPage = ref(1);
   const pageSize = ref(20);
   const currentOnlineSong = ref<SongInfo | null>(null);
-
   // 播放相关
   const isPlaying = ref(false);
   const showImmersiveMode = ref(false);
-  const playQueueId = ref(0);
-  const isProcessingPlayRequest = ref(false);
   const currentPlayTime = ref(0);
+  const isLoadingSong = ref(false); // 防止重复加载歌曲
 
   // 播放时间跟踪
   let playStartTimestamp = 0;
@@ -81,24 +79,6 @@ export const useMusicStore = defineStore("music", () => {
       ElMessage.error(`加载音乐文件失败: ${error}`);
     }
   }
-
-  // 选择文件夹
-  // async function selectDirectory() {
-  //   try {
-  //     const selected = await open({
-  //       directory: true,
-  //       multiple: false,
-  //       title: "选择音乐文件夹",
-  //     });
-
-  //     if (selected && typeof selected === "string") {
-  //       await loadMusicFiles(selected);
-  //     }
-  //   } catch (error) {
-  //     console.error("选择文件夹失败:", error);
-  //     ElMessage.error(`选择文件夹失败: ${error}`);
-  //   }
-  // }
 
   // 开始跟踪播放时间
   function startPlayTimeTracking() {
@@ -150,94 +130,84 @@ export const useMusicStore = defineStore("music", () => {
       ElMessage.error(`播放音乐失败: ${error}`);
     }
   }
-
   // 播放在线音乐
   async function playOnlineSong(song: SongInfo) {
     try {
+      // 防止重复点击同一首歌
+      if (currentOnlineSong.value?.id === song.id && isPlaying.value) {
+        console.log("[播放控制] 歌曲正在播放，忽略重复请求");
+        return;
+      }
+
+      // 防止在加载中时重复点击
+      if (isLoadingSong.value) {
+        console.log("[播放控制] 歌曲正在加载中，忽略重复请求");
+        return;
+      }
+
+      // 设置加载状态
+      isLoadingSong.value = true;
+
+      // 停止当前播放和时间跟踪
       isPlaying.value = false;
       currentPlayTime.value = 0;
       stopPlayTimeTracking();
 
-      playQueueId.value++;
-      const currentQueueId = playQueueId.value;
+      console.log("[播放控制] 开始播放在线歌曲:", song.name);
 
+      // 设置当前歌曲
       currentOnlineSong.value = song;
       currentMusic.value = null;
 
-      if (isProcessingPlayRequest.value) {
-        console.log(
-          `[队列] 已加入队列，ID: ${currentQueueId}，歌曲: ${song.name}`
-        );
-        return;
+      // 获取播放URL和相关信息
+      const playResult = await invoke<PlaySongResult>("play_netease_song", {
+        id: song.id,
+        name: song.name,
+        artist: song.artists.join(", "),
+      });
+
+      console.log("[播放控制] 获取到播放URL:", playResult.url);
+
+      // 播放歌曲
+      await invoke("handle_event", {
+        event: JSON.stringify({
+          action: "play",
+          path: playResult.url,
+        }),
+      });
+
+      // 等待足够时间确保播放开始，增加等待时间
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
+      // 设置播放状态
+      isPlaying.value = true;
+      startPlayTimeTracking();
+
+      // 更新歌曲封面URL（如果有的话）
+      if (playResult.pic_url && currentOnlineSong.value) {
+        currentOnlineSong.value.pic_url = playResult.pic_url;
       }
 
-      isProcessingPlayRequest.value = true;
-      console.log(`[队列] 开始处理播放请求`);
+      ElMessage.success(`正在播放: ${song.name} - ${song.artists.join(", ")}`);
 
-      try {
-        while (true) {
-          const songToPlay = currentOnlineSong.value;
-          const queueIdAtStart = playQueueId.value;
-
-          console.log(
-            `[队列] 开始处理，ID: ${queueIdAtStart}，歌曲: ${songToPlay.name}`
-          );
-
-          const songResult = await invoke<PlaySongResult>("play_netease_song", {
-            id: songToPlay.file_hash,
-            name: songToPlay.name,
-            artist: songToPlay.artists.join(", "),
-          });
-
-          if (queueIdAtStart !== playQueueId.value) {
-            console.log(
-              `[队列] 检测到新请求，中止当前处理。原ID: ${queueIdAtStart}，新ID: ${playQueueId.value}`
-            );
-            continue;
-          }
-
-          if (!songResult || !songResult.url) {
-            throw new Error("获取播放URL失败");
-          }
-
-          if (songResult.pic_url && currentOnlineSong.value) {
-            currentOnlineSong.value.pic_url = songResult.pic_url;
-          }
-
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-
-          if (queueIdAtStart !== playQueueId.value) {
-            console.log(
-              `[队列] 加载后检测到新请求，中止播放。原ID: ${queueIdAtStart}，新ID: ${playQueueId.value}`
-            );
-            continue;
-          }
-
-          await invoke("handle_event", {
-            event: JSON.stringify({
-              action: "play",
-              path: songResult.url,
-            }),
-          });
-
-          isPlaying.value = true;
-          startPlayTimeTracking();
-
-          ElMessage.success(
-            `正在播放: ${songToPlay.name} - ${songToPlay.artists.join(", ")}`
-          );
-          break;
-        }
-      } finally {
-        isProcessingPlayRequest.value = false;
-        console.log(`[队列] 播放请求处理完成`);
-      }
+      console.log("[播放控制] 歌曲播放成功，加载状态将被重置");
     } catch (error) {
-      console.error("播放在线音乐失败:", error);
+      console.error("[播放控制] 播放在线歌曲失败:", error);
+      ElMessage.error(`播放失败: ${error}`);
+
+      // 重置状态
       isPlaying.value = false;
-      ElMessage.error(`播放在线音乐失败: ${error}`);
+      currentPlayTime.value = 0;
+      stopPlayTimeTracking();
+    } finally {
+      // 延迟重置加载状态，确保播放检测函数有足够时间识别加载状态
+      setTimeout(() => {
+        isLoadingSong.value = false;
+        console.log("[播放控制] 加载状态已重置");
+      }, 1000);
     }
   }
+
   // 下载在线音乐
   async function downloadOnlineSong(song: SongInfo) {
     try {
@@ -572,6 +542,7 @@ export const useMusicStore = defineStore("music", () => {
     pageSize,
     currentOnlineSong,
     isPlaying,
+    isLoadingSong,
     showImmersiveMode,
     currentPlayTime,
 

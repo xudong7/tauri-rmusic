@@ -51,77 +51,103 @@ function handleKeyDown(event: KeyboardEvent) {
 
 // 设置监听播放结束的定时器
 function setupPlaybackEndDetection() {
-  let checkInterval: number | null = null;
-  console.log("初始化播放结束检测机制");
+  let playbackCheckInterval: number | null = null;
+  let lastCheckTime = 0;
+  let stableEmptyCount = 0; // 连续检测到空的次数
+  let stablePlayingCount = 0; // 连续检测到正在播放的次数
+  let hasStartedPlaying = false; // 是否已经开始播放过
 
-  // 监听播放状态变化
-  watch(
-    () => musicStore.isPlaying,
-    (playing) => {
-      // 如果开始播放，则启动定时器检查是否播放结束
-      if (playing) {
-        console.log("播放状态变为播放中，开始监听播放结束");
+  // 清理之前的定时器
+  if (playbackCheckInterval) {
+    clearInterval(playbackCheckInterval);
+  }
 
-        if (checkInterval !== null) {
-          clearInterval(checkInterval);
-          console.log("清除旧的检测定时器");
-        }
-
-        // 添加歌曲开始播放的时间戳，用于避免歌曲刚开始播放就检测到结束
-        const playStartTime = Date.now();
-
-        checkInterval = window.setInterval(() => {
-          // 检查歌曲是否结束，添加3秒保护期，避免刚开始播放就误判为结束
-          const currentTime = Date.now();
-          const playingTime = currentTime - playStartTime;
-
-          // 只有播放超过3秒后才检查是否结束
-          if (playingTime < 3000) {
-            return;
-          }
-
-          invoke<boolean>("is_sink_empty")
-            .then((isEmpty) => {
-              if (isEmpty && musicStore.isPlaying) {
-                // 添加日志，帮助调试
-                console.log("检测到歌曲播放完成，已播放时长(ms):", playingTime);
-
-                // 歌曲已结束，自动播放下一首
-                console.log("歌曲播放完成，准备播放下一首");
-                musicStore.isPlaying = false;
-
-                if (checkInterval !== null) {
-                  clearInterval(checkInterval);
-                  checkInterval = null;
-                }
-
-                // 自动播放下一首
-                musicStore.playNextOrPreviousMusic(1);
-              }
-            })
-            .catch((error) => {
-              console.error("检查播放状态失败:", error);
-            });
-        }, 1000); // 每秒检查一次
-      }
-      // 如果停止播放，则清除定时器
-      else if (checkInterval !== null) {
-        console.log("播放状态变为暂停，清除检测定时器");
-        clearInterval(checkInterval);
-        checkInterval = null;
-      }
-    },
-    { immediate: true }
-  );
-
-  // 组件卸载时清除定时器
-  onUnmounted(() => {
-    console.log("组件卸载，清除检测定时器");
-    if (checkInterval !== null) {
-      clearInterval(checkInterval);
-      checkInterval = null;
+  // 定期检查播放状态
+  playbackCheckInterval = window.setInterval(async () => {
+    // 如果歌曲正在加载中，不进行检测
+    if (musicStore.isLoadingSong) {
+      console.log("[播放检测] 歌曲加载中，跳过检测");
+      stableEmptyCount = 0;
+      stablePlayingCount = 0;
+      hasStartedPlaying = false;
+      return;
     }
-  });
+
+    // 只在有歌曲且状态为播放时才检查
+    if (!musicStore.hasCurrentTrack || !musicStore.isPlaying) {
+      stableEmptyCount = 0;
+      stablePlayingCount = 0;
+      hasStartedPlaying = false;
+      return;
+    }
+
+    try {
+      // 检查sink是否为空
+      const isEmpty = await invoke<boolean>("is_sink_empty");
+      const currentTime = Date.now();
+
+      if (isEmpty) {
+        stableEmptyCount++;
+        stablePlayingCount = 0;
+
+        console.log(
+          `[播放检测] 检测到空状态，连续次数: ${stableEmptyCount}, 是否已开始播放: ${hasStartedPlaying}`
+        );
+
+        // 只有在已经确认开始播放过的情况下，才认为空状态是播放结束
+        // 需要连续5次检测到空状态，并且距离上次检查至少过了2秒
+        if (
+          hasStartedPlaying &&
+          stableEmptyCount >= 5 &&
+          currentTime - lastCheckTime > 2000
+        ) {
+          console.log("[播放检测] 确认播放结束，准备播放下一首");
+
+          // 停止播放状态和时间跟踪
+          musicStore.isPlaying = false;
+          musicStore.stopPlayTimeTracking();
+
+          // 等待一小段时间确保状态稳定
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
+          // 播放下一首
+          await musicStore.playNextOrPreviousMusic(1);
+
+          // 重置所有计数器
+          stableEmptyCount = 0;
+          stablePlayingCount = 0;
+          hasStartedPlaying = false;
+          lastCheckTime = currentTime;
+        }
+      } else {
+        // 检测到正在播放
+        stablePlayingCount++;
+        stableEmptyCount = 0;
+
+        // 连续检测到3次正在播放，确认歌曲已经开始播放
+        if (stablePlayingCount >= 3) {
+          if (!hasStartedPlaying) {
+            console.log("[播放检测] 确认歌曲已开始播放");
+            hasStartedPlaying = true;
+          }
+        }
+      }
+    } catch (error) {
+      console.error("[播放检测] 检查播放状态失败:", error);
+      stableEmptyCount = 0;
+      stablePlayingCount = 0;
+    }
+  }, 1000); // 每秒检查一次
+
+  // 在组件卸载时清理定时器
+  const originalStopTracking = musicStore.stopPlayTimeTracking;
+  musicStore.stopPlayTimeTracking = () => {
+    originalStopTracking();
+    if (playbackCheckInterval) {
+      clearInterval(playbackCheckInterval);
+      playbackCheckInterval = null;
+    }
+  };
 }
 
 // 处理跨窗口主题同步
@@ -172,11 +198,7 @@ onUnmounted(() => {
 
 <template>
   <!-- @contextmenu.prevent -->
-  <div
-    class="music-app"
-    :class="{ 'dark-theme': musicStore.isDarkMode }"
-    @contextmenu.prevent
-    >
+  <div class="music-app" :class="{ 'dark-theme': musicStore.isDarkMode }">
     <!-- 顶部搜索和文件夹选择 - 只在主窗口显示 -->
     <!-- @select-directory="musicStore.selectDirectory" -->
     <HeaderBar
