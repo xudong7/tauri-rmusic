@@ -23,6 +23,7 @@ const props = defineProps<{
   currentMusic: MusicFile | null;
   isPlaying: boolean;
   currentTime?: number; // 从父组件传入的当前播放时间
+  hasStartedPlaying?: boolean; // 是否已经开始播放，用于歌词滚动
 }>();
 
 const emit = defineEmits(["toggle-play", "previous", "next", "exit"]);
@@ -378,12 +379,12 @@ watch(
           </div>
         </div>
 
-        <div class="lyric-view-container">
-          <LyricView
+        <div class="lyric-view-container">          <LyricView
             :currentSong="currentSong"
             :currentMusic="currentMusic"
             :isPlaying="isPlaying"
             :currentTime="currentTime"
+            :hasStartedPlaying="hasStartedPlaying"
           />
         </div>
       </div>

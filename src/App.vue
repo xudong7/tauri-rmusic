@@ -122,13 +122,12 @@ function setupPlaybackEndDetection() {
       } else {
         // 检测到正在播放
         stablePlayingCount++;
-        stableEmptyCount = 0;
-
-        // 连续检测到3次正在播放，确认歌曲已经开始播放
+        stableEmptyCount = 0;        // 连续检测到3次正在播放，确认歌曲已经开始播放
         if (stablePlayingCount >= 3) {
           if (!hasStartedPlaying) {
             console.log("[播放检测] 确认歌曲已开始播放");
             hasStartedPlaying = true;
+            musicStore.hasStartedPlaying = true; // 更新全局状态，用于歌词滚动
           }
         }
       }
@@ -232,13 +231,13 @@ onUnmounted(() => {
       @show-immersive="musicStore.showImmersive"
     />
 
-    <!-- 沉浸模式 - 只在主窗口显示 -->
-    <ImmersiveView
+    <!-- 沉浸模式 - 只在主窗口显示 -->    <ImmersiveView
       v-if="!isSettingsWindow && musicStore.showImmersiveMode"
       :currentSong="musicStore.currentOnlineSong"
       :currentMusic="musicStore.currentMusic"
       :isPlaying="musicStore.isPlaying"
       :currentTime="musicStore.currentPlayTime"
+      :hasStartedPlaying="musicStore.hasStartedPlaying"
       @toggle-play="musicStore.togglePlay"
       @next="musicStore.playNextOrPreviousMusic(1)"
       @previous="musicStore.playNextOrPreviousMusic(-1)"
