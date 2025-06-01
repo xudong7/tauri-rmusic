@@ -1,4 +1,3 @@
-use reqwest;
 use rodio::Decoder;
 use rodio::OutputStream;
 use rodio::Sink;
@@ -50,19 +49,17 @@ impl Music {
                         {
                             let sink = sink_clone.lock().await;
                             sink.clear();
-                        }
-
+                        } 
                         // check if the path is a URL
                         if path.starts_with("http://") || path.starts_with("https://") {
                             let sink_for_http = Arc::clone(&sink_clone);
                             let path_clone = path.clone();
 
-                            tokio::spawn(async move {
-                                match online_play(&path_clone, sink_for_http).await {
-                                    Ok(_) => println!("Begin play online song: {}", path_clone),
-                                    Err(e) => eprintln!("Play online song error: {}", e),
-                                }
-                            });
+                            // 直接在当前任务中处理在线播放，避免竞态条件
+                            match online_play(&path_clone, sink_for_http).await {
+                                Ok(_) => println!("Begin play online song: {}", path_clone),
+                                Err(e) => eprintln!("Play online song error: {}", e),
+                            }
                         } else {
                             // local file
                             match File::open(&path) {
@@ -70,7 +67,7 @@ impl Music {
                                     let file = BufReader::new(file);
                                     match Decoder::new(file) {
                                         Ok(source) => {
-                                            let mut sink = sink_clone.lock().await;
+                                            let sink = sink_clone.lock().await;
                                             sink.append(source);
                                             if sink.is_paused() {
                                                 sink.play();
@@ -135,19 +132,13 @@ async fn online_play(url: &str, sink: Arc<Mutex<Sink>>) -> Result<(), String> {
         Err(e) => {
             return Err(format!("decode online song error: {}", e));
         }
-    };
-
-    let sink_lock = match sink.try_lock() {
-        Ok(lock) => lock,
-        Err(_) => {
-            return Err("cannot get lock".to_string());
-        }
-    };
-
+    }; 
+    // 使用异步锁而不是 try_lock，确保一致性
+    let sink_lock = sink.lock().await;
     sink_lock.append(source);
     if sink_lock.is_paused() {
         sink_lock.play();
     }
-
+    
     Ok(())
 }
