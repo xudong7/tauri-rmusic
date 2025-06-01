@@ -33,7 +33,7 @@ export const useMusicStore = defineStore("music", () => {
   const searchKeyword = ref("");
   const currentPage = ref(1);
   const pageSize = ref(20);
-  const currentOnlineSong = ref<SongInfo | null>(null);  // 播放相关
+  const currentOnlineSong = ref<SongInfo | null>(null); // 播放相关
   const isPlaying = ref(false);
   const showImmersiveMode = ref(false);
   const currentPlayTime = ref(0);
@@ -100,6 +100,7 @@ export const useMusicStore = defineStore("music", () => {
       playTimeUpdateInterval = null;
     }
   }
+
   // 播放本地音乐
   async function playMusic(music: MusicFile) {
     try {
@@ -120,8 +121,10 @@ export const useMusicStore = defineStore("music", () => {
         }),
       });
 
+      // 等待本地音乐开始播放
       await new Promise((resolve) => setTimeout(resolve, 100));
       isPlaying.value = true;
+      hasStartedPlaying.value = true; // 本地音乐可以立即标记为已开始播放
       startPlayTimeTracking();
 
       ElMessage.success(`正在播放: ${music.file_name}`);
@@ -146,7 +149,7 @@ export const useMusicStore = defineStore("music", () => {
       }
 
       // 设置加载状态
-      isLoadingSong.value = true;      // 停止当前播放和时间跟踪
+      isLoadingSong.value = true; // 停止当前播放和时间跟踪
       isPlaying.value = false;
       currentPlayTime.value = 0;
       stopPlayTimeTracking();

@@ -2,12 +2,10 @@ use file::{download_music, get_default_music_dir, load_cover_and_lyric, scan_fil
 use music::{Music, MusicState};
 use netease::{get_song_cover, get_song_lyric, get_song_url, play_netease_song, search_songs};
 use rodio::Sink;
+use service::setup_service;
 use std::sync::Arc;
-use tauri::Emitter;
 use tauri::Manager;
-use tauri_plugin_shell::process::CommandEvent;
-use tauri_plugin_shell::ShellExt;
-use tauri_plugin_window_state::{AppHandleExt, StateFlags, WindowExt};
+use tauri_plugin_window_state::{StateFlags, WindowExt};
 use tokio::sync::broadcast::Sender;
 use tokio::sync::Mutex;
 use tray::setup_tray;
@@ -15,6 +13,7 @@ use tray::setup_tray;
 mod file;
 mod music;
 mod netease;
+mod service;
 mod tray;
 
 /// handle the music events
@@ -44,38 +43,6 @@ async fn is_sink_empty(sink: tauri::State<'_, Arc<Mutex<Sink>>>) -> Result<bool,
     let sink_clone = Arc::clone(&sink);
     let sink = sink_clone.lock().await;
     Ok(sink.empty())
-}
-
-/// set up the service for the sidecar
-fn setup_service(
-    app: &tauri::App,
-    service_name: &str,
-    window: tauri::webview::WebviewWindow,
-) -> Result<(), String> {
-    let app_sidecar_command = app
-        .shell()
-        .sidecar(service_name)
-        .map_err(|e| format!("Failed to get sidecar command for {}: {}", service_name, e))?;
-
-    let (mut rx, mut child) = app_sidecar_command
-        .spawn()
-        .map_err(|e| format!("Failed to spawn sidecar {}: {}", service_name, e))?;
-
-    tauri::async_runtime::spawn(async move {
-        // 读取诸如 stdout 之类的事件
-        while let Some(event) = rx.recv().await {
-            if let CommandEvent::Stdout(line) = event {
-                if let Err(e) = window.emit("message", Some(format!("{:?}", line))) {
-                    eprintln!("Failed to emit event: {}", e);
-                }
-                // 写入 stdin
-                if let Err(e) = child.write("message from Rust\n".as_bytes()) {
-                    eprintln!("Failed to write to stdin: {}", e);
-                }
-            }
-        }
-    });
-    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

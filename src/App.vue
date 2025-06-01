@@ -55,7 +55,6 @@ function setupPlaybackEndDetection() {
   let lastCheckTime = 0;
   let stableEmptyCount = 0; // 连续检测到空的次数
   let stablePlayingCount = 0; // 连续检测到正在播放的次数
-  let hasStartedPlaying = false; // 是否已经开始播放过
 
   // 清理之前的定时器
   if (playbackCheckInterval) {
@@ -69,7 +68,6 @@ function setupPlaybackEndDetection() {
       console.log("[播放检测] 歌曲加载中，跳过检测");
       stableEmptyCount = 0;
       stablePlayingCount = 0;
-      hasStartedPlaying = false;
       return;
     }
 
@@ -77,7 +75,6 @@ function setupPlaybackEndDetection() {
     if (!musicStore.hasCurrentTrack || !musicStore.isPlaying) {
       stableEmptyCount = 0;
       stablePlayingCount = 0;
-      hasStartedPlaying = false;
       return;
     }
 
@@ -91,13 +88,13 @@ function setupPlaybackEndDetection() {
         stablePlayingCount = 0;
 
         console.log(
-          `[播放检测] 检测到空状态，连续次数: ${stableEmptyCount}, 是否已开始播放: ${hasStartedPlaying}`
+          `[播放检测] 检测到空状态，连续次数: ${stableEmptyCount}, 全局已开始播放: ${musicStore.hasStartedPlaying}`
         );
 
         // 只有在已经确认开始播放过的情况下，才认为空状态是播放结束
         // 需要连续5次检测到空状态，并且距离上次检查至少过了2秒
         if (
-          hasStartedPlaying &&
+          musicStore.hasStartedPlaying &&
           stableEmptyCount >= 5 &&
           currentTime - lastCheckTime > 2000
         ) {
@@ -116,17 +113,17 @@ function setupPlaybackEndDetection() {
           // 重置所有计数器
           stableEmptyCount = 0;
           stablePlayingCount = 0;
-          hasStartedPlaying = false;
           lastCheckTime = currentTime;
         }
       } else {
         // 检测到正在播放
         stablePlayingCount++;
-        stableEmptyCount = 0;        // 连续检测到3次正在播放，确认歌曲已经开始播放
+        stableEmptyCount = 0;
+
+        // 连续检测到3次正在播放，确认歌曲已经开始播放（针对在线音乐）
         if (stablePlayingCount >= 3) {
-          if (!hasStartedPlaying) {
+          if (!musicStore.hasStartedPlaying) {
             console.log("[播放检测] 确认歌曲已开始播放");
-            hasStartedPlaying = true;
             musicStore.hasStartedPlaying = true; // 更新全局状态，用于歌词滚动
           }
         }
