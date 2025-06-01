@@ -33,12 +33,12 @@ export const useMusicStore = defineStore("music", () => {
   const searchKeyword = ref("");
   const currentPage = ref(1);
   const pageSize = ref(20);
-  const currentOnlineSong = ref<SongInfo | null>(null);
-  // 播放相关
+  const currentOnlineSong = ref<SongInfo | null>(null);  // 播放相关
   const isPlaying = ref(false);
   const showImmersiveMode = ref(false);
   const currentPlayTime = ref(0);
   const isLoadingSong = ref(false); // 防止重复加载歌曲
+  const hasStartedPlaying = ref(false); // 是否真正开始播放（用于歌词滚动）
 
   // 播放时间跟踪
   let playStartTimestamp = 0;
@@ -100,13 +100,13 @@ export const useMusicStore = defineStore("music", () => {
       playTimeUpdateInterval = null;
     }
   }
-
   // 播放本地音乐
   async function playMusic(music: MusicFile) {
     try {
       isPlaying.value = false;
       currentPlayTime.value = 0;
       stopPlayTimeTracking();
+      hasStartedPlaying.value = false; // 重置开始播放状态
 
       currentMusic.value = music;
       currentOnlineSong.value = null;
@@ -146,12 +146,11 @@ export const useMusicStore = defineStore("music", () => {
       }
 
       // 设置加载状态
-      isLoadingSong.value = true;
-
-      // 停止当前播放和时间跟踪
+      isLoadingSong.value = true;      // 停止当前播放和时间跟踪
       isPlaying.value = false;
       currentPlayTime.value = 0;
       stopPlayTimeTracking();
+      hasStartedPlaying.value = false; // 重置开始播放状态
 
       console.log("[播放控制] 开始播放在线歌曲:", song.name);
 
@@ -176,11 +175,12 @@ export const useMusicStore = defineStore("music", () => {
         }),
       });
 
-      // 等待足够时间确保播放开始，增加等待时间
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      // 等待足够时间确保播放开始
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // 设置播放状态
       isPlaying.value = true;
+      hasStartedPlaying.value = true; // 设置为已开始播放
       startPlayTimeTracking();
 
       // 更新歌曲封面URL（如果有的话）
@@ -284,7 +284,6 @@ export const useMusicStore = defineStore("music", () => {
       playOnlineSong(onlineSongs.value[nextIndex]);
     }
   }
-
   // 暂停/恢复播放
   async function togglePlay() {
     if (isPlaying.value) {
@@ -294,6 +293,7 @@ export const useMusicStore = defineStore("music", () => {
         }),
       });
       stopPlayTimeTracking();
+      hasStartedPlaying.value = false; // 暂停时重置开始播放状态
     } else {
       await invoke("handle_event", {
         event: JSON.stringify({
@@ -301,6 +301,7 @@ export const useMusicStore = defineStore("music", () => {
         }),
       });
       startPlayTimeTracking();
+      // 恢复播放时不重置hasStartedPlaying，让播放检测逻辑来处理
     }
     isPlaying.value = !isPlaying.value;
   }
@@ -525,7 +526,6 @@ export const useMusicStore = defineStore("music", () => {
       ElMessage.error(`重置默认目录失败: ${error}`);
     }
   }
-
   return {
     // 状态
     isDarkMode,
@@ -543,6 +543,7 @@ export const useMusicStore = defineStore("music", () => {
     currentOnlineSong,
     isPlaying,
     isLoadingSong,
+    hasStartedPlaying,
     showImmersiveMode,
     currentPlayTime,
 
