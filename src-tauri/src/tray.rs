@@ -2,7 +2,9 @@ use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::App;
 use tauri::Manager;
-use tauri_plugin_window_state::{StateFlags, WindowExt, AppHandleExt};
+use tauri_plugin_window_state::{AppHandleExt, StateFlags};
+
+use crate::service;
 
 /// set up the tray
 pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
@@ -45,6 +47,16 @@ pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
             "quit" => {
                 // save the window state before quitting
                 app.save_window_state(StateFlags::all()).unwrap();
+
+                // shutdown the services
+                println!("Shutting down services...");
+                if let Err(e) = service::shutdown_service("app") {
+                    eprintln!("Failed to shutdown app service: {}", e);
+                }
+                if let Err(e) = service::shutdown_service("app_win") {
+                    eprintln!("Failed to shutdown app_win service: {}", e);
+                }
+
                 println!("quit menu item was clicked");
                 app.exit(0);
             }
