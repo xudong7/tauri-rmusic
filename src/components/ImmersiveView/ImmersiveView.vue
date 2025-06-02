@@ -377,14 +377,12 @@ watch(
               {{ currentArtistName || "未知歌手" }}
             </p>
           </div>
-        </div>
-
-        <div class="lyric-view-container">          <LyricView
+        </div>        <div class="lyric-view-container">
+          <LyricView
             :currentSong="currentSong"
             :currentMusic="currentMusic"
             :isPlaying="isPlaying"
             :currentTime="currentTime"
-            :hasStartedPlaying="hasStartedPlaying"
           />
         </div>
       </div>

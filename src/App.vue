@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, watch, ref } from "vue";
+import { onMounted, onUnmounted, ref, watch, computed } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import HeaderBar from "./components/HeaderBar/HeaderBar.vue";
@@ -13,6 +13,160 @@ const windowLabel = ref<string>("");
 const isSettingsWindow = ref<boolean>(false);
 
 const musicStore = useMusicStore();
+
+// 播放状态检测器
+class PlaybackDetector {
+  private interval: number | null = null;
+  private consecutiveEmptyCount = 0;
+  private lastCheckTime = 0;
+  private readonly CHECK_INTERVAL = 1000; // 1秒检查一次
+  private readonly REQUIRED_EMPTY_COUNT = 3; // 需要连续3次检测到空状态
+  private readonly MIN_TIME_BETWEEN_CHECKS = 1000; // 最小检查间隔
+
+  constructor(private musicStore: any) {}
+
+  // 开始检测
+  start() {
+    this.stop(); // 确保之前的检测已停止
+    this.resetCounters();
+
+    console.log("[播放检测器] 开始播放状态检测");
+
+    this.interval = window.setInterval(async () => {
+      await this.checkPlaybackStatus();
+    }, this.CHECK_INTERVAL);
+  }
+
+  // 停止检测
+  stop() {
+    if (this.interval) {
+      clearInterval(this.interval);
+      this.interval = null;
+      console.log("[播放检测器] 停止播放状态检测");
+    }
+    this.resetCounters();
+  }
+
+  // 重置计数器
+  private resetCounters() {
+    this.consecutiveEmptyCount = 0;
+    this.lastCheckTime = Date.now();
+  }
+
+  // 检查播放状态
+  private async checkPlaybackStatus() {
+    // 检查是否满足自动播放下一首的条件
+    const shouldAutoPlayNext = this.shouldAutoPlayNext();
+
+    if (!shouldAutoPlayNext) {
+      this.resetCounters();
+      return;
+    }
+
+    try {
+      const isEmpty = await invoke<boolean>("is_sink_empty");
+      const currentTime = Date.now();
+
+      if (isEmpty) {
+        this.consecutiveEmptyCount++;
+        console.log(
+          `[播放检测器] 检测到Sink为空，连续次数: ${this.consecutiveEmptyCount}/${this.REQUIRED_EMPTY_COUNT}`
+        );
+
+        // 判断是否满足播放下一首的条件
+        if (this.shouldTriggerNextTrack(currentTime)) {
+          await this.handleTrackEnd();
+        }
+      } else {
+        // Sink不为空，重置计数器
+        this.consecutiveEmptyCount = 0;
+      }
+    } catch (error) {
+      console.error("[播放检测器] 检查播放状态失败:", error);
+      this.resetCounters();
+    }
+  }
+  // 判断是否应该自动播放下一首
+  private shouldAutoPlayNext(): boolean {
+    const { isLoadingSong, hasCurrentTrack } = this.musicStore;
+
+    // 必须有当前曲目
+    if (!hasCurrentTrack) return false;
+
+    // 如果正在加载歌曲，不进行检测
+    if (isLoadingSong) return false;
+
+    // 如果没有在播放状态，也进行检测（可能是播放结束了）
+    return true;
+  }
+
+  // 判断是否应该触发下一首
+  private shouldTriggerNextTrack(currentTime: number): boolean {
+    return (
+      this.consecutiveEmptyCount >= this.REQUIRED_EMPTY_COUNT &&
+      currentTime - this.lastCheckTime > this.MIN_TIME_BETWEEN_CHECKS
+    );
+  }
+
+  // 处理曲目结束
+  private async handleTrackEnd() {
+    console.log("[播放检测器] 检测到播放结束，准备播放下一首");
+
+    try {
+      // 停止当前播放状态
+      this.musicStore.isPlaying = false;
+      this.musicStore.stopPlayTimeTracking();
+
+      // 等待状态稳定
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // 播放下一首
+      await this.musicStore.playNextOrPreviousMusic(1);
+
+      // 重置计数器
+      this.resetCounters();
+
+      console.log("[播放检测器] 成功切换到下一首");
+    } catch (error) {
+      console.error("[播放检测器] 播放下一首失败:", error);
+      this.resetCounters();
+    }
+  }
+}
+
+// 创建播放检测器实例
+const playbackDetector = new PlaybackDetector(musicStore);
+
+// 监听播放状态变化，智能控制检测器
+const playbackState = computed(() => ({
+  hasTrack: musicStore.hasCurrentTrack,
+  isPlaying: musicStore.isPlaying,
+  isLoading: musicStore.isLoadingSong,
+}));
+
+// 使用watch监听状态变化
+watch(
+  playbackState,
+  (newState, oldState) => {
+    const { hasTrack, isPlaying, isLoading } = newState;
+
+    console.log("[状态监听器] 播放状态变化:", {
+      hasTrack,
+      isPlaying,
+      isLoading,
+      changed: JSON.stringify(newState) !== JSON.stringify(oldState),
+    });
+
+    // 如果有曲目且不在加载中，启动检测器
+    if (hasTrack && !isLoading) {
+      playbackDetector.start();
+    } else {
+      // 没有曲目或正在加载，停止检测器
+      playbackDetector.stop();
+    }
+  },
+  { immediate: true, deep: true }
+);
 
 // 处理搜索 - 根据当前视图模式执行不同的搜索
 function handleSearch(keyword: string) {
@@ -49,103 +203,6 @@ function handleKeyDown(event: KeyboardEvent) {
   }
 }
 
-// 设置监听播放结束的定时器
-function setupPlaybackEndDetection() {
-  let playbackCheckInterval: number | null = null;
-  let lastCheckTime = 0;
-  let stableEmptyCount = 0; // 连续检测到空的次数
-  let stablePlayingCount = 0; // 连续检测到正在播放的次数
-
-  // 清理之前的定时器
-  if (playbackCheckInterval) {
-    clearInterval(playbackCheckInterval);
-  }
-
-  // 定期检查播放状态
-  playbackCheckInterval = window.setInterval(async () => {
-    // 如果歌曲正在加载中，不进行检测
-    if (musicStore.isLoadingSong) {
-      console.log("[播放检测] 歌曲加载中，跳过检测");
-      stableEmptyCount = 0;
-      stablePlayingCount = 0;
-      return;
-    }
-
-    // 只在有歌曲且状态为播放时才检查
-    if (!musicStore.hasCurrentTrack || !musicStore.isPlaying) {
-      stableEmptyCount = 0;
-      stablePlayingCount = 0;
-      return;
-    }
-
-    try {
-      // 检查sink是否为空
-      const isEmpty = await invoke<boolean>("is_sink_empty");
-      const currentTime = Date.now();
-
-      if (isEmpty) {
-        stableEmptyCount++;
-        stablePlayingCount = 0;
-
-        console.log(
-          `[播放检测] 检测到空状态，连续次数: ${stableEmptyCount}, 全局已开始播放: ${musicStore.hasStartedPlaying}`
-        );
-
-        // 只有在已经确认开始播放过的情况下，才认为空状态是播放结束
-        // 需要连续5次检测到空状态，并且距离上次检查至少过了2秒
-        if (
-          musicStore.hasStartedPlaying &&
-          stableEmptyCount >= 5 &&
-          currentTime - lastCheckTime > 2000
-        ) {
-          console.log("[播放检测] 确认播放结束，准备播放下一首");
-
-          // 停止播放状态和时间跟踪
-          musicStore.isPlaying = false;
-          musicStore.stopPlayTimeTracking();
-
-          // 等待一小段时间确保状态稳定
-          await new Promise((resolve) => setTimeout(resolve, 500));
-
-          // 播放下一首
-          await musicStore.playNextOrPreviousMusic(1);
-
-          // 重置所有计数器
-          stableEmptyCount = 0;
-          stablePlayingCount = 0;
-          lastCheckTime = currentTime;
-        }
-      } else {
-        // 检测到正在播放
-        stablePlayingCount++;
-        stableEmptyCount = 0;
-
-        // 连续检测到3次正在播放，确认歌曲已经开始播放（针对在线音乐）
-        if (stablePlayingCount >= 3) {
-          if (!musicStore.hasStartedPlaying) {
-            console.log("[播放检测] 确认歌曲已开始播放");
-            musicStore.hasStartedPlaying = true; // 更新全局状态，用于歌词滚动
-          }
-        }
-      }
-    } catch (error) {
-      console.error("[播放检测] 检查播放状态失败:", error);
-      stableEmptyCount = 0;
-      stablePlayingCount = 0;
-    }
-  }, 1000); // 每秒检查一次
-
-  // 在组件卸载时清理定时器
-  const originalStopTracking = musicStore.stopPlayTimeTracking;
-  musicStore.stopPlayTimeTracking = () => {
-    originalStopTracking();
-    if (playbackCheckInterval) {
-      clearInterval(playbackCheckInterval);
-      playbackCheckInterval = null;
-    }
-  };
-}
-
 // 处理跨窗口主题同步
 function handleStorageChange(event: StorageEvent) {
   if (event.key === "theme" && event.newValue) {
@@ -175,19 +232,19 @@ onMounted(async () => {
 
     // 添加跨窗口主题同步监听
     window.addEventListener("storage", handleStorageChange);
-
-    // 设置播放结束检测
-    setupPlaybackEndDetection();
   }
 });
 
-// 组件卸载时清理事件监听器和定时器
+// 组件卸载时清理事件监听器和检测器
 onUnmounted(() => {
   // 只有非设置窗口才清理这些监听器
   if (!isSettingsWindow.value) {
     window.removeEventListener("keydown", handleKeyDown);
     window.removeEventListener("storage", handleStorageChange);
     musicStore.stopPlayTimeTracking();
+
+    // 停止播放检测器
+    playbackDetector.stop();
   }
 });
 </script>
@@ -227,14 +284,13 @@ onUnmounted(() => {
       @next="musicStore.playNextOrPreviousMusic(1)"
       @show-immersive="musicStore.showImmersive"
     />
-
-    <!-- 沉浸模式 - 只在主窗口显示 -->    <ImmersiveView
+    <!-- 沉浸模式 - 只在主窗口显示 -->
+    <ImmersiveView
       v-if="!isSettingsWindow && musicStore.showImmersiveMode"
       :currentSong="musicStore.currentOnlineSong"
       :currentMusic="musicStore.currentMusic"
       :isPlaying="musicStore.isPlaying"
       :currentTime="musicStore.currentPlayTime"
-      :hasStartedPlaying="musicStore.hasStartedPlaying"
       @toggle-play="musicStore.togglePlay"
       @next="musicStore.playNextOrPreviousMusic(1)"
       @previous="musicStore.playNextOrPreviousMusic(-1)"
