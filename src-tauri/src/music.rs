@@ -49,7 +49,7 @@ impl Music {
                         {
                             let sink = sink_clone.lock().await;
                             sink.clear();
-                        } 
+                        }
                         // check if the path is a URL
                         if path.starts_with("http://") || path.starts_with("https://") {
                             let sink_for_http = Arc::clone(&sink_clone);
@@ -132,13 +132,13 @@ async fn online_play(url: &str, sink: Arc<Mutex<Sink>>) -> Result<(), String> {
         Err(e) => {
             return Err(format!("decode online song error: {}", e));
         }
-    }; 
+    };
     // 使用异步锁而不是 try_lock，确保一致性
     let sink_lock = sink.lock().await;
     sink_lock.append(source);
     if sink_lock.is_paused() {
         sink_lock.play();
     }
-    
+
     Ok(())
 }

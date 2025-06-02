@@ -251,9 +251,12 @@ onUnmounted(() => {
 
 <template>
   <!-- @contextmenu.prevent -->
-  <div class="music-app" :class="{ 'dark-theme': musicStore.isDarkMode }">
+  <div
+    class="music-app"
+    :class="{ 'dark-theme': musicStore.isDarkMode }"
+    @contextmenu.prevent
+  >
     <!-- 顶部搜索和文件夹选择 - 只在主窗口显示 -->
-    <!-- @select-directory="musicStore.selectDirectory" -->
     <HeaderBar
       v-if="!isSettingsWindow"
       :currentDirectory="musicStore.currentDirectory"
