@@ -10,6 +10,7 @@ import {
 import { Window } from "@tauri-apps/api/window";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useMusicStore } from "@/stores/musicStore";
+import { enable, isEnabled, disable } from "@tauri-apps/plugin-autostart";
 
 // 窗口引用
 const appWindow = Window.getCurrent();
@@ -20,6 +21,7 @@ const musicStore = useMusicStore();
 
 // 设置数据
 const downloadPath = ref("");
+const autoStartEnabled = ref(false);
 
 // 监听主题变化
 watch(
@@ -103,6 +105,23 @@ const resetDownloadPath = async () => {
   }
 };
 
+// 处理开机自启动状态变化
+const handleAutoStartChange = async (value: boolean) => {
+  try {
+    if (value) {
+      await enable();
+      console.log("开机自启动已启用");
+    } else {
+      await disable();
+      console.log("开机自启动已禁用");
+    }
+  } catch (error) {
+    console.error("设置开机自启动失败:", error);
+    // 如果设置失败，恢复原状态
+    autoStartEnabled.value = !value;
+  }
+};
+
 onMounted(async () => {
   try {
     console.log("Settings window mounted");
@@ -113,6 +132,13 @@ onMounted(async () => {
     const currentDefaultDir = musicStore.getDefaultDirectory();
     if (currentDefaultDir) {
       downloadPath.value = currentDefaultDir;
+    }
+
+    // 加载开机自启动状态
+    try {
+      autoStartEnabled.value = await isEnabled();
+    } catch (error) {
+      console.error("获取开机自启动状态失败:", error);
     }
 
     console.log("Settings window theme state:", musicStore.isDarkMode);
@@ -171,6 +197,20 @@ onMounted(async () => {
           />
         </div>
       </div>
+
+      <div class="settings-section">
+        <h3>应用设置</h3>
+        <div class="setting-item">
+          <label>开机自启动</label>
+          <el-switch
+            v-model="autoStartEnabled"
+            active-text="启用"
+            inactive-text="禁用"
+            @change="handleAutoStartChange"
+          />
+        </div>
+      </div>
+
       <div class="settings-section">
         <h3>下载设置</h3>
         <div class="setting-item">
