@@ -8,9 +8,7 @@ import { useMusicStore } from "@/stores/musicStore";
 const props = defineProps<{
   currentSong: SongInfo | null;
   currentMusic: MusicFile | null;
-  isPlaying: boolean;
-  currentTime?: number; // 从父组件传入的当前播放时间
-  hasStartedPlaying?: boolean; // 是否已经确认开始播放，用于同步歌词
+  isPlaying: boolean;  currentTime?: number; // 从父组件传入的当前播放时间
 }>();
 
 // 使用 musicStore
@@ -18,10 +16,9 @@ const musicStore = useMusicStore();
 
 // 监听当前播放时间变化
 watch(
-  () => props.currentTime,
-  (newTime) => {
-    // 只有确认真正开始播放后才更新歌词
-    if (newTime !== undefined && props.isPlaying && props.hasStartedPlaying) {
+  () => props.currentTime,  (newTime) => {
+    // 使用播放时间更新歌词
+    if (newTime !== undefined && props.isPlaying && musicStore.isLoadingSong === false) {
       // 如果有外部传入的时间，直接使用并更新当前行
       currentLyricTime.value = newTime;
       updateCurrentLine();
@@ -50,19 +47,17 @@ onMounted(() => {
   }
 });
 
-// 监听播放状态和是否开始播放的组合状态
+// 监听播放状态
 watch(
-  () => [props.isPlaying, props.hasStartedPlaying],
-  ([isPlaying, hasStartedPlaying]) => {
-    if (isPlaying && hasStartedPlaying) {
-      // 只有在真正开始播放时才开始歌词滚动
-      console.log("[歌词] 开始歌词滚动，确认歌曲已开始播放");
+  () => props.isPlaying,
+  (isPlaying) => {
+    if (isPlaying) {
+      // 开始歌词滚动
+      console.log("[歌词] 开始歌词滚动");
       startLyricUpdate();
     } else {
       // 停止模拟歌词滚动
-      if (!isPlaying) {
-        console.log("[歌词] 停止歌词滚动，播放已暂停");
-      }
+      console.log("[歌词] 停止歌词滚动，播放已暂停");
       stopLyricUpdate();
     }
   },
