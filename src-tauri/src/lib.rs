@@ -5,6 +5,7 @@ use rodio::Sink;
 use service::setup_service;
 use std::sync::Arc;
 use tauri::Manager;
+use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_window_state::{StateFlags, WindowExt};
 use tokio::sync::broadcast::Sender;
 use tokio::sync::Mutex;
@@ -49,11 +50,15 @@ async fn is_sink_empty(sink: tauri::State<'_, Arc<Mutex<Sink>>>) -> Result<bool,
 pub fn run() {
     let music = Music::new();
     tauri::Builder::default()
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            Some(vec!["--flag1", "--flag2"]),
+        ))
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_window_state::Builder::new().build())
-        .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             let window = app
                 .get_webview_window("main")
                 .expect("failed to get main window");

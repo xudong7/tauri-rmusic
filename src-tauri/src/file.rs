@@ -42,7 +42,11 @@ pub fn scan_directory(
 /// filter -> mp3, wav, ogg, flac
 /// if path include a dir, the dir also need to be scanned
 #[tauri::command]
-pub fn scan_files(path: Option<String>, default_directory: Option<String>, app_handle: AppHandle) -> Vec<MusicFile> {
+pub fn scan_files(
+    path: Option<String>,
+    default_directory: Option<String>,
+    app_handle: AppHandle,
+) -> Vec<MusicFile> {
     let mut music_files = Vec::new();
     let mut id_counter = 0;
 
@@ -52,7 +56,10 @@ pub fn scan_files(path: Option<String>, default_directory: Option<String>, app_h
         custom_path
     } else if let Some(default_dir) = default_directory {
         // If default_directory is provided, scan the music subfolder within it
-        std::path::Path::new(&default_dir).join("music").to_string_lossy().to_string()
+        std::path::Path::new(&default_dir)
+            .join("music")
+            .to_string_lossy()
+            .to_string()
     } else {
         // Fall back to the default music directory
         match get_default_music_dir(app_handle) {
