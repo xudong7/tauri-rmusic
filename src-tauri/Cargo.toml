@@ -35,5 +35,6 @@ sha2 = "0.10.6"
 sha1 = "0.10.5"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-autostart = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-window-state = "2"

@@ -313,11 +313,7 @@ pub async fn play_netease_song(
 }
 
 #[tauri::command]
-pub async fn get_song_cover(
-    _id: String, 
-    name: String, 
-    artist: String
-) -> Result<String, String> {
+pub async fn get_song_cover(_id: String, name: String, artist: String) -> Result<String, String> {
     // Use Kugou API to search for the song's cover image
     let search_term = format!("{} {}", name, artist);
 
