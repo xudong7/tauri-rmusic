@@ -7,14 +7,17 @@ import {
   ArrowLeft,
   ArrowRight,
   Headset,
+  Sort,
+  Refresh,
 } from "@element-plus/icons-vue";
-import type { MusicFile, SongInfo } from "@/types/model";
+import { PlayMode, type MusicFile, type SongInfo } from "@/types/model";
 import { useMusicStore } from "@/stores/musicStore";
 
 const props = defineProps<{
   currentMusic: MusicFile | null;
   currentOnlineSong: SongInfo | null;
   isPlaying: boolean;
+  playMode: PlayMode;
 }>();
 
 const emit = defineEmits([
@@ -22,6 +25,7 @@ const emit = defineEmits([
   "volume-change",
   "next",
   "previous",
+  "toggle-play-mode",
   "show-immersive",
 ]);
 
@@ -253,6 +257,18 @@ watch(volume, () => {
         height="6px"
         style="width: 120px"
       />
+      <el-tooltip
+        :content="playMode === PlayMode.SEQUENTIAL ? '顺序播放' : '随机播放'"
+        placement="top"
+        effect="light"
+      >
+        <el-button
+          circle
+          :icon="playMode === PlayMode.SEQUENTIAL ? Sort : Refresh"
+          @click="emit('toggle-play-mode')"
+          :type="playMode === PlayMode.RANDOM ? 'default' : 'default'"
+        />
+      </el-tooltip>
     </div>
   </div>
 </template>
