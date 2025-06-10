@@ -9,7 +9,7 @@ import type {
   SearchResult,
   PlaySongResult,
 } from "../types/model";
-import { ViewMode } from "../types/model";
+import { ViewMode, PlayMode } from "../types/model";
 
 export const useMusicStore = defineStore("music", () => {
   // 主题设置 - 优先从 localStorage 读取，如果没有则使用时间自动设置
@@ -18,6 +18,9 @@ export const useMusicStore = defineStore("music", () => {
 
   // 视图模式（本地/在线）
   const viewMode = ref<ViewMode>(ViewMode.LOCAL);
+
+  // 播放模式
+  const playMode = ref<PlayMode>(PlayMode.SEQUENTIAL);
 
   // 本地音乐相关
   const musicFiles = ref<MusicFile[]>([]);
@@ -575,10 +578,37 @@ export const useMusicStore = defineStore("music", () => {
       ElMessage.error(`重置默认目录失败: ${error}`);
     }
   }
+  // 切换播放模式
+  function togglePlayMode() {
+    playMode.value =
+      playMode.value === PlayMode.SEQUENTIAL
+        ? PlayMode.RANDOM
+        : PlayMode.SEQUENTIAL;
+    const modeName =
+      playMode.value === PlayMode.SEQUENTIAL ? "顺序播放" : "随机播放";
+    ElMessage.success(`已切换到${modeName}模式`);
+    console.log(`[播放控制] 播放模式已切换为: ${modeName}`);
+  }
+
+  // 计算播放步长（用于随机播放）
+  function getRandomStep(): number {
+    if (playMode.value === PlayMode.RANDOM) {
+      const currentList =
+        viewMode.value === ViewMode.LOCAL
+          ? musicFiles.value
+          : onlineSongs.value;
+      if (currentList.length <= 1) return 1;
+
+      // 生成1到列表长度-1之间的随机数，避免返回0（不切换歌曲）
+      return Math.floor(Math.random() * (currentList.length - 1)) + 1;
+    }
+    return 1; // 顺序播放返回默认步长
+  }
   return {
     // 状态
     isDarkMode,
     viewMode,
+    playMode,
     musicFiles,
     currentDirectory,
     currentMusic,
@@ -610,6 +640,8 @@ export const useMusicStore = defineStore("music", () => {
     downloadOnlineSong,
     playNextOrPreviousMusic,
     togglePlay,
+    togglePlayMode,
+    getRandomStep,
     adjustVolume,
     refreshCurrentDirectory,
     searchOnlineMusic,
