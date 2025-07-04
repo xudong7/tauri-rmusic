@@ -6,13 +6,21 @@ import HeaderBar from "./components/HeaderBar/HeaderBar.vue";
 import PlayerBar from "./components/PlayerBar/PlayerBar.vue";
 import ImmersiveView from "./components/ImmersiveView/ImmersiveView.vue";
 import { useMusicStore } from "./stores/musicStore";
-import { ViewMode } from "./types/model";
+import { ViewMode, PlayMode } from "./types/model";
 
 // 获取当前窗口标签，用于判断是否显示HeaderBar和PlayerBar
 const windowLabel = ref<string>("");
 const isSettingsWindow = ref<boolean>(false);
 
 const musicStore = useMusicStore();
+
+// 动态计算播放步长
+function getPlayStep(direction: number): number {
+  if (musicStore.playMode === PlayMode.RANDOM) {
+    return musicStore.getRandomStep();
+  }
+  return Math.abs(direction); // 返回方向的绝对值作为步长
+}
 
 // 播放状态检测器
 class PlaybackDetector {
@@ -121,7 +129,7 @@ class PlaybackDetector {
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       // 播放下一首
-      await this.musicStore.playNextOrPreviousMusic(1);
+      await this.musicStore.playNextOrPreviousMusic(getPlayStep(1));
 
       // 重置计数器
       this.resetCounters();
@@ -189,7 +197,7 @@ function handleKeyDown(event: KeyboardEvent) {
 
   switch (event.key) {
     case "ArrowLeft":
-      musicStore.playNextOrPreviousMusic(-1);
+      musicStore.playNextOrPreviousMusic(-getPlayStep(-1));
       event.preventDefault();
       break;
     case " ":
@@ -197,7 +205,7 @@ function handleKeyDown(event: KeyboardEvent) {
       event.preventDefault();
       break;
     case "ArrowRight":
-      musicStore.playNextOrPreviousMusic(1);
+      musicStore.playNextOrPreviousMusic(getPlayStep(1));
       event.preventDefault();
       break;
   }
@@ -265,26 +273,27 @@ onUnmounted(() => {
       @refresh="musicStore.refreshCurrentDirectory"
       @search="handleSearch"
       @toggle-theme="musicStore.toggleTheme"
-      @previous-track="musicStore.playNextOrPreviousMusic(-1)"
+      @previous-track="musicStore.playNextOrPreviousMusic(-getPlayStep(-1))"
       @toggle-play="musicStore.togglePlay"
-      @next-track="musicStore.playNextOrPreviousMusic(1)"
+      @next-track="musicStore.playNextOrPreviousMusic(getPlayStep(1))"
     />
 
     <!-- 主内容区域 - 路由出口 -->
     <div class="main-content" :class="{ 'settings-content': isSettingsWindow }">
       <router-view />
     </div>
-
     <!-- 底部播放控制栏 - 只在主窗口显示 -->
     <PlayerBar
       v-if="!isSettingsWindow"
       :currentMusic="musicStore.currentMusic"
       :currentOnlineSong="musicStore.currentOnlineSong"
       :isPlaying="musicStore.isPlaying"
+      :playMode="musicStore.playMode"
       @toggle-play="musicStore.togglePlay"
       @volume-change="musicStore.adjustVolume"
-      @previous="musicStore.playNextOrPreviousMusic(-1)"
-      @next="musicStore.playNextOrPreviousMusic(1)"
+      @previous="musicStore.playNextOrPreviousMusic(-getPlayStep(-1))"
+      @next="musicStore.playNextOrPreviousMusic(getPlayStep(1))"
+      @toggle-play-mode="musicStore.togglePlayMode"
       @show-immersive="musicStore.showImmersive"
     />
     <!-- 沉浸模式 - 只在主窗口显示 -->
@@ -295,8 +304,8 @@ onUnmounted(() => {
       :isPlaying="musicStore.isPlaying"
       :currentTime="musicStore.currentPlayTime"
       @toggle-play="musicStore.togglePlay"
-      @next="musicStore.playNextOrPreviousMusic(1)"
-      @previous="musicStore.playNextOrPreviousMusic(-1)"
+      @next="musicStore.playNextOrPreviousMusic(getPlayStep(1))"
+      @previous="musicStore.playNextOrPreviousMusic(-getPlayStep(-1))"
       @exit="musicStore.exitImmersive"
     />
   </div>
