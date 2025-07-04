@@ -44,6 +44,12 @@ export interface PlaySongResult {
   pic_url: string;
 }
 
+// 播放模式
+export enum PlayMode {
+  SEQUENTIAL = "sequential", // 顺序播放
+  RANDOM = "random", // 随机播放
+}
+
 // 应用的视图模式
 export enum ViewMode {
   LOCAL = "local", // 本地音乐模式
