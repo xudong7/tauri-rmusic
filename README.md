@@ -89,8 +89,8 @@ Rmusic now supports online music streaming. You can:
 1. Clone the repository
 
    ```bash
-   git clone https://github.com/yourusername/rmusic.git
-   cd rmusic
+   git clone https://github.com/xudong7/tauri-rmusic.git
+   cd tauri-rmusic
    ```
 
 2. Install dependencies
@@ -177,7 +177,7 @@ Thank you to all contributors who make Rmusic better! ❤️
 
 ## TODO
 
-- [ ] **Repeat Modes**: Single track repeat, playlist repeat, and shuffle modes
+- [x] **Repeat Modes**: playlist repeat, and shuffle modes
 - [x] **Enhanced Settings Window**:
   - [x] Library scan preferences
   - [x] Cache management options
