@@ -1,9 +1,9 @@
 use crate::music::MusicFile;
 use crate::netease;
 use crate::netease::get_song_url;
-use std::fs::{create_dir_all, read_dir, File};
+use std::fs::{self, create_dir_all, read_dir, File};
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tauri::AppHandle;
 use tauri::Manager;
 
@@ -277,4 +277,108 @@ fn sanitize_filename(name: &str) -> String {
             _ => c,
         })
         .collect()
+}
+
+/// import music files from a directory into the default music directory
+#[tauri::command]
+pub fn import_music(
+    app_handle: AppHandle,
+    files: Vec<String>,
+    default_directory: Option<String>,
+) -> Result<String, String> {
+    // 获取目标目录
+    let music_dir = if let Some(custom_dir) = default_directory {
+        PathBuf::from(custom_dir)
+    } else {
+        app_handle
+            .path()
+            .app_data_dir()
+            .map_err(|e| format!("无法获取应用目录: {}", e))?
+    };
+
+    let mut imported_count = 0;
+    let mut failed_files = Vec::new();
+
+    // 处理每个文件
+    for file_path in files {
+        let source_path = PathBuf::from(&file_path);
+
+        // 检查文件是否存在
+        if !source_path.exists() {
+            failed_files.push(format!("文件不存在: {}", file_path));
+            continue;
+        }
+
+        // 检查是否是支持的音频格式
+        if let Some(extension) = source_path.extension().and_then(|ext| ext.to_str()) {
+            if !["mp3", "wav", "ogg", "flac"].contains(&extension.to_lowercase().as_str()) {
+                failed_files.push(format!("不支持的格式: {}", file_path));
+                continue;
+            }
+        } else {
+            failed_files.push(format!("无法识别文件格式: {}", file_path));
+            continue;
+        }
+
+        // 获取文件名
+        if let Some(file_name) = source_path.file_name() {
+            let target_path = music_dir.join(file_name);
+
+            // 检查目标文件是否已存在
+            if target_path.exists() {
+                // 如果文件已存在，生成新的文件名
+                let mut counter = 1;
+                let mut new_target_path = target_path.clone();
+
+                while new_target_path.exists() {
+                    if let Some(stem) = source_path.file_stem() {
+                        if let Some(ext) = source_path.extension() {
+                            let new_name = format!(
+                                "{}_{}.{}",
+                                stem.to_string_lossy(),
+                                counter,
+                                ext.to_string_lossy()
+                            );
+                            new_target_path = music_dir.join(new_name);
+                            counter += 1;
+                        }
+                    }
+                }
+
+                // 复制文件到新路径
+                match fs::copy(&source_path, &new_target_path) {
+                    Ok(_) => {
+                        imported_count += 1;
+                    }
+                    Err(e) => {
+                        failed_files.push(format!("复制文件失败 {}: {}", file_path, e));
+                    }
+                }
+            } else {
+                // 直接复制文件
+                match fs::copy(&source_path, &target_path) {
+                    Ok(_) => {
+                        imported_count += 1;
+                    }
+                    Err(e) => {
+                        failed_files.push(format!("复制文件失败 {}: {}", file_path, e));
+                    }
+                }
+            }
+        } else {
+            failed_files.push(format!("无法获取文件名: {}", file_path));
+        }
+    }
+
+    // 构建结果消息
+    let mut result_message = format!("成功导入 {} 个文件", imported_count);
+
+    if !failed_files.is_empty() {
+        result_message.push_str(&format!("\n失败的文件 ({}):", failed_files.len()));
+        for failed in failed_files {
+            result_message.push_str(&format!("\n- {}", failed));
+        }
+    }
+
+    Ok(result_message)
 }
