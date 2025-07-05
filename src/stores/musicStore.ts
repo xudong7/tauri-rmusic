@@ -604,6 +604,12 @@ export const useMusicStore = defineStore("music", () => {
     }
     return 1; // 顺序播放返回默认步长
   }
+  
+  // 获得默认的封面图片URL
+  function getDefaultCoverUrl(): string {
+    return "/icon-new.jpg";
+  }
+
   return {
     // 状态
     isDarkMode,
@@ -657,5 +663,6 @@ export const useMusicStore = defineStore("music", () => {
     initialize,
     startPlayTimeTracking,
     stopPlayTimeTracking,
+    getDefaultCoverUrl,
   };
 });
