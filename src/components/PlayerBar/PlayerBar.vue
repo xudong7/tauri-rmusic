@@ -102,7 +102,8 @@ const coverUrl = computed(() => {
     return localCoverUrl.value;
   }
 
-  return null;
+  // return null;
+  return musicStore.getDefaultCoverUrl();
 });
 
 // 本地音乐封面
