@@ -12,10 +12,14 @@ import {
   ScaleToOriginal,
   Setting,
   Close,
+  Upload,
 } from "@element-plus/icons-vue";
 import { ViewMode } from "../../types/model";
 import { Window } from "@tauri-apps/api/window";
 import { createSettingsWindow } from "../../utils/settingsWindow";
+import { invoke } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
+import { ElMessage } from "element-plus";
 
 const props = defineProps<{
   currentDirectory: string;
@@ -29,6 +33,77 @@ const emit = defineEmits([
   "search",
   "toggle-theme",
 ]);
+
+async function importMusic() {
+  try {
+    // 打开文件选择对话框
+    const selected = await open({
+      multiple: true,
+      filters: [
+        {
+          name: "音频文件",
+          extensions: ["mp3", "wav", "ogg", "flac"],
+        },
+      ],
+    });
+
+    // 如果用户取消选择，直接返回
+    if (!selected || (Array.isArray(selected) && selected.length === 0)) {
+      return;
+    }
+
+    // 确保 selected 是数组
+    const files = Array.isArray(selected) ? selected : [selected];
+
+    // 显示导入中的消息
+    const loadingMessage = ElMessage({
+      message: `正在导入 ${files.length} 个文件...`,
+      type: "info",
+      duration: 0, // 不自动关闭
+      showClose: true,
+    });
+
+    try {
+      // 调用后端导入函数
+      const result = await invoke("import_music", {
+        files: files,
+        defaultDirectory: props.currentDirectory || null,
+      });
+
+      // 关闭加载消息
+      loadingMessage.close();
+
+      // 显示成功消息
+      ElMessage({
+        message: result as string,
+        type: "success",
+        duration: 5000,
+        showClose: true,
+      });
+
+      // 刷新音乐列表
+      emit("refresh");
+    } catch (error) {
+      // 关闭加载消息
+      loadingMessage.close();
+
+      // 显示错误消息
+      ElMessage({
+        message: `导入失败: ${error}`,
+        type: "error",
+        duration: 5000,
+        showClose: true,
+      });
+    }
+  } catch (error) {
+    console.error("打开文件对话框失败:", error);
+    ElMessage({
+      message: "打开文件选择对话框失败",
+      type: "error",
+      duration: 3000,
+    });
+  }
+}
 
 // 路由实例
 const router = useRouter();
@@ -145,6 +220,16 @@ onMounted(async () => {
           size="default"
         >
           {{ viewMode === ViewMode.LOCAL ? "本地音乐" : "在线搜索" }}
+        </el-button>
+        <el-button
+          @click="importMusic"
+          :icon="Upload"
+          type="warning"
+          class="header-button"
+          size="default"
+          v-if="viewMode === ViewMode.LOCAL"
+        >
+          导入音乐
         </el-button>
       </div>
     </div>

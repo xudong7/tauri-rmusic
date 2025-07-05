@@ -1,4 +1,4 @@
-use file::{download_music, get_default_music_dir, load_cover_and_lyric, scan_files};
+use file::{import_music, download_music, get_default_music_dir, load_cover_and_lyric, scan_files};
 use music::{Music, MusicState};
 use netease::{get_song_cover, get_song_lyric, get_song_url, play_netease_song, search_songs};
 use rodio::Sink;
@@ -102,6 +102,7 @@ pub fn run() {
             handle_event,
             scan_files,
             search_songs,
+            import_music,
             get_song_url,
             play_netease_song,
             get_default_music_dir,
