@@ -254,7 +254,9 @@ const currentCoverUrl = computed(() => {
   } else if (localCoverUrl.value) {
     return localCoverUrl.value;
   }
-  return null;
+  
+  // return null;
+  return musicStore.getDefaultCoverUrl();
 });
 
 // 用于背景的模糊封面样式
