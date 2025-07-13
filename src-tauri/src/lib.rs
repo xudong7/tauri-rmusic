@@ -46,6 +46,32 @@ async fn is_sink_empty(sink: tauri::State<'_, Arc<Mutex<Sink>>>) -> Result<bool,
     Ok(sink.empty())
 }
 
+pub async fn play_next_song(state: tauri::State<'_, AppState>) -> Result<(), String> {
+    if IS_AUTO_PLAYING.swap(true, Ordering::SeqCst) {
+        return Ok(()); // 防止重复触发
+    }
+
+    let next = get_next_song(&state).await;
+    match next {
+        Some(song) => {
+            let state = state.clone();
+            tauri::async_runtime::spawn(async move {
+                let res = timeout(Duration::from_secs(3), load_and_play(state, song)).await;
+                if res.is_err() {
+                    eprintln!("播放超时，重试下一首");
+                    let _ = play_next_song(state).await;
+                }
+                IS_AUTO_PLAYING.store(false, Ordering::SeqCst);
+            });
+            Ok(())
+        }
+        None => {
+            IS_AUTO_PLAYING.store(false, Ordering::SeqCst);
+            Err("无下一首".into())
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let music = Music::new();
