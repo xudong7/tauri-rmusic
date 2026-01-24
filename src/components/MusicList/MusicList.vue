@@ -1,15 +1,19 @@
 <script setup lang="ts">
-import { CaretRight, VideoPause, Headset } from "@element-plus/icons-vue";
+import { CaretRight, VideoPause, Headset, Upload } from "@element-plus/icons-vue";
 import type { MusicFile } from "@/types/model";
 import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
 
-const props = defineProps<{
-  musicFiles: MusicFile[];
-  currentMusic: MusicFile | null;
-  isPlaying: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    musicFiles: MusicFile[];
+    currentMusic: MusicFile | null;
+    isPlaying: boolean;
+    showImportButton?: boolean;
+  }>(),
+  { showImportButton: false }
+);
 
-const emit = defineEmits(["play"]);
+const emit = defineEmits(["play", "import"]);
 
 const isCurrentMusic = (m: MusicFile) => props.currentMusic?.id === m.id;
 
@@ -20,7 +24,19 @@ function handleRowDblClick(row: MusicFile) {
 
 <template>
   <div class="music-list-container">
-    <h2 class="list-title">音乐列表</h2>
+    <div class="list-header">
+      <h2 class="list-title">音乐列表</h2>
+      <el-button
+        v-if="showImportButton"
+        type="primary"
+        :icon="Upload"
+        size="default"
+        class="import-btn"
+        @click="emit('import')"
+      >
+        导入音乐
+      </el-button>
+    </div>
 
     <div v-if="musicFiles.length === 0" class="empty-list">
       <el-empty description="暂无音乐，点击「导入音乐」添加" />

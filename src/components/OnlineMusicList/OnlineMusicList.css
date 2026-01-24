@@ -6,8 +6,17 @@
   overflow: hidden;
 }
 
+.list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--app-spacing);
+  min-height: 44px;
+  flex-shrink: 0;
+}
+
 .list-title {
-  margin: 0 0 var(--app-spacing);
+  margin: 0;
   font-size: 20px;
   font-weight: 700;
   color: var(--el-text-color-primary);

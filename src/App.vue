@@ -2,6 +2,7 @@
 import { onMounted, onUnmounted, ref, watch, computed } from "vue";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import HeaderBar from "./components/HeaderBar/HeaderBar.vue";
+import Sidebar from "./components/Sidebar/Sidebar.vue";
 import PlayerBar from "./components/PlayerBar/PlayerBar.vue";
 import ImmersiveView from "./components/ImmersiveView/ImmersiveView.vue";
 import { useMusicStore } from "./stores/musicStore";
@@ -60,8 +61,12 @@ function handleStorageChange(e: StorageEvent) {
 }
 
 onMounted(async () => {
-  const { label } = getCurrentWebviewWindow();
-  isSettingsWindow.value = label === "settings";
+  try {
+    const { label } = getCurrentWebviewWindow();
+    isSettingsWindow.value = label === "settings";
+  } catch {
+    isSettingsWindow.value = false;
+  }
 
   if (!isSettingsWindow.value) {
     await musicStore.initialize();
@@ -86,33 +91,37 @@ onUnmounted(() => {
     :class="{ 'dark-theme': musicStore.isDarkMode }"
     @contextmenu.prevent
   >
-    <HeaderBar
-      v-if="!isSettingsWindow"
-      :currentDirectory="musicStore.currentDirectory"
-      :viewMode="musicStore.viewMode"
-      :isDarkMode="musicStore.isDarkMode"
-      @refresh="musicStore.refreshCurrentDirectory"
-      @search="handleSearch"
-      @toggle-theme="musicStore.toggleTheme"
-    />
-
-    <div class="main-content" :class="{ 'settings-content': isSettingsWindow }">
-      <router-view />
-    </div>
-
-    <PlayerBar
-      v-if="!isSettingsWindow"
-      :currentMusic="musicStore.currentMusic"
-      :currentOnlineSong="musicStore.currentOnlineSong"
-      :isPlaying="musicStore.isPlaying"
-      :playMode="musicStore.playMode"
-      @toggle-play="musicStore.togglePlay"
-      @volume-change="musicStore.adjustVolume"
-      @previous="musicStore.playNextOrPreviousMusic(-musicStore.getPlayStep(-1))"
-      @next="musicStore.playNextOrPreviousMusic(musicStore.getPlayStep(1))"
-      @toggle-play-mode="musicStore.togglePlayMode"
-      @show-immersive="musicStore.showImmersive"
-    />
+    <template v-if="!isSettingsWindow">
+      <HeaderBar
+        :viewMode="musicStore.viewMode"
+        :isDarkMode="musicStore.isDarkMode"
+        @search="handleSearch"
+        @toggle-theme="musicStore.toggleTheme"
+      />
+      <div class="app-body">
+        <Sidebar />
+        <div class="main-content">
+          <router-view />
+        </div>
+      </div>
+      <PlayerBar
+        :currentMusic="musicStore.currentMusic"
+        :currentOnlineSong="musicStore.currentOnlineSong"
+        :isPlaying="musicStore.isPlaying"
+        :playMode="musicStore.playMode"
+        @toggle-play="musicStore.togglePlay"
+        @volume-change="musicStore.adjustVolume"
+        @previous="musicStore.playNextOrPreviousMusic(-musicStore.getPlayStep(-1))"
+        @next="musicStore.playNextOrPreviousMusic(musicStore.getPlayStep(1))"
+        @toggle-play-mode="musicStore.togglePlayMode"
+        @show-immersive="musicStore.showImmersive"
+      />
+    </template>
+    <template v-else>
+      <div class="main-content settings-content">
+        <router-view />
+      </div>
+    </template>
 
     <ImmersiveView
       v-if="!isSettingsWindow && musicStore.showImmersiveMode"
@@ -142,8 +151,17 @@ onUnmounted(() => {
     color 0.2s ease;
 }
 
+.app-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+
 .main-content {
   flex: 1;
+  min-width: 0;
   overflow: hidden;
   padding: var(--app-spacing-xl, 28px);
   box-sizing: border-box;
