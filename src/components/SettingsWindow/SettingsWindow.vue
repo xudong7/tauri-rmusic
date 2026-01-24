@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import {
   FolderOpened,
   Brush,
@@ -10,10 +11,23 @@ import {
 import { open } from "@tauri-apps/plugin-dialog";
 import { useMusicStore } from "@/stores/musicStore";
 import { enable, isEnabled, disable } from "@tauri-apps/plugin-autostart";
+import { setLocale, getLocale, type LocaleKey } from "@/i18n";
 
+const { t } = useI18n();
 const musicStore = useMusicStore();
 const downloadPath = ref("");
 const autoStartEnabled = ref(false);
+const currentLocale = ref<LocaleKey>(getLocale());
+
+const localeOptions: { value: LocaleKey; labelKey: string }[] = [
+  { value: "zh", labelKey: "settings.languageZh" },
+  { value: "en", labelKey: "settings.languageEn" },
+];
+
+function handleLocaleChange(val: LocaleKey) {
+  setLocale(val);
+  currentLocale.value = val;
+}
 
 watch(
   () => musicStore.isDarkMode,
@@ -41,7 +55,7 @@ const selectDownloadPath = async () => {
     const selected = await open({
       directory: true,
       multiple: false,
-      title: "选择下载位置",
+      title: t("settings.selectDownloadLocation"),
     });
 
     if (selected && typeof selected === "string") {
@@ -103,65 +117,88 @@ onMounted(async () => {
 <template>
   <div class="settings-window">
     <div class="settings-content">
-      <h2 class="settings-page-title">设置</h2>
+      <h2 class="settings-page-title">{{ t("settings.title") }}</h2>
       <div class="settings-section">
         <h3 class="section-title">
-          <el-icon><Brush /></el-icon> 外观设置
+          <el-icon><Brush /></el-icon> {{ t("settings.appearance") }}
         </h3>
         <div class="setting-item">
-          <label>主题模式</label>
-          <el-switch
-            v-model="musicStore.isDarkMode"
-            active-text="深色"
-            inactive-text="浅色"
-            @change="handleThemeChange"
-          />
+          <label>{{ t("settings.themeMode") }}</label>
+          <div class="setting-control">
+            <el-switch
+              v-model="musicStore.isDarkMode"
+              :active-text="t('common.dark')"
+              :inactive-text="t('common.light')"
+              @change="handleThemeChange"
+            />
+          </div>
+        </div>
+        <div class="setting-item">
+          <label>{{ t("settings.language") }}</label>
+          <div class="setting-control">
+            <el-select
+              v-model="currentLocale"
+              @change="handleLocaleChange"
+              class="locale-select"
+            >
+              <el-option
+                v-for="opt in localeOptions"
+                :key="opt.value"
+                :value="opt.value"
+                :label="t(opt.labelKey)"
+              />
+            </el-select>
+          </div>
         </div>
       </div>
 
       <div class="settings-section">
         <h3 class="section-title">
-          <el-icon><CircleCheck /></el-icon> 应用设置
+          <el-icon><CircleCheck /></el-icon> {{ t("settings.appSettings") }}
         </h3>
         <div class="setting-item">
-          <label>开机自启动</label>
-          <el-switch
-            v-model="autoStartEnabled"
-            active-text="启用"
-            inactive-text="禁用"
-            @change="handleAutoStartChange"
-          />
+          <label>{{ t("settings.autoStart") }}</label>
+          <div class="setting-control">
+            <el-switch
+              v-model="autoStartEnabled"
+              :active-text="t('common.enable')"
+              :inactive-text="t('common.disable')"
+              @change="handleAutoStartChange"
+            />
+          </div>
         </div>
       </div>
 
       <div class="settings-section">
         <h3 class="section-title">
-          <el-icon><Download /></el-icon> 下载设置
+          <el-icon><Download /></el-icon> {{ t("settings.download") }}
         </h3>
         <div class="setting-item">
-          <label>下载位置</label>
+          <label>{{ t("settings.downloadLocation") }}</label>
           <div class="download-path-container">
             <el-input
               v-model="downloadPath"
-              placeholder="选择下载位置"
+              :placeholder="t('settings.selectDownloadLocation')"
               readonly
               class="download-path-input"
             />
             <el-button @click="selectDownloadPath" :icon="FolderOpened" type="primary">
-              浏览
+              {{ t("common.browse") }}
             </el-button>
-            <el-button @click="resetDownloadPath" type="default"> 重置 </el-button>
+            <el-button @click="resetDownloadPath" type="default">
+              {{ t("common.reset") }}
+            </el-button>
           </div>
         </div>
       </div>
 
       <div class="settings-section settings-about">
         <h3 class="section-title">
-          <el-icon><InfoFilled /></el-icon> 关于
+          <el-icon><InfoFilled /></el-icon> {{ t("settings.about") }}
         </h3>
         <div class="setting-item about-content">
-          <p class="about-version">RMusic v1.0.0</p>
-          <p class="about-desc">一个基于 Tauri 和 Vue 的音乐播放器</p>
+          <p class="about-version">{{ t("settings.version") }}</p>
+          <p class="about-desc">{{ t("settings.aboutDesc") }}</p>
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import {
   VideoPlay,
   VideoPause,
@@ -23,6 +24,8 @@ import {
 } from "@/utils/songUtils";
 import { loadLocalCover } from "@/utils/coverUtils";
 import { useWindowControls } from "@/composables/useWindowControls";
+
+const { t, locale } = useI18n();
 
 const props = defineProps<{
   currentSong: SongInfo | null;
@@ -137,10 +140,11 @@ async function analyzeCoverBrightness(imageUrl: string) {
 
 // 当前歌曲标题
 const songTitle = computed(() => {
+  void locale.value;
   if (props.currentSong) return extractSongTitle(props.currentSong.name);
   if (props.currentMusic)
     return extractSongTitle(getDisplayName(props.currentMusic.file_name));
-  return "未知歌曲";
+  return t("common.unknownSong");
 });
 
 const currentArtistName = computed(() => {
@@ -231,22 +235,22 @@ watch(
     <div class="overlay" :style="overlayStyle"></div>
 
     <div class="top-section">
-      <el-tooltip content="返回" placement="bottom" effect="dark">
+      <el-tooltip :content="t('common.back')" placement="bottom" effect="dark">
         <el-button @click="emit('exit')" :icon="Back" circle class="back-btn" />
       </el-tooltip>
 
       <div class="window-controls">
-        <el-tooltip content="最小化" placement="bottom" effect="dark">
+        <el-tooltip :content="t('header.minimize')" placement="bottom" effect="dark">
           <el-button @click="minimize" :icon="Minus" circle />
         </el-tooltip>
         <el-tooltip
-          :content="isMaximized ? '还原' : '最大化'"
+          :content="isMaximized ? t('header.restore') : t('header.maximize')"
           placement="bottom"
           effect="dark"
         >
           <el-button @click="toggleMaximize" :icon="maximizeIcon" circle />
         </el-tooltip>
-        <el-tooltip content="关闭" placement="bottom" effect="dark">
+        <el-tooltip :content="t('header.close')" placement="bottom" effect="dark">
           <el-button @click="close" :icon="Close" circle />
         </el-tooltip>
       </div>
@@ -271,8 +275,11 @@ watch(
         <div class="song-info">
           <h1 class="song-title" :title="songTitle">{{ songTitle }}</h1>
           <div class="song-artist-container">
-            <p class="song-artist" :title="currentArtistName || '未知歌手'">
-              {{ currentArtistName || "未知歌手" }}
+            <p
+              class="song-artist"
+              :title="currentArtistName || t('common.unknownArtist')"
+            >
+              {{ currentArtistName || t("common.unknownArtist") }}
             </p>
           </div>
         </div>
@@ -288,11 +295,15 @@ watch(
     </div>
     <div class="control-section">
       <div class="controls">
-        <el-tooltip content="上一曲" placement="top" effect="dark">
+        <el-tooltip :content="t('playerBar.previous')" placement="top" effect="dark">
           <el-button circle :icon="ArrowLeft" @click="emit('previous')" />
         </el-tooltip>
 
-        <el-tooltip :content="isPlaying ? '暂停' : '播放'" placement="top" effect="dark">
+        <el-tooltip
+          :content="isPlaying ? t('playerBar.pause') : t('playerBar.play')"
+          placement="top"
+          effect="dark"
+        >
           <el-button
             circle
             size="large"
@@ -302,7 +313,7 @@ watch(
           />
         </el-tooltip>
 
-        <el-tooltip content="下一曲" placement="top" effect="dark">
+        <el-tooltip :content="t('playerBar.next')" placement="top" effect="dark">
           <el-button circle :icon="ArrowRight" @click="emit('next')" />
         </el-tooltip>
       </div>

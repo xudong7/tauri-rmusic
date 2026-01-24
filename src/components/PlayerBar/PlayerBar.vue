@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import {
   VideoPlay,
   VideoPause,
@@ -13,6 +14,8 @@ import { PlayMode, type MusicFile, type SongInfo } from "@/types/model";
 import { useMusicStore } from "@/stores/musicStore";
 import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
 import { loadLocalCover } from "@/utils/coverUtils";
+
+const { t, locale } = useI18n();
 
 const props = defineProps<{
   currentMusic: MusicFile | null;
@@ -35,18 +38,22 @@ const volume = ref(50);
 const localCoverUrl = ref("");
 
 const currentSongName = computed(() => {
+  void locale.value;
   if (props.currentOnlineSong) return props.currentOnlineSong.name;
-  return props.currentMusic ? getDisplayName(props.currentMusic.file_name) : "未选择歌曲";
+  return props.currentMusic
+    ? getDisplayName(props.currentMusic.file_name)
+    : t("playerBar.noSong");
 });
 
 const songTitle = computed(() => extractSongTitle(currentSongName.value));
 
 const currentArtist = computed(() => {
+  void locale.value;
   if (props.currentOnlineSong?.artists?.length)
     return props.currentOnlineSong.artists.join(", ");
   if (props.currentMusic) {
     const a = extractArtistName(getDisplayName(props.currentMusic.file_name));
-    return a || "未知歌手";
+    return a || t("common.unknownArtist");
   }
   return "";
 });
@@ -128,7 +135,7 @@ watch(volume, () => {
 
       <div class="player-controls">
         <el-tooltip
-          content="上一曲"
+          :content="t('playerBar.previous')"
           placement="top"
           effect="light"
           :disabled="!currentMusic && !currentOnlineSong"
@@ -142,7 +149,7 @@ watch(volume, () => {
         </el-tooltip>
 
         <el-tooltip
-          :content="isPlaying ? '暂停' : '播放'"
+          :content="isPlaying ? t('playerBar.pause') : t('playerBar.play')"
           placement="top"
           effect="light"
           :disabled="!currentMusic && !currentOnlineSong"
@@ -158,7 +165,7 @@ watch(volume, () => {
         </el-tooltip>
 
         <el-tooltip
-          content="下一曲"
+          :content="t('playerBar.next')"
           placement="top"
           effect="light"
           :disabled="!currentMusic && !currentOnlineSong"
@@ -183,7 +190,11 @@ watch(volume, () => {
           style="width: 120px"
         />
         <el-tooltip
-          :content="playMode === PlayMode.SEQUENTIAL ? '顺序播放' : '随机播放'"
+          :content="
+            playMode === PlayMode.SEQUENTIAL
+              ? t('playerBar.sequential')
+              : t('playerBar.random')
+          "
           placement="top"
           effect="light"
         >

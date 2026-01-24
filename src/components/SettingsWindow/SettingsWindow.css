@@ -8,8 +8,8 @@
 }
 
 .settings-page-title {
-  margin: 0 0 var(--app-spacing-lg) 0;
-  font-size: 24px;
+  margin: 0 0 18px 0;
+  font-size: 22px;
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--el-text-color-primary);
@@ -17,8 +17,8 @@
 
 .settings-content {
   flex: 1;
-  padding: var(--app-spacing-lg);
-  padding-bottom: var(--app-spacing-xl);
+  padding: 20px;
+  padding-bottom: 24px;
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
@@ -27,8 +27,8 @@
 /* 滚动条与音乐列表一致，使用 themes.css 全局样式（6px、透明轨道、灰色滑块） */
 
 .settings-section {
-  margin-bottom: var(--app-spacing-lg);
-  padding: var(--app-spacing-lg);
+  margin-bottom: 18px;
+  padding: 18px 20px;
   background: var(--app-card-bg, var(--el-bg-color-overlay));
   border-radius: var(--app-radius-xl);
   border: 1px solid var(--el-border-color-lighter);
@@ -47,12 +47,12 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 0 0 18px 0;
-  font-size: 17px;
+  margin: 0 0 12px 0;
+  font-size: 16px;
   font-weight: 600;
   color: var(--el-text-color-primary);
   border-bottom: 1px solid var(--el-border-color-lighter);
-  padding-bottom: 10px;
+  padding-bottom: 8px;
 }
 
 .settings-section .section-title .el-icon {
@@ -64,20 +64,33 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
-  padding: 14px 0;
-  gap: 16px;
+  margin-bottom: 12px;
+  padding: 10px 0;
+  gap: 12px;
 }
 
 .setting-item:last-child {
   margin-bottom: 0;
 }
 
-.setting-item label {
+.setting-item > label {
   font-size: 14px;
   font-weight: 500;
   color: var(--el-text-color-regular);
+  flex: 0 0 110px;
+}
+
+.setting-control {
   flex: 1;
+  min-width: 140px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.setting-item > .download-path-container {
+  flex: 1;
+  min-width: 0;
 }
 
 .setting-item p {
@@ -90,7 +103,8 @@
 .settings-about .about-content {
   flex-direction: column;
   align-items: flex-start;
-  padding: 8px 0 4px;
+  justify-content: flex-start;
+  padding: 6px 0 2px;
 }
 
 .about-version {
@@ -147,8 +161,8 @@ html.dark .settings-section .section-title .el-icon {
   color: var(--el-color-primary);
 }
 
-.dark .setting-item label,
-html.dark .setting-item label {
+.dark .setting-item > label,
+html.dark .setting-item > label {
   color: var(--el-text-color-regular);
 }
 
@@ -171,4 +185,8 @@ html.dark .setting-item p {
 .download-path-container .el-button {
   flex-shrink: 0;
   min-width: 70px;
+}
+
+.locale-select {
+  width: 160px;
 }

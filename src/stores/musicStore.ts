@@ -5,6 +5,7 @@ import { ElMessage } from "element-plus";
 import type { MusicFile, SongInfo, SearchResult, PlaySongResult } from "@/types/model";
 import { ViewMode, PlayMode } from "@/types/model";
 import { DEFAULT_COVER_URL } from "@/constants";
+import { i18n } from "@/i18n";
 
 export const useMusicStore = defineStore("music", () => {
   // 主题设置 - 优先从 localStorage 读取，如果没有则使用时间自动设置
@@ -79,7 +80,7 @@ export const useMusicStore = defineStore("music", () => {
       });
     } catch (error) {
       console.error("加载音乐文件失败:", error);
-      ElMessage.error(`加载音乐文件失败: ${error}`);
+      ElMessage.error(`${i18n.global.t("errors.loadMusicFailed")}: ${error}`);
     }
   }
 
@@ -135,11 +136,11 @@ export const useMusicStore = defineStore("music", () => {
       isPlaying.value = true;
       startPlayTimeTracking();
 
-      ElMessage.success(`正在播放: ${music.file_name}`);
+      ElMessage.success(i18n.global.t("messages.playing", { name: music.file_name }));
       console.log(`[播放控制] 本地音乐播放成功: ${music.file_name}`);
     } catch (error) {
       console.error("[播放控制] 播放本地音乐失败:", error);
-      ElMessage.error(`播放音乐失败: ${error}`);
+      ElMessage.error(`${i18n.global.t("errors.playFailed")}: ${error}`);
 
       // 重置状态
       isLoadingSong.value = false;
@@ -210,11 +211,15 @@ export const useMusicStore = defineStore("music", () => {
         currentOnlineSong.value.pic_url = playResult.pic_url;
       }
 
-      ElMessage.success(`正在播放: ${song.name} - ${song.artists.join(", ")}`);
+      ElMessage.success(
+        i18n.global.t("messages.playing", {
+          name: `${song.name} - ${song.artists.join(", ")}`,
+        })
+      );
       console.log(`[播放控制] 在线歌曲播放成功: ${song.name}`);
     } catch (error) {
       console.error("[播放控制] 播放在线歌曲失败:", error);
-      ElMessage.error(`播放失败: ${error}`);
+      ElMessage.error(`${i18n.global.t("errors.playFailedOnline")}: ${error}`);
 
       // 重置状态
       isLoadingSong.value = false;
@@ -227,7 +232,7 @@ export const useMusicStore = defineStore("music", () => {
   // 下载在线音乐
   async function downloadOnlineSong(song: SongInfo) {
     try {
-      ElMessage.info("开始下载歌曲，请稍候...");
+      ElMessage.info(i18n.global.t("download.starting"));
 
       const fileName = await invoke("download_music", {
         songHash: song.file_hash,
@@ -235,7 +240,7 @@ export const useMusicStore = defineStore("music", () => {
         artist: song.artists.join(", "),
         defaultDirectory: defaultDirectory.value,
       });
-      ElMessage.success(`歌曲已下载: ${fileName}`); // 如果当前是本地模式且当前目录是默认目录的music子目录，则刷新文件列表
+      ElMessage.success(i18n.global.t("download.done", { fileName: fileName as string })); // 如果当前是本地模式且当前目录是默认目录的music子目录，则刷新文件列表
       if (viewMode.value === ViewMode.LOCAL && defaultDirectory.value) {
         const expectedMusicDir = `${defaultDirectory.value}/music`;
         if (
@@ -247,7 +252,7 @@ export const useMusicStore = defineStore("music", () => {
       }
     } catch (error) {
       console.error("下载歌曲失败:", error);
-      ElMessage.error(`下载歌曲失败: ${error}`);
+      ElMessage.error(`${i18n.global.t("errors.downloadFailed")}: ${error}`);
     }
   }
   // 播放下一首或上一首音乐
@@ -264,7 +269,7 @@ export const useMusicStore = defineStore("music", () => {
 
       if (viewMode.value === ViewMode.LOCAL) {
         if (musicFiles.value.length === 0) {
-          ElMessage.warning("没有可播放的本地音乐");
+          ElMessage.warning(i18n.global.t("messages.noLocalMusic"));
           return;
         }
 
@@ -287,7 +292,7 @@ export const useMusicStore = defineStore("music", () => {
         await playMusic(musicFiles.value[nextIndex]);
       } else {
         if (onlineSongs.value.length === 0) {
-          ElMessage.warning("没有可播放的在线音乐");
+          ElMessage.warning(i18n.global.t("messages.noOnlineMusic"));
           return;
         }
 
@@ -311,7 +316,7 @@ export const useMusicStore = defineStore("music", () => {
       }
     } catch (error) {
       console.error(`[播放控制] 播放${step > 0 ? "下" : "上"}一首失败:`, error);
-      ElMessage.error(`切换歌曲失败: ${error}`);
+      ElMessage.error(`${i18n.global.t("errors.switchFailed")}: ${error}`);
     }
   } // 暂停/恢复播放
   async function togglePlay() {
@@ -355,7 +360,7 @@ export const useMusicStore = defineStore("music", () => {
       );
     } catch (error) {
       console.error("[播放控制] 切换播放状态失败:", error);
-      ElMessage.error(`切换播放状态失败: ${error}`);
+      ElMessage.error(`${i18n.global.t("errors.togglePlayFailed")}: ${error}`);
     }
   }
 
@@ -403,11 +408,11 @@ export const useMusicStore = defineStore("music", () => {
       onlineSongsTotal.value = result.total;
 
       if (result.songs.length === 0 && page === 1) {
-        ElMessage.info("未找到相关歌曲");
+        ElMessage.info(i18n.global.t("messages.noSearchResult"));
       }
     } catch (error) {
       console.error("在线搜索失败:", error);
-      ElMessage.error(`在线搜索失败: ${error}`);
+      ElMessage.error(`${i18n.global.t("errors.searchFailed")}: ${error}`);
     } finally {
       isSearchLoading.value = false;
     }
@@ -426,9 +431,11 @@ export const useMusicStore = defineStore("music", () => {
     musicFiles.value = filteredFiles;
 
     if (filteredFiles.length === 0) {
-      ElMessage.info("未找到相关歌曲");
+      ElMessage.info(i18n.global.t("messages.noSearchResult"));
     } else {
-      ElMessage.success(`找到 ${filteredFiles.length} 首相关歌曲`);
+      ElMessage.success(
+        i18n.global.t("messages.foundSongs", { count: filteredFiles.length })
+      );
     }
   }
 
@@ -550,10 +557,10 @@ export const useMusicStore = defineStore("music", () => {
       defaultDirectory.value = path;
       // 保存到本地存储
       localStorage.setItem("defaultDirectory", path);
-      ElMessage.success("默认下载目录设置成功");
+      ElMessage.success(i18n.global.t("messages.setDirSuccess"));
     } catch (error) {
       console.error("设置默认目录失败:", error);
-      ElMessage.error(`设置默认目录失败: ${error}`);
+      ElMessage.error(`${i18n.global.t("errors.setDirFailed")}: ${error}`);
     }
   }
 
@@ -572,19 +579,23 @@ export const useMusicStore = defineStore("music", () => {
         localStorage.removeItem("defaultDirectory");
         // 重新加载音乐文件
         await loadMusicFiles(systemDefaultDir as string);
-        ElMessage.success("已重置为默认下载目录");
+        ElMessage.success(i18n.global.t("messages.resetDirSuccess"));
       }
     } catch (error) {
       console.error("重置默认目录失败:", error);
-      ElMessage.error(`重置默认目录失败: ${error}`);
+      ElMessage.error(`${i18n.global.t("errors.resetDirFailed")}: ${error}`);
     }
   }
   // 切换播放模式
   function togglePlayMode() {
     playMode.value =
       playMode.value === PlayMode.SEQUENTIAL ? PlayMode.RANDOM : PlayMode.SEQUENTIAL;
-    const modeName = playMode.value === PlayMode.SEQUENTIAL ? "顺序播放" : "随机播放";
-    ElMessage.success(`已切换到${modeName}模式`);
+    const modeKey =
+      playMode.value === PlayMode.SEQUENTIAL
+        ? "playerBar.sequential"
+        : "playerBar.random";
+    const modeName = i18n.global.t(modeKey);
+    ElMessage.success(i18n.global.t("messages.playModeSwitch", { mode: modeName }));
     console.log(`[播放控制] 播放模式已切换为: ${modeName}`);
   }
 
