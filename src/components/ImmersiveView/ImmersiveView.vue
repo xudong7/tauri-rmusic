@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import {
   VideoPlay,
   VideoPause,
@@ -16,7 +16,7 @@ import type { SongInfo, MusicFile } from "../../types/model";
 import LyricView from "../LyricView/LyricView.vue";
 import { useMusicStore } from "@/stores/musicStore";
 import { invoke } from "@tauri-apps/api/core";
-import { Window } from "@tauri-apps/api/window";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 const props = defineProps<{
   currentSong: SongInfo | null;
@@ -31,21 +31,24 @@ const emit = defineEmits(["toggle-play", "previous", "next", "exit"]);
 // 使用 musicStore
 const musicStore = useMusicStore();
 
-// 窗口控制功能
-const appWindow = Window.getCurrent();
+// 窗口控制功能（在 onMounted 中初始化，避免 Tauri 未就绪时访问 metadata 报错）
+let appWindow: ReturnType<typeof getCurrentWindow> | null = null;
 const isMaximized = ref(false);
 
 // 检查窗口当前是否已最大化
 async function checkMaximized() {
+  if (!appWindow) return;
   isMaximized.value = await appWindow.isMaximized();
 }
 
 // 窗口控制功能
 const minimize = async () => {
+  if (!appWindow) return;
   await appWindow.minimize();
 };
 
 const toggleMaximize = async () => {
+  if (!appWindow) return;
   if (isMaximized.value) {
     await appWindow.unmaximize();
   } else {
@@ -55,6 +58,7 @@ const toggleMaximize = async () => {
 };
 
 const close = async () => {
+  if (!appWindow) return;
   await appWindow.hide();
 };
 
@@ -63,8 +67,15 @@ const maximizeIcon = computed(() => {
   return isMaximized.value ? ScaleToOriginal : FullScreen;
 });
 
-// 初始化窗口状态
-checkMaximized();
+// 初始化窗口引用与状态
+onMounted(async () => {
+  try {
+    appWindow = getCurrentWindow();
+    await checkMaximized();
+  } catch (error) {
+    console.error("窗口操作错误:", error);
+  }
+});
 
 // 本地音乐封面
 const localCoverUrl = ref("");
@@ -254,7 +265,7 @@ const currentCoverUrl = computed(() => {
   } else if (localCoverUrl.value) {
     return localCoverUrl.value;
   }
-  
+
   // return null;
   return musicStore.getDefaultCoverUrl();
 });
@@ -379,7 +390,8 @@ watch(
               {{ currentArtistName || "未知歌手" }}
             </p>
           </div>
-        </div>        <div class="lyric-view-container">
+        </div>
+        <div class="lyric-view-container">
           <LyricView
             :currentSong="currentSong"
             :currentMusic="currentMusic"
@@ -395,11 +407,7 @@ watch(
           <el-button circle :icon="ArrowLeft" @click="emit('previous')" />
         </el-tooltip>
 
-        <el-tooltip
-          :content="isPlaying ? '暂停' : '播放'"
-          placement="top"
-          effect="dark"
-        >
+        <el-tooltip :content="isPlaying ? '暂停' : '播放'" placement="top" effect="dark">
           <el-button
             circle
             size="large"

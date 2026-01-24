@@ -65,9 +65,7 @@ const currentSongName = computed(() => {
   }
 
   // 否则显示本地歌曲信息
-  return props.currentMusic
-    ? getFileName(props.currentMusic.file_name)
-    : "未选择歌曲";
+  return props.currentMusic ? getFileName(props.currentMusic.file_name) : "未选择歌曲";
 });
 
 // 当前歌曲的实际标题（只显示"-"后面的部分）
@@ -173,12 +171,7 @@ watch(volume, () => {
         @click="enterImmersiveMode"
         :class="{ clickable: currentOnlineSong || currentMusic }"
       >
-        <img
-          v-if="coverUrl"
-          :src="coverUrl"
-          class="cover-image"
-          alt="Album Cover"
-        />
+        <img v-if="coverUrl" :src="coverUrl" class="cover-image" alt="Album Cover" />
         <div v-else class="no-cover">
           <el-icon
             style="

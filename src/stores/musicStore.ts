@@ -3,12 +3,7 @@ import { defineStore } from "pinia";
 import { invoke } from "@tauri-apps/api/core";
 // import { open } from "@tauri-apps/plugin-dialog";
 import { ElMessage } from "element-plus";
-import type {
-  MusicFile,
-  SongInfo,
-  SearchResult,
-  PlaySongResult,
-} from "../types/model";
+import type { MusicFile, SongInfo, SearchResult, PlaySongResult } from "../types/model";
 import { ViewMode, PlayMode } from "../types/model";
 
 export const useMusicStore = defineStore("music", () => {
@@ -581,11 +576,8 @@ export const useMusicStore = defineStore("music", () => {
   // 切换播放模式
   function togglePlayMode() {
     playMode.value =
-      playMode.value === PlayMode.SEQUENTIAL
-        ? PlayMode.RANDOM
-        : PlayMode.SEQUENTIAL;
-    const modeName =
-      playMode.value === PlayMode.SEQUENTIAL ? "顺序播放" : "随机播放";
+      playMode.value === PlayMode.SEQUENTIAL ? PlayMode.RANDOM : PlayMode.SEQUENTIAL;
+    const modeName = playMode.value === PlayMode.SEQUENTIAL ? "顺序播放" : "随机播放";
     ElMessage.success(`已切换到${modeName}模式`);
     console.log(`[播放控制] 播放模式已切换为: ${modeName}`);
   }
@@ -594,9 +586,7 @@ export const useMusicStore = defineStore("music", () => {
   function getRandomStep(): number {
     if (playMode.value === PlayMode.RANDOM) {
       const currentList =
-        viewMode.value === ViewMode.LOCAL
-          ? musicFiles.value
-          : onlineSongs.value;
+        viewMode.value === ViewMode.LOCAL ? musicFiles.value : onlineSongs.value;
       if (currentList.length <= 1) return 1;
 
       // 生成1到列表长度-1之间的随机数，避免返回0（不切换歌曲）
@@ -604,7 +594,7 @@ export const useMusicStore = defineStore("music", () => {
     }
     return 1; // 顺序播放返回默认步长
   }
-  
+
   // 获得默认的封面图片URL
   function getDefaultCoverUrl(): string {
     return "/icon-new.jpg";

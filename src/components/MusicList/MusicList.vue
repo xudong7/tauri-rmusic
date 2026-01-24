@@ -49,7 +49,7 @@ const isCurrentMusic = (music: MusicFile) => {
 
 // 双击行播放音乐
 function handleRowDblClick(row: MusicFile) {
-  emit('play', row);
+  emit("play", row);
 }
 </script>
 
@@ -65,9 +65,7 @@ function handleRowDblClick(row: MusicFile) {
       <el-table
         :data="musicFiles"
         style="width: 100%"
-        :row-class-name="
-          (row) => (isCurrentMusic(row) ? 'current-playing' : '')
-        "
+        :row-class-name="(row) => (isCurrentMusic(row) ? 'current-playing' : '')"
         height="100%"
         @row-dblclick="handleRowDblClick"
       >
@@ -87,10 +85,7 @@ function handleRowDblClick(row: MusicFile) {
 
         <el-table-column label="歌名" min-width="120">
           <template #default="{ row }">
-            <div
-              :class="{ 'playing-song': isCurrentMusic(row) }"
-              class="song-name"
-            >
+            <div :class="{ 'playing-song': isCurrentMusic(row) }" class="song-name">
               {{ extractSongTitle(getDisplayName(row.file_name)) }}
             </div>
           </template>
@@ -117,4 +112,3 @@ function handleRowDblClick(row: MusicFile) {
 </template>
 
 <style scoped src="./MusicList.css" />
-

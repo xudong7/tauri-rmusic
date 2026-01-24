@@ -4,8 +4,9 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB",
-    "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+  font-family:
+    "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "微软雅黑", Arial, sans-serif;
   overflow: hidden;
 }
 
@@ -32,7 +33,7 @@ html {
   --primary-button-hover-border: var(--el-color-primary-light-3);
   --primary-button-active-bg: var(--el-color-primary-dark-2);
   --primary-button-active-border: var(--el-color-primary-dark-2);
-  
+
   /* Success按钮（绿色按钮）*/
   --success-button-bg: var(--el-color-success);
   --success-button-text: var(--el-color-white);
@@ -41,7 +42,7 @@ html {
   --success-button-hover-border: var(--el-color-success-light-3);
   --success-button-active-bg: var(--el-color-success-dark-2);
   --success-button-active-border: var(--el-color-success-dark-2);
-  
+
   /* Info按钮（灰色按钮）*/
   --info-button-bg: var(--el-color-info);
   --info-button-text: var(--el-color-white);
@@ -50,7 +51,7 @@ html {
   --info-button-hover-border: var(--el-color-info-light-3);
   --info-button-active-bg: var(--el-color-info-dark-2);
   --info-button-active-border: var(--el-color-info-dark-2);
-  
+
   /* Default按钮（默认按钮）*/
   --default-button-bg: var(--el-fill-color-blank);
   --default-button-text: var(--el-text-color-regular);
@@ -97,7 +98,7 @@ html.dark {
   --primary-button-hover-text: #ffffff; /* 确保悬停时文字为纯白色 */
   --primary-button-active-bg: #1e5c3e; /* 点击时更深 */
   --primary-button-active-border: #1e5c3e;
-  
+
   /* Success按钮（同样使用绿色）*/
   --success-button-bg: var(--el-color-primary);
   --success-button-text: var(--el-color-white);
@@ -107,7 +108,7 @@ html.dark {
   --success-button-hover-text: #ffffff;
   --success-button-active-bg: #1e5c3e;
   --success-button-active-border: #1e5c3e;
-  
+
   /* Info按钮（灰色按钮）*/
   --info-button-bg: var(--el-fill-color-light);
   --info-button-text: var(--el-text-color-regular);
@@ -116,7 +117,7 @@ html.dark {
   --info-button-hover-border: #4a4a4a;
   --info-button-active-bg: #2f2f2f;
   --info-button-active-border: #2f2f2f;
-  
+
   /* Default按钮（默认按钮）*/
   --default-button-bg: var(--el-fill-color-blank);
   --default-button-text: var(--el-text-color-regular);

@@ -8,7 +8,8 @@ import { useMusicStore } from "@/stores/musicStore";
 const props = defineProps<{
   currentSong: SongInfo | null;
   currentMusic: MusicFile | null;
-  isPlaying: boolean;  currentTime?: number; // 从父组件传入的当前播放时间
+  isPlaying: boolean;
+  currentTime?: number; // 从父组件传入的当前播放时间
 }>();
 
 // 使用 musicStore
@@ -16,7 +17,8 @@ const musicStore = useMusicStore();
 
 // 监听当前播放时间变化
 watch(
-  () => props.currentTime,  (newTime) => {
+  () => props.currentTime,
+  (newTime) => {
     // 使用播放时间更新歌词
     if (newTime !== undefined && props.isPlaying && musicStore.isLoadingSong === false) {
       // 如果有外部传入的时间，直接使用并更新当前行
@@ -214,9 +216,7 @@ async function scrollToCurrentLine() {
       const itemHeight = activeItem.clientHeight;
 
       // 将当前行滚动到中间位置
-      lyricScrollRef.value.setScrollTop(
-        itemTop - containerHeight / 2 + itemHeight
-      );
+      lyricScrollRef.value.setScrollTop(itemTop - containerHeight / 2 + itemHeight);
     }
   }
 }
@@ -290,11 +290,7 @@ const lyricContainerClass = computed(() => {
   <div :class="lyricContainerClass">
     <div v-if="loading" class="lyric-loading">加载歌词中...</div>
     <div v-else-if="!lyricData.length" class="lyric-empty">暂无歌词</div>
-    <el-scrollbar
-      ref="lyricScrollRef"
-      height="100%"
-      view-class="lyric-scroll-view"
-    >
+    <el-scrollbar ref="lyricScrollRef" height="100%" view-class="lyric-scroll-view">
       <div class="lyric-lines">
         <!-- 顶部空白，确保第一行歌词可以滚动到中间 -->
         <div class="lyric-line lyric-placeholder"></div>

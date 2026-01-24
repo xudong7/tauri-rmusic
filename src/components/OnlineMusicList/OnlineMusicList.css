@@ -17,7 +17,7 @@
 }
 
 .list-title::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   top: 50%;
@@ -51,7 +51,8 @@
   background-color: var(--active-item-bg, rgba(64, 158, 255, 0.1));
 }
 
-.song-name, .ellipsis-text {
+.song-name,
+.ellipsis-text {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -80,9 +81,7 @@
   background-color: var(--el-bg-color);
 }
 
-:deep(
-    .el-table--enable-row-hover .el-table__body tr:hover > td.el-table__cell
-  ) {
+:deep(.el-table--enable-row-hover .el-table__body tr:hover > td.el-table__cell) {
   background-color: var(--hover-bg-color, #f5f7fa);
 }
 

@@ -63,10 +63,7 @@ const isCurrentSong = (song: SongInfo) => {
 
         <el-table-column label="歌名" min-width="120">
           <template #default="{ row }">
-            <div
-              :class="{ 'playing-song': isCurrentSong(row) }"
-              class="song-name"
-            >
+            <div :class="{ 'playing-song': isCurrentSong(row) }" class="song-name">
               {{ row.name }}
             </div>
           </template>
@@ -108,9 +105,7 @@ const isCurrentSong = (song: SongInfo) => {
       </el-table>
 
       <div v-if="totalCount > onlineSongs.length" class="load-more">
-        <el-button @click="emit('load-more')" type="primary" plain
-          >加载更多</el-button
-        >
+        <el-button @click="emit('load-more')" type="primary" plain>加载更多</el-button>
       </div>
     </el-scrollbar>
   </div>

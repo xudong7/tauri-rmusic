@@ -7,13 +7,13 @@ import {
   FullScreen,
   FolderOpened,
 } from "@element-plus/icons-vue";
-import { Window } from "@tauri-apps/api/window";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useMusicStore } from "@/stores/musicStore";
 import { enable, isEnabled, disable } from "@tauri-apps/plugin-autostart";
 
-// 窗口引用
-const appWindow = Window.getCurrent();
+// 窗口引用（在 onMounted 中初始化，避免 Tauri 未就绪时访问 metadata 报错）
+let appWindow: ReturnType<typeof getCurrentWindow> | null = null;
 const isMaximized = ref(false);
 
 // 使用 musicStore
@@ -50,10 +50,12 @@ const maximizeIcon = computed(() => {
 
 // 窗口控制函数
 const minimize = async () => {
+  if (!appWindow) return;
   await appWindow.minimize();
 };
 
 const toggleMaximize = async () => {
+  if (!appWindow) return;
   if (isMaximized.value) {
     await appWindow.unmaximize();
   } else {
@@ -63,6 +65,7 @@ const toggleMaximize = async () => {
 };
 
 const close = async () => {
+  if (!appWindow) return;
   await appWindow.close();
 };
 
@@ -124,6 +127,7 @@ const handleAutoStartChange = async (value: boolean) => {
 
 onMounted(async () => {
   try {
+    appWindow = getCurrentWindow();
     console.log("Settings window mounted");
     // 直接初始化 musicStore 和应用主题
     await musicStore.initialize();
@@ -158,11 +162,7 @@ onMounted(async () => {
       </div>
       <div class="header-right">
         <div class="window-controls">
-          <div
-            class="header-button window-button"
-            @click="minimize"
-            title="最小化"
-          >
+          <div class="header-button window-button" @click="minimize" title="最小化">
             <el-icon><Minus /></el-icon>
           </div>
           <div
@@ -172,11 +172,7 @@ onMounted(async () => {
           >
             <el-icon><component :is="maximizeIcon" /></el-icon>
           </div>
-          <div
-            class="header-button window-button close"
-            @click="close"
-            title="关闭"
-          >
+          <div class="header-button window-button close" @click="close" title="关闭">
             <el-icon><Close /></el-icon>
           </div>
         </div>
@@ -216,21 +212,11 @@ onMounted(async () => {
         <div class="setting-item">
           <label>下载位置</label>
           <div class="download-path-container">
-            <el-input
-              v-model="downloadPath"
-              placeholder="选择下载位置"
-              readonly
-            />
-            <el-button
-              @click="selectDownloadPath"
-              :icon="FolderOpened"
-              type="primary"
-            >
+            <el-input v-model="downloadPath" placeholder="选择下载位置" readonly />
+            <el-button @click="selectDownloadPath" :icon="FolderOpened" type="primary">
               浏览
             </el-button>
-            <el-button @click="resetDownloadPath" type="default">
-              重置
-            </el-button>
+            <el-button @click="resetDownloadPath" type="default"> 重置 </el-button>
           </div>
         </div>
       </div>

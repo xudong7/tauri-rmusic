@@ -320,7 +320,9 @@ onUnmounted(() => {
   overflow: hidden; /* 防止出现滑动条 */
   color: var(--el-text-color-primary);
   background-color: var(--el-bg-color);
-  transition: background-color 0.3s, color 0.3s;
+  transition:
+    background-color 0.3s,
+    color 0.3s;
 }
 
 .main-content {
