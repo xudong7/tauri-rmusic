@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { CaretRight, VideoPause, Headset, Upload } from "@element-plus/icons-vue";
 import type { MusicFile } from "@/types/model";
 import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
+
+const { t } = useI18n();
 
 const props = withDefaults(
   defineProps<{
@@ -25,7 +28,7 @@ function handleRowDblClick(row: MusicFile) {
 <template>
   <div class="music-list-container">
     <div class="list-header">
-      <h2 class="list-title">音乐列表</h2>
+      <h2 class="list-title">{{ t("musicList.title") }}</h2>
       <el-button
         v-if="showImportButton"
         type="primary"
@@ -34,12 +37,12 @@ function handleRowDblClick(row: MusicFile) {
         class="import-btn"
         @click="emit('import')"
       >
-        导入音乐
+        {{ t("musicList.import") }}
       </el-button>
     </div>
 
     <div v-if="musicFiles.length === 0" class="empty-list">
-      <el-empty description="暂无音乐，点击「导入音乐」添加" />
+      <el-empty :description="t('musicList.empty')" />
     </div>
 
     <el-scrollbar v-else class="list-scroll">
@@ -71,7 +74,10 @@ function handleRowDblClick(row: MusicFile) {
               {{ extractSongTitle(getDisplayName(row.file_name)) }}
             </div>
             <div class="song-artist">
-              {{ extractArtistName(getDisplayName(row.file_name)) || "未知歌手" }}
+              {{
+                extractArtistName(getDisplayName(row.file_name)) ||
+                t("common.unknownArtist")
+              }}
             </div>
           </div>
         </div>

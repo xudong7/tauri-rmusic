@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onUnmounted, onMounted } from "vue";
+import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { ElScrollbar } from "element-plus";
 import type { SongInfo, MusicFile } from "@/types/model";
 import { useMusicStore } from "@/stores/musicStore";
+
+const { t } = useI18n();
 
 const props = defineProps<{
   currentSong: SongInfo | null;
@@ -142,11 +145,11 @@ async function loadLyric(song: SongInfo) {
       // 解析歌词
       lyricData.value = parseLyric(lyricContent);
     } else {
-      lyricData.value = [{ time: 0, text: "暂无歌词" }];
+      lyricData.value = [{ time: 0, text: t("lyric.noLyric") }];
     }
   } catch (error) {
     console.error("加载歌词失败:", error);
-    lyricData.value = [{ time: 0, text: "歌词加载失败" }];
+    lyricData.value = [{ time: 0, text: t("lyric.loadFailed") }];
   } finally {
     loading.value = false;
   }
@@ -170,11 +173,11 @@ async function loadLocalLyric(music: MusicFile) {
       // 解析歌词
       lyricData.value = parseLyric(lyricContent as string);
     } else {
-      lyricData.value = [{ time: 0, text: "暂无歌词" }];
+      lyricData.value = [{ time: 0, text: t("lyric.noLyric") }];
     }
   } catch (error) {
     console.error("加载本地歌词失败:", error);
-    lyricData.value = [{ time: 0, text: "歌词加载失败" }];
+    lyricData.value = [{ time: 0, text: t("lyric.loadFailed") }];
   } finally {
     loading.value = false;
   }
@@ -288,8 +291,8 @@ const lyricContainerClass = computed(() => {
 
 <template>
   <div :class="lyricContainerClass">
-    <div v-if="loading" class="lyric-loading">加载歌词中...</div>
-    <div v-else-if="!lyricData.length" class="lyric-empty">暂无歌词</div>
+    <div v-if="loading" class="lyric-loading">{{ t("lyric.loading") }}</div>
+    <div v-else-if="!lyricData.length" class="lyric-empty">{{ t("lyric.noLyric") }}</div>
     <el-scrollbar ref="lyricScrollRef" height="100%" view-class="lyric-scroll-view">
       <div class="lyric-lines">
         <!-- 顶部空白，确保第一行歌词可以滚动到中间 -->

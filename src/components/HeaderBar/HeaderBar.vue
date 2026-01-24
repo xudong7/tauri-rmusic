@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { useI18n } from "vue-i18n";
 import {
   Search,
   Moon,
@@ -11,6 +12,8 @@ import {
 } from "@element-plus/icons-vue";
 import { ViewMode } from "@/types/model";
 import { useWindowControls } from "@/composables/useWindowControls";
+
+const { t } = useI18n();
 
 const props = defineProps<{
   viewMode: ViewMode;
@@ -44,7 +47,9 @@ function toggleTheme() {
         <el-input
           v-model="searchKeyword"
           :placeholder="
-            viewMode === ViewMode.LOCAL ? '搜索本地歌曲...' : '搜索在线歌曲...'
+            viewMode === ViewMode.LOCAL
+              ? t('search.placeholderLocal')
+              : t('search.placeholderOnline')
           "
           class="search-input search-pill"
           @keyup.enter="handleSearch"
@@ -61,23 +66,31 @@ function toggleTheme() {
         <div
           class="header-button window-button"
           @click="toggleTheme"
-          :title="isDarkMode ? '切换到亮色模式' : '切换到暗色模式'"
+          :title="isDarkMode ? t('header.switchToLight') : t('header.switchToDark')"
         >
           <el-icon>
             <component :is="isDarkMode ? Moon : Sunny" />
           </el-icon>
         </div>
-        <div class="header-button window-button" @click="minimize" title="最小化">
+        <div
+          class="header-button window-button"
+          @click="minimize"
+          :title="t('header.minimize')"
+        >
           <el-icon><Minus /></el-icon>
         </div>
         <div
           class="header-button window-button"
           @click="toggleMaximize"
-          :title="isMaximized ? '还原' : '最大化'"
+          :title="isMaximized ? t('header.restore') : t('header.maximize')"
         >
           <el-icon><component :is="maximizeIcon" /></el-icon>
         </div>
-        <div class="header-button window-button close" @click="close" title="关闭">
+        <div
+          class="header-button window-button close"
+          @click="close"
+          :title="t('header.close')"
+        >
           <el-icon><Close /></el-icon>
         </div>
       </div>

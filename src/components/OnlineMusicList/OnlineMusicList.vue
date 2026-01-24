@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { CaretRight, VideoPause, Download, Headset } from "@element-plus/icons-vue";
 import type { SongInfo } from "@/types/model";
 import { formatDuration, formatArtists } from "@/utils/songUtils";
+
+const { t } = useI18n();
 
 const props = defineProps<{
   onlineSongs: SongInfo[];
@@ -19,7 +22,7 @@ const isCurrentSong = (s: SongInfo) => props.currentSong?.id === s.id;
 <template>
   <div class="online-music-list-container">
     <div class="list-header">
-      <h2 class="list-title">在线音乐</h2>
+      <h2 class="list-title">{{ t("onlineMusic.title") }}</h2>
     </div>
 
     <div v-if="loading" class="loading-container">
@@ -27,7 +30,7 @@ const isCurrentSong = (s: SongInfo) => props.currentSong?.id === s.id;
     </div>
 
     <div v-else-if="onlineSongs.length === 0" class="empty-list">
-      <el-empty description="搜索歌曲开始播放" />
+      <el-empty :description="t('onlineMusic.empty')" />
     </div>
 
     <el-scrollbar v-else class="list-scroll">
@@ -75,7 +78,9 @@ const isCurrentSong = (s: SongInfo) => props.currentSong?.id === s.id;
         </div>
       </div>
       <div v-if="totalCount > onlineSongs.length" class="load-more">
-        <el-button @click="emit('load-more')" type="primary" plain>加载更多</el-button>
+        <el-button @click="emit('load-more')" type="primary" plain>{{
+          t("onlineMusic.loadMore")
+        }}</el-button>
       </div>
     </el-scrollbar>
   </div>

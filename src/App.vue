@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, watch, computed } from "vue";
+import { useI18n } from "vue-i18n";
+import zhCn from "element-plus/es/locale/lang/zh-cn";
+import en from "element-plus/es/locale/lang/en";
+import { ElConfigProvider } from "element-plus";
 import HeaderBar from "./components/HeaderBar/HeaderBar.vue";
 import Sidebar from "./components/Sidebar/Sidebar.vue";
 import PlayerBar from "./components/PlayerBar/PlayerBar.vue";
@@ -7,6 +11,9 @@ import ImmersiveView from "./components/ImmersiveView/ImmersiveView.vue";
 import { useMusicStore } from "./stores/musicStore";
 import { ViewMode } from "./types/model";
 import { usePlaybackDetector } from "./composables/usePlaybackDetector";
+
+const { locale } = useI18n();
+const elementLocale = computed(() => (locale.value === "zh" ? zhCn : en));
 
 const musicStore = useMusicStore();
 const { start: detectorStart, stop: detectorStop } = usePlaybackDetector(
@@ -77,48 +84,50 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div
-    class="music-app"
-    :class="{ 'dark-theme': musicStore.isDarkMode }"
-    @contextmenu.prevent
-  >
-    <HeaderBar
-      :viewMode="musicStore.viewMode"
-      :isDarkMode="musicStore.isDarkMode"
-      @search="handleSearch"
-      @toggle-theme="musicStore.toggleTheme"
-    />
-    <div class="app-body">
-      <Sidebar />
-      <div class="main-content">
-        <router-view />
+  <el-config-provider :locale="elementLocale">
+    <div
+      class="music-app"
+      :class="{ 'dark-theme': musicStore.isDarkMode }"
+      @contextmenu.prevent
+    >
+      <HeaderBar
+        :viewMode="musicStore.viewMode"
+        :isDarkMode="musicStore.isDarkMode"
+        @search="handleSearch"
+        @toggle-theme="musicStore.toggleTheme"
+      />
+      <div class="app-body">
+        <Sidebar />
+        <div class="main-content">
+          <router-view />
+        </div>
       </div>
-    </div>
-    <PlayerBar
-      :currentMusic="musicStore.currentMusic"
-      :currentOnlineSong="musicStore.currentOnlineSong"
-      :isPlaying="musicStore.isPlaying"
-      :playMode="musicStore.playMode"
-      @toggle-play="musicStore.togglePlay"
-      @volume-change="musicStore.adjustVolume"
-      @previous="musicStore.playNextOrPreviousMusic(-musicStore.getPlayStep(-1))"
-      @next="musicStore.playNextOrPreviousMusic(musicStore.getPlayStep(1))"
-      @toggle-play-mode="musicStore.togglePlayMode"
-      @show-immersive="musicStore.showImmersive"
-    />
+      <PlayerBar
+        :currentMusic="musicStore.currentMusic"
+        :currentOnlineSong="musicStore.currentOnlineSong"
+        :isPlaying="musicStore.isPlaying"
+        :playMode="musicStore.playMode"
+        @toggle-play="musicStore.togglePlay"
+        @volume-change="musicStore.adjustVolume"
+        @previous="musicStore.playNextOrPreviousMusic(-musicStore.getPlayStep(-1))"
+        @next="musicStore.playNextOrPreviousMusic(musicStore.getPlayStep(1))"
+        @toggle-play-mode="musicStore.togglePlayMode"
+        @show-immersive="musicStore.showImmersive"
+      />
 
-    <ImmersiveView
-      v-if="musicStore.showImmersiveMode"
-      :currentSong="musicStore.currentOnlineSong"
-      :currentMusic="musicStore.currentMusic"
-      :isPlaying="musicStore.isPlaying"
-      :currentTime="musicStore.currentPlayTime"
-      @toggle-play="musicStore.togglePlay"
-      @next="musicStore.playNextOrPreviousMusic(musicStore.getPlayStep(1))"
-      @previous="musicStore.playNextOrPreviousMusic(-musicStore.getPlayStep(-1))"
-      @exit="musicStore.exitImmersive"
-    />
-  </div>
+      <ImmersiveView
+        v-if="musicStore.showImmersiveMode"
+        :currentSong="musicStore.currentOnlineSong"
+        :currentMusic="musicStore.currentMusic"
+        :isPlaying="musicStore.isPlaying"
+        :currentTime="musicStore.currentPlayTime"
+        @toggle-play="musicStore.togglePlay"
+        @next="musicStore.playNextOrPreviousMusic(musicStore.getPlayStep(1))"
+        @previous="musicStore.playNextOrPreviousMusic(-musicStore.getPlayStep(-1))"
+        @exit="musicStore.exitImmersive"
+      />
+    </div>
+  </el-config-provider>
 </template>
 
 <style>
