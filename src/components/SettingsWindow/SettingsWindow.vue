@@ -1,25 +1,19 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from "vue";
+import { ref, onMounted, watch } from "vue";
 import {
-  Close,
-  Minus,
-  ScaleToOriginal,
-  FullScreen,
   FolderOpened,
+  Brush,
+  CircleCheck,
+  Download,
+  InfoFilled,
 } from "@element-plus/icons-vue";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useMusicStore } from "@/stores/musicStore";
 import { enable, isEnabled, disable } from "@tauri-apps/plugin-autostart";
-import { useWindowControls } from "@/composables/useWindowControls";
 
 const musicStore = useMusicStore();
 const downloadPath = ref("");
 const autoStartEnabled = ref(false);
-
-const { isMaximized, minimize, toggleMaximize, close } = useWindowControls({
-  onClose: "close",
-});
-const maximizeIcon = computed(() => (isMaximized.value ? ScaleToOriginal : FullScreen));
 
 watch(
   () => musicStore.isDarkMode,
@@ -108,34 +102,12 @@ onMounted(async () => {
 
 <template>
   <div class="settings-window">
-    <!-- 自定义标题栏 -->
-    <div class="settings-header">
-      <div class="header-left">
-        <div class="settings-title">设置</div>
-      </div>
-      <div class="header-right">
-        <div class="window-controls">
-          <div class="header-button window-button" @click="minimize" title="最小化">
-            <el-icon><Minus /></el-icon>
-          </div>
-          <div
-            class="header-button window-button"
-            @click="toggleMaximize"
-            :title="isMaximized ? '还原' : '最大化'"
-          >
-            <el-icon><component :is="maximizeIcon" /></el-icon>
-          </div>
-          <div class="header-button window-button close" @click="close" title="关闭">
-            <el-icon><Close /></el-icon>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 设置内容区域 -->
     <div class="settings-content">
+      <h2 class="settings-page-title">设置</h2>
       <div class="settings-section">
-        <h3>外观设置</h3>
+        <h3 class="section-title">
+          <el-icon><Brush /></el-icon> 外观设置
+        </h3>
         <div class="setting-item">
           <label>主题模式</label>
           <el-switch
@@ -148,7 +120,9 @@ onMounted(async () => {
       </div>
 
       <div class="settings-section">
-        <h3>应用设置</h3>
+        <h3 class="section-title">
+          <el-icon><CircleCheck /></el-icon> 应用设置
+        </h3>
         <div class="setting-item">
           <label>开机自启动</label>
           <el-switch
@@ -161,11 +135,18 @@ onMounted(async () => {
       </div>
 
       <div class="settings-section">
-        <h3>下载设置</h3>
+        <h3 class="section-title">
+          <el-icon><Download /></el-icon> 下载设置
+        </h3>
         <div class="setting-item">
           <label>下载位置</label>
           <div class="download-path-container">
-            <el-input v-model="downloadPath" placeholder="选择下载位置" readonly />
+            <el-input
+              v-model="downloadPath"
+              placeholder="选择下载位置"
+              readonly
+              class="download-path-input"
+            />
             <el-button @click="selectDownloadPath" :icon="FolderOpened" type="primary">
               浏览
             </el-button>
@@ -174,11 +155,13 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div class="settings-section">
-        <h3>关于</h3>
-        <div class="setting-item">
-          <p>RMusic v1.0.0</p>
-          <p>一个基于 Tauri 和 Vue 的音乐播放器</p>
+      <div class="settings-section settings-about">
+        <h3 class="section-title">
+          <el-icon><InfoFilled /></el-icon> 关于
+        </h3>
+        <div class="setting-item about-content">
+          <p class="about-version">RMusic v1.0.0</p>
+          <p class="about-desc">一个基于 Tauri 和 Vue 的音乐播放器</p>
         </div>
       </div>
     </div>

@@ -7,11 +7,9 @@ import {
   Minus,
   FullScreen,
   ScaleToOriginal,
-  Setting,
   Close,
 } from "@element-plus/icons-vue";
 import { ViewMode } from "@/types/model";
-import { createSettingsWindow } from "@/utils/settingsWindow";
 import { useWindowControls } from "@/composables/useWindowControls";
 
 const props = defineProps<{
@@ -29,14 +27,6 @@ const maximizeIcon = computed(() => (isMaximized.value ? ScaleToOriginal : FullS
 
 function handleSearch() {
   emit("search", searchKeyword.value);
-}
-
-async function openSettingWindow() {
-  try {
-    await createSettingsWindow();
-  } catch (e) {
-    console.error("打开设置窗口失败:", e);
-  }
 }
 
 function toggleTheme() {
@@ -76,9 +66,6 @@ function toggleTheme() {
           <el-icon>
             <component :is="isDarkMode ? Moon : Sunny" />
           </el-icon>
-        </div>
-        <div class="header-button window-button" @click="openSettingWindow" title="设置">
-          <el-icon><Setting /></el-icon>
         </div>
         <div class="header-button window-button" @click="minimize" title="最小化">
           <el-icon><Minus /></el-icon>

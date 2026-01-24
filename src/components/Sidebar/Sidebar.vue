@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { useRouter, useRoute } from "vue-router";
-import { Folder, Search } from "@element-plus/icons-vue";
+import { Folder, Search, Setting } from "@element-plus/icons-vue";
 const router = useRouter();
 const route = useRoute();
 
 const navItems = [
   { path: "/", name: "LocalMusic", label: "本地音乐", icon: Folder },
   { path: "/online", name: "OnlineMusic", label: "在线搜索", icon: Search },
+  { path: "/settings", name: "Settings", label: "设置", icon: Setting },
 ];
 
 function isActive(item: (typeof navItems)[0]) {

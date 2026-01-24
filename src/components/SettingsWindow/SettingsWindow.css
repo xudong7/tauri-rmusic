@@ -1,159 +1,63 @@
 .settings-window {
-  height: 100vh;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  background: var(--app-page-bg, var(--el-bg-color));
+  background: transparent;
   overflow: hidden;
 }
 
-.settings-header {
-  height: 52px;
-  background: var(--header-bg-color);
-  backdrop-filter: blur(var(--app-glass-blur));
-  -webkit-backdrop-filter: blur(var(--app-glass-blur));
-  border-bottom: 1px solid var(--app-header-border);
-  box-shadow: var(--app-header-shadow, none);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 var(--app-spacing);
-  user-select: none;
-  -webkit-app-region: drag;
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
-  position: relative;
-  z-index: 1000;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  -webkit-app-region: drag;
-}
-
-.settings-title {
-  font-size: 16px;
+.settings-page-title {
+  margin: 0 0 var(--app-spacing-lg) 0;
+  font-size: 24px;
   font-weight: 600;
+  letter-spacing: -0.02em;
   color: var(--el-text-color-primary);
-  -webkit-app-region: drag;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  -webkit-app-region: no-drag;
-}
-
-.window-controls {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.header-button {
-  -webkit-app-region: no-drag;
-  border-radius: var(--app-radius-md);
-  transition:
-    color 0.2s ease,
-    background 0.2s ease,
-    transform 0.2s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.window-button {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  border-radius: var(--app-radius-full, 50%);
-  position: relative;
-  overflow: hidden;
-  color: var(--el-text-color-secondary);
-  transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
-}
-
-.window-button:after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: var(--el-color-primary-light-9);
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  z-index: -1;
-  border-radius: inherit;
-}
-
-.window-button:hover {
-  color: var(--el-color-primary);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
-}
-
-.window-button:hover:after {
-  opacity: 0.8;
-}
-
-.window-button:active {
-  transform: translateY(0);
-  box-shadow: none;
-}
-
-.window-button .el-icon {
-  font-size: 14px;
-  transition: all 0.2s ease;
-}
-
-.window-button.close {
-  color: var(--el-text-color-secondary);
-}
-
-.window-button.close:hover {
-  color: white;
-  background-color: #f56c6c;
-  box-shadow: 0 2px 5px rgba(245, 108, 108, 0.3);
-}
-
-.window-button.close:hover:after {
-  opacity: 0;
 }
 
 .settings-content {
   flex: 1;
   padding: var(--app-spacing-lg);
+  padding-bottom: var(--app-spacing-xl);
   overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
 }
+
+/* 滚动条与音乐列表一致，使用 themes.css 全局样式（6px、透明轨道、灰色滑块） */
 
 .settings-section {
   margin-bottom: var(--app-spacing-lg);
-  padding: var(--app-spacing);
+  padding: var(--app-spacing-lg);
   background: var(--app-card-bg, var(--el-bg-color-overlay));
-  border-radius: var(--app-radius-lg);
+  border-radius: var(--app-radius-xl);
   border: 1px solid var(--el-border-color-lighter);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease;
 }
 
 .settings-section:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
   border-color: var(--el-color-primary-light-8);
 }
 
-.settings-section h3 {
-  margin: 0 0 16px 0;
-  font-size: 18px;
+.settings-section .section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 18px 0;
+  font-size: 17px;
   font-weight: 600;
   color: var(--el-text-color-primary);
-  border-bottom: 2px solid var(--el-color-primary-light-8);
-  padding-bottom: 8px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  padding-bottom: 10px;
+}
+
+.settings-section .section-title .el-icon {
+  font-size: 18px;
+  color: var(--el-color-primary);
 }
 
 .setting-item {
@@ -161,7 +65,8 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
-  padding: 12px 0;
+  padding: 14px 0;
+  gap: 16px;
 }
 
 .setting-item:last-child {
@@ -181,24 +86,41 @@
   font-size: 14px;
 }
 
+/* 关于区块 */
+.settings-about .about-content {
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 8px 0 4px;
+}
+
+.about-version {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  color: var(--el-text-color-primary) !important;
+  margin: 0 0 6px 0 !important;
+}
+
+.about-desc {
+  font-size: 13px !important;
+  color: var(--el-text-color-secondary) !important;
+  margin: 0 !important;
+}
+
+/* 下载路径输入框 */
+.download-path-container .download-path-input {
+  --el-input-hover-border-color: var(--el-border-color);
+  --el-input-focus-border-color: var(--el-color-primary);
+}
+
+.download-path-container .download-path-input :deep(.el-input__wrapper) {
+  border-radius: var(--app-radius-md);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
 /* 深色模式适配 */
 .dark .settings-window,
 html.dark .settings-window {
-  background: var(--el-bg-color);
   color: var(--el-text-color-primary);
-}
-
-.dark .settings-header,
-html.dark .settings-header {
-  background-color: rgba(28, 28, 32, 0.95);
-  color: var(--el-text-color-primary);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  border-bottom: 1px solid rgba(60, 60, 70, 0.5);
-}
-
-.dark .settings-content,
-html.dark .settings-content {
-  background: var(--el-bg-color);
 }
 
 .dark .settings-section,
@@ -214,10 +136,15 @@ html.dark .settings-section:hover {
   border-color: var(--el-color-primary);
 }
 
-.dark .settings-section h3,
-html.dark .settings-section h3 {
+.dark .settings-section .section-title,
+html.dark .settings-section .section-title {
   color: var(--el-text-color-primary);
-  border-bottom: 2px solid var(--el-color-primary);
+  border-bottom-color: var(--el-border-color);
+}
+
+.dark .settings-section .section-title .el-icon,
+html.dark .settings-section .section-title .el-icon {
+  color: var(--el-color-primary);
 }
 
 .dark .setting-item label,
@@ -228,41 +155,6 @@ html.dark .setting-item label {
 .dark .setting-item p,
 html.dark .setting-item p {
   color: var(--el-text-color-secondary);
-}
-
-/* 滚动条样式 */
-.settings-content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.settings-content::-webkit-scrollbar-track {
-  background: var(--el-bg-color-page);
-}
-
-.settings-content::-webkit-scrollbar-thumb {
-  background: var(--el-border-color);
-  border-radius: 3px;
-  transition: background 0.3s ease;
-}
-
-.settings-content::-webkit-scrollbar-thumb:hover {
-  background: var(--el-border-color-darker);
-}
-
-/* 深色模式滚动条样式 */
-.dark .settings-content::-webkit-scrollbar-track,
-html.dark .settings-content::-webkit-scrollbar-track {
-  background: var(--el-bg-color);
-}
-
-.dark .settings-content::-webkit-scrollbar-thumb,
-html.dark .settings-content::-webkit-scrollbar-thumb {
-  background: #555;
-}
-
-.dark .settings-content::-webkit-scrollbar-thumb:hover,
-html.dark .settings-content::-webkit-scrollbar-thumb:hover {
-  background: #666;
 }
 
 /* 下载路径容器样式 */
