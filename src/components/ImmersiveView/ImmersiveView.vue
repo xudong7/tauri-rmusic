@@ -305,10 +305,7 @@ const overlayStyle = computed(() => {
     opacity = 0.6;
   }
   return {
-    background: `linear-gradient(to bottom, 
-      rgba(0, 0, 0, ${opacity * 0.6}) 0%, 
-      rgba(0, 0, 0, ${opacity * 0.8}) 50%,
-      rgba(0, 0, 0, ${opacity * 0.9}) 100%)`,
+    background: `rgba(0, 0, 0, ${opacity * 0.8})`,
   };
 });
 

@@ -165,104 +165,105 @@ watch(volume, () => {
 
 <template>
   <div class="player-bar">
-    <div class="player-left">
-      <div
-        class="cover-container"
-        @click="enterImmersiveMode"
-        :class="{ clickable: currentOnlineSong || currentMusic }"
-      >
-        <img v-if="coverUrl" :src="coverUrl" class="cover-image" alt="Album Cover" />
-        <div v-else class="no-cover">
-          <el-icon
-            style="
-              width: 100%;
-              height: 100%;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            "
-          >
-            <Headset />
-          </el-icon>
+    <div class="player-row">
+      <div class="player-left">
+        <div
+          class="cover-container"
+          @click="enterImmersiveMode"
+          :class="{ clickable: currentOnlineSong || currentMusic }"
+        >
+          <img v-if="coverUrl" :src="coverUrl" class="cover-image" alt="Album Cover" />
+          <div v-else class="no-cover">
+            <el-icon
+              style="
+                width: 100%;
+                height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              "
+            >
+              <Headset />
+            </el-icon>
+          </div>
+        </div>
+        <div class="song-info">
+          <div class="song-name" :title="songTitle">{{ songTitle }}</div>
+          <div v-if="currentArtist" class="artist-name" :title="currentArtist">
+            {{ currentArtist }}
+          </div>
         </div>
       </div>
 
-      <div class="song-info">
-        <div class="song-name" :title="songTitle">{{ songTitle }}</div>
-        <div v-if="currentArtist" class="artist-name" :title="currentArtist">
-          {{ currentArtist }}
-        </div>
+      <div class="player-controls">
+        <el-tooltip
+          content="上一曲"
+          placement="top"
+          effect="light"
+          :disabled="!currentMusic && !currentOnlineSong"
+        >
+          <el-button
+            circle
+            :icon="ArrowLeft"
+            :disabled="!currentMusic && !currentOnlineSong"
+            @click="emit('previous')"
+          />
+        </el-tooltip>
+
+        <el-tooltip
+          :content="isPlaying ? '暂停' : '播放'"
+          placement="top"
+          effect="light"
+          :disabled="!currentMusic && !currentOnlineSong"
+        >
+          <el-button
+            circle
+            size="large"
+            :icon="isPlaying ? VideoPause : VideoPlay"
+            :disabled="!currentMusic && !currentOnlineSong"
+            @click="emit('toggle-play')"
+            type="primary"
+          />
+        </el-tooltip>
+
+        <el-tooltip
+          content="下一曲"
+          placement="top"
+          effect="light"
+          :disabled="!currentMusic && !currentOnlineSong"
+        >
+          <el-button
+            circle
+            :icon="ArrowRight"
+            :disabled="!currentMusic && !currentOnlineSong"
+            @click="emit('next')"
+          />
+        </el-tooltip>
       </div>
-    </div>
 
-    <div class="player-controls">
-      <el-tooltip
-        content="上一曲"
-        placement="top"
-        effect="light"
-        :disabled="!currentMusic && !currentOnlineSong"
-      >
-        <el-button
-          circle
-          :icon="ArrowLeft"
-          :disabled="!currentMusic && !currentOnlineSong"
-          @click="emit('previous')"
+      <div class="volume-control">
+        <el-slider
+          v-model="volume"
+          :max="100"
+          :min="0"
+          :step="1"
+          show-tooltip
+          height="6px"
+          style="width: 120px"
         />
-      </el-tooltip>
-
-      <el-tooltip
-        :content="isPlaying ? '暂停' : '播放'"
-        placement="top"
-        effect="light"
-        :disabled="!currentMusic && !currentOnlineSong"
-      >
-        <el-button
-          circle
-          size="large"
-          :icon="isPlaying ? VideoPause : VideoPlay"
-          :disabled="!currentMusic && !currentOnlineSong"
-          @click="emit('toggle-play')"
-          type="primary"
-        />
-      </el-tooltip>
-
-      <el-tooltip
-        content="下一曲"
-        placement="top"
-        effect="light"
-        :disabled="!currentMusic && !currentOnlineSong"
-      >
-        <el-button
-          circle
-          :icon="ArrowRight"
-          :disabled="!currentMusic && !currentOnlineSong"
-          @click="emit('next')"
-        />
-      </el-tooltip>
-    </div>
-
-    <div class="volume-control">
-      <el-slider
-        v-model="volume"
-        :max="100"
-        :min="0"
-        :step="1"
-        show-tooltip
-        height="6px"
-        style="width: 120px"
-      />
-      <el-tooltip
-        :content="playMode === PlayMode.SEQUENTIAL ? '顺序播放' : '随机播放'"
-        placement="top"
-        effect="light"
-      >
-        <el-button
-          circle
-          :icon="playMode === PlayMode.SEQUENTIAL ? Sort : Refresh"
-          @click="emit('toggle-play-mode')"
-          :type="playMode === PlayMode.RANDOM ? 'default' : 'default'"
-        />
-      </el-tooltip>
+        <el-tooltip
+          :content="playMode === PlayMode.SEQUENTIAL ? '顺序播放' : '随机播放'"
+          placement="top"
+          effect="light"
+        >
+          <el-button
+            circle
+            :icon="playMode === PlayMode.SEQUENTIAL ? Sort : Refresh"
+            @click="emit('toggle-play-mode')"
+            :type="playMode === PlayMode.RANDOM ? 'default' : 'default'"
+          />
+        </el-tooltip>
+      </div>
     </div>
   </div>
 </template>

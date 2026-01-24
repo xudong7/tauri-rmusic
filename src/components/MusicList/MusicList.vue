@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CaretRight, VideoPause } from "@element-plus/icons-vue";
+import { CaretRight, VideoPause, Headset } from "@element-plus/icons-vue";
 import type { MusicFile } from "../../types/model";
 
 const props = defineProps<{
@@ -10,44 +10,30 @@ const props = defineProps<{
 
 const emit = defineEmits(["play"]);
 
-// 获取文件名（不含路径）
 function getFileName(path: string): string {
   const parts = path.split(/[\/\\]/);
   return parts[parts.length - 1];
 }
 
-// 获取不带扩展名的文件名
 function getDisplayName(path: string): string {
-  const fileName = getFileName(path);
-  return fileName.replace(/\.[^/.]+$/, "");
+  return getFileName(path).replace(/\.[^/.]+$/, "");
 }
 
-// 从歌曲名中提取"-"前面的部分（歌手名）
 function extractArtistName(fullName: string): string {
   if (!fullName) return "未知歌手";
   const match = fullName.match(/^(.+?)\s*-\s*.+$/);
   return match ? match[1].trim() : "未知歌手";
 }
 
-// 从歌曲名中提取"-"后面的部分
 function extractSongTitle(fullName: string): string {
   if (!fullName) return "未知歌曲";
   const match = fullName.match(/\s*-\s*(.+)$/);
   return match ? match[1].trim() : fullName;
 }
 
-// 获取美化后的显示名称
-function getFormattedName(path: string): string {
-  const displayName = getDisplayName(path);
-  return extractSongTitle(displayName);
-}
+const isCurrentMusic = (music: MusicFile) =>
+  props.currentMusic != null && props.currentMusic.id === music.id;
 
-// 是否为当前播放的歌曲
-const isCurrentMusic = (music: MusicFile) => {
-  return props.currentMusic && props.currentMusic.id === music.id;
-};
-
-// 双击行播放音乐
 function handleRowDblClick(row: MusicFile) {
   emit("play", row);
 }
@@ -58,55 +44,43 @@ function handleRowDblClick(row: MusicFile) {
     <h2 class="list-title">音乐列表</h2>
 
     <div v-if="musicFiles.length === 0" class="empty-list">
-      <el-empty description="暂无音乐文件" />
+      <el-empty description="暂无音乐，点击「导入音乐」添加" />
     </div>
 
-    <el-scrollbar v-else class="music-scrollbar">
-      <el-table
-        :data="musicFiles"
-        style="width: 100%"
-        :row-class-name="(row) => (isCurrentMusic(row) ? 'current-playing' : '')"
-        height="100%"
-        @row-dblclick="handleRowDblClick"
-      >
-        <el-table-column width="60">
-          <template #default="{ row }">
+    <el-scrollbar v-else class="list-scroll">
+      <div class="list-rows">
+        <div
+          v-for="row in musicFiles"
+          :key="row.id"
+          class="list-row"
+          :class="{ 'is-current': isCurrentMusic(row) }"
+          :title="row.file_name"
+          @dblclick="handleRowDblClick(row)"
+        >
+          <div class="col-play">
             <el-button
               circle
               size="small"
-              @click="emit('play', row)"
               :type="isCurrentMusic(row) ? 'primary' : 'default'"
               :icon="isCurrentMusic(row) && isPlaying ? VideoPause : CaretRight"
+              @click="emit('play', row)"
             />
-          </template>
-        </el-table-column>
-
-        <el-table-column label="ID" prop="id" width="60" />
-
-        <el-table-column label="歌名" min-width="120">
-          <template #default="{ row }">
-            <div :class="{ 'playing-song': isCurrentMusic(row) }" class="song-name">
+          </div>
+          <div class="col-cover">
+            <div class="cover-placeholder">
+              <el-icon><Headset /></el-icon>
+            </div>
+          </div>
+          <div class="col-main">
+            <div class="song-title" :class="{ 'is-playing': isCurrentMusic(row) }">
               {{ extractSongTitle(getDisplayName(row.file_name)) }}
             </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="歌手" min-width="150">
-          <template #default="{ row }">
-            <div class="ellipsis-text artist-name">
+            <div class="song-artist">
               {{ extractArtistName(getDisplayName(row.file_name)) }}
             </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="文件路径" min-width="180">
-          <template #default="{ row }">
-            <div class="ellipsis-text file-path">
-              {{ row.file_name }}
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
+          </div>
+        </div>
+      </div>
     </el-scrollbar>
   </div>
 </template>

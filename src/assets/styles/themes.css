@@ -1,12 +1,14 @@
-/* themes.css - 应用主题配色 */
+/* themes.css - 应用主题与设计令牌
+ * 设计原则：简约、毛玻璃、统一主色与圆角，便于维护
+ */
 
-/* 通用样式 */
+/* ---------- 通用 ---------- */
 body {
   margin: 0;
   padding: 0;
   font-family:
-    "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
-    "微软雅黑", Arial, sans-serif;
+    "Inter", "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
   overflow: hidden;
 }
 
@@ -14,18 +16,49 @@ html {
   overflow: hidden;
 }
 
-/* 亮色主题 (默认) */
+/* ---------- 设计令牌（Design Tokens）---------- */
 :root {
-  /* Element Plus 默认变量使用默认值 */
+  /* 圆角 */
+  --app-radius-sm: 6px;
+  --app-radius-md: 8px;
+  --app-radius-lg: 12px;
+  --app-radius-xl: 16px;
+  --app-radius-full: 9999px;
 
-  /* 自定义变量 */
-  --header-bg-color: #f5f5f7;
-  --player-bg-color: #f8f8fa;
-  --hover-bg-color: #f5f7fa;
-  --active-item-bg: rgba(64, 158, 255, 0.1);
+  /* 间距 */
+  --app-spacing: 16px;
+  --app-spacing-sm: 8px;
+  --app-spacing-lg: 24px;
+  --app-spacing-xl: 28px;
 
-  /* 按钮相关变量，为每种按钮类型单独定义 */
-  /* Primary按钮（蓝色按钮）*/
+  /* 毛玻璃与阴影 */
+  --app-glass-blur: 16px;
+  --app-glass-border-light: rgba(0, 0, 0, 0.06);
+  --app-glass-border-dark: rgba(255, 255, 255, 0.08);
+  --app-header-border: rgba(0, 0, 0, 0.05);
+  --app-header-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+
+  /* 主色（淡蓝，自然低对比） */
+  --el-color-primary: #6b9ec4;
+  --el-color-primary-hover: #5d8fb8;
+  --el-color-primary-active: #5282a8;
+}
+
+/* ---------- 亮色主题 ---------- */
+:root {
+  /* 页面与浮层背景 */
+  --app-page-bg: #f5f5f7;
+  --app-card-bg: #ffffff;
+  --header-glass-bg: rgba(255, 255, 255, 0.88);
+  --player-glass-bg: rgba(250, 250, 252, 0.92);
+
+  /* 列表与悬停语义色（淡蓝，低透明度保持自然） */
+  --header-bg-color: var(--header-glass-bg);
+  --player-bg-color: var(--player-glass-bg);
+  --hover-bg-color: rgba(107, 158, 196, 0.07);
+  --active-item-bg: rgba(107, 158, 196, 0.12);
+
+  /* 按钮相关变量 */
   --primary-button-bg: var(--el-color-primary);
   --primary-button-text: var(--el-color-white);
   --primary-button-border: var(--el-color-primary);
@@ -34,7 +67,6 @@ html {
   --primary-button-active-bg: var(--el-color-primary-dark-2);
   --primary-button-active-border: var(--el-color-primary-dark-2);
 
-  /* Success按钮（绿色按钮）*/
   --success-button-bg: var(--el-color-success);
   --success-button-text: var(--el-color-white);
   --success-button-border: var(--el-color-success);
@@ -43,7 +75,6 @@ html {
   --success-button-active-bg: var(--el-color-success-dark-2);
   --success-button-active-border: var(--el-color-success-dark-2);
 
-  /* Info按钮（灰色按钮）*/
   --info-button-bg: var(--el-color-info);
   --info-button-text: var(--el-color-white);
   --info-button-border: var(--el-color-info);
@@ -52,85 +83,83 @@ html {
   --info-button-active-bg: var(--el-color-info-dark-2);
   --info-button-active-border: var(--el-color-info-dark-2);
 
-  /* Default按钮（默认按钮）*/
   --default-button-bg: var(--el-fill-color-blank);
   --default-button-text: var(--el-text-color-regular);
   --default-button-border: var(--el-border-color);
   --default-button-hover-bg: var(--hover-bg-color);
   --default-button-hover-text: var(--el-color-primary);
   --default-button-hover-border: var(--el-color-primary);
-  --default-button-active-bg: rgba(64, 158, 255, 0.1);
+  --default-button-active-bg: rgba(107, 158, 196, 0.1);
   --default-button-active-text: var(--el-color-primary);
   --default-button-active-border: var(--el-color-primary);
 }
 
-/* 深色主题 */
+/* ---------- 深色主题 ---------- */
 html.dark {
-  /* Element Plus 变量覆盖 */
-  --el-color-primary: #31c27c; /* 绿色主色调，亮绿色 */
-  --el-bg-color: #252525; /* 主背景颜色 */
-  --el-bg-color-overlay: #2d2d2d; /* 浮层背景 */
-  --el-text-color-primary: #ffffff; /* 主要文本颜色 */
-  --el-text-color-regular: #b1b1b1; /* 常规文本颜色 */
-  --el-border-color: #373737; /* 边框颜色 */
-  --el-border-color-light: #373737; /* 浅色边框 */
-  --el-fill-color: #2d2d2d; /* 填充色 */
-  --el-fill-color-light: #333333; /* 浅色填充 */
-  --el-fill-color-blank: #252525; /* 空白填充 */
-  --el-mask-color: rgba(0, 0, 0, 0.7); /* 遮罩颜色 */
-  --el-disabled-bg-color: #333333; /* 禁用状态背景色 */
-  --el-disabled-text-color: #666666; /* 禁用状态文本颜色 */
-
-  /* 自定义颜色 */
-  --player-bg-color: #1a1a1a; /* 播放器背景色，更深一些 */
-  --header-bg-color: #212121; /* 顶部栏背景 */
-  --hover-bg-color: #383838; /* 悬停背景色 */
-  --active-item-bg: #31c27c1a; /* 激活项的背景色，主色调的透明版本 */
+  /* Element Plus 覆盖 */
+  --el-color-primary: #7eb3d8;
+  --el-bg-color: #121212;
+  --el-bg-color-overlay: #1e1e1e;
+  --el-text-color-primary: #f3f4f6;
+  --el-text-color-regular: #9ca3af;
+  --el-border-color: #374151;
+  --el-border-color-light: #374151;
+  --el-fill-color: #1e1e1e;
+  --el-fill-color-light: #252525;
+  --el-fill-color-blank: #121212;
+  --el-mask-color: rgba(0, 0, 0, 0.7);
+  --el-disabled-bg-color: #252525;
+  --el-disabled-text-color: #6b7280;
   color-scheme: dark;
 
-  /* 按钮相关变量，为每种按钮类型单独定义 */
-  /* Primary按钮（绿色按钮）*/
+  /* 设计令牌 - 深色 */
+  --app-page-bg: #0d0d0d;
+  --app-card-bg: #1a1a1a;
+  --header-glass-bg: rgba(18, 18, 18, 0.9);
+  --player-glass-bg: rgba(28, 28, 30, 0.92);
+  --header-bg-color: var(--header-glass-bg);
+  --player-bg-color: var(--player-glass-bg);
+  --app-header-border: rgba(255, 255, 255, 0.06);
+  --app-header-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  --hover-bg-color: rgba(255, 255, 255, 0.06);
+  --active-item-bg: rgba(126, 179, 216, 0.14);
+
+  /* 按钮 - 深色（淡蓝系） */
   --primary-button-bg: var(--el-color-primary);
   --primary-button-text: var(--el-color-white);
   --primary-button-border: var(--el-color-primary);
-  --primary-button-hover-bg: #266f4b; /* 改为较深的绿色，增加与白色文字的对比度 */
-  --primary-button-hover-border: #266f4b;
-  --primary-button-hover-text: #ffffff; /* 确保悬停时文字为纯白色 */
-  --primary-button-active-bg: #1e5c3e; /* 点击时更深 */
-  --primary-button-active-border: #1e5c3e;
-
-  /* Success按钮（同样使用绿色）*/
+  --primary-button-hover-bg: #5a8ab5;
+  --primary-button-hover-border: #5a8ab5;
+  --primary-button-hover-text: #ffffff;
+  --primary-button-active-bg: #4a7a9e;
+  --primary-button-active-border: #4a7a9e;
   --success-button-bg: var(--el-color-primary);
   --success-button-text: var(--el-color-white);
   --success-button-border: var(--el-color-primary);
-  --success-button-hover-bg: #266f4b; /* 与primary保持一致 */
-  --success-button-hover-border: #266f4b;
+  --success-button-hover-bg: #5a8ab5;
+  --success-button-hover-border: #5a8ab5;
   --success-button-hover-text: #ffffff;
-  --success-button-active-bg: #1e5c3e;
-  --success-button-active-border: #1e5c3e;
-
-  /* Info按钮（灰色按钮）*/
+  --success-button-active-bg: #4a7a9e;
+  --success-button-active-border: #4a7a9e;
   --info-button-bg: var(--el-fill-color-light);
   --info-button-text: var(--el-text-color-regular);
   --info-button-border: var(--el-border-color);
-  --info-button-hover-bg: #444444; /* 稍微亮一点的灰色 */
+  --info-button-hover-bg: #444444;
   --info-button-hover-border: #4a4a4a;
   --info-button-active-bg: #2f2f2f;
   --info-button-active-border: #2f2f2f;
-
-  /* Default按钮（默认按钮）*/
   --default-button-bg: var(--el-fill-color-blank);
   --default-button-text: var(--el-text-color-regular);
   --default-button-border: var(--el-border-color);
-  --default-button-hover-bg: rgba(49, 194, 124, 0.15); /* 透明绿色悬停 */
-  --default-button-hover-text: #42d58b; /* 悬停时文字颜色变绿 */
-  --default-button-hover-border: #42d58b;
-  --default-button-active-bg: rgba(49, 194, 124, 0.2);
-  --default-button-active-text: #31c27c;
-  --default-button-active-border: #31c27c;
+  --default-button-hover-bg: rgba(126, 179, 216, 0.14);
+  --default-button-hover-text: #9ac4e8;
+  --default-button-hover-border: #9ac4e8;
+  --default-button-active-bg: rgba(126, 179, 216, 0.18);
+  --default-button-active-text: #7eb3d8;
+  --default-button-active-border: #7eb3d8;
 }
 
-/* 按钮样式配置 */
+/* ---------- 按钮组件（Element Plus 映射）---------- */
 .el-button {
   --el-button-hover-bg-color: var(--hover-bg-color, rgba(255, 255, 255, 0.1));
   --el-button-hover-text-color: var(--el-color-primary);
@@ -186,31 +215,33 @@ html.dark {
   --el-button-disabled-text-color: var(--el-text-color-placeholder);
 }
 
-/* 美化滚动条 */
-html.dark ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* ---------- 滚动条 ---------- */
+:root::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-html.dark ::-webkit-scrollbar-track {
+:root ::-webkit-scrollbar-track,
+* ::-webkit-scrollbar-track {
   background: transparent;
 }
 
+:root ::-webkit-scrollbar-thumb,
+* ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--app-radius-sm, 6px);
+}
+
+:root ::-webkit-scrollbar-thumb:hover,
+* ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
 html.dark ::-webkit-scrollbar-thumb {
-  background-color: #555;
-  border-radius: 4px;
+  background: #444;
 }
 
 html.dark ::-webkit-scrollbar-thumb:hover {
-  background-color: #666;
-}
-
-/* 页面组件样式适配 */
-html.dark .header-bar {
-  background-color: var(--header-bg-color);
-  border-bottom: 1px solid var(--el-border-color);
-}
-
-html.dark .main-content {
-  background-color: var(--el-bg-color);
+  background: #555;
 }

@@ -7,13 +7,13 @@
 }
 
 .list-title {
-  margin-top: 0;
-  margin-bottom: 16px;
-  color: var(--el-text-color-primary);
+  margin: 0 0 var(--app-spacing);
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+  padding-left: 14px;
   position: relative;
-  padding-left: 12px;
+  flex-shrink: 0;
 }
 
 .list-title::before {
@@ -23,79 +23,151 @@
   top: 50%;
   transform: translateY(-50%);
   width: 4px;
-  height: 70%;
+  height: 60%;
   background: var(--el-color-primary);
   border-radius: 2px;
 }
 
-.music-scrollbar {
+.list-scroll {
   flex: 1;
-  height: calc(100% - 40px);
+  min-height: 0;
+}
+
+.list-rows {
+  padding: 0 4px 12px;
+}
+
+.list-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 12px;
+  margin-bottom: 4px;
+  border-radius: var(--app-radius-md);
+  cursor: pointer;
+  min-height: 60px;
+  box-sizing: border-box;
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
+}
+
+.list-row:hover {
+  background: var(--hover-bg-color);
+}
+
+.list-row.is-current {
+  background: var(--active-item-bg);
+}
+
+.list-row.is-current::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background: var(--el-color-primary);
+  border-radius: 0 2px 2px 0;
+}
+
+.col-play {
+  flex-shrink: 0;
+}
+
+.col-play .el-button {
+  width: 32px;
+  height: 32px;
+}
+
+.col-cover {
+  flex-shrink: 0;
+}
+
+.cover-img {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--app-radius-sm);
+  object-fit: cover;
+}
+
+.cover-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--app-radius-sm);
+  background: var(--el-fill-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--el-text-color-placeholder);
+}
+
+.col-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.song-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.song-title.is-playing {
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+.song-meta {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.col-duration {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  min-width: 40px;
+  text-align: right;
+}
+
+.col-download {
+  flex-shrink: 0;
+}
+
+.col-download .el-button {
+  width: 32px;
+  height: 32px;
+  color: var(--el-color-primary);
 }
 
 .loading-container,
 .empty-list {
   display: flex;
-  justify-content: center;
   align-items: center;
-  height: 300px;
+  justify-content: center;
+  flex: 1;
+  min-height: 200px;
 }
 
-.playing-song {
-  font-weight: bold;
-  color: var(--el-color-primary);
-}
-
-.current-playing {
-  background-color: var(--active-item-bg, rgba(64, 158, 255, 0.1));
-}
-
-.song-name,
-.ellipsis-text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 300px;
+.empty-list :deep(.el-empty__description) {
+  color: var(--el-text-color-secondary);
 }
 
 .load-more {
   text-align: center;
-  margin: 20px 0;
+  padding: var(--app-spacing) 0;
 }
 
-/* 暗色主题适配 */
-:deep(.el-table) {
-  --el-table-header-bg-color: var(--el-bg-color);
-  --el-table-border-color: var(--el-border-color);
-  --el-table-header-text-color: var(--el-text-color-secondary);
-  background-color: var(--el-bg-color);
-  color: var(--el-text-color-primary);
-}
-
-:deep(.el-table th.el-table__cell) {
-  background-color: var(--el-bg-color);
-}
-
-:deep(.el-table tr) {
-  background-color: var(--el-bg-color);
-}
-
-:deep(.el-table--enable-row-hover .el-table__body tr:hover > td.el-table__cell) {
-  background-color: var(--hover-bg-color, #f5f7fa);
-}
-
-:deep(.el-table__body tr.current-playing td.el-table__cell) {
-  background-color: var(--active-item-bg, rgba(64, 158, 255, 0.1));
-}
-
-/* 按钮样式优化 */
-:deep(.el-button--success) {
-  background-color: var(--el-color-primary);
-  border-color: var(--el-color-primary);
-}
-
-:deep(.el-button--success:hover) {
-  background-color: var(--el-color-primary-light-3);
-  border-color: var(--el-color-primary-light-3);
+.load-more .el-button {
+  border-radius: var(--app-radius-md);
 }

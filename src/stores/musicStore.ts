@@ -46,6 +46,12 @@ export const useMusicStore = defineStore("music", () => {
     () => currentMusic.value !== null || currentOnlineSong.value !== null
   );
 
+  /** 当前曲目总时长(ms)，在线有值，本地无则 0 */
+  const currentTrackDuration = computed(() => {
+    if (currentOnlineSong.value?.duration) return currentOnlineSong.value.duration;
+    return 0;
+  });
+
   const currentTrackInfo = computed(() => {
     if (viewMode.value === ViewMode.LOCAL && currentMusic.value) {
       return {
@@ -623,6 +629,7 @@ export const useMusicStore = defineStore("music", () => {
 
     // 计算属性
     hasCurrentTrack,
+    currentTrackDuration,
     currentTrackInfo,
 
     // 方法
