@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import SettingsWindow from "../components/SettingsWindow/SettingsWindow.vue";
+import SettingsWindow from "@/components/SettingsWindow/SettingsWindow.vue";
 </script>
 
 <template>

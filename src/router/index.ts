@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
-import LocalMusic from "../views/LocalMusicView.vue";
-import OnlineMusic from "../views/OnlineMusicView.vue";
-import Settings from "../views/SettingsView.vue";
+import LocalMusic from "@/views/LocalMusicView.vue";
+import OnlineMusic from "@/views/OnlineMusicView.vue";
+import Settings from "@/views/SettingsView.vue";
 
 const routes = [
   {

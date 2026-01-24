@@ -1,38 +1,17 @@
 <script setup lang="ts">
 import { CaretRight, VideoPause, Headset } from "@element-plus/icons-vue";
-import type { MusicFile } from "../../types/model";
+import type { MusicFile } from "@/types/model";
+import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
 
 const props = defineProps<{
-  musicFiles: Array<MusicFile>;
+  musicFiles: MusicFile[];
   currentMusic: MusicFile | null;
   isPlaying: boolean;
 }>();
 
 const emit = defineEmits(["play"]);
 
-function getFileName(path: string): string {
-  const parts = path.split(/[\/\\]/);
-  return parts[parts.length - 1];
-}
-
-function getDisplayName(path: string): string {
-  return getFileName(path).replace(/\.[^/.]+$/, "");
-}
-
-function extractArtistName(fullName: string): string {
-  if (!fullName) return "未知歌手";
-  const match = fullName.match(/^(.+?)\s*-\s*.+$/);
-  return match ? match[1].trim() : "未知歌手";
-}
-
-function extractSongTitle(fullName: string): string {
-  if (!fullName) return "未知歌曲";
-  const match = fullName.match(/\s*-\s*(.+)$/);
-  return match ? match[1].trim() : fullName;
-}
-
-const isCurrentMusic = (music: MusicFile) =>
-  props.currentMusic != null && props.currentMusic.id === music.id;
+const isCurrentMusic = (m: MusicFile) => props.currentMusic?.id === m.id;
 
 function handleRowDblClick(row: MusicFile) {
   emit("play", row);
@@ -76,7 +55,7 @@ function handleRowDblClick(row: MusicFile) {
               {{ extractSongTitle(getDisplayName(row.file_name)) }}
             </div>
             <div class="song-artist">
-              {{ extractArtistName(getDisplayName(row.file_name)) }}
+              {{ extractArtistName(getDisplayName(row.file_name)) || "未知歌手" }}
             </div>
           </div>
         </div>

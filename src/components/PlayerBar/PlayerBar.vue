@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { invoke } from "@tauri-apps/api/core";
 import {
   VideoPlay,
   VideoPause,
@@ -12,6 +11,8 @@ import {
 } from "@element-plus/icons-vue";
 import { PlayMode, type MusicFile, type SongInfo } from "@/types/model";
 import { useMusicStore } from "@/stores/musicStore";
+import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
+import { loadLocalCover } from "@/utils/coverUtils";
 
 const props = defineProps<{
   currentMusic: MusicFile | null;
@@ -29,119 +30,49 @@ const emit = defineEmits([
   "show-immersive",
 ]);
 
-// 使用 musicStore
 const musicStore = useMusicStore();
-
-// 音量
 const volume = ref(50);
+const localCoverUrl = ref("");
 
-// 获取不带扩展名的文件名（本地文件）
-function getFileName(path: string): string {
-  if (!path) return "未选择歌曲";
-  const parts = path.split(/[\/\\]/);
-  const fileName = parts[parts.length - 1];
-  return fileName.replace(/\.[^/.]+$/, "");
-}
-
-// 从歌曲名中提取"-"后面的部分
-function extractSongTitle(fullName: string): string {
-  if (!fullName) return "未知歌曲";
-  const match = fullName.match(/\s*-\s*(.+)$/);
-  return match ? match[1].trim() : fullName;
-}
-
-// 从歌曲名中提取"-"前面的部分(歌手名)
-function extractArtistName(fullName: string): string {
-  if (!fullName) return "";
-  const match = fullName.match(/^(.+?)\s*-\s*.+$/);
-  return match ? match[1].trim() : "";
-}
-
-// 当前播放的歌曲名
 const currentSongName = computed(() => {
-  // 优先显示在线歌曲信息
-  if (props.currentOnlineSong) {
-    return props.currentOnlineSong.name;
-  }
-
-  // 否则显示本地歌曲信息
-  return props.currentMusic ? getFileName(props.currentMusic.file_name) : "未选择歌曲";
+  if (props.currentOnlineSong) return props.currentOnlineSong.name;
+  return props.currentMusic ? getDisplayName(props.currentMusic.file_name) : "未选择歌曲";
 });
 
-// 当前歌曲的实际标题（只显示"-"后面的部分）
-const songTitle = computed(() => {
-  return extractSongTitle(currentSongName.value);
-});
+const songTitle = computed(() => extractSongTitle(currentSongName.value));
 
-// 当前艺术家
 const currentArtist = computed(() => {
-  // 优先显示在线歌曲的艺术家信息
-  if (props.currentOnlineSong && props.currentOnlineSong.artists.length) {
+  if (props.currentOnlineSong?.artists?.length)
     return props.currentOnlineSong.artists.join(", ");
-  }
-
-  // 从本地音乐文件名中提取歌手名
   if (props.currentMusic) {
-    const fileName = getFileName(props.currentMusic.file_name);
-    const artistName = extractArtistName(fileName);
-    return artistName || "未知歌手";
+    const a = extractArtistName(getDisplayName(props.currentMusic.file_name));
+    return a || "未知歌手";
   }
-
   return "";
 });
 
-// 当前封面
 const coverUrl = computed(() => {
-  if (props.currentOnlineSong && props.currentOnlineSong.pic_url) {
-    return props.currentOnlineSong.pic_url;
-  }
-
-  if (props.currentMusic && localCoverUrl.value) {
-    return localCoverUrl.value;
-  }
-
-  // return null;
+  if (props.currentOnlineSong?.pic_url) return props.currentOnlineSong.pic_url;
+  if (props.currentMusic && localCoverUrl.value) return localCoverUrl.value;
   return musicStore.getDefaultCoverUrl();
 });
 
-// 本地音乐封面
-const localCoverUrl = ref("");
-
-// 加载本地封面和歌词
-async function loadLocalCoverAndLyric() {
-  if (props.currentMusic) {
-    try {
-      const result = await invoke("load_cover_and_lyric", {
-        fileName: props.currentMusic.file_name,
-        defaultDirectory: musicStore.getDefaultDirectory(),
-      });
-
-      // Handle the result as array
-      if (Array.isArray(result) && result.length > 0) {
-        localCoverUrl.value = result[0] || "";
-      } else {
-        localCoverUrl.value = "";
-      }
-    } catch (error) {
-      console.error("加载本地封面失败:", error);
-      localCoverUrl.value = "";
-    }
-  } else {
+async function loadCover() {
+  if (!props.currentMusic) {
     localCoverUrl.value = "";
+    return;
   }
+  localCoverUrl.value = await loadLocalCover(props.currentMusic.file_name, () =>
+    musicStore.getDefaultDirectory()
+  );
 }
 
-// 监听当前歌曲变化，加载本地封面
 watch(
   () => props.currentMusic,
-  (newMusic) => {
-    if (newMusic) {
-      loadLocalCoverAndLyric();
-    } else {
-      localCoverUrl.value = "";
-    }
-  },
-  { immediate: true }
+  (v) => (v ? loadCover() : (localCoverUrl.value = "")),
+  {
+    immediate: true,
+  }
 );
 
 // 处理音量变化

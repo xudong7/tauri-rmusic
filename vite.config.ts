@@ -33,15 +33,4 @@ export default defineConfig({
       ignored: ["**/src-tauri/**"],
     },
   },
-
-  // 全局CSS变量配置
-  css: {
-    preprocessorOptions: {
-      scss: {
-        additionalData: `
-          @import "@/assets/styles/variables.scss";
-        `,
-      },
-    },
-  },
 });

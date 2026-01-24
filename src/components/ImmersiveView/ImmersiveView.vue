@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, watch } from "vue";
 import {
   VideoPlay,
   VideoPause,
@@ -12,72 +12,33 @@ import {
   ScaleToOriginal,
   Close,
 } from "@element-plus/icons-vue";
-import type { SongInfo, MusicFile } from "../../types/model";
-import LyricView from "../LyricView/LyricView.vue";
+import type { SongInfo, MusicFile } from "@/types/model";
+import LyricView from "@/components/LyricView/LyricView.vue";
 import { useMusicStore } from "@/stores/musicStore";
-import { invoke } from "@tauri-apps/api/core";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import {
+  getDisplayName,
+  extractArtistName,
+  extractSongTitle,
+  formatArtists,
+} from "@/utils/songUtils";
+import { loadLocalCover } from "@/utils/coverUtils";
+import { useWindowControls } from "@/composables/useWindowControls";
 
 const props = defineProps<{
   currentSong: SongInfo | null;
   currentMusic: MusicFile | null;
   isPlaying: boolean;
-  currentTime?: number; // 从父组件传入的当前播放时间
-  hasStartedPlaying?: boolean; // 是否已经开始播放，用于歌词滚动
+  currentTime?: number;
 }>();
 
 const emit = defineEmits(["toggle-play", "previous", "next", "exit"]);
 
-// 使用 musicStore
 const musicStore = useMusicStore();
-
-// 窗口控制功能（在 onMounted 中初始化，避免 Tauri 未就绪时访问 metadata 报错）
-let appWindow: ReturnType<typeof getCurrentWindow> | null = null;
-const isMaximized = ref(false);
-
-// 检查窗口当前是否已最大化
-async function checkMaximized() {
-  if (!appWindow) return;
-  isMaximized.value = await appWindow.isMaximized();
-}
-
-// 窗口控制功能
-const minimize = async () => {
-  if (!appWindow) return;
-  await appWindow.minimize();
-};
-
-const toggleMaximize = async () => {
-  if (!appWindow) return;
-  if (isMaximized.value) {
-    await appWindow.unmaximize();
-  } else {
-    await appWindow.maximize();
-  }
-  isMaximized.value = !isMaximized.value;
-};
-
-const close = async () => {
-  if (!appWindow) return;
-  await appWindow.hide();
-};
-
-// 计算最大化/恢复的图标
-const maximizeIcon = computed(() => {
-  return isMaximized.value ? ScaleToOriginal : FullScreen;
+const { isMaximized, minimize, toggleMaximize, close } = useWindowControls({
+  onClose: "hide",
 });
+const maximizeIcon = computed(() => (isMaximized.value ? ScaleToOriginal : FullScreen));
 
-// 初始化窗口引用与状态
-onMounted(async () => {
-  try {
-    appWindow = getCurrentWindow();
-    await checkMaximized();
-  } catch (error) {
-    console.error("窗口操作错误:", error);
-  }
-});
-
-// 本地音乐封面
 const localCoverUrl = ref("");
 
 // 图片亮度分析状态
@@ -87,28 +48,14 @@ const imageAnalysisState = ref({
   isAnalyzed: false,
 });
 
-// 加载本地封面和歌词
-async function loadLocalCoverAndLyric() {
-  if (props.currentMusic) {
-    try {
-      const result = await invoke("load_cover_and_lyric", {
-        fileName: props.currentMusic.file_name,
-        defaultDirectory: musicStore.getDefaultDirectory(),
-      });
-
-      // Handle the result as array
-      if (Array.isArray(result) && result.length > 0) {
-        localCoverUrl.value = result[0] || "";
-      } else {
-        localCoverUrl.value = "";
-      }
-    } catch (error) {
-      console.error("加载本地封面失败:", error);
-      localCoverUrl.value = "";
-    }
-  } else {
+async function loadCover() {
+  if (!props.currentMusic) {
     localCoverUrl.value = "";
+    return;
   }
+  localCoverUrl.value = await loadLocalCover(props.currentMusic.file_name, () =>
+    musicStore.getDefaultDirectory()
+  );
 }
 
 // 分析图片亮度
@@ -188,74 +135,20 @@ async function analyzeCoverBrightness(imageUrl: string) {
   }
 }
 
-// 组件挂载时加载本地封面
-if (props.currentMusic) {
-  loadLocalCoverAndLyric();
-}
-
-// 获取不带扩展名的文件名（本地文件）
-function getFileName(path: string): string {
-  if (!path) return "未知歌曲";
-  const parts = path.split(/[\/\\]/);
-  const fileName = parts[parts.length - 1];
-  return fileName.replace(/\.[^/.]+$/, "");
-}
-
-// 从歌曲名中提取"-"前面的部分（歌手名）
-function extractArtistName(fullName: string): string {
-  if (!fullName) return "未知歌手";
-  const match = fullName.match(/^(.+?)\s*-\s*.+$/);
-  return match ? match[1].trim() : "";
-}
-
-// 从歌曲名中提取"-"后面的部分（歌曲名）
-function extractSongTitle(fullName: string): string {
-  if (!fullName) return "未知歌曲";
-  const match = fullName.match(/\s*-\s*(.+)$/);
-  return match ? match[1].trim() : fullName;
-}
-
-// 格式化艺术家列表
-function formatArtists(artists: string[]): string {
-  return artists ? artists.join(", ") : "";
-}
-
-// 当前歌曲标题 (只包含"-"后面的部分)
+// 当前歌曲标题
 const songTitle = computed(() => {
-  if (props.currentSong) {
-    // 对在线歌曲，也尝试解析名称中的歌曲标题部分
-    return extractSongTitle(props.currentSong.name);
-  } else if (props.currentMusic) {
-    return extractSongTitle(getFileName(props.currentMusic.file_name));
-  }
+  if (props.currentSong) return extractSongTitle(props.currentSong.name);
+  if (props.currentMusic)
+    return extractSongTitle(getDisplayName(props.currentMusic.file_name));
   return "未知歌曲";
 });
 
-// 当前歌手名 (从文件名中提取，"-"前面的部分)
-const extractedArtistName = computed(() => {
-  if (props.currentSong) {
-    // 优先使用在线歌曲的艺术家信息
-    if (props.currentSong.artists && props.currentSong.artists.length) {
-      return formatArtists(props.currentSong.artists);
-    }
-    // 如果没有艺术家信息，尝试从歌曲名解析
-    return extractArtistName(props.currentSong.name);
-  } else if (props.currentMusic) {
-    return extractArtistName(getFileName(props.currentMusic.file_name));
-  }
-  return "";
-});
-
-// 当前艺术家（整合了从API获取的和从文件名提取的）
 const currentArtistName = computed(() => {
-  if (
-    props.currentSong &&
-    props.currentSong.artists &&
-    props.currentSong.artists.length
-  ) {
-    return formatArtists(props.currentSong.artists);
-  }
-  return extractedArtistName.value;
+  if (props.currentSong?.artists?.length) return formatArtists(props.currentSong.artists);
+  if (props.currentSong) return extractArtistName(props.currentSong.name);
+  if (props.currentMusic)
+    return extractArtistName(getDisplayName(props.currentMusic.file_name));
+  return "";
 });
 
 // 当前封面
@@ -310,13 +203,8 @@ const overlayStyle = computed(() => {
 });
 
 watch(
-  // 监听 更新cover
   () => props.currentMusic,
-  (newVal) => {
-    if (newVal) {
-      loadLocalCoverAndLyric();
-    }
-  },
+  (v) => v && loadCover(),
   { immediate: true }
 );
 

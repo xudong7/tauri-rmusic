@@ -7,67 +7,32 @@ import {
   FullScreen,
   FolderOpened,
 } from "@element-plus/icons-vue";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useMusicStore } from "@/stores/musicStore";
 import { enable, isEnabled, disable } from "@tauri-apps/plugin-autostart";
+import { useWindowControls } from "@/composables/useWindowControls";
 
-// 窗口引用（在 onMounted 中初始化，避免 Tauri 未就绪时访问 metadata 报错）
-let appWindow: ReturnType<typeof getCurrentWindow> | null = null;
-const isMaximized = ref(false);
-
-// 使用 musicStore
 const musicStore = useMusicStore();
-
-// 设置数据
 const downloadPath = ref("");
 const autoStartEnabled = ref(false);
 
-// 监听主题变化
+const { isMaximized, minimize, toggleMaximize, close } = useWindowControls({
+  onClose: "close",
+});
+const maximizeIcon = computed(() => (isMaximized.value ? ScaleToOriginal : FullScreen));
+
 watch(
   () => musicStore.isDarkMode,
-  () => {
-    // 主题变化时，应用到当前窗口
-    musicStore.applyTheme();
-  }
+  () => musicStore.applyTheme()
 );
 
-// 监听 localStorage 变化以同步主题
 window.addEventListener("storage", (e) => {
   if (e.key === "theme" && e.newValue) {
     const shouldBeDark = e.newValue === "dark";
-    if (musicStore.isDarkMode !== shouldBeDark) {
-      // 使用不保存到 localStorage 的方法（避免循环）
+    if (musicStore.isDarkMode !== shouldBeDark)
       musicStore.setThemeWithoutSave(shouldBeDark);
-    }
   }
 });
-
-// 计算最大化/恢复的图标
-const maximizeIcon = computed(() => {
-  return isMaximized.value ? ScaleToOriginal : FullScreen;
-});
-
-// 窗口控制函数
-const minimize = async () => {
-  if (!appWindow) return;
-  await appWindow.minimize();
-};
-
-const toggleMaximize = async () => {
-  if (!appWindow) return;
-  if (isMaximized.value) {
-    await appWindow.unmaximize();
-  } else {
-    await appWindow.maximize();
-  }
-  isMaximized.value = !isMaximized.value;
-};
-
-const close = async () => {
-  if (!appWindow) return;
-  await appWindow.close();
-};
 
 // 主题切换处理
 const handleThemeChange = (value: boolean) => {
@@ -127,28 +92,16 @@ const handleAutoStartChange = async (value: boolean) => {
 
 onMounted(async () => {
   try {
-    appWindow = getCurrentWindow();
-    console.log("Settings window mounted");
-    // 直接初始化 musicStore 和应用主题
     await musicStore.initialize();
-
-    // 加载当前的默认下载目录
-    const currentDefaultDir = musicStore.getDefaultDirectory();
-    if (currentDefaultDir) {
-      downloadPath.value = currentDefaultDir;
-    }
-
-    // 加载开机自启动状态
+    const dir = musicStore.getDefaultDirectory();
+    if (dir) downloadPath.value = dir;
     try {
       autoStartEnabled.value = await isEnabled();
-    } catch (error) {
-      console.error("获取开机自启动状态失败:", error);
+    } catch (e) {
+      console.error("获取开机自启动状态失败:", e);
     }
-
-    console.log("Settings window theme state:", musicStore.isDarkMode);
-    console.log("LocalStorage theme:", localStorage.getItem("theme"));
-  } catch (error) {
-    console.error("Settings window error:", error);
+  } catch (e) {
+    console.error("Settings window error:", e);
   }
 });
 </script>
