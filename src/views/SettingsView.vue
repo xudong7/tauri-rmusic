@@ -10,10 +10,10 @@ import SettingsWindow from "@/components/SettingsWindow/SettingsWindow.vue";
 
 <style scoped>
 .settings-view {
-  height: 100vh;
+  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  background-color: var(--el-bg-color);
   color: var(--el-text-color-primary);
 }
 </style>

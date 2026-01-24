@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch, computed } from "vue";
-import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { onMounted, onUnmounted, watch, computed } from "vue";
 import HeaderBar from "./components/HeaderBar/HeaderBar.vue";
 import Sidebar from "./components/Sidebar/Sidebar.vue";
 import PlayerBar from "./components/PlayerBar/PlayerBar.vue";
@@ -9,7 +8,6 @@ import { useMusicStore } from "./stores/musicStore";
 import { ViewMode } from "./types/model";
 import { usePlaybackDetector } from "./composables/usePlaybackDetector";
 
-const isSettingsWindow = ref(false);
 const musicStore = useMusicStore();
 const { start: detectorStart, stop: detectorStop } = usePlaybackDetector(
   musicStore as any,
@@ -62,26 +60,19 @@ function handleStorageChange(e: StorageEvent) {
 
 onMounted(async () => {
   try {
-    const { label } = getCurrentWebviewWindow();
-    isSettingsWindow.value = label === "settings";
-  } catch {
-    isSettingsWindow.value = false;
-  }
-
-  if (!isSettingsWindow.value) {
     await musicStore.initialize();
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("storage", handleStorageChange);
+  } catch (e) {
+    console.error("App init error:", e);
   }
 });
 
 onUnmounted(() => {
-  if (!isSettingsWindow.value) {
-    window.removeEventListener("keydown", handleKeyDown);
-    window.removeEventListener("storage", handleStorageChange);
-    musicStore.stopPlayTimeTracking();
-    detectorStop();
-  }
+  window.removeEventListener("keydown", handleKeyDown);
+  window.removeEventListener("storage", handleStorageChange);
+  musicStore.stopPlayTimeTracking();
+  detectorStop();
 });
 </script>
 
@@ -91,40 +82,33 @@ onUnmounted(() => {
     :class="{ 'dark-theme': musicStore.isDarkMode }"
     @contextmenu.prevent
   >
-    <template v-if="!isSettingsWindow">
-      <HeaderBar
-        :viewMode="musicStore.viewMode"
-        :isDarkMode="musicStore.isDarkMode"
-        @search="handleSearch"
-        @toggle-theme="musicStore.toggleTheme"
-      />
-      <div class="app-body">
-        <Sidebar />
-        <div class="main-content">
-          <router-view />
-        </div>
-      </div>
-      <PlayerBar
-        :currentMusic="musicStore.currentMusic"
-        :currentOnlineSong="musicStore.currentOnlineSong"
-        :isPlaying="musicStore.isPlaying"
-        :playMode="musicStore.playMode"
-        @toggle-play="musicStore.togglePlay"
-        @volume-change="musicStore.adjustVolume"
-        @previous="musicStore.playNextOrPreviousMusic(-musicStore.getPlayStep(-1))"
-        @next="musicStore.playNextOrPreviousMusic(musicStore.getPlayStep(1))"
-        @toggle-play-mode="musicStore.togglePlayMode"
-        @show-immersive="musicStore.showImmersive"
-      />
-    </template>
-    <template v-else>
-      <div class="main-content settings-content">
+    <HeaderBar
+      :viewMode="musicStore.viewMode"
+      :isDarkMode="musicStore.isDarkMode"
+      @search="handleSearch"
+      @toggle-theme="musicStore.toggleTheme"
+    />
+    <div class="app-body">
+      <Sidebar />
+      <div class="main-content">
         <router-view />
       </div>
-    </template>
+    </div>
+    <PlayerBar
+      :currentMusic="musicStore.currentMusic"
+      :currentOnlineSong="musicStore.currentOnlineSong"
+      :isPlaying="musicStore.isPlaying"
+      :playMode="musicStore.playMode"
+      @toggle-play="musicStore.togglePlay"
+      @volume-change="musicStore.adjustVolume"
+      @previous="musicStore.playNextOrPreviousMusic(-musicStore.getPlayStep(-1))"
+      @next="musicStore.playNextOrPreviousMusic(musicStore.getPlayStep(1))"
+      @toggle-play-mode="musicStore.togglePlayMode"
+      @show-immersive="musicStore.showImmersive"
+    />
 
     <ImmersiveView
-      v-if="!isSettingsWindow && musicStore.showImmersiveMode"
+      v-if="musicStore.showImmersiveMode"
       :currentSong="musicStore.currentOnlineSong"
       :currentMusic="musicStore.currentMusic"
       :isPlaying="musicStore.isPlaying"
@@ -165,10 +149,6 @@ onUnmounted(() => {
   overflow: hidden;
   padding: var(--app-spacing-xl, 28px);
   box-sizing: border-box;
-}
-
-.settings-content {
-  padding: 0;
 }
 
 .dark-theme {
