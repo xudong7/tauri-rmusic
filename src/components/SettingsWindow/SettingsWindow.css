@@ -2,23 +2,27 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--el-bg-color-page);
+  background: var(--app-page-bg, var(--el-bg-color));
   overflow: hidden;
 }
 
 .settings-header {
-  height: 50px;
-  background: var(--el-bg-color-overlay);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  height: 52px;
+  background: var(--header-bg-color);
+  backdrop-filter: blur(var(--app-glass-blur));
+  -webkit-backdrop-filter: blur(var(--app-glass-blur));
+  border-bottom: 1px solid var(--app-header-border);
+  box-shadow: var(--app-header-shadow, none);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding: 0 var(--app-spacing);
   user-select: none;
   -webkit-app-region: drag;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
   position: relative;
   z-index: 1000;
 }
@@ -50,8 +54,11 @@
 
 .header-button {
   -webkit-app-region: no-drag;
-  border-radius: 8px;
-  transition: all 0.25s cubic-bezier(0.3, 0, 0.2, 1);
+  border-radius: var(--app-radius-md);
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s ease;
   position: relative;
   overflow: hidden;
 }
@@ -63,7 +70,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: var(--app-radius-full, 50%);
   position: relative;
   overflow: hidden;
   color: var(--el-text-color-secondary);
@@ -120,18 +127,19 @@
 
 .settings-content {
   flex: 1;
-  padding: 24px;
+  padding: var(--app-spacing-lg);
   overflow-y: auto;
 }
 
 .settings-section {
-  margin-bottom: 32px;
-  padding: 20px;
-  background: var(--el-bg-color);
-  border-radius: 12px;
+  margin-bottom: var(--app-spacing-lg);
+  padding: var(--app-spacing);
+  background: var(--app-card-bg, var(--el-bg-color-overlay));
+  border-radius: var(--app-radius-lg);
   border: 1px solid var(--el-border-color-lighter);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: all 0.3s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .settings-section:hover {
@@ -182,10 +190,9 @@ html.dark .settings-window {
 
 .dark .settings-header,
 html.dark .settings-header {
-  background-color: rgba(30, 30, 35, 0.85);
+  background-color: rgba(28, 28, 32, 0.95);
   color: var(--el-text-color-primary);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  background: linear-gradient(to right, rgba(25, 25, 30, 0.9), rgba(35, 35, 40, 0.9));
   border-bottom: 1px solid rgba(60, 60, 70, 0.5);
 }
 

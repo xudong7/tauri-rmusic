@@ -2,9 +2,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import {
-  // Folder,
   Search,
-  Switch,
   Moon,
   Sunny,
   Minus,
@@ -199,44 +197,32 @@ onMounted(async () => {
     :class="{ 'is-maximized': isMaximized, 'is-dark-mode': isDarkMode }"
   >
     <div class="header-left">
-      <div class="directory-controls">
-        <!-- <el-tooltip
-          :content="currentDirectory || '未选择文件夹'"
-          placement="bottom"
-          :disabled="viewMode === ViewMode.ONLINE"
-          effect="light"
+      <div class="nav-tabs">
+        <div
+          class="nav-tab"
+          :class="{ 'is-active': viewMode === ViewMode.LOCAL }"
+          @click="viewMode !== ViewMode.LOCAL && toggleViewMode()"
         >
-          <el-button
-            @click="emit('select-directory')"
-            :icon="Folder"
-            type="primary"
-            :disabled="viewMode === ViewMode.ONLINE"
-            class="header-button"
-            size="default"
-          >
-            选择目录
-          </el-button>
-        </el-tooltip> -->
-        <el-button
-          @click="toggleViewMode"
-          :icon="Switch"
-          :type="viewMode === ViewMode.ONLINE ? 'success' : 'info'"
-          class="header-button"
-          size="default"
+          本地音乐
+        </div>
+        <div
+          class="nav-tab"
+          :class="{ 'is-active': viewMode === ViewMode.ONLINE }"
+          @click="viewMode !== ViewMode.ONLINE && toggleViewMode()"
         >
-          {{ viewMode === ViewMode.LOCAL ? "本地音乐" : "在线搜索" }}
-        </el-button>
-        <el-button
-          @click="importMusic"
-          :icon="Upload"
-          type="warning"
-          class="header-button"
-          size="default"
-          v-if="viewMode === ViewMode.LOCAL"
-        >
-          导入音乐
-        </el-button>
+          在线搜索
+        </div>
       </div>
+      <el-button
+        v-if="viewMode === ViewMode.LOCAL"
+        @click="importMusic"
+        :icon="Upload"
+        type="warning"
+        class="header-button import-btn"
+        size="default"
+      >
+        导入音乐
+      </el-button>
     </div>
 
     <div class="header-center">
@@ -246,11 +232,11 @@ onMounted(async () => {
           :placeholder="
             viewMode === ViewMode.LOCAL ? '搜索本地歌曲...' : '搜索在线歌曲...'
           "
-          class="search-input"
+          class="search-input search-pill"
           @keyup.enter="handleSearch"
         >
-          <template #append>
-            <el-button :icon="Search" @click="handleSearch" />
+          <template #prefix>
+            <el-icon class="search-prefix-icon"><Search /></el-icon>
           </template>
         </el-input>
       </div>

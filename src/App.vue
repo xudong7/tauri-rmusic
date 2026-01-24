@@ -317,19 +317,19 @@ onUnmounted(() => {
   flex-direction: column;
   height: 100vh;
   width: 100%;
-  overflow: hidden; /* 防止出现滑动条 */
+  overflow: hidden;
   color: var(--el-text-color-primary);
-  background-color: var(--el-bg-color);
+  background-color: var(--app-page-bg, var(--el-bg-color));
   transition:
-    background-color 0.3s,
-    color 0.3s;
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .main-content {
   flex: 1;
-  overflow: hidden; /* 修改为hidden，让子组件控制滚动 */
-  padding: 16px;
-  box-sizing: border-box; /* 确保padding不会导致超出容器 */
+  overflow: hidden;
+  padding: var(--app-spacing-xl, 28px);
+  box-sizing: border-box;
 }
 
 /* 设置窗口的内容样式 */

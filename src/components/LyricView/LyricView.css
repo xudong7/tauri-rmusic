@@ -64,13 +64,12 @@
   content: "";
   position: absolute;
   bottom: -8px;
-  left: 0; /* 改为左对齐 */
+  left: 0;
   width: 60px;
   height: 2px;
-  background: linear-gradient(90deg, rgba(var(--el-color-primary-rgb), 0.5), transparent);
-  transform: translateX(0); /* 移除居中变换 */
+  background-color: var(--el-color-primary);
   border-radius: 2px;
-  opacity: 0.7;
+  opacity: 0.85;
 }
 
 .lyric-placeholder {

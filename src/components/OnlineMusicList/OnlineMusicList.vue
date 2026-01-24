@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CaretRight, VideoPause, Download } from "@element-plus/icons-vue";
+import { CaretRight, VideoPause, Download, Headset } from "@element-plus/icons-vue";
 import type { SongInfo } from "../../types/model";
 
 const props = defineProps<{
@@ -12,23 +12,17 @@ const props = defineProps<{
 
 const emit = defineEmits(["play", "download", "load-more"]);
 
-// 格式化时长
 function formatDuration(ms: number): string {
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  const s = Math.floor(ms / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
-// 格式化艺术家列表
 function formatArtists(artists: string[]): string {
   return artists.join(", ");
 }
 
-// 是否为当前播放的歌曲
-const isCurrentSong = (song: SongInfo) => {
-  return props.currentSong && props.currentSong.id === song.id;
-};
+const isCurrentSong = (song: SongInfo) =>
+  props.currentSong != null && props.currentSong.id === song.id;
 </script>
 
 <template>
@@ -40,70 +34,53 @@ const isCurrentSong = (song: SongInfo) => {
     </div>
 
     <div v-else-if="onlineSongs.length === 0" class="empty-list">
-      <el-empty description="暂无搜索结果" />
+      <el-empty description="搜索歌曲开始播放" />
     </div>
 
-    <el-scrollbar v-else class="music-scrollbar">
-      <el-table
-        :data="onlineSongs"
-        style="width: 100%"
-        :row-class-name="(row) => (isCurrentSong(row) ? 'current-playing' : '')"
-      >
-        <el-table-column width="60">
-          <template #default="{ row }">
+    <el-scrollbar v-else class="list-scroll">
+      <div class="list-rows">
+        <div
+          v-for="row in onlineSongs"
+          :key="row.id"
+          class="list-row"
+          :class="{ 'is-current': isCurrentSong(row) }"
+          @dblclick="emit('play', row)"
+        >
+          <div class="col-play">
             <el-button
               circle
               size="small"
-              @click="emit('play', row)"
               :type="isCurrentSong(row) ? 'primary' : 'default'"
               :icon="isCurrentSong(row) && isPlaying ? VideoPause : CaretRight"
+              @click="emit('play', row)"
             />
-          </template>
-        </el-table-column>
-
-        <el-table-column label="歌名" min-width="120">
-          <template #default="{ row }">
-            <div :class="{ 'playing-song': isCurrentSong(row) }" class="song-name">
+          </div>
+          <div class="col-cover">
+            <img v-if="row.pic_url" :src="row.pic_url" class="cover-img" alt="" />
+            <div v-else class="cover-placeholder">
+              <el-icon><Headset /></el-icon>
+            </div>
+          </div>
+          <div class="col-main">
+            <div class="song-title" :class="{ 'is-playing': isCurrentSong(row) }">
               {{ row.name }}
             </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="歌手" min-width="150">
-          <template #default="{ row }">
-            <div class="ellipsis-text">
+            <div class="song-meta">
               {{ formatArtists(row.artists) }}
+              <template v-if="row.album"> · {{ row.album }}</template>
             </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="专辑" min-width="150">
-          <template #default="{ row }">
-            <div class="ellipsis-text">
-              {{ row.album }}
-            </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="时长" width="80">
-          <template #default="{ row }">
-            {{ formatDuration(row.duration) }}
-          </template>
-        </el-table-column>
-
-        <el-table-column width="80">
-          <template #default="{ row }">
+          </div>
+          <div class="col-duration">{{ formatDuration(row.duration) }}</div>
+          <div class="col-download">
             <el-button
               circle
               size="small"
-              @click="emit('download', row)"
               :icon="Download"
-              type="success"
+              @click="emit('download', row)"
             />
-          </template>
-        </el-table-column>
-      </el-table>
-
+          </div>
+        </div>
+      </div>
       <div v-if="totalCount > onlineSongs.length" class="load-more">
         <el-button @click="emit('load-more')" type="primary" plain>加载更多</el-button>
       </div>
