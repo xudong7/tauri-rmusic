@@ -18,7 +18,9 @@ const isCurrentSong = (s: SongInfo) => props.currentSong?.id === s.id;
 
 <template>
   <div class="online-music-list-container">
-    <h2 class="list-title">在线音乐</h2>
+    <div class="list-header">
+      <h2 class="list-title">在线音乐</h2>
+    </div>
 
     <div v-if="loading" class="loading-container">
       <el-skeleton :rows="5" animated />

@@ -42,6 +42,9 @@ html {
   --el-color-primary: #6b9ec4;
   --el-color-primary-hover: #5d8fb8;
   --el-color-primary-active: #5282a8;
+
+  /* 侧边栏宽度（供 Message 等在主内容区内居中） */
+  --sidebar-width: 200px;
 }
 
 /* ---------- 亮色主题 ---------- */
@@ -55,6 +58,7 @@ html {
   /* 列表与悬停语义色（淡蓝，低透明度保持自然） */
   --header-bg-color: var(--header-glass-bg);
   --player-bg-color: var(--player-glass-bg);
+  --sidebar-bg: var(--app-card-bg);
   --hover-bg-color: rgba(107, 158, 196, 0.07);
   --active-item-bg: rgba(107, 158, 196, 0.12);
 
@@ -119,6 +123,7 @@ html.dark {
   --player-glass-bg: rgba(28, 28, 30, 0.92);
   --header-bg-color: var(--header-glass-bg);
   --player-bg-color: var(--player-glass-bg);
+  --sidebar-bg: var(--app-card-bg);
   --app-header-border: rgba(255, 255, 255, 0.06);
   --app-header-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
   --hover-bg-color: rgba(255, 255, 255, 0.06);

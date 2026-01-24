@@ -1,0 +1,73 @@
+.sidebar {
+  flex: 0 0 200px;
+  width: 200px;
+  min-width: 200px;
+  background: var(--sidebar-bg, var(--app-card-bg, var(--el-bg-color)));
+  border-right: 1px solid var(--app-header-border, var(--el-border-color-lighter));
+  display: flex;
+  flex-direction: column;
+  -webkit-app-region: drag;
+  user-select: none;
+  position: relative;
+  z-index: 1;
+}
+
+.sidebar-nav {
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--app-radius-md);
+  cursor: pointer;
+  color: var(--el-text-color-regular);
+  transition:
+    color 0.2s ease,
+    background 0.2s ease;
+  -webkit-app-region: no-drag;
+}
+
+.nav-item:hover {
+  color: var(--el-text-color-primary);
+  background: var(--hover-bg-color);
+}
+
+.nav-item.is-active {
+  font-weight: 600;
+  color: var(--el-color-primary);
+  background: var(--active-item-bg, rgba(var(--el-color-primary-rgb), 0.08));
+}
+
+.nav-item.is-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  background: var(--el-color-primary);
+  border-radius: 0 2px 2px 0;
+}
+
+.nav-item {
+  position: relative;
+}
+
+.nav-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.nav-label {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

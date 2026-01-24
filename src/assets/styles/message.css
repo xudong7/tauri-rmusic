@@ -1,0 +1,116 @@
+/* message.css - ElMessage 提示美化
+ * 参考：Apple Music / Spotify 的克制、中性风格，与顶栏毛玻璃统一
+ * 不采用大块鲜色，用左侧色条 + 中性背景区分类型
+ */
+
+/* ---------- 提示令牌 ---------- */
+:root {
+  --msg-success-accent: #5a9b7a;
+  --msg-info-accent: var(--el-color-primary);
+  --msg-warning-accent: #b8860b;
+  --msg-error-accent: #c75d5d;
+}
+
+html.dark {
+  --msg-success-accent: #6bac86;
+  --msg-info-accent: var(--el-color-primary);
+  --msg-warning-accent: #d4a017;
+  --msg-error-accent: #d97575;
+}
+
+/* ---------- 基础容器：毛玻璃、位置、圆角 ---------- */
+.el-message {
+  --el-message-bg-color: #ffffff; /* 浅色：不透明白，避免半透明+blur 在左缘漏色 */
+  --el-message-border-color: rgba(0, 0, 0, 0.1); /* 浅色：略加深左边线，左缘更清晰 */
+  --el-message-padding: 12px 16px;
+  --el-message-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  top: 72px !important; /* 顶栏 56px + 16px，在搜索框下方 */
+  /* 在主内容区（侧栏右侧）内水平居中，避免相对整窗居中时左侧出现大面积空白缝 */
+  left: calc(
+    var(--sidebar-width, 200px) + (100% - var(--sidebar-width, 200px)) / 2
+  ) !important;
+  padding: var(--el-message-padding) !important;
+  background: var(--el-message-bg-color) !important;
+  border: 1px solid var(--el-message-border-color) !important;
+  border-radius: var(--app-radius-lg, 12px) !important;
+  box-shadow: var(--el-message-box-shadow) !important;
+  /* 浅色：不用 backdrop-filter，避免模糊在左缘造成漏色感；深色在下方单独开启 */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html.dark .el-message {
+  --el-message-bg-color: rgba(28, 28, 30, 0.95);
+  --el-message-border-color: rgba(255, 255, 255, 0.08);
+  --el-message-box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  background: var(--el-message-bg-color) !important;
+  border-color: var(--el-message-border-color) !important;
+  box-shadow: var(--el-message-box-shadow) !important;
+  backdrop-filter: blur(var(--app-glass-blur, 16px));
+  -webkit-backdrop-filter: blur(var(--app-glass-blur, 16px));
+}
+
+/* ---------- Success / Info / Warning / Error：统一不加左侧色条，inset 在浅色和深色都会漏色 ---------- */
+.el-message--success {
+  --el-message-text-color: var(--el-text-color-primary);
+  box-shadow: var(--el-message-box-shadow) !important;
+}
+
+.el-message--success .el-message__content {
+  color: var(--el-text-color-primary) !important;
+}
+
+.el-message--success .el-message-icon--success {
+  color: var(--msg-success-accent) !important;
+}
+
+.el-message--info {
+  --el-message-text-color: var(--el-text-color-primary);
+  box-shadow: var(--el-message-box-shadow) !important;
+}
+
+.el-message--info .el-message__content {
+  color: var(--el-text-color-primary) !important;
+}
+
+.el-message--info .el-message-icon--info {
+  color: var(--msg-info-accent) !important;
+}
+
+.el-message--warning {
+  --el-message-text-color: var(--el-text-color-primary);
+  box-shadow: var(--el-message-box-shadow) !important;
+}
+
+.el-message--warning .el-message__content {
+  color: var(--el-text-color-primary) !important;
+}
+
+.el-message--warning .el-message-icon--warning {
+  color: var(--msg-warning-accent) !important;
+}
+
+.el-message--error {
+  --el-message-text-color: var(--el-text-color-primary);
+  box-shadow: var(--el-message-box-shadow) !important;
+}
+
+.el-message--error .el-message__content {
+  color: var(--el-text-color-primary) !important;
+}
+
+.el-message--error .el-message-icon--error {
+  color: var(--msg-error-accent) !important;
+}
+
+/* ---------- 内容与动画微调 ---------- */
+.el-message__content {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.el-message-fade-enter-from,
+.el-message-fade-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -8px) !important; /* 从上方小幅滑入，更自然 */
+}
