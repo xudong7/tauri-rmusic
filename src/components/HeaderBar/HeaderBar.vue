@@ -15,7 +15,7 @@ import {
   Upload,
 } from "@element-plus/icons-vue";
 import { ViewMode } from "../../types/model";
-import { Window } from "@tauri-apps/api/window";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { createSettingsWindow } from "../../utils/settingsWindow";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -110,8 +110,8 @@ const router = useRouter();
 
 // 搜索关键字
 const searchKeyword = ref("");
-// 窗口引用
-const appWindow = Window.getCurrent();
+// 窗口引用（在 onMounted 中初始化，避免 Tauri 未就绪时访问 metadata 报错）
+let appWindow: ReturnType<typeof getCurrentWindow> | null = null;
 // 是否最大化
 const isMaximized = ref(false);
 
@@ -148,15 +148,18 @@ function toggleTheme() {
 
 // 检查窗口当前是否已最大化
 async function checkMaximized() {
+  if (!appWindow) return;
   isMaximized.value = await appWindow.isMaximized();
 }
 
 // 窗口控制函数
 const minimize = async () => {
+  if (!appWindow) return;
   await appWindow.minimize();
 };
 
 const toggleMaximize = async () => {
+  if (!appWindow) return;
   if (isMaximized.value) {
     await appWindow.unmaximize();
   } else {
@@ -166,6 +169,7 @@ const toggleMaximize = async () => {
 };
 
 const close = async () => {
+  if (!appWindow) return;
   await appWindow.hide();
 };
 
@@ -176,10 +180,11 @@ const maximizeIcon = computed(() => {
 
 onMounted(async () => {
   try {
+    appWindow = getCurrentWindow();
     await checkMaximized();
 
     // 监听窗口最大化/还原状态变化
-    appWindow.onResized(() => {
+    appWindow?.onResized(() => {
       checkMaximized();
     });
   } catch (error) {
@@ -262,18 +267,10 @@ onMounted(async () => {
             <component :is="isDarkMode ? Moon : Sunny" />
           </el-icon>
         </div>
-        <div
-          class="header-button window-button"
-          @click="openSettingWindow"
-          title="设置"
-        >
+        <div class="header-button window-button" @click="openSettingWindow" title="设置">
           <el-icon><Setting /></el-icon>
         </div>
-        <div
-          class="header-button window-button"
-          @click="minimize"
-          title="最小化"
-        >
+        <div class="header-button window-button" @click="minimize" title="最小化">
           <el-icon><Minus /></el-icon>
         </div>
         <div
@@ -283,11 +280,7 @@ onMounted(async () => {
         >
           <el-icon><component :is="maximizeIcon" /></el-icon>
         </div>
-        <div
-          class="header-button window-button close"
-          @click="close"
-          title="关闭"
-        >
+        <div class="header-button window-button close" @click="close" title="关闭">
           <el-icon><Close /></el-icon>
         </div>
       </div>

@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
@@ -23,6 +25,7 @@
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
+    "prettier": "^3.4.2",
     "@tauri-apps/cli": "^2",
     "@types/node": "^22.14.1",
     "@vitejs/plugin-vue": "^5.2.1",

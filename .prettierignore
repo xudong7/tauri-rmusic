@@ -1,0 +1,21 @@
+# 构建产物
+dist
+src-tauri/target
+
+# 依赖
+node_modules
+pnpm-lock.yaml
+package-lock.json
+
+# 静态资源、锁、配置
+*.min.js
+*.min.css
+Cargo.lock
+public/
+
+# 图标、截图等二进制
+*.png
+*.jpg
+*.ico
+*.icns
+*.svg

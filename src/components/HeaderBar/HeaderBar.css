@@ -23,11 +23,7 @@
   background-color: rgba(30, 30, 35, 0.85);
   color: var(--el-text-color-light);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  background: linear-gradient(
-    to right,
-    rgba(25, 25, 30, 0.9),
-    rgba(35, 35, 40, 0.9)
-  );
+  background: linear-gradient(to right, rgba(25, 25, 30, 0.9), rgba(35, 35, 40, 0.9));
   border-bottom: 1px solid rgba(60, 60, 70, 0.5);
 }
 

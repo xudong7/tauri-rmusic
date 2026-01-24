@@ -4,7 +4,7 @@ import SettingsWindow from "../components/SettingsWindow/SettingsWindow.vue";
 
 <template>
   <div class="settings-view">
-    <SettingsWindow />  
+    <SettingsWindow />
   </div>
 </template>
 

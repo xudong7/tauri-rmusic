@@ -7,6 +7,9 @@ run:
 	@npm install
 	@npm run tauri dev
 
+format:
+	@npm run format
+
 clean:
 	@rm -rf dist
 	@rm -rf node_modules
