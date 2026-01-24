@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import {
   Search,
@@ -12,12 +12,12 @@ import {
   Close,
   Upload,
 } from "@element-plus/icons-vue";
-import { ViewMode } from "../../types/model";
-import { getCurrentWindow } from "@tauri-apps/api/window";
-import { createSettingsWindow } from "../../utils/settingsWindow";
+import { ViewMode } from "@/types/model";
+import { createSettingsWindow } from "@/utils/settingsWindow";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { ElMessage } from "element-plus";
+import { useWindowControls } from "@/composables/useWindowControls";
 
 const props = defineProps<{
   currentDirectory: string;
@@ -25,12 +25,7 @@ const props = defineProps<{
   isDarkMode: boolean;
 }>();
 
-const emit = defineEmits([
-  // "select-directory",
-  "refresh",
-  "search",
-  "toggle-theme",
-]);
+const emit = defineEmits(["refresh", "search", "toggle-theme"]);
 
 async function importMusic() {
   try {
@@ -103,92 +98,32 @@ async function importMusic() {
   }
 }
 
-// 路由实例
 const router = useRouter();
-
-// 搜索关键字
 const searchKeyword = ref("");
-// 窗口引用（在 onMounted 中初始化，避免 Tauri 未就绪时访问 metadata 报错）
-let appWindow: ReturnType<typeof getCurrentWindow> | null = null;
-// 是否最大化
-const isMaximized = ref(false);
+const { isMaximized, minimize, toggleMaximize, close } = useWindowControls({
+  onClose: "hide",
+});
+const maximizeIcon = computed(() => (isMaximized.value ? ScaleToOriginal : FullScreen));
 
-// 执行搜索
 function handleSearch() {
-  // if (!searchKeyword.value.trim()) {
-  //   ElMessage.info("请输入搜索关键词");
-  //   return;
-  // }
   emit("search", searchKeyword.value);
 }
 
-const openSettingWindow = async () => {
+async function openSettingWindow() {
   try {
-    createSettingsWindow();
-  } catch (error) {
-    console.error("打开设置窗口失败:", error);
-  }
-};
-
-// 切换视图模式 - 现在通过路由导航
-function toggleViewMode() {
-  if (props.viewMode === ViewMode.LOCAL) {
-    router.push("/online");
-  } else {
-    router.push("/");
+    await createSettingsWindow();
+  } catch (e) {
+    console.error("打开设置窗口失败:", e);
   }
 }
 
-// 切换主题模式
+function toggleViewMode() {
+  router.push(props.viewMode === ViewMode.LOCAL ? "/online" : "/");
+}
+
 function toggleTheme() {
   emit("toggle-theme");
 }
-
-// 检查窗口当前是否已最大化
-async function checkMaximized() {
-  if (!appWindow) return;
-  isMaximized.value = await appWindow.isMaximized();
-}
-
-// 窗口控制函数
-const minimize = async () => {
-  if (!appWindow) return;
-  await appWindow.minimize();
-};
-
-const toggleMaximize = async () => {
-  if (!appWindow) return;
-  if (isMaximized.value) {
-    await appWindow.unmaximize();
-  } else {
-    await appWindow.maximize();
-  }
-  isMaximized.value = !isMaximized.value;
-};
-
-const close = async () => {
-  if (!appWindow) return;
-  await appWindow.hide();
-};
-
-// 计算最大化/恢复的图标
-const maximizeIcon = computed(() => {
-  return isMaximized.value ? ScaleToOriginal : FullScreen;
-});
-
-onMounted(async () => {
-  try {
-    appWindow = getCurrentWindow();
-    await checkMaximized();
-
-    // 监听窗口最大化/还原状态变化
-    appWindow?.onResized(() => {
-      checkMaximized();
-    });
-  } catch (error) {
-    console.error("窗口操作错误:", error);
-  }
-});
 </script>
 
 <template>

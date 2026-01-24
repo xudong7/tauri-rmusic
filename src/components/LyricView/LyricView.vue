@@ -2,7 +2,7 @@
 import { ref, computed, watch, nextTick, onUnmounted, onMounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { ElScrollbar } from "element-plus";
-import type { SongInfo, MusicFile } from "../../types/model";
+import type { SongInfo, MusicFile } from "@/types/model";
 import { useMusicStore } from "@/stores/musicStore";
 
 const props = defineProps<{

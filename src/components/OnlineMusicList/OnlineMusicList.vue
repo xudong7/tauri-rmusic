@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { CaretRight, VideoPause, Download, Headset } from "@element-plus/icons-vue";
-import type { SongInfo } from "../../types/model";
+import type { SongInfo } from "@/types/model";
+import { formatDuration, formatArtists } from "@/utils/songUtils";
 
 const props = defineProps<{
   onlineSongs: SongInfo[];
@@ -12,17 +13,7 @@ const props = defineProps<{
 
 const emit = defineEmits(["play", "download", "load-more"]);
 
-function formatDuration(ms: number): string {
-  const s = Math.floor(ms / 1000);
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-}
-
-function formatArtists(artists: string[]): string {
-  return artists.join(", ");
-}
-
-const isCurrentSong = (song: SongInfo) =>
-  props.currentSong != null && props.currentSong.id === song.id;
+const isCurrentSong = (s: SongInfo) => props.currentSong?.id === s.id;
 </script>
 
 <template>

@@ -1,10 +1,10 @@
 import { ref, computed } from "vue";
 import { defineStore } from "pinia";
 import { invoke } from "@tauri-apps/api/core";
-// import { open } from "@tauri-apps/plugin-dialog";
 import { ElMessage } from "element-plus";
-import type { MusicFile, SongInfo, SearchResult, PlaySongResult } from "../types/model";
-import { ViewMode, PlayMode } from "../types/model";
+import type { MusicFile, SongInfo, SearchResult, PlaySongResult } from "@/types/model";
+import { ViewMode, PlayMode } from "@/types/model";
+import { DEFAULT_COVER_URL } from "@/constants";
 
 export const useMusicStore = defineStore("music", () => {
   // 主题设置 - 优先从 localStorage 读取，如果没有则使用时间自动设置
@@ -601,9 +601,14 @@ export const useMusicStore = defineStore("music", () => {
     return 1; // 顺序播放返回默认步长
   }
 
-  // 获得默认的封面图片URL
   function getDefaultCoverUrl(): string {
-    return "/icon-new.jpg";
+    return DEFAULT_COVER_URL;
+  }
+
+  /** 根据播放模式与方向计算切歌步长，供 App、PlayerBar、ImmersiveView 等复用 */
+  function getPlayStep(direction: number): number {
+    if (playMode.value === PlayMode.RANDOM) return getRandomStep();
+    return Math.abs(direction);
   }
 
   return {
@@ -634,7 +639,6 @@ export const useMusicStore = defineStore("music", () => {
 
     // 方法
     loadMusicFiles,
-    // selectDirectory,
     setDefaultDirectory,
     getDefaultDirectory,
     resetDefaultDirectory,
@@ -661,5 +665,6 @@ export const useMusicStore = defineStore("music", () => {
     startPlayTimeTracking,
     stopPlayTimeTracking,
     getDefaultCoverUrl,
+    getPlayStep,
   };
 });

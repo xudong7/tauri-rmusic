@@ -15,9 +15,9 @@
 
 <script setup lang="ts">
 import { onMounted } from "vue";
-import { useMusicStore } from "../stores/musicStore";
-import OnlineMusicList from "../components/OnlineMusicList/OnlineMusicList.vue";
-import { ViewMode } from "../types/model";
+import { useMusicStore } from "@/stores/musicStore";
+import OnlineMusicList from "@/components/OnlineMusicList/OnlineMusicList.vue";
+import { ViewMode } from "@/types/model";
 
 const musicStore = useMusicStore();
 
