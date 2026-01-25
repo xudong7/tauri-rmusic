@@ -6,9 +6,9 @@
   -webkit-backdrop-filter: blur(var(--app-glass-blur));
   border-bottom: 1px solid var(--app-header-border);
   box-shadow: var(--app-header-shadow, none);
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   padding: 0 var(--app-spacing);
   user-select: none;
   -webkit-app-region: drag;
@@ -24,14 +24,19 @@
   border-radius: 0;
 }
 
+/* 左侧占位，与右侧等宽，使搜索框处于整栏视觉中心 */
+.header-left {
+  min-width: 0;
+  -webkit-app-region: drag;
+}
+
 .header-center {
-  flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 0 24px;
-  min-width: 0; /* 允许在窄屏下收缩 */
-  -webkit-app-region: drag; /* 中间区域默认可拖动 */
+  padding: 0 16px;
+  min-width: 0;
+  -webkit-app-region: no-drag;
 }
 
 .search-section {
@@ -44,9 +49,10 @@
 
 .header-right {
   display: flex;
+  justify-content: flex-end;
   align-items: center;
   gap: 12px;
-  -webkit-app-region: no-drag; /* 右侧控制区域不可拖动 */
+  -webkit-app-region: drag; /* 右侧空白可拖动；.window-controls 通过下方规则为 no-drag */
 }
 
 .window-controls {

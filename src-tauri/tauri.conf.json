@@ -15,7 +15,7 @@
         "label": "main",
         "title": "rmusic",
         "width": 1200,
-        "height": 800,
+        "height": 1000,
         "decorations": false,
         "center": true,
         "shadow": true

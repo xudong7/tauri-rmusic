@@ -161,8 +161,8 @@
 }
 
 .cover-container {
-  width: 400px;
-  height: 400px;
+  width: 360px;
+  height: 360px;
   border-radius: var(--app-radius-lg);
   overflow: hidden;
   box-shadow:

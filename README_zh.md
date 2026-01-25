@@ -1,201 +1,191 @@
 # Rmusic
 
-一个使用 Tauri 和 Vue.js 构建的现代跨平台桌面音乐播放器。
+基于 Tauri 2 与 Vue 3 的跨平台桌面音乐播放器，支持本地音频播放与通过第三方 API 代理的在线音乐流媒体。
 
 [English](README.md) | [中文](README_zh.md)
 
-![GitHub License](https://img.shields.io/github/license/xudong7/tauri-rmusic)
-![GitHub release](https://img.shields.io/github/v/release/xudong7/tauri-rmusic)
-![Tauri](https://img.shields.io/badge/Tauri-2.0-blue)
-![Vue](https://img.shields.io/badge/Vue.js-3.5-green)
+[![License](https://img.shields.io/github/license/xudong7/tauri-rmusic)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/xudong7/tauri-rmusic)](https://github.com/xudong7/tauri-rmusic/releases)
+[![Tauri](https://img.shields.io/badge/Tauri-2.0-24C8DB?logo=tauri)](https://tauri.app/)
+[![Vue](https://img.shields.io/badge/Vue-3.5-4FC08D?logo=vue.js)](https://vuejs.org/)
 
-## 屏幕截图
+---
 
-![截图](/screenshots/image-1.png)
+## 目录
 
-![截图](/screenshots/image-2.png)
+- [截图](#截图)
+- [功能特点](#功能特点)
+- [技术栈](#技术栈)
+- [快速开始](#快速开始)
+- [在线音乐](#在线音乐)
+- [使用说明](#使用说明)
+- [贡献指南](#贡献指南)
+- [开发规划](#开发规划)
+- [许可证](#许可证)
+- [致谢](#致谢)
 
-![截图](/screenshots/image-3.png)
+---
 
-![截图](/screenshots/image-4.png)
+## 截图
 
-> **注意**: 如果需要在线听歌功能，需要同时启动[KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi)和[NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup)两个本地代理服务器。
+![本地音乐](screenshots/image-1.png) ![在线音乐](screenshots/image-2.png)
 
-## 在线音乐功能
+![沉浸模式](screenshots/image-3.png) ![设置](screenshots/image-4.png)
 
-Rmusic 现已支持在线音乐播放功能，您可以：
-
-- 搜索并播放酷狗音乐平台的歌曲
-- 在应用程序内切换本地音乐和在线音乐
-- 享受无缝的音乐播放体验，即使在不同页面之间切换
-
-### 使用方法
-
-1. 先下载并启动 [KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi) 和 [NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) 本地代理服务器
-2. 确保 **NeteaseCloudMusicApiBackup** 运行在 `http://localhost:3000`，**KuGouMusicApi** 运行在 `http://localhost:3001`
-3. 在 Rmusic 中点击导航菜单进入"在线音乐"页面
-4. 输入关键词搜索歌曲并播放
-
-## 免责声明
-
-1. 本项目仅供学习使用，请尊重版权，请勿利用此项目从事商业行为及非法用途!
-2. 使用本项目的过程中可能会产生版权数据。对于这些版权数据，本项目不拥有它们的所有权。为了避免侵权，使用者务必在 24 小时内清除使用本项目的过程中所产 生的版权数据。
-3. 由于使用本项目产生的包括由于本协议或由于使用或无法使用本项目而引起的任何性质的任何直接、间接、特殊、偶然或结果性损害（包括但不限于因商誉损失、停 工、计算机故障或故障引起的损害赔偿，或任何及所有其他商业损害或损失）由使用者负责。
-4. 禁止在违反当地法律法规的情况下使用本项目。 对于使用者在明知或不知当地法律法规不允许的情况下使用本项目所造成的任何违法违规行为由使用者承担，本 项目不承担由此造成的任何直接、间接、特殊、偶然或结果性责任。
-5. 音乐平台不易，请尊重版权，支持正版。
-6. 本项目仅用于对技术可行性的探索及研究，不接受任何商业（包括但不限于广告等）合作及捐赠。
-7. 如果官方音乐平台觉得本项目不妥，可联系本项目更改或移除。
+---
 
 ## 功能特点
 
-- **跨平台**: 支持 Windows、macOS 和 Linux
-- **轻量级**: 使用 Rust 和 Tauri 构建，性能优异
-- **音乐文件夹扫描**: 自动扫描和索引您的音乐库
-- **文件格式支持**: 播放 MP3、WAV、OGG 和 FLAC 音频格式
-- **美观界面**: 使用 Vue.js 和 Element Plus 构建的清晰直观的用户界面
-- **音量控制**: 使用滑块轻松调节播放音量
-- **在线音乐**: 通过酷狗音乐 API 和网易云音乐 API 搜索和播放在线音乐
-- **持续播放**: 在不同页面间切换时保持音乐播放状态
-- **深色模式**: 支持深色模式，适合低光环境下使用
-- **沉浸模式**: 全屏播放界面，展示精美专辑封面和歌词
-- **歌词支持**: 显示本地和在线音乐的同步歌词
-- **音乐下载**: 下载在线音乐到本地存储，包含封面和歌词
-- **系统托盘**: 最小化到系统托盘，快速访问控制
-- **键盘快捷键**: 支持空格键（播放/暂停）和方向键（上一首/下一首）
-- **设置窗口**: 专用设置界面，配置主题和下载偏好
-- **自动主题**: 根据时间自动切换浅色和深色主题
+| 类别         | 说明                                                 |
+| ------------ | ---------------------------------------------------- |
+| **跨平台**   | Windows、macOS、Linux                                |
+| **性能**     | Rust + Tauri，体积小、启动快                         |
+| **本地播放** | 扫描文件夹，支持 MP3、WAV、OGG、FLAC                 |
+| **在线音乐** | 通过酷狗、网易云 API 搜索与播放（需自建本地代理）    |
+| **界面**     | Vue 3 + Element Plus，明暗主题及按时段自动切换       |
+| **播放**     | 音量、进度、循环、随机；歌词与全屏沉浸模式           |
+| **便捷**     | 系统托盘、快捷键（空格、方向键）、带封面与歌词的下载 |
+| **设置**     | 主题、下载路径、库扫描、缓存管理                     |
+
+---
 
 ## 技术栈
 
-- **前端**: Vue.js 3, Element Plus UI, Vue Router, Pinia (状态管理)
-- **后端**: Rust, Tauri 2.0
-- **音频播放**: Rodio (Rust 音频播放库)
-- **HTTP 客户端**: Reqwest (用于在线音乐 API)
-- **异步运行时**: Tokio (Rust 异步操作)
-- **构建工具**: Vite, Cargo
-- **UI 组件**: Element Plus Icons, 自定义 CSS
-- **打包**: Tauri bundler 跨平台分发
+| 层级 | 技术                                             |
+| ---- | ------------------------------------------------ |
+| 前端 | Vue 3、Element Plus、Vue Router、Pinia、Vue I18n |
+| 后端 | Rust、Tauri 2.0                                  |
+| 音频 | Rodio                                            |
+| 网络 | Reqwest、Tokio                                   |
+| 构建 | Vite、Cargo                                      |
+
+---
 
 ## 快速开始
 
-### 前置条件
+### 环境要求
 
-- Node.js (v16 或更高版本)
-- Rust 和 Cargo
-- npm 或 yarn
+- **Node.js** 16+
+- **Rust** 与 Cargo（[rustup](https://rustup.rs/)）
+- **npm** 或 **pnpm**
 
-### 安装
+### 安装与运行
 
-1. 克隆仓库
+```bash
+git clone https://github.com/xudong7/tauri-rmusic.git
+cd tauri-rmusic
+npm install
+npm run tauri dev
+```
 
-   ```bash
-   git clone https://github.com/xudong7/tauri-rmusic.git
-   cd tauri-rmusic
-   ```
+或使用 pnpm：
 
-2. 安装依赖
+```bash
+pnpm install
+pnpm exec tauri dev
+```
 
-   ```bash
-   npm install
-   ```
-
-3. 运行开发版本
-
-   ```bash
-   npm run tauri dev
-   ```
-
-### 生产环境构建
-
-为当前平台构建应用程序:
+### 生产构建
 
 ```bash
 npm run tauri build
 ```
 
-构建后的应用将位于 `src-tauri/target/release` 目录中。
+输出目录：`src-tauri/target/release/`（安装包在 `release/bundle/`）。
 
-## 使用方法
+---
 
-1. **启动应用程序**
-2. **本地音乐**:
-   - 点击"选择音乐文件夹"选择包含音乐文件的目录
-   - 应用程序将扫描选定文件夹中支持的音频文件
-   - 点击列表中的歌曲开始播放
-3. **在线音乐**:
-   - 使用标题导航栏进入"在线音乐"页面
-   - 使用关键词搜索歌曲
-   - 点击播放按钮在线播放音乐
-   - 使用下载按钮将歌曲保存到本地
-4. **播放控制**:
-   - 使用播放控制来播放、暂停和调节音量
-   - 使用空格键切换播放/暂停
-   - 使用方向键切换到上一首/下一首
-5. **沉浸模式**:
-   - 点击播放栏中的专辑封面进入全屏沉浸模式
-   - 查看同步歌词并享受美丽的视觉效果
-6. **设置**:
-   - 点击设置图标打开偏好设置窗口
-   - 自定义主题、下载位置和其他偏好设置
+## 在线音乐
 
-## 贡献
+在线播放依赖两个本地 API 代理服务，使用「在线音乐」前请先启动它们。
 
-我们热烈欢迎社区贡献者加入 Rmusic 项目！🎵
+| 服务                       | 地址                    | 仓库                                                                                          |
+| -------------------------- | ----------------------- | --------------------------------------------------------------------------------------------- |
+| NeteaseCloudMusicApiBackup | `http://localhost:3000` | [nooblong/NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) |
+| KuGouMusicApi              | `http://localhost:3001` | [MakcRe/KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi)                               |
 
-### 如何贡献
+**步骤：**
 
-我们欢迎各种形式的贡献，包括但不限于：
+1. 克隆、配置并运行上述两个服务，确保端口正确。
+2. 在 Rmusic 中通过导航进入 **在线音乐**。
+3. 搜索、播放；使用下载按钮可将歌曲保存到本地（含封面与歌词）。
 
-- **🐛 Bug 修复**: 发现并修复项目中的错误
-- **✨ 新功能**: 实现新的音乐播放功能或用户界面改进
-- **📝 文档完善**: 改进 README、注释或添加使用教程
-- **🎨 UI/UX 优化**: 界面设计改进和用户体验优化
-- **🌍 国际化**: 添加多语言支持
-- **🧪 测试**: 编写单元测试或集成测试
-- **💡 建议**: 在 Issues 中提出功能建议或改进意见
+---
 
-### 参与步骤
+## 使用说明
 
-1. **Fork 本仓库**到您的 GitHub 账户
-2. **创建功能分支**: `git checkout -b feature/amazing-feature`
-3. **提交更改**: `git commit -m 'Add some amazing feature'`
-4. **推送到分支**: `git push origin feature/amazing-feature`
-5. **提交 Pull Request**
+1. **本地音乐** — 选择音乐文件夹，应用会扫描并列出支持的格式，点击曲目即可播放。
+2. **在线音乐** — 打开在线音乐页面，搜索后播放或下载。
+3. **播放控制** — 使用底部控制栏或快捷键：`空格`（播放/暂停）、`左/右方向键`（上一首/下一首）。
+4. **沉浸模式** — 点击播放栏中的封面进入全屏，查看歌词与视觉效果。
+5. **设置** — 通过设置入口配置主题、下载目录、扫描选项与缓存等。
 
-### 代码规范
+---
 
-- 遵循现有的代码风格和命名约定
-- 为新功能编写清晰的注释
-- 确保代码通过现有测试
-- 对于重大更改，请先创建 Issue 讨论
+## 贡献指南
 
-### 开发环境设置
+欢迎通过以下方式参与：
 
-请参考 [快速开始](#快速开始) 部分设置开发环境。
+- **Bug 修复** — 提交 Issue 或 PR 修复问题。
+- **新功能** — 播放逻辑或界面改进。
+- **文档** — 完善 README、注释或使用说明。
+- **UI/UX** — 布局、可访问性、操作流程优化。
+- **国际化** — 新增或修订翻译。
+- **测试** — 单元测试或集成测试。
+- **建议** — 在 Issue 中提出想法或改进方案。
 
-感谢每一位贡献者让 Rmusic 变得更好！❤️
+**流程：**
 
-## TODO
+1. Fork 本仓库。
+2. 创建分支：`git checkout -b feature/your-feature`。
+3. 提交：`git commit -m 'feat: 你的修改'`。
+4. 推送：`git push origin feature/your-feature`。
+5. 发起 Pull Request。
 
-- [x] **重复模式**: 播放列表循环和随机播放模式
-- [x] **增强的设置窗口**:
-  - [x] 音乐库扫描偏好设置
-  - [x] 缓存管理选项
-- [ ] **主题自定义**: 自定义配色方案和强调色
-- [ ] **语言支持**: 国际化 (i18n) 支持多种语言
-- [ ] **更多音乐源**: 集成其他音乐流媒体 API
-- [ ] **导入/导出**: 备份和恢复音乐库和播放列表
-- [ ] **通知支持**: 正在播放的通知和控制
+请保持与现有代码风格一致，对复杂逻辑补充注释。较大改动建议先在 Issue 中讨论。
+
+---
+
+## 开发规划
+
+- [x] 循环与随机模式
+- [x] 设置：库扫描、缓存
+- [ ] 主题自定义（强调色等）
+- [ ] 更多语言国际化
+- [ ] 更多音乐来源
+- [ ] 音乐库与播放列表的导入/导出
+- [ ] 正在播放系统通知
+
+---
+
+## 免责声明
+
+<details>
+<summary>法律与使用须知（点击展开）</summary>
+
+1. 本项目仅供学习使用，请勿用于商业或非法用途，请尊重版权。
+2. 使用过程中可能产生受版权保护的数据，本项目不拥有该数据。为降低侵权风险，请在使用后 24 小时内删除相关数据。
+3. 因使用本项目而产生的任何直接、间接、特殊、偶然或后果性损害，作者不承担责任。
+4. 请在符合当地法律的前提下使用本项目，用户须自行承担合规责任。
+5. 请支持正版与官方音乐平台。
+6. 本项目仅用于技术探索与研究，不接受任何商业合作或捐赠。
+7. 若权利方认为本项目不妥，请联系维护者进行修改或移除。
+
+</details>
+
+---
 
 ## 许可证
 
-该项目采用 MIT 许可证 - 详情请查看 LICENSE 文件。
+[MIT](LICENSE)
+
+---
 
 ## 致谢
 
-- [Tauri](https://tauri.app/) - 用于构建桌面应用程序的框架
-- [Vue.js](https://vuejs.org/) - 前端框架
-- [Rodio](https://github.com/RustAudio/rodio) - 音频播放功能
-- [Element Plus](https://element-plus.org/) - UI 组件
-- [KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi) - 启用在线音乐功能
-- [NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) - 启用在线音乐功能
+- [Tauri](https://tauri.app/) — 桌面应用框架
+- [Vue.js](https://vuejs.org/) — 前端框架
+- [Rodio](https://github.com/RustAudio/rodio) — 音频播放
+- [Element Plus](https://element-plus.org/) — UI 组件
+- [KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi) — 酷狗代理
+- [NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) — 网易云代理
