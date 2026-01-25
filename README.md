@@ -28,9 +28,9 @@ A modern, lightweight cross-platform desktop music player built with Tauri 2 and
 
 ## Screenshots
 
-![Local Music](screenshots/image-1.png) ![Online Music](screenshots/image-2.png)
+![Local Music](screenshots/image-2.1.png) ![Online Music](screenshots/image-2.2.png)
 
-![Immersive Mode](screenshots/image-3.png) ![Settings](screenshots/image-4.png)
+![Immersive Mode](screenshots/image-2.3.png) ![Settings](screenshots/image-2.4.png)
 
 ---
 
