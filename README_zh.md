@@ -28,9 +28,9 @@
 
 ## 截图
 
-![本地音乐](screenshots/image-1.png) ![在线音乐](screenshots/image-2.png)
+![本地音乐](screenshots/image-2.1.png) ![在线音乐](screenshots/image-2.2.png)
 
-![沉浸模式](screenshots/image-3.png) ![设置](screenshots/image-4.png)
+![沉浸模式](screenshots/image-2.3.png) ![设置](screenshots/image-2.4.png)
 
 ---
 
