@@ -1,201 +1,191 @@
 # Rmusic
 
-A modern cross-platform desktop music player built with Tauri and Vue.js.
+A modern, lightweight cross-platform desktop music player built with Tauri 2 and Vue 3. Play local audio files and stream online music through third-party API proxies.
 
 [English](README.md) | [中文](README_zh.md)
 
-![GitHub License](https://img.shields.io/github/license/xudong7/tauri-rmusic)
-![GitHub release](https://img.shields.io/github/v/release/xudong7/tauri-rmusic)
-![Tauri](https://img.shields.io/badge/Tauri-2.0-blue)
-![Vue](https://img.shields.io/badge/Vue.js-3.5-green)
+[![License](https://img.shields.io/github/license/xudong7/tauri-rmusic)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/xudong7/tauri-rmusic)](https://github.com/xudong7/tauri-rmusic/releases)
+[![Tauri](https://img.shields.io/badge/Tauri-2.0-24C8DB?logo=tauri)](https://tauri.app/)
+[![Vue](https://img.shields.io/badge/Vue-3.5-4FC08D?logo=vue.js)](https://vuejs.org/)
+
+---
+
+## Table of Contents
+
+- [Screenshots](#screenshots)
+- [Features](#features)
+- [Technology Stack](#technology-stack)
+- [Getting Started](#getting-started)
+- [Online Music](#online-music)
+- [Usage](#usage)
+- [Contributing](#contributing)
+- [Roadmap](#roadmap)
+- [License](#license)
+- [Acknowledgements](#acknowledgements)
+
+---
 
 ## Screenshots
 
-![Screenshot](/screenshots/image-1.png)
+![Local Music](screenshots/image-1.png) ![Online Music](screenshots/image-2.png)
 
-![Screenshot](/screenshots/image-2.png)
+![Immersive Mode](screenshots/image-3.png) ![Settings](screenshots/image-4.png)
 
-![Screenshot](/screenshots/image-3.png)
-
-![Screenshot](/screenshots/image-4.png)
-
-> **Note**: If you need online music functionality, you need to start [KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi) and [NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) at the same time.
-
-## Online Music Feature
-
-Rmusic now supports online music streaming. You can:
-
-- Search and play songs from the KuGou music platform
-- Switch between local music and online music within the application
-- Enjoy seamless music playback experience even when switching between different pages
-
-### How to Use
-
-1. First download and start the [KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi) and [NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) local proxy server
-2. Make sure **NeteaseCloudMusicApiBackup** is running on <http://localhost:3000> and **KuGouMusicApi** is running on <http://localhost:3001>
-3. In Rmusic, click the navigation menu to enter the "Online Music" page
-4. Enter keywords to search for songs and play them
-
-## Disclaimer
-
-1. This project is for learning purposes only. Please respect copyright and do not use this project for commercial activities or illegal purposes!
-2. Copyright data may be generated during the use of this project. For this copyright data, this project does not own them. To avoid infringement, users must clear the copyright data generated during the use of this project within 24 hours.
-3. Users are responsible for any direct, indirect, special, incidental or consequential damages (including but not limited to damages for loss of goodwill, work stoppage, computer failure or malfunction, or any and all other commercial damages or losses) arising from the use of this project or from this agreement or from the use or inability to use this project.
-4. It is prohibited to use this project in violation of local laws and regulations. The user shall be responsible for any illegal acts caused by using this project knowingly or unknowingly when local laws and regulations do not allow it, and this project shall not bear any direct, indirect, special, incidental or consequential liability arising therefrom.
-5. Music platforms are not easy, please respect copyright and support genuine versions.
-6. This project is only used to explore and research technical feasibility, and does not accept any commercial (including but not limited to advertising, etc.) cooperation and donations.
-7. If the official music platform feels that this project is inappropriate, you can contact this project to change or remove it.
+---
 
 ## Features
 
-- **Cross-platform**: Works on Windows, macOS, and Linux
-- **Lightweight**: Built with Rust and Tauri for optimal performance
-- **Music Folder Scanning**: Automatically scans and indexes your music library
-- **File Format Support**: Plays MP3, WAV, OGG, and FLAC audio formats
-- **Beautiful Interface**: Clean and intuitive UI built with Vue.js and Element Plus
-- **Volume Control**: Easily adjust playback volume with slider
-- **Online Music**: Search and play online music through KuGou Music API and NetEase Cloud Music API
-- **Continuous Playback**: Maintains music playback state when switching between different pages
-- **Dark Mode**: Supports dark mode for better user experience in low-light environments
-- **Immersive Mode**: Full-screen playback with beautiful album art and lyrics display
-- **Lyrics Support**: Display synchronized lyrics for both local and online music
-- **Music Download**: Download online music to local storage with cover art and lyrics
-- **System Tray**: Minimize to system tray with quick access controls
-- **Keyboard Shortcuts**: Support for space (play/pause) and arrow keys (next/previous)
-- **Settings Window**: Dedicated settings interface for theme and download preferences
-- **Auto Theme**: Automatically switch between light and dark themes based on time
+| Category             | Description                                                                     |
+| -------------------- | ------------------------------------------------------------------------------- |
+| **Cross-platform**   | Windows, macOS, Linux                                                           |
+| **Performance**      | Rust + Tauri for minimal footprint and fast startup                             |
+| **Local playback**   | Scan folders; play MP3, WAV, OGG, FLAC                                          |
+| **Online streaming** | Search and play via KuGou and NetEase APIs (requires local proxy)               |
+| **UI**               | Vue 3 + Element Plus; light/dark and time-based auto theme                      |
+| **Playback**         | Volume, progress, repeat, shuffle; lyrics and immersive full-screen mode        |
+| **Convenience**      | System tray, keyboard shortcuts (space, arrows), download with cover and lyrics |
+| **Settings**         | Theme, download path, library scan, cache management                            |
+
+---
 
 ## Technology Stack
 
-- **Frontend**: Vue.js 3, Element Plus UI, Vue Router, Pinia (State Management)
-- **Backend**: Rust, Tauri 2.0
-- **Audio Playback**: Rodio (Rust audio playback library)
-- **HTTP Client**: Reqwest (for online music APIs)
-- **Async Runtime**: Tokio (for asynchronous operations in Rust)
-- **Build Tools**: Vite, Cargo
-- **UI Components**: Element Plus Icons, Custom CSS
-- **Packaging**: Tauri bundler for cross-platform distribution
+| Layer    | Technologies                                     |
+| -------- | ------------------------------------------------ |
+| Frontend | Vue 3, Element Plus, Vue Router, Pinia, Vue I18n |
+| Backend  | Rust, Tauri 2.0                                  |
+| Audio    | Rodio                                            |
+| Network  | Reqwest, Tokio                                   |
+| Build    | Vite, Cargo                                      |
+
+---
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js (v16 or higher)
-- Rust and Cargo
-- npm or yarn
+- **Node.js** 16+
+- **Rust** and Cargo ([rustup](https://rustup.rs/))
+- **npm** or **pnpm**
 
-### Installation
+### Install and Run
 
-1. Clone the repository
+```bash
+git clone https://github.com/xudong7/tauri-rmusic.git
+cd tauri-rmusic
+npm install
+npm run tauri dev
+```
 
-   ```bash
-   git clone https://github.com/xudong7/tauri-rmusic.git
-   cd tauri-rmusic
-   ```
+Or with pnpm:
 
-2. Install dependencies
+```bash
+pnpm install
+pnpm exec tauri dev
+```
 
-   ```bash
-   npm install
-   ```
-
-3. Run the development version
-
-   ```bash
-   npm run tauri dev
-   ```
-
-### Building for Production
-
-To build the application for your current platform:
+### Build for Production
 
 ```bash
 npm run tauri build
 ```
 
-The built application will be available in the `src-tauri/target/release` directory.
+Output: `src-tauri/target/release/` (or `release/bundle/` for installers).
+
+---
+
+## Online Music
+
+Online streaming depends on two local API proxies. Start both before using the "Online Music" tab.
+
+| Service                    | URL                     | Repository                                                                                    |
+| -------------------------- | ----------------------- | --------------------------------------------------------------------------------------------- |
+| NeteaseCloudMusicApiBackup | `http://localhost:3000` | [nooblong/NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) |
+| KuGouMusicApi              | `http://localhost:3001` | [MakcRe/KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi)                               |
+
+**Steps:**
+
+1. Clone, configure, and run both services on the ports above.
+2. In Rmusic, open **Online Music** from the navigation.
+3. Search and play; use the download action to save tracks with cover and lyrics.
+
+---
 
 ## Usage
 
-1. **Launch the application**
-2. **Local Music**:
-   - Click "Choose Music Folder" to select a directory containing your music files
-   - The application will scan the selected folder for supported audio files
-   - Click on a song from the list to start playback
-3. **Online Music**:
-   - Navigate to the "Online Music" page using the header navigation
-   - Search for songs using keywords
-   - Click play button to stream music online
-   - Use download button to save songs locally
-4. **Playback Controls**:
-   - Use the playback controls to play, pause, and adjust volume
-   - Use space bar to toggle play/pause
-   - Use arrow keys to skip to next/previous track
-5. **Immersive Mode**:
-   - Click the album art in the player bar to enter full-screen immersive mode
-   - View synchronized lyrics and enjoy beautiful visual effects
-6. **Settings**:
-   - Click the settings icon to open preferences window
-   - Customize theme, download location, and other preferences
+1. **Local music** — Choose a music folder; the app scans and lists supported formats. Click a track to play.
+2. **Online music** — Open the Online Music page, search, then play or download.
+3. **Playback** — Use the bottom bar or shortcuts: `Space` (play/pause), `Left`/`Right` (previous/next).
+4. **Immersive mode** — Click the cover in the player bar for full-screen lyrics and visuals.
+5. **Settings** — Use the settings entry to change theme, download directory, scan options, and cache.
+
+---
 
 ## Contributing
 
-We warmly welcome community contributors to join the Rmusic project! 🎵
+Contributions are welcome. Here are some ways to help:
 
-### How to Contribute
+- **Bug fixes** — Report or fix issues.
+- **Features** — New playback or UI improvements.
+- **Docs** — README, code comments, or guides.
+- **UI/UX** — Layout, accessibility, and workflow improvements.
+- **i18n** — New or updated translations.
+- **Tests** — Unit or integration tests.
+- **Ideas** — Open an Issue to discuss.
 
-We welcome all forms of contributions, including but not limited to:
+**Process:**
 
-- **🐛 Bug Fixes**: Find and fix bugs in the project
-- **✨ New Features**: Implement new music playback features or UI improvements
-- **📝 Documentation**: Improve README, comments, or add tutorials
-- **🎨 UI/UX Optimization**: Interface design improvements and user experience enhancements
-- **🌍 Internationalization**: Add multi-language support
-- **🧪 Testing**: Write unit tests or integration tests
-- **💡 Suggestions**: Propose feature suggestions or improvements in Issues
+1. Fork the repo.
+2. Create a branch: `git checkout -b feature/your-feature`.
+3. Commit: `git commit -m 'feat: your change'`.
+4. Push: `git push origin feature/your-feature`.
+5. Open a Pull Request.
 
-### Contribution Process
+Keep the existing style and add comments for non-obvious logic. For large changes, start with an Issue.
 
-1. **Fork this repository** to your GitHub account
-2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
-3. **Commit your changes**: `git commit -m 'Add some amazing feature'`
-4. **Push to the branch**: `git push origin feature/amazing-feature`
-5. **Submit a Pull Request**
+---
 
-### Code Guidelines
+## Roadmap
 
-- Follow existing code style and naming conventions
-- Write clear comments for new features
-- Ensure code passes existing tests
-- For major changes, please create an Issue for discussion first
+- [x] Repeat and shuffle modes
+- [x] Settings: library scan, cache
+- [ ] Theme customization (accent colors)
+- [ ] i18n for more languages
+- [ ] More music sources
+- [ ] Import/export library and playlists
+- [ ] Now playing notifications
 
-### Development Setup
+---
 
-Please refer to the [Getting Started](#getting-started) section to set up your development environment.
+## Disclaimer
 
-Thank you to all contributors who make Rmusic better! ❤️
+<details>
+<summary>Legal and usage notice (click to expand)</summary>
 
-## TODO
+1. This project is for learning only. Do not use it for commercial or illegal purposes. Respect copyright.
+2. Any copyrighted data produced while using this project is not owned by the project. You must delete such data within 24 hours to reduce infringement risk.
+3. The authors are not liable for any direct, indirect, special, incidental, or consequential damages from using this project.
+4. Do not use this project in places where it violates local laws. You are responsible for your own compliance.
+5. Please support official music platforms and legal distribution.
+6. This project is for technical exploration and research only. It does not accept commercial partnerships or donations.
+7. If a rights holder finds this project inappropriate, please contact the maintainers to request changes or removal.
 
-- [x] **Repeat Modes**: playlist repeat, and shuffle modes
-- [x] **Enhanced Settings Window**:
-  - [x] Library scan preferences
-  - [x] Cache management options
-- [ ] **Theme Customization**: Custom color schemes and accent colors
-- [ ] **Language Support**: Internationalization (i18n) for multiple languages
-- [ ] **More Music Sources**: Integration with additional music streaming APIs
-- [ ] **Import/Export**: Backup and restore music library and playlists
-- [ ] **Notification Support**: Now playing notifications with controls
+</details>
+
+---
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+[MIT](LICENSE)
+
+---
 
 ## Acknowledgements
 
-- [Tauri](https://tauri.app/) - For the framework to build the desktop application
-- [Vue.js](https://vuejs.org/) - For the frontend framework
-- [Rodio](https://github.com/RustAudio/rodio) - For audio playback capabilities
-- [Element Plus](https://element-plus.org/) - For UI components
-- [KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi) - For enabling online music functionality
-- [NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) - For enabling online music functionality
+- [Tauri](https://tauri.app/) — Desktop framework
+- [Vue.js](https://vuejs.org/) — Frontend framework
+- [Rodio](https://github.com/RustAudio/rodio) — Audio playback
+- [Element Plus](https://element-plus.org/) — UI components
+- [KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi) — KuGou proxy
+- [NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) — NetEase proxy

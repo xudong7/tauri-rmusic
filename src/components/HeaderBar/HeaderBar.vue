@@ -42,6 +42,7 @@ function toggleTheme() {
     class="header-bar"
     :class="{ 'is-maximized': isMaximized, 'is-dark-mode': isDarkMode }"
   >
+    <div class="header-left" />
     <div class="header-center">
       <div class="search-section">
         <el-input
