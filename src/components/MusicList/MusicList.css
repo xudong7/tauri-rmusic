@@ -108,6 +108,13 @@
   flex-shrink: 0;
 }
 
+.cover-img {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--app-radius-sm);
+  object-fit: cover;
+}
+
 .cover-placeholder {
   width: 40px;
   height: 40px;
