@@ -4,26 +4,35 @@ import { useI18n } from "vue-i18n";
 import zhCn from "element-plus/es/locale/lang/zh-cn";
 import en from "element-plus/es/locale/lang/en";
 import { ElConfigProvider } from "element-plus";
-import HeaderBar from "./components/HeaderBar/HeaderBar.vue";
-import Sidebar from "./components/Sidebar/Sidebar.vue";
-import PlayerBar from "./components/PlayerBar/PlayerBar.vue";
-import ImmersiveView from "./components/ImmersiveView/ImmersiveView.vue";
-import { useMusicStore } from "./stores/musicStore";
+import HeaderBar from "./components/layout/HeaderBar/HeaderBar.vue";
+import Sidebar from "./components/layout/Sidebar/Sidebar.vue";
+import PlayerBar from "./components/feature/PlayerBar/PlayerBar.vue";
+import ImmersiveView from "./components/feature/ImmersiveView/ImmersiveView.vue";
 import { ViewMode } from "./types/model";
 import { usePlaybackDetector } from "./composables/usePlaybackDetector";
+import { useThemeStore } from "./stores/themeStore";
+import { useViewStore } from "./stores/viewStore";
+import { useLocalMusicStore } from "./stores/localMusicStore";
+import { useOnlineMusicStore } from "./stores/onlineMusicStore";
+import { usePlayerStore } from "./stores/playerStore";
 
 const { locale } = useI18n();
 const elementLocale = computed(() => (locale.value === "zh" ? zhCn : en));
 
-const musicStore = useMusicStore();
+const themeStore = useThemeStore();
+const viewStore = useViewStore();
+const localStore = useLocalMusicStore();
+const onlineStore = useOnlineMusicStore();
+const playerStore = usePlayerStore();
+
 const { start: detectorStart, stop: detectorStop } = usePlaybackDetector(
-  musicStore as any,
-  (d) => musicStore.getPlayStep(d)
+  playerStore as any,
+  (d) => playerStore.getPlayStep(d)
 );
 
 const playbackState = computed(() => ({
-  hasTrack: musicStore.hasCurrentTrack,
-  isLoading: musicStore.isLoadingSong,
+  hasTrack: playerStore.hasCurrentTrack,
+  isLoading: playerStore.isLoadingSong,
 }));
 
 watch(
@@ -36,25 +45,25 @@ watch(
 );
 
 function handleSearch(keyword: string) {
-  if (musicStore.viewMode === ViewMode.LOCAL) musicStore.searchLocalMusic(keyword);
-  else musicStore.searchOnlineMusic(keyword);
+  if (viewStore.viewMode === ViewMode.LOCAL) localStore.searchLocalMusic(keyword);
+  else onlineStore.searchOnlineMusic(keyword);
 }
 
 function handleKeyDown(e: KeyboardEvent) {
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)
     return;
-  const step = musicStore.getPlayStep;
+  const step = playerStore.getPlayStep;
   switch (e.key) {
     case "ArrowLeft":
-      musicStore.playNextOrPreviousMusic(-step(-1));
+      playerStore.playNextOrPreviousMusic(-step(-1));
       e.preventDefault();
       break;
     case " ":
-      musicStore.togglePlay();
+      playerStore.togglePlay();
       e.preventDefault();
       break;
     case "ArrowRight":
-      musicStore.playNextOrPreviousMusic(step(1));
+      playerStore.playNextOrPreviousMusic(step(1));
       e.preventDefault();
       break;
   }
@@ -62,12 +71,13 @@ function handleKeyDown(e: KeyboardEvent) {
 
 function handleStorageChange(e: StorageEvent) {
   if (e.key === "theme" && e.newValue)
-    musicStore.setThemeWithoutSave(e.newValue === "dark");
+    themeStore.setThemeWithoutSave(e.newValue === "dark");
 }
 
 onMounted(async () => {
   try {
-    await musicStore.initialize();
+    await localStore.initializeLocalLibrary();
+    themeStore.initializeTheme();
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("storage", handleStorageChange);
   } catch (e) {
@@ -78,7 +88,7 @@ onMounted(async () => {
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeyDown);
   window.removeEventListener("storage", handleStorageChange);
-  musicStore.stopPlayTimeTracking();
+  playerStore.stopPlayTimeTracking();
   detectorStop();
 });
 </script>
@@ -87,14 +97,14 @@ onUnmounted(() => {
   <el-config-provider :locale="elementLocale">
     <div
       class="music-app"
-      :class="{ 'dark-theme': musicStore.isDarkMode }"
+      :class="{ 'dark-theme': themeStore.isDarkMode }"
       @contextmenu.prevent
     >
       <HeaderBar
-        :viewMode="musicStore.viewMode"
-        :isDarkMode="musicStore.isDarkMode"
+        :viewMode="viewStore.viewMode"
+        :isDarkMode="themeStore.isDarkMode"
         @search="handleSearch"
-        @toggle-theme="musicStore.toggleTheme"
+        @toggle-theme="themeStore.toggleTheme"
       />
       <div class="app-body">
         <Sidebar />
@@ -103,28 +113,28 @@ onUnmounted(() => {
         </div>
       </div>
       <PlayerBar
-        :currentMusic="musicStore.currentMusic"
-        :currentOnlineSong="musicStore.currentOnlineSong"
-        :isPlaying="musicStore.isPlaying"
-        :playMode="musicStore.playMode"
-        @toggle-play="musicStore.togglePlay"
-        @volume-change="musicStore.adjustVolume"
-        @previous="musicStore.playNextOrPreviousMusic(-musicStore.getPlayStep(-1))"
-        @next="musicStore.playNextOrPreviousMusic(musicStore.getPlayStep(1))"
-        @toggle-play-mode="musicStore.togglePlayMode"
-        @show-immersive="musicStore.showImmersive"
+        :currentMusic="playerStore.currentMusic"
+        :currentOnlineSong="playerStore.currentOnlineSong"
+        :isPlaying="playerStore.isPlaying"
+        :playMode="playerStore.playMode"
+        @toggle-play="playerStore.togglePlay"
+        @volume-change="playerStore.adjustVolume"
+        @previous="playerStore.playNextOrPreviousMusic(-playerStore.getPlayStep(-1))"
+        @next="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1))"
+        @toggle-play-mode="playerStore.togglePlayMode"
+        @show-immersive="playerStore.showImmersive"
       />
 
       <ImmersiveView
-        v-if="musicStore.showImmersiveMode"
-        :currentSong="musicStore.currentOnlineSong"
-        :currentMusic="musicStore.currentMusic"
-        :isPlaying="musicStore.isPlaying"
-        :currentTime="musicStore.currentPlayTime"
-        @toggle-play="musicStore.togglePlay"
-        @next="musicStore.playNextOrPreviousMusic(musicStore.getPlayStep(1))"
-        @previous="musicStore.playNextOrPreviousMusic(-musicStore.getPlayStep(-1))"
-        @exit="musicStore.exitImmersive"
+        v-if="viewStore.showImmersiveMode"
+        :currentSong="playerStore.currentOnlineSong"
+        :currentMusic="playerStore.currentMusic"
+        :isPlaying="playerStore.isPlaying"
+        :currentTime="playerStore.currentPlayTime"
+        @toggle-play="playerStore.togglePlay"
+        @next="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1))"
+        @previous="playerStore.playNextOrPreviousMusic(-playerStore.getPlayStep(-1))"
+        @exit="playerStore.exitImmersive"
       />
     </div>
   </el-config-provider>

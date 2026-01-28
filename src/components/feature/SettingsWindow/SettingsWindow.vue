@@ -9,12 +9,14 @@ import {
   InfoFilled,
 } from "@element-plus/icons-vue";
 import { open } from "@tauri-apps/plugin-dialog";
-import { useMusicStore } from "@/stores/musicStore";
+import { useThemeStore } from "@/stores/themeStore";
+import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { enable, isEnabled, disable } from "@tauri-apps/plugin-autostart";
 import { setLocale, getLocale, type LocaleKey } from "@/i18n";
 
 const { t } = useI18n();
-const musicStore = useMusicStore();
+const themeStore = useThemeStore();
+const localStore = useLocalMusicStore();
 const downloadPath = ref("");
 const autoStartEnabled = ref(false);
 const currentLocale = ref<LocaleKey>(getLocale());
@@ -30,22 +32,22 @@ function handleLocaleChange(val: LocaleKey) {
 }
 
 watch(
-  () => musicStore.isDarkMode,
-  () => musicStore.applyTheme()
+  () => themeStore.isDarkMode,
+  () => themeStore.applyTheme()
 );
 
 window.addEventListener("storage", (e) => {
   if (e.key === "theme" && e.newValue) {
     const shouldBeDark = e.newValue === "dark";
-    if (musicStore.isDarkMode !== shouldBeDark)
-      musicStore.setThemeWithoutSave(shouldBeDark);
+    if (themeStore.isDarkMode !== shouldBeDark)
+      themeStore.setThemeWithoutSave(shouldBeDark);
   }
 });
 
 // 主题切换处理
 const handleThemeChange = (value: boolean) => {
   // 使用新的 setTheme 方法
-  musicStore.setTheme(value);
+  themeStore.setTheme(value);
   console.log("Theme changed to:", value ? "dark" : "light");
 };
 
@@ -60,7 +62,7 @@ const selectDownloadPath = async () => {
 
     if (selected && typeof selected === "string") {
       downloadPath.value = selected;
-      await musicStore.setDefaultDirectory(selected);
+      await localStore.setDefaultDirectory(selected);
     }
   } catch (error) {
     console.error("选择下载目录失败:", error);
@@ -70,9 +72,9 @@ const selectDownloadPath = async () => {
 // 重置下载目录为默认
 const resetDownloadPath = async () => {
   try {
-    await musicStore.resetDefaultDirectory();
+    await localStore.resetDefaultDirectory();
     // 更新显示的路径
-    const currentDefaultDir = musicStore.getDefaultDirectory();
+    const currentDefaultDir = localStore.getDefaultDirectory();
     if (currentDefaultDir) {
       downloadPath.value = currentDefaultDir;
     }
@@ -100,8 +102,9 @@ const handleAutoStartChange = async (value: boolean) => {
 
 onMounted(async () => {
   try {
-    await musicStore.initialize();
-    const dir = musicStore.getDefaultDirectory();
+    await localStore.initializeLocalLibrary();
+    themeStore.initializeTheme();
+    const dir = localStore.getDefaultDirectory();
     if (dir) downloadPath.value = dir;
     try {
       autoStartEnabled.value = await isEnabled();
@@ -126,7 +129,7 @@ onMounted(async () => {
           <label>{{ t("settings.themeMode") }}</label>
           <div class="setting-control">
             <el-switch
-              v-model="musicStore.isDarkMode"
+              v-model="themeStore.isDarkMode"
               :active-text="t('common.dark')"
               :inactive-text="t('common.light')"
               @change="handleThemeChange"

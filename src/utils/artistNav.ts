@@ -1,5 +1,5 @@
-import { invoke } from "@tauri-apps/api/core";
-import type { ArtistInfo, SearchMixResult } from "@/types/model";
+import type { ArtistInfo } from "@/types/model";
+import { searchOnlineMix } from "@/api/commands/netease";
 
 type ResolveInput = {
   /** 优先从当前歌手/搜索结果中匹配，避免额外请求 */
@@ -27,7 +27,7 @@ export async function resolveArtistByName(
   if (candidate?.id) return candidate;
 
   try {
-    const res = await invoke<SearchMixResult>("search_online_mix", {
+    const res = await searchOnlineMix({
       keywords: name,
       page: 1,
       pagesize: 1,

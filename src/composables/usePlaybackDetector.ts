@@ -2,7 +2,7 @@
  * 播放结束检测 composable：当 Sink 连续空时自动切下一首
  * 从 App.vue 抽离，降低 App 内聚、便于维护
  */
-import { invoke } from "@tauri-apps/api/core";
+import { isSinkEmpty } from "@/api/commands/music";
 const CHECK_INTERVAL = 1000;
 const REQUIRED_EMPTY_COUNT = 3;
 const MIN_TIME_BETWEEN_CHECKS = 1000;
@@ -38,7 +38,7 @@ export function usePlaybackDetector(
       return;
     }
     try {
-      const isEmpty = await invoke<boolean>("is_sink_empty");
+      const isEmpty = await isSinkEmpty();
       const now = Date.now();
       if (isEmpty) {
         consecutiveEmptyCount++;
