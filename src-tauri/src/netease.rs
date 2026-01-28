@@ -25,6 +25,27 @@ pub struct SearchResult {
     pub total: u32,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ArtistInfo {
+    pub id: String,
+    pub name: String,
+    pub pic_url: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SearchMixResult {
+    pub artists: Vec<ArtistInfo>,
+    pub songs: Vec<SongInfo>,
+    pub total: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ArtistSongsResult {
+    pub artist: ArtistInfo,
+    pub songs: Vec<SongInfo>,
+    pub total: u32,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LyricInfo {
     pub id: String,
@@ -193,6 +214,205 @@ pub async fn search_songs(
     }
 
     Ok(SearchResult { songs, total })
+}
+
+/// 综合在线搜索：返回“相关歌手 + 歌曲列表（可分页）”
+///
+/// - 歌曲：走 /cloudsearch (type=1) 以获得 songCount 便于分页
+/// - 歌手：走 /search (type=1018) 直接拿 result.artist.artists 的头像/名称
+#[tauri::command]
+pub async fn search_online_mix(
+    keywords: String,
+    page: Option<u32>,
+    pagesize: Option<u32>,
+    artist_limit: Option<u32>,
+) -> Result<SearchMixResult, String> {
+    let client = get_client()?;
+    let kw = keywords.clone();
+    let page = page.unwrap_or(1);
+    let pagesize = pagesize.unwrap_or(7);
+    let artist_limit = artist_limit.unwrap_or(6);
+
+    let songs_fut = search_songs(
+        kw.clone(),
+        Some(page),
+        Some(pagesize),
+        Some(LOCAL_API_BASE.into()),
+    );
+    let artists_fut = async {
+        // /search: offset 为偏移量
+        let url = format!(
+            "{}/search?keywords={}&type=1018&limit={}&offset=0",
+            LOCAL_API_BASE, kw, artist_limit
+        );
+        let response_json: serde_json::Value = get_response_json(client.clone(), url).await?;
+        let code = response_json
+            .get("code")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(500);
+        if code != 200 {
+            return Err(format!("API return error: code {}", code));
+        }
+
+        let artists_value = response_json["result"]["artist"]["artists"]
+            .as_array()
+            .unwrap_or(&Vec::new())
+            .to_owned();
+
+        let mut artists = Vec::new();
+        for a in artists_value {
+            let id = a["id"].as_u64().map(|v| v.to_string()).unwrap_or_default();
+            if id.is_empty() {
+                continue;
+            }
+            let name = a["name"].as_str().unwrap_or("unknown").to_string();
+            let pic_url = a["img1v1Url"]
+                .as_str()
+                .or_else(|| a["picUrl"].as_str())
+                .unwrap_or("")
+                .to_string();
+            artists.push(ArtistInfo { id, name, pic_url });
+        }
+        Ok::<Vec<ArtistInfo>, String>(artists)
+    };
+
+    let (songs_res, artists_res) = tokio::join!(songs_fut, artists_fut);
+    let songs_res = songs_res?;
+    let artists = artists_res?;
+
+    Ok(SearchMixResult {
+        artists,
+        songs: songs_res.songs,
+        total: songs_res.total,
+    })
+}
+
+/// 获取歌手热门歌曲（用于“只看该歌手歌曲”页面）
+///
+/// 兼容两类常见实现：
+/// - /artist/top/song?id=...  -> songs[]
+/// - /artists?id=...          -> hotSongs[]
+#[tauri::command]
+pub async fn get_artist_top_songs(
+    id: String,
+    limit: Option<u32>,
+) -> Result<ArtistSongsResult, String> {
+    let client = get_client()?;
+    let limit = limit.unwrap_or(50);
+
+    async fn parse_songs(arr: Option<&Vec<serde_json::Value>>) -> Vec<SongInfo> {
+        let mut songs = Vec::new();
+        let Some(arr) = arr else { return songs };
+        for song in arr {
+            let id = song["id"]
+                .as_u64()
+                .map(|v| v.to_string())
+                .unwrap_or_default();
+            if id.is_empty() {
+                continue;
+            }
+            let song_name = song["name"].as_str().unwrap_or("unknown").to_string();
+            let artists = if let Some(ar) = song["ar"].as_array() {
+                ar.iter()
+                    .filter_map(|a| a["name"].as_str().map(|s| s.to_string()))
+                    .collect()
+            } else if let Some(artists_array) = song["artists"].as_array() {
+                artists_array
+                    .iter()
+                    .filter_map(|a| a["name"].as_str().map(|s| s.to_string()))
+                    .collect()
+            } else {
+                vec!["unknown artist".to_string()]
+            };
+            let album_name = song["al"]["name"]
+                .as_str()
+                .or_else(|| song["album"]["name"].as_str())
+                .unwrap_or("")
+                .to_string();
+            let duration = song["dt"]
+                .as_u64()
+                .or_else(|| song["duration"].as_u64())
+                .unwrap_or(0);
+            let pic_url = song["al"]["picUrl"]
+                .as_str()
+                .or_else(|| song["album"]["picUrl"].as_str())
+                .unwrap_or("")
+                .to_string();
+
+            songs.push(SongInfo {
+                id: id.clone(),
+                name: song_name,
+                artists,
+                album: album_name,
+                duration,
+                pic_url,
+                file_hash: id,
+            });
+        }
+        songs
+    }
+
+    // 先用 /artist/top/song
+    let url_top = format!(
+        "{}/artist/top/song?id={}&limit={}",
+        LOCAL_API_BASE, id, limit
+    );
+    let json_top = get_response_json(client.clone(), url_top).await?;
+    if json_top.get("code").and_then(|v| v.as_u64()).unwrap_or(500) == 200 {
+        let artist_name = json_top["artist"]["name"]
+            .as_str()
+            .unwrap_or("")
+            .to_string();
+        let artist_pic = json_top["artist"]["picUrl"]
+            .as_str()
+            .or_else(|| json_top["artist"]["img1v1Url"].as_str())
+            .unwrap_or("")
+            .to_string();
+        let songs = parse_songs(json_top.get("songs").and_then(|v| v.as_array())).await;
+        return Ok(ArtistSongsResult {
+            artist: ArtistInfo {
+                id,
+                name: if artist_name.is_empty() {
+                    "Artist".into()
+                } else {
+                    artist_name
+                },
+                pic_url: artist_pic,
+            },
+            total: songs.len() as u32,
+            songs,
+        });
+    }
+
+    // 回退 /artists?id=
+    let url_artists = format!("{}/artists?id={}", LOCAL_API_BASE, id);
+    let json_artists = get_response_json(client, url_artists).await?;
+    let code = json_artists
+        .get("code")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(500);
+    if code != 200 {
+        return Err(format!("API return error: code {}", code));
+    }
+    let artist_name = json_artists["artist"]["name"]
+        .as_str()
+        .unwrap_or("Artist")
+        .to_string();
+    let artist_pic = json_artists["artist"]["picUrl"]
+        .as_str()
+        .or_else(|| json_artists["artist"]["img1v1Url"].as_str())
+        .unwrap_or("")
+        .to_string();
+    let songs = parse_songs(json_artists.get("hotSongs").and_then(|v| v.as_array())).await;
+    Ok(ArtistSongsResult {
+        artist: ArtistInfo {
+            id,
+            name: artist_name,
+            pic_url: artist_pic,
+        },
+        total: songs.len() as u32,
+        songs,
+    })
 }
 
 /// get song url by file_hash or song id

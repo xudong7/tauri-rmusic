@@ -2,7 +2,14 @@ import { ref, computed } from "vue";
 import { defineStore } from "pinia";
 import { invoke } from "@tauri-apps/api/core";
 import { ElMessage } from "element-plus";
-import type { MusicFile, SongInfo, SearchResult, PlaySongResult } from "@/types/model";
+import type {
+  ArtistInfo,
+  ArtistSongsResult,
+  MusicFile,
+  PlaySongResult,
+  SearchMixResult,
+  SongInfo,
+} from "@/types/model";
 import { ViewMode, PlayMode } from "@/types/model";
 import { DEFAULT_COVER_URL } from "@/constants";
 import { i18n } from "@/i18n";
@@ -28,6 +35,7 @@ export const useMusicStore = defineStore("music", () => {
   // 在线音乐相关
   const onlineSongs = ref<SongInfo[]>([]);
   const onlineSongsTotal = ref(0);
+  const onlineArtists = ref<ArtistInfo[]>([]);
   const isSearchLoading = ref(false);
   const searchKeyword = ref("");
   const currentPage = ref(1);
@@ -37,6 +45,14 @@ export const useMusicStore = defineStore("music", () => {
   const showImmersiveMode = ref(false);
   const currentPlayTime = ref(0);
   const isLoadingSong = ref(false); // 防止重复加载歌曲
+
+  // 歌手页相关
+  const artistSongs = ref<SongInfo[]>([]);
+  const artistSongsTotal = ref(0);
+  const currentArtist = ref<ArtistInfo | null>(null);
+  const isArtistLoading = ref(false);
+  const artistPage = ref(1);
+  const artistPageSize = ref(50);
 
   // 播放时间跟踪
   let playStartTimestamp = 0;
@@ -387,20 +403,23 @@ export const useMusicStore = defineStore("music", () => {
       if (page === 1) {
         onlineSongs.value = [];
         onlineSongsTotal.value = 0;
+        onlineArtists.value = [];
       }
 
       searchKeyword.value = keyword;
       currentPage.value = page;
       isSearchLoading.value = true;
 
-      const result = await invoke<SearchResult>("search_songs", {
+      const result = await invoke<SearchMixResult>("search_online_mix", {
         keywords: keyword,
         page,
         pagesize: pageSize.value,
+        artistLimit: 6,
       });
 
       if (page === 1) {
         onlineSongs.value = result.songs;
+        onlineArtists.value = result.artists ?? [];
       } else {
         onlineSongs.value = [...onlineSongs.value, ...result.songs];
       }
@@ -444,6 +463,49 @@ export const useMusicStore = defineStore("music", () => {
     if (searchKeyword.value) {
       searchOnlineMusic(searchKeyword.value, currentPage.value + 1);
     }
+  }
+
+  async function loadArtistSongs(artistId: string, page = 1) {
+    try {
+      if (page === 1) {
+        artistSongs.value = [];
+        artistSongsTotal.value = 0;
+        artistPage.value = 1;
+      }
+      isArtistLoading.value = true;
+      const res = await invoke<ArtistSongsResult>("get_artist_top_songs", {
+        id: artistId,
+        limit: artistPageSize.value,
+      });
+      // 接口在部分情况下可能缺少头像/名称，这里做字段兜底，避免覆盖掉已有信息（例如从搜索页路由带来的）
+      if (res.artist) {
+        const prev = currentArtist.value;
+        const incomingName =
+          res.artist.name && res.artist.name !== "Artist" ? res.artist.name : "";
+        currentArtist.value = {
+          id: res.artist.id || prev?.id || artistId,
+          name: incomingName || prev?.name || "Artist",
+          pic_url: res.artist.pic_url || prev?.pic_url || "",
+        };
+      } else {
+        // 保持原值
+        currentArtist.value = currentArtist.value ?? null;
+      }
+      // 歌手热门歌曲通常一次返回足够；这里保留分页接口形态，便于后续扩展
+      artistSongs.value = res.songs ?? [];
+      artistSongsTotal.value = res.total ?? res.songs?.length ?? 0;
+      artistPage.value = page;
+    } catch (error) {
+      console.error("加载歌手歌曲失败:", error);
+      ElMessage.error(`${i18n.global.t("errors.searchFailed")}: ${error}`);
+    } finally {
+      isArtistLoading.value = false;
+    }
+  }
+
+  function loadMoreArtistSongs() {
+    // 目前后端是“热门歌曲一次性返回”，先不做真正分页
+    return;
   }
 
   // 切换视图模式
@@ -633,6 +695,7 @@ export const useMusicStore = defineStore("music", () => {
     defaultDirectory,
     onlineSongs,
     onlineSongsTotal,
+    onlineArtists,
     isSearchLoading,
     searchKeyword,
     currentPage,
@@ -665,6 +728,8 @@ export const useMusicStore = defineStore("music", () => {
     searchOnlineMusic,
     searchLocalMusic,
     loadMoreResults,
+    loadArtistSongs,
+    loadMoreArtistSongs,
     switchViewMode,
     toggleTheme,
     setTheme,
@@ -677,5 +742,11 @@ export const useMusicStore = defineStore("music", () => {
     stopPlayTimeTracking,
     getDefaultCoverUrl,
     getPlayStep,
+
+    // 歌手页状态
+    artistSongs,
+    artistSongsTotal,
+    currentArtist,
+    isArtistLoading,
   };
 });

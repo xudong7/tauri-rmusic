@@ -21,6 +21,26 @@ export interface SearchResult {
   total: number;
 }
 
+// 在线搜索-相关歌手
+export interface ArtistInfo {
+  id: string;
+  name: string;
+  pic_url: string;
+}
+
+// 在线搜索-综合结果（歌手 + 歌曲）
+export interface SearchMixResult {
+  artists: ArtistInfo[];
+  songs: SongInfo[];
+  total: number;
+}
+
+export interface ArtistSongsResult {
+  artist: ArtistInfo;
+  songs: SongInfo[];
+  total: number;
+}
+
 // 歌词信息模型
 export interface LyricInfo {
   id: string;
