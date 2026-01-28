@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
+import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import {
   VideoPlay,
@@ -14,8 +15,10 @@ import { PlayMode, type MusicFile, type SongInfo } from "@/types/model";
 import { useMusicStore } from "@/stores/musicStore";
 import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
 import { loadLocalCover } from "@/utils/coverUtils";
+import { resolveArtistByName, splitArtistNames } from "@/utils/artistNav";
 
 const { t, locale } = useI18n();
+const router = useRouter();
 
 const props = defineProps<{
   currentMusic: MusicFile | null;
@@ -47,7 +50,7 @@ const currentSongName = computed(() => {
 
 const songTitle = computed(() => extractSongTitle(currentSongName.value));
 
-const currentArtist = computed(() => {
+const currentArtistDisplay = computed(() => {
   void locale.value;
   if (props.currentOnlineSong?.artists?.length)
     return props.currentOnlineSong.artists.join(", ");
@@ -57,6 +60,32 @@ const currentArtist = computed(() => {
   }
   return "";
 });
+
+const artistNames = computed(() => {
+  void locale.value;
+  if (props.currentOnlineSong?.artists?.length) return props.currentOnlineSong.artists;
+  return splitArtistNames(currentArtistDisplay.value);
+});
+
+const canNavigateArtist = computed(
+  () =>
+    artistNames.value.length > 0 && !artistNames.value.includes(t("common.unknownArtist"))
+);
+
+async function handleArtistClick(name: string) {
+  if (!name) return;
+  if (name === t("common.unknownArtist")) return;
+  const artist = await resolveArtistByName(name, {
+    currentArtist: musicStore.currentArtist,
+    onlineArtists: musicStore.onlineArtists,
+  });
+  if (!artist?.id) return;
+  router.push({
+    name: "Artist",
+    params: { id: artist.id },
+    query: { name: artist.name, pic_url: artist.pic_url || "" },
+  });
+}
 
 const coverUrl = computed(() => {
   if (props.currentOnlineSong?.pic_url) return props.currentOnlineSong.pic_url;
@@ -127,8 +156,27 @@ watch(volume, () => {
         </div>
         <div class="song-info">
           <div class="song-name" :title="songTitle">{{ songTitle }}</div>
-          <div v-if="currentArtist" class="artist-name" :title="currentArtist">
-            {{ currentArtist }}
+          <div
+            v-if="currentArtistDisplay"
+            class="artist-name"
+            :title="currentArtistDisplay"
+          >
+            <template v-if="artistNames.length">
+              <template v-for="(a, idx) in artistNames" :key="a + idx">
+                <span
+                  class="artist-part"
+                  :class="{ 'artist-link': canNavigateArtist }"
+                  @click.stop="handleArtistClick(a)"
+                  :title="`${a}（点击查看）`"
+                >
+                  {{ a }}
+                </span>
+                <span v-if="idx < artistNames.length - 1" class="artist-sep">, </span>
+              </template>
+            </template>
+            <template v-else>
+              {{ currentArtistDisplay }}
+            </template>
           </div>
         </div>
       </div>

@@ -259,7 +259,7 @@
   overflow: visible;
 }
 
-/* 歌手名称样式 */
+/* 歌手名称样式（容器） */
 .song-artist {
   margin: 0;
   font-size: 14px;
@@ -275,6 +275,17 @@
 
 .song-artist:hover {
   color: rgba(255, 255, 255, 0.95);
+}
+
+/* 歌手名可点击跳转歌手页 */
+.song-artist .artist-part.artist-link {
+  cursor: pointer;
+}
+
+.song-artist .artist-part.artist-link:hover {
+  color: var(--el-color-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* 歌词容器样式 */
