@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
+import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import {
   VideoPlay,
@@ -23,9 +24,11 @@ import {
   formatArtists,
 } from "@/utils/songUtils";
 import { loadLocalCover } from "@/utils/coverUtils";
+import { resolveArtistByName, splitArtistNames } from "@/utils/artistNav";
 import { useWindowControls } from "@/composables/useWindowControls";
 
 const { t, locale } = useI18n();
+const router = useRouter();
 
 const props = defineProps<{
   currentSong: SongInfo | null;
@@ -155,6 +158,32 @@ const currentArtistName = computed(() => {
   return "";
 });
 
+const artistNames = computed(() => {
+  void locale.value;
+  if (props.currentSong?.artists?.length) return props.currentSong.artists;
+  return splitArtistNames(currentArtistName.value);
+});
+
+const canNavigateArtist = computed(
+  () =>
+    artistNames.value.length > 0 && !artistNames.value.includes(t("common.unknownArtist"))
+);
+
+async function handleArtistClick(name: string) {
+  if (!name) return;
+  if (name === t("common.unknownArtist")) return;
+  const artist = await resolveArtistByName(name, {
+    currentArtist: musicStore.currentArtist,
+    onlineArtists: musicStore.onlineArtists,
+  });
+  if (!artist?.id) return;
+  router.push({
+    name: "Artist",
+    params: { id: artist.id },
+    query: { name: artist.name, pic_url: artist.pic_url || "" },
+  });
+}
+
 // 当前封面
 const currentCoverUrl = computed(() => {
   if (props.currentSong && props.currentSong.pic_url) {
@@ -275,12 +304,27 @@ watch(
         <div class="song-info">
           <h1 class="song-title" :title="songTitle">{{ songTitle }}</h1>
           <div class="song-artist-container">
-            <p
+            <div
               class="song-artist"
               :title="currentArtistName || t('common.unknownArtist')"
             >
-              {{ currentArtistName || t("common.unknownArtist") }}
-            </p>
+              <template v-if="artistNames.length">
+                <template v-for="(a, idx) in artistNames" :key="a + idx">
+                  <span
+                    class="artist-part"
+                    :class="{ 'artist-link': canNavigateArtist }"
+                    @click.stop="handleArtistClick(a)"
+                    :title="`${a}（点击查看）`"
+                  >
+                    {{ a }}
+                  </span>
+                  <span v-if="idx < artistNames.length - 1" class="artist-sep">, </span>
+                </template>
+              </template>
+              <template v-else>
+                {{ currentArtistName || t("common.unknownArtist") }}
+              </template>
+            </div>
           </div>
         </div>
         <div class="lyric-view-container">

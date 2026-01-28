@@ -171,6 +171,17 @@ html.dark .song-name {
   color: var(--el-text-color-secondary);
 }
 
+/* 歌手名可点击跳转歌手页 */
+.artist-link {
+  cursor: pointer;
+}
+
+.artist-part.artist-link:hover {
+  color: var(--el-color-primary) !important;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 /* 深色模式 */
 .dark-theme .artist-name,
 html.dark .artist-name {
