@@ -2,6 +2,7 @@
   <div class="online-music-view">
     <OnlineMusicList
       :onlineSongs="musicStore.onlineSongs"
+      :onlineArtists="musicStore.onlineArtists"
       :currentSong="musicStore.currentOnlineSong"
       :isPlaying="musicStore.isPlaying"
       :loading="musicStore.isSearchLoading"

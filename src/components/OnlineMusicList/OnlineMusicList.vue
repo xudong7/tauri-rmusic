@@ -1,27 +1,45 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
+import { useRouter } from "vue-router";
 import { CaretRight, VideoPause, Download, Headset } from "@element-plus/icons-vue";
-import type { SongInfo } from "@/types/model";
+import type { ArtistInfo, SongInfo } from "@/types/model";
 import { formatDuration, formatArtists } from "@/utils/songUtils";
 
 const { t } = useI18n();
+const router = useRouter();
 
-const props = defineProps<{
-  onlineSongs: SongInfo[];
-  currentSong: SongInfo | null;
-  isPlaying: boolean;
-  loading: boolean;
-  totalCount: number;
-}>();
+const props = withDefaults(
+  defineProps<{
+    onlineSongs: SongInfo[];
+    onlineArtists: ArtistInfo[];
+    currentSong: SongInfo | null;
+    isPlaying: boolean;
+    loading: boolean;
+    totalCount: number;
+    showTitle?: boolean;
+  }>(),
+  {
+    showTitle: true,
+  }
+);
 
 const emit = defineEmits(["play", "download", "load-more"]);
 
 const isCurrentSong = (s: SongInfo) => props.currentSong?.id === s.id;
+
+function goArtist(a: ArtistInfo) {
+  // 将歌手基础信息一并带过去，歌手页可先渲染头部（接口返回缺字段时也能兜底）
+  router.push({
+    name: "Artist",
+    params: { id: a.id },
+    query: { name: a.name, pic_url: a.pic_url },
+  });
+}
 </script>
 
 <template>
   <div class="online-music-list-container">
-    <div class="list-header">
+    <div v-if="showTitle" class="list-header">
       <h2 class="list-title">{{ t("onlineMusic.title") }}</h2>
     </div>
 
@@ -35,6 +53,24 @@ const isCurrentSong = (s: SongInfo) => props.currentSong?.id === s.id;
 
     <el-scrollbar v-else class="list-scroll">
       <div class="list-rows">
+        <div v-if="onlineArtists?.length" class="artist-strip">
+          <div class="artist-strip-title">{{ t("common.artist") }}</div>
+          <div class="artist-strip-scroll">
+            <div
+              v-for="a in onlineArtists"
+              :key="a.id"
+              class="artist-card"
+              @click="goArtist(a)"
+            >
+              <img v-if="a.pic_url" :src="a.pic_url" class="artist-avatar" alt="" />
+              <div v-else class="artist-avatar placeholder">
+                <el-icon><Headset /></el-icon>
+              </div>
+              <div class="artist-name" :title="a.name">{{ a.name }}</div>
+            </div>
+          </div>
+        </div>
+
         <div
           v-for="row in onlineSongs"
           :key="row.id"
