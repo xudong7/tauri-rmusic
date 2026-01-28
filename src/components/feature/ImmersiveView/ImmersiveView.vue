@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import {
   VideoPlay,
@@ -15,20 +14,21 @@ import {
   Close,
 } from "@element-plus/icons-vue";
 import type { SongInfo, MusicFile } from "@/types/model";
-import LyricView from "@/components/LyricView/LyricView.vue";
-import { useMusicStore } from "@/stores/musicStore";
+import LyricView from "@/components/feature/LyricView/LyricView.vue";
+import { useCoverLoader } from "@/composables/useCoverLoader";
+import { useArtistNavigation } from "@/composables/useArtistNavigation";
 import {
   getDisplayName,
   extractArtistName,
   extractSongTitle,
   formatArtists,
 } from "@/utils/songUtils";
-import { loadLocalCover } from "@/utils/coverUtils";
-import { resolveArtistByName, splitArtistNames } from "@/utils/artistNav";
 import { useWindowControls } from "@/composables/useWindowControls";
+import { useArtistStore } from "@/stores/artistStore";
+import { useOnlineMusicStore } from "@/stores/onlineMusicStore";
+import { useLocalMusicStore } from "@/stores/localMusicStore";
 
 const { t, locale } = useI18n();
-const router = useRouter();
 
 const props = defineProps<{
   currentSong: SongInfo | null;
@@ -39,13 +39,19 @@ const props = defineProps<{
 
 const emit = defineEmits(["toggle-play", "previous", "next", "exit"]);
 
-const musicStore = useMusicStore();
+const artistStore = useArtistStore();
+const onlineStore = useOnlineMusicStore();
+const localStore = useLocalMusicStore();
 const { isMaximized, minimize, toggleMaximize, close } = useWindowControls({
   onClose: "hide",
 });
 const maximizeIcon = computed(() => (isMaximized.value ? ScaleToOriginal : FullScreen));
 
-const localCoverUrl = ref("");
+const { coverUrl: currentCoverUrl } = useCoverLoader({
+  currentMusic: () => props.currentMusic,
+  currentOnlineSong: () => props.currentSong,
+  getDefaultDirectory: () => localStore.getDefaultDirectory(),
+});
 
 // 图片亮度分析状态
 const imageAnalysisState = ref({
@@ -53,16 +59,6 @@ const imageAnalysisState = ref({
   isAnalyzing: false,
   isAnalyzed: false,
 });
-
-async function loadCover() {
-  if (!props.currentMusic) {
-    localCoverUrl.value = "";
-    return;
-  }
-  localCoverUrl.value = await loadLocalCover(props.currentMusic.file_name, () =>
-    musicStore.getDefaultDirectory()
-  );
-}
 
 // 分析图片亮度
 async function analyzeCoverBrightness(imageUrl: string) {
@@ -158,42 +154,11 @@ const currentArtistName = computed(() => {
   return "";
 });
 
-const artistNames = computed(() => {
-  void locale.value;
-  if (props.currentSong?.artists?.length) return props.currentSong.artists;
-  return splitArtistNames(currentArtistName.value);
-});
-
-const canNavigateArtist = computed(
-  () =>
-    artistNames.value.length > 0 && !artistNames.value.includes(t("common.unknownArtist"))
-);
-
-async function handleArtistClick(name: string) {
-  if (!name) return;
-  if (name === t("common.unknownArtist")) return;
-  const artist = await resolveArtistByName(name, {
-    currentArtist: musicStore.currentArtist,
-    onlineArtists: musicStore.onlineArtists,
-  });
-  if (!artist?.id) return;
-  router.push({
-    name: "Artist",
-    params: { id: artist.id },
-    query: { name: artist.name, pic_url: artist.pic_url || "" },
-  });
-}
-
-// 当前封面
-const currentCoverUrl = computed(() => {
-  if (props.currentSong && props.currentSong.pic_url) {
-    return props.currentSong.pic_url;
-  } else if (localCoverUrl.value) {
-    return localCoverUrl.value;
-  }
-
-  // return null;
-  return musicStore.getDefaultCoverUrl();
+const { artistNames, canNavigateArtist, navigateArtistByName } = useArtistNavigation({
+  currentOnlineSong: () => props.currentSong,
+  localArtistDisplay: () => currentArtistName.value,
+  currentArtist: () => artistStore.currentArtist,
+  onlineArtists: () => onlineStore.onlineArtists,
 });
 
 // 用于背景的模糊封面样式
@@ -234,12 +199,6 @@ const overlayStyle = computed(() => {
     background: `rgba(0, 0, 0, ${opacity * 0.8})`,
   };
 });
-
-watch(
-  () => props.currentMusic,
-  (v) => v && loadCover(),
-  { immediate: true }
-);
 
 // 监听封面URL变化，重新分析亮度
 watch(
@@ -313,7 +272,7 @@ watch(
                   <span
                     class="artist-part"
                     :class="{ 'artist-link': canNavigateArtist }"
-                    @click.stop="handleArtistClick(a)"
+                    @click.stop="navigateArtistByName(a)"
                     :title="`${a}（点击查看）`"
                   >
                     {{ a }}

@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onUnmounted, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { invoke } from "@tauri-apps/api/core";
 import { ElScrollbar } from "element-plus";
 import type { SongInfo, MusicFile } from "@/types/model";
-import { useMusicStore } from "@/stores/musicStore";
+import { getSongLyric } from "@/api/commands/netease";
+import { loadCoverAndLyric } from "@/api/commands/file";
+import { usePlayerStore } from "@/stores/playerStore";
+import { useLocalMusicStore } from "@/stores/localMusicStore";
 
 const { t } = useI18n();
 
@@ -15,15 +17,15 @@ const props = defineProps<{
   currentTime?: number; // 从父组件传入的当前播放时间
 }>();
 
-// 使用 musicStore
-const musicStore = useMusicStore();
+const playerStore = usePlayerStore();
+const localStore = useLocalMusicStore();
 
 // 监听当前播放时间变化
 watch(
   () => props.currentTime,
   (newTime) => {
     // 使用播放时间更新歌词
-    if (newTime !== undefined && props.isPlaying && musicStore.isLoadingSong === false) {
+    if (newTime !== undefined && props.isPlaying && playerStore.isLoadingSong === false) {
       // 如果有外部传入的时间，直接使用并更新当前行
       currentLyricTime.value = newTime;
       updateCurrentLine();
@@ -137,7 +139,7 @@ async function loadLyric(song: SongInfo) {
 
   try {
     // 直接获取歌词内容
-    const lyricContent = await invoke<string>("get_song_lyric", {
+    const lyricContent = await getSongLyric({
       id: song.id,
     });
 
@@ -162,9 +164,9 @@ async function loadLocalLyric(music: MusicFile) {
   loading.value = true;
   lyricData.value = [];
   try {
-    const result = await invoke<[string, string]>("load_cover_and_lyric", {
+    const result = await loadCoverAndLyric({
       fileName: music.file_name,
-      defaultDirectory: musicStore.getDefaultDirectory(),
+      defaultDirectory: localStore.getDefaultDirectory(),
     });
 
     const [_, lyricContent] = result;

@@ -1,30 +1,57 @@
 <template>
   <div class="online-music-view">
     <OnlineMusicList
-      :onlineSongs="musicStore.onlineSongs"
-      :onlineArtists="musicStore.onlineArtists"
-      :currentSong="musicStore.currentOnlineSong"
-      :isPlaying="musicStore.isPlaying"
-      :loading="musicStore.isSearchLoading"
-      :totalCount="musicStore.onlineSongsTotal"
-      @play="musicStore.playOnlineSong"
-      @download="musicStore.downloadOnlineSong"
-      @load-more="musicStore.loadMoreResults"
+      :onlineSongs="onlineStore.onlineSongs"
+      :onlineArtists="onlineStore.onlineArtists"
+      :currentSong="playerStore.currentOnlineSong"
+      :isPlaying="playerStore.isPlaying"
+      :loading="onlineStore.isSearchLoading"
+      :totalCount="onlineStore.onlineSongsTotal"
+      @play="playerStore.playOnlineSong"
+      @download="downloadOnlineSong"
+      @load-more="onlineStore.loadMoreResults"
     />
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted } from "vue";
-import { useMusicStore } from "@/stores/musicStore";
-import OnlineMusicList from "@/components/OnlineMusicList/OnlineMusicList.vue";
+import { useOnlineMusicStore } from "@/stores/onlineMusicStore";
+import { usePlayerStore } from "@/stores/playerStore";
+import { useViewStore } from "@/stores/viewStore";
+import OnlineMusicList from "@/components/feature/OnlineMusicList/OnlineMusicList.vue";
 import { ViewMode } from "@/types/model";
+import { downloadMusic } from "@/api/commands/music";
+import { ElMessage } from "element-plus";
+import { i18n } from "@/i18n";
+import type { SongInfo } from "@/types/model";
+import { useLocalMusicStore } from "@/stores/localMusicStore";
 
-const musicStore = useMusicStore();
+const onlineStore = useOnlineMusicStore();
+const playerStore = usePlayerStore();
+const viewStore = useViewStore();
+const localStore = useLocalMusicStore();
+
+async function downloadOnlineSong(song: SongInfo) {
+  try {
+    ElMessage.info(i18n.global.t("download.starting"));
+    const fileName = await downloadMusic({
+      songHash: song.file_hash,
+      songName: song.name,
+      artist: song.artists.join(", "),
+      defaultDirectory: localStore.defaultDirectory,
+    });
+    ElMessage.success(i18n.global.t("download.done", { fileName }));
+  } catch (error) {
+    console.error("下载歌曲失败:", error);
+    ElMessage.error(`${i18n.global.t("errors.downloadFailed")}: ${error}`);
+  }
+}
 
 onMounted(() => {
   // 当进入在线音乐页面时，设置视图模式为在线
-  musicStore.switchViewMode(ViewMode.ONLINE);
+  viewStore.setViewMode(ViewMode.ONLINE);
+  onlineStore.resetResults();
 });
 </script>
 

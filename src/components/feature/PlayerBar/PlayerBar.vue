@@ -1,24 +1,24 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import {
   VideoPlay,
   VideoPause,
   ArrowLeft,
   ArrowRight,
-  Headset,
   Sort,
   Refresh,
 } from "@element-plus/icons-vue";
 import { PlayMode, type MusicFile, type SongInfo } from "@/types/model";
-import { useMusicStore } from "@/stores/musicStore";
 import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
-import { loadLocalCover } from "@/utils/coverUtils";
-import { resolveArtistByName, splitArtistNames } from "@/utils/artistNav";
+import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
+import { useArtistNavigation } from "@/composables/useArtistNavigation";
+import { useCoverLoader } from "@/composables/useCoverLoader";
+import { useArtistStore } from "@/stores/artistStore";
+import { useOnlineMusicStore } from "@/stores/onlineMusicStore";
+import { useLocalMusicStore } from "@/stores/localMusicStore";
 
 const { t, locale } = useI18n();
-const router = useRouter();
 
 const props = defineProps<{
   currentMusic: MusicFile | null;
@@ -36,9 +36,10 @@ const emit = defineEmits([
   "show-immersive",
 ]);
 
-const musicStore = useMusicStore();
 const volume = ref(50);
-const localCoverUrl = ref("");
+const artistStore = useArtistStore();
+const onlineStore = useOnlineMusicStore();
+const localStore = useLocalMusicStore();
 
 const currentSongName = computed(() => {
   void locale.value;
@@ -61,55 +62,18 @@ const currentArtistDisplay = computed(() => {
   return "";
 });
 
-const artistNames = computed(() => {
-  void locale.value;
-  if (props.currentOnlineSong?.artists?.length) return props.currentOnlineSong.artists;
-  return splitArtistNames(currentArtistDisplay.value);
+const { artistNames, canNavigateArtist, navigateArtistByName } = useArtistNavigation({
+  currentOnlineSong: () => props.currentOnlineSong,
+  localArtistDisplay: () => currentArtistDisplay.value,
+  currentArtist: () => artistStore.currentArtist,
+  onlineArtists: () => onlineStore.onlineArtists,
 });
 
-const canNavigateArtist = computed(
-  () =>
-    artistNames.value.length > 0 && !artistNames.value.includes(t("common.unknownArtist"))
-);
-
-async function handleArtistClick(name: string) {
-  if (!name) return;
-  if (name === t("common.unknownArtist")) return;
-  const artist = await resolveArtistByName(name, {
-    currentArtist: musicStore.currentArtist,
-    onlineArtists: musicStore.onlineArtists,
-  });
-  if (!artist?.id) return;
-  router.push({
-    name: "Artist",
-    params: { id: artist.id },
-    query: { name: artist.name, pic_url: artist.pic_url || "" },
-  });
-}
-
-const coverUrl = computed(() => {
-  if (props.currentOnlineSong?.pic_url) return props.currentOnlineSong.pic_url;
-  if (props.currentMusic && localCoverUrl.value) return localCoverUrl.value;
-  return musicStore.getDefaultCoverUrl();
+const { coverUrl } = useCoverLoader({
+  currentMusic: () => props.currentMusic,
+  currentOnlineSong: () => props.currentOnlineSong,
+  getDefaultDirectory: () => localStore.getDefaultDirectory(),
 });
-
-async function loadCover() {
-  if (!props.currentMusic) {
-    localCoverUrl.value = "";
-    return;
-  }
-  localCoverUrl.value = await loadLocalCover(props.currentMusic.file_name, () =>
-    musicStore.getDefaultDirectory()
-  );
-}
-
-watch(
-  () => props.currentMusic,
-  (v) => (v ? loadCover() : (localCoverUrl.value = "")),
-  {
-    immediate: true,
-  }
-);
 
 // 处理音量变化
 function handleVolumeChange() {
@@ -134,25 +98,14 @@ watch(volume, () => {
   <div class="player-bar">
     <div class="player-row">
       <div class="player-left">
-        <div
-          class="cover-container"
-          @click="enterImmersiveMode"
-          :class="{ clickable: currentOnlineSong || currentMusic }"
-        >
-          <img v-if="coverUrl" :src="coverUrl" class="cover-image" alt="Album Cover" />
-          <div v-else class="no-cover">
-            <el-icon
-              style="
-                width: 100%;
-                height: 100%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-              "
-            >
-              <Headset />
-            </el-icon>
-          </div>
+        <div class="cover-container" @click="enterImmersiveMode">
+          <CoverImage
+            :src="coverUrl"
+            alt="Album Cover"
+            :clickable="Boolean(currentOnlineSong || currentMusic)"
+            :size="56"
+            :radius="10"
+          />
         </div>
         <div class="song-info">
           <div class="song-name" :title="songTitle">{{ songTitle }}</div>
@@ -166,7 +119,7 @@ watch(volume, () => {
                 <span
                   class="artist-part"
                   :class="{ 'artist-link': canNavigateArtist }"
-                  @click.stop="handleArtistClick(a)"
+                  @click.stop="navigateArtistByName(a)"
                   :title="`${a}（点击查看）`"
                 >
                   {{ a }}

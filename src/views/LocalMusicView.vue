@@ -1,12 +1,12 @@
 <template>
   <div class="local-music-view">
     <MusicList
-      :musicFiles="musicStore.musicFiles"
-      :currentMusic="musicStore.currentMusic"
-      :isPlaying="musicStore.isPlaying"
-      :getDefaultDirectory="musicStore.getDefaultDirectory"
+      :musicFiles="localStore.musicFiles"
+      :currentMusic="playerStore.currentMusic"
+      :isPlaying="playerStore.isPlaying"
+      :getDefaultDirectory="localStore.getDefaultDirectory"
       :showImportButton="true"
-      @play="musicStore.playMusic"
+      @play="playerStore.playMusic"
       @import="importMusic"
     />
   </div>
@@ -16,17 +16,21 @@
 import { onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { open } from "@tauri-apps/plugin-dialog";
-import { invoke } from "@tauri-apps/api/core";
 import { ElMessage } from "element-plus";
-import { useMusicStore } from "@/stores/musicStore";
-import MusicList from "@/components/MusicList/MusicList.vue";
+import { useLocalMusicStore } from "@/stores/localMusicStore";
+import { usePlayerStore } from "@/stores/playerStore";
+import { useViewStore } from "@/stores/viewStore";
+import MusicList from "@/components/feature/MusicList/MusicList.vue";
 import { ViewMode } from "@/types/model";
+import { importMusic as importMusicCommand } from "@/api/commands/file";
 
 const { t } = useI18n();
-const musicStore = useMusicStore();
+const localStore = useLocalMusicStore();
+const playerStore = usePlayerStore();
+const viewStore = useViewStore();
 
 onMounted(() => {
-  musicStore.switchViewMode(ViewMode.LOCAL);
+  viewStore.setViewMode(ViewMode.LOCAL);
 });
 
 async function importMusic() {
@@ -48,9 +52,9 @@ async function importMusic() {
     });
 
     try {
-      const result = await invoke("import_music", {
+      const result = await importMusicCommand({
         files,
-        defaultDirectory: musicStore.currentDirectory || null,
+        defaultDirectory: localStore.currentDirectory || null,
       });
       loadingMessage.close();
       ElMessage({
@@ -59,7 +63,7 @@ async function importMusic() {
         duration: 5000,
         showClose: true,
       });
-      musicStore.refreshCurrentDirectory();
+      localStore.refreshCurrentDirectory();
     } catch (error) {
       loadingMessage.close();
       ElMessage({

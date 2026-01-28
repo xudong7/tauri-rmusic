@@ -1,29 +1,29 @@
 <template>
   <div class="artist-view">
-    <div class="artist-header" v-if="musicStore.currentArtist">
+    <div class="artist-header" v-if="artistStore.currentArtist">
       <img
-        v-if="musicStore.currentArtist.pic_url"
-        :src="musicStore.currentArtist.pic_url"
+        v-if="artistStore.currentArtist.pic_url"
+        :src="artistStore.currentArtist.pic_url"
         class="artist-avatar"
         alt=""
       />
       <div v-else class="artist-avatar placeholder"></div>
-      <div class="artist-name" :title="musicStore.currentArtist.name">
-        {{ musicStore.currentArtist.name }}
+      <div class="artist-name" :title="artistStore.currentArtist.name">
+        {{ artistStore.currentArtist.name }}
       </div>
     </div>
 
     <OnlineMusicList
-      :onlineSongs="musicStore.artistSongs"
+      :onlineSongs="artistStore.artistSongs"
       :onlineArtists="[]"
-      :currentSong="musicStore.currentOnlineSong"
-      :isPlaying="musicStore.isPlaying"
-      :loading="musicStore.isArtistLoading"
-      :totalCount="musicStore.artistSongsTotal"
+      :currentSong="playerStore.currentOnlineSong"
+      :isPlaying="playerStore.isPlaying"
+      :loading="artistStore.isArtistLoading"
+      :totalCount="artistStore.artistSongsTotal"
       :showTitle="false"
-      @play="musicStore.playOnlineSong"
-      @download="musicStore.downloadOnlineSong"
-      @load-more="musicStore.loadMoreArtistSongs"
+      @play="playerStore.playOnlineSong"
+      @download="downloadOnlineSong"
+      @load-more="artistStore.loadMoreArtistSongs"
     />
   </div>
 </template>
@@ -31,12 +31,38 @@
 <script setup lang="ts">
 import { onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
-import { useMusicStore } from "@/stores/musicStore";
-import OnlineMusicList from "@/components/OnlineMusicList/OnlineMusicList.vue";
+import { useArtistStore } from "@/stores/artistStore";
+import { usePlayerStore } from "@/stores/playerStore";
+import { useViewStore } from "@/stores/viewStore";
+import OnlineMusicList from "@/components/feature/OnlineMusicList/OnlineMusicList.vue";
 import { ViewMode } from "@/types/model";
+import { downloadMusic } from "@/api/commands/music";
+import { ElMessage } from "element-plus";
+import { i18n } from "@/i18n";
+import type { SongInfo } from "@/types/model";
+import { useLocalMusicStore } from "@/stores/localMusicStore";
 
 const route = useRoute();
-const musicStore = useMusicStore();
+const artistStore = useArtistStore();
+const playerStore = usePlayerStore();
+const viewStore = useViewStore();
+const localStore = useLocalMusicStore();
+
+async function downloadOnlineSong(song: SongInfo) {
+  try {
+    ElMessage.info(i18n.global.t("download.starting"));
+    const fileName = await downloadMusic({
+      songHash: song.file_hash,
+      songName: song.name,
+      artist: song.artists.join(", "),
+      defaultDirectory: localStore.defaultDirectory,
+    });
+    ElMessage.success(i18n.global.t("download.done", { fileName }));
+  } catch (error) {
+    console.error("下载歌曲失败:", error);
+    ElMessage.error(`${i18n.global.t("errors.downloadFailed")}: ${error}`);
+  }
+}
 
 function getQueryString(v: unknown): string {
   if (typeof v === "string") return v;
@@ -52,16 +78,16 @@ function load() {
   const name = getQueryString(route.query.name);
   const pic_url = getQueryString(route.query.pic_url);
   if (name || pic_url) {
-    musicStore.currentArtist = {
+    artistStore.currentArtist = {
       id,
-      name: name || musicStore.currentArtist?.name || "Artist",
-      pic_url: pic_url || musicStore.currentArtist?.pic_url || "",
+      name: name || artistStore.currentArtist?.name || "Artist",
+      pic_url: pic_url || artistStore.currentArtist?.pic_url || "",
     };
   }
 
   // 进入歌手页也属于在线模式
-  musicStore.switchViewMode(ViewMode.ONLINE);
-  musicStore.loadArtistSongs(id);
+  viewStore.setViewMode(ViewMode.ONLINE);
+  artistStore.loadArtistSongs(id);
 }
 
 onMounted(load);

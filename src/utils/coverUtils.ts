@@ -1,7 +1,7 @@
 /**
  * 本地封面与歌词加载（供 PlayerBar、ImmersiveView、LyricView 复用）
  */
-import { invoke } from "@tauri-apps/api/core";
+import { loadCoverAndLyric } from "@/api/commands/file";
 
 /** 加载本地封面图 URL， lyric 由 LyricView 自行 load_cover_and_lyric 取第二项 */
 export async function loadLocalCover(
@@ -9,7 +9,7 @@ export async function loadLocalCover(
   getDefaultDirectory: () => string | null
 ): Promise<string> {
   try {
-    const result = await invoke<[string, string]>("load_cover_and_lyric", {
+    const result = await loadCoverAndLyric({
       fileName,
       defaultDirectory: getDefaultDirectory(),
     });
