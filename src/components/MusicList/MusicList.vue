@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { reactive, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { CaretRight, VideoPause, Headset, Upload } from "@element-plus/icons-vue";
 import type { MusicFile } from "@/types/model";
 import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
+import { loadLocalCover } from "@/utils/coverUtils";
 
 const { t } = useI18n();
 
@@ -12,8 +14,12 @@ const props = withDefaults(
     currentMusic: MusicFile | null;
     isPlaying: boolean;
     showImportButton?: boolean;
+    getDefaultDirectory?: () => string | null;
   }>(),
-  { showImportButton: false }
+  {
+    showImportButton: false,
+    getDefaultDirectory: () => null,
+  }
 );
 
 const emit = defineEmits(["play", "import"]);
@@ -23,6 +29,48 @@ const isCurrentMusic = (m: MusicFile) => props.currentMusic?.id === m.id;
 function handleRowDblClick(row: MusicFile) {
   emit("play", row);
 }
+
+/**
+ * 本地列表封面：按需加载 + 缓存 + 并发限制，避免大量 invoke 卡顿
+ */
+const coverById = reactive<Record<number, string>>({});
+const coverQueue: MusicFile[] = [];
+let coverRunning = 0;
+const MAX_COVER_CONCURRENCY = 4;
+
+function scheduleCoverLoad(file: MusicFile) {
+  if (coverById[file.id] !== undefined) return;
+  coverQueue.push(file);
+  pumpCoverQueue();
+}
+
+function pumpCoverQueue() {
+  while (coverRunning < MAX_COVER_CONCURRENCY && coverQueue.length > 0) {
+    const file = coverQueue.shift()!;
+    if (coverById[file.id] !== undefined) continue;
+    coverRunning++;
+    (async () => {
+      try {
+        const url = await loadLocalCover(file.file_name, props.getDefaultDirectory);
+        coverById[file.id] = url || "";
+      } catch {
+        coverById[file.id] = "";
+      } finally {
+        coverRunning--;
+        pumpCoverQueue();
+      }
+    })();
+  }
+}
+
+watch(
+  () => props.musicFiles,
+  (files) => {
+    // 每次列表更新时为新条目加载封面；旧的 cache 保留
+    for (const f of files) scheduleCoverLoad(f);
+  },
+  { immediate: true }
+);
 </script>
 
 <template>
@@ -65,7 +113,13 @@ function handleRowDblClick(row: MusicFile) {
             />
           </div>
           <div class="col-cover">
-            <div class="cover-placeholder">
+            <img
+              v-if="coverById[row.id]"
+              :src="coverById[row.id]"
+              class="cover-img"
+              alt=""
+            />
+            <div v-else class="cover-placeholder">
               <el-icon><Headset /></el-icon>
             </div>
           </div>

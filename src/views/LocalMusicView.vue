@@ -4,6 +4,7 @@
       :musicFiles="musicStore.musicFiles"
       :currentMusic="musicStore.currentMusic"
       :isPlaying="musicStore.isPlaying"
+      :getDefaultDirectory="musicStore.getDefaultDirectory"
       :showImportButton="true"
       @play="musicStore.playMusic"
       @import="importMusic"
