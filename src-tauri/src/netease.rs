@@ -49,7 +49,6 @@ pub struct PlaySongResult {
 }
 
 const LOCAL_API_BASE: &str = "http://localhost:3000";
-const KUGOU_API_BASE: &str = "http://localhost:3001";
 
 /// return client
 pub fn get_client() -> Result<reqwest::Client, String> {
@@ -97,58 +96,6 @@ async fn get_response_json(
     Ok(json)
 }
 
-/// Search for a cover image for a song using the Kugou API
-async fn search_cover_image(
-    keywords: String,
-    page: Option<u32>,
-    pagesize: Option<u32>,
-    api_url: String,
-) -> Result<String, String> {
-    let client = get_client()?;
-
-    // Search for the song on Kugou API to get the cover image
-    let url = format!(
-        "{}/search?keywords={}&limit={}&offset={}",
-        api_url,
-        keywords,
-        pagesize.unwrap_or(7),
-        page.unwrap_or(1)
-    );
-
-    println!("Searching cover image: {}", url);
-    let response_json = get_response_json(client, url).await?;
-
-    // Parse Kugou API response to get the cover image URL
-    let error_code = response_json
-        .get("error_code")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(1);
-    if error_code != 0 {
-        return Err(format!("Cover image API error"));
-    }
-
-    let data = response_json
-        .get("data")
-        .ok_or_else(|| "No data in cover image response".to_string())?;
-
-    let songs_value = data
-        .get("lists")
-        .and_then(|v| v.as_array())
-        .ok_or_else(|| "No song lists in cover image response".to_string())?;
-
-    if songs_value.is_empty() {
-        return Err("No songs found for cover image".to_string());
-    }
-
-    // Get the image URL from the first song result
-    let mut pic_url = songs_value[0]["Image"].as_str().unwrap_or("").to_string();
-    if !pic_url.is_empty() {
-        pic_url = pic_url.replace("{size}", "400");
-    }
-
-    Ok(pic_url)
-}
-
 /// search online songs by keywords
 #[tauri::command]
 pub async fn search_songs(
@@ -165,9 +112,12 @@ pub async fn search_songs(
     }; // use local_api if provided, otherwise use default
     let local_api = local_api.unwrap_or_else(|| LOCAL_API_BASE.to_string());
 
+    // Use /cloudsearch so we can get album cover (al.picUrl) directly.
+    // Note: NetEase API uses offset as "skip count", not page number.
+    let offset = (search_request.page.saturating_sub(1)) * search_request.pagesize;
     let url = format!(
-        "{}/search?keywords={}&limit={}&offset={}",
-        local_api, search_request.keywords, search_request.pagesize, search_request.page
+        "{}/cloudsearch?keywords={}&limit={}&offset={}",
+        local_api, search_request.keywords, search_request.pagesize, offset
     );
 
     println!("search url: {}", url);
@@ -208,7 +158,8 @@ pub async fn search_songs(
 
         let song_name = song["name"].as_str().unwrap_or("unknown").to_string();
 
-        let artists = if let Some(artists_array) = song["artists"].as_array() {
+        // /cloudsearch returns artists in "ar"
+        let artists = if let Some(artists_array) = song["ar"].as_array() {
             artists_array
                 .iter()
                 .filter_map(|artist| artist["name"].as_str().map(|s| s.to_string()))
@@ -216,14 +167,19 @@ pub async fn search_songs(
         } else {
             vec!["unknown artist".to_string()]
         };
-        let album_name = song["album"]["name"]
+        // /cloudsearch returns album in "al"
+        let album_name = song["al"]["name"]
             .as_str()
             .unwrap_or("unknown album")
             .to_string();
-        let duration = song["duration"].as_u64().unwrap_or(0);
+        // /cloudsearch uses "dt" as duration in ms
+        let duration = song["dt"]
+            .as_u64()
+            .or_else(|| song["duration"].as_u64())
+            .unwrap_or(0);
 
-        // 不在搜索时获取图片，而是设置为空字符串
-        let pic_url = "";
+        // /cloudsearch provides cover directly: al.picUrl
+        let pic_url = song["al"]["picUrl"].as_str().unwrap_or("").to_string();
 
         songs.push(SongInfo {
             id: id.clone(),
@@ -231,7 +187,7 @@ pub async fn search_songs(
             artists,
             album: album_name,
             duration,
-            pic_url: pic_url.to_string(),
+            pic_url,
             file_hash: id,
         });
     }
@@ -314,11 +270,47 @@ pub async fn play_netease_song(
 
 #[tauri::command]
 pub async fn get_song_cover(_id: String, name: String, artist: String) -> Result<String, String> {
-    // Use Kugou API to search for the song's cover image
-    let search_term = format!("{} {}", name, artist);
+    // Backward-compatible signature: current frontend calls this with (id, name, artist),
+    // but cover can be reliably fetched by id via NetEase /song/detail.
+    // We keep name/artist only for logging/debugging.
+    let id = _id;
+    if id.trim().is_empty() {
+        return Err("Empty song id".to_string());
+    }
 
-    println!("Getting cover image for song: {} by {}", name, artist);
-    search_cover_image(search_term, Some(1), Some(1), KUGOU_API_BASE.to_string()).await
+    println!(
+        "Getting cover image for song: {} by {}, id={}",
+        name, artist, id
+    );
+    let client = get_client()?;
+    let url = format!("{}/song/detail?ids={}", LOCAL_API_BASE, id);
+    let response_json: serde_json::Value = get_response_json(client, url).await?;
+
+    let code = response_json
+        .get("code")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(500);
+    if code != 200 {
+        return Err(format!("API return error: code {}", code));
+    }
+
+    let songs_value = response_json
+        .get("songs")
+        .and_then(|v| v.as_array())
+        .ok_or_else(|| "No songs array in response".to_string())?;
+    if songs_value.is_empty() {
+        return Err("No songs in response".to_string());
+    }
+
+    let pic_url = songs_value[0]["al"]["picUrl"]
+        .as_str()
+        .unwrap_or("")
+        .to_string();
+    if pic_url.trim().is_empty() {
+        return Err("Empty cover url".to_string());
+    }
+
+    Ok(pic_url)
 }
 
 /// Get song lyrics directly with a single function call
