@@ -4,12 +4,27 @@ import type { TauriCommand, TauriCommandParams, TauriCommandResult } from "./typ
 export class TauriCommandError extends Error {
   command: string;
   cause: unknown;
+  message: string;
 
   constructor(command: string, cause: unknown) {
-    super(`[tauri] invoke(${command}) failed`);
+    const causeMessage =
+      cause instanceof Error
+        ? cause.message
+        : typeof cause === "string"
+          ? cause
+          : String(cause);
+    super(`[tauri] invoke(${command}) failed: ${causeMessage}`);
     this.name = "TauriCommandError";
     this.command = command;
     this.cause = cause;
+    this.message = causeMessage;
+  }
+
+  /**
+   * 获取原始错误消息（不包含 Tauri 包装）
+   */
+  getOriginalMessage(): string {
+    return this.message;
   }
 }
 
