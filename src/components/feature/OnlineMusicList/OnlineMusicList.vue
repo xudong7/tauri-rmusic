@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, watch, onUnmounted, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { CaretRight, VideoPause, Download, Headset } from "@element-plus/icons-vue";
@@ -25,6 +26,62 @@ const props = withDefaults(
 
 const emit = defineEmits(["play", "download", "load-more"]);
 
+const scrollbarRef = ref<{ $el?: HTMLElement } | null>(null);
+const sentinelRef = ref<HTMLElement | null>(null);
+const hasMore = ref(false);
+const isLoading = ref(false);
+let observer: IntersectionObserver | null = null;
+
+watch(
+  [() => props.totalCount, () => props.onlineSongs.length],
+  () => {
+    hasMore.value = props.totalCount > props.onlineSongs.length;
+  },
+  { immediate: true }
+);
+watch(
+  () => props.loading,
+  (v) => {
+    isLoading.value = v;
+  },
+  { immediate: true }
+);
+
+function setupScrollObserver() {
+  if (observer) return;
+  const scrollbarEl = scrollbarRef.value?.$el;
+  if (!scrollbarEl) return;
+  const wrap = scrollbarEl.querySelector(".el-scrollbar__wrap") as HTMLElement | null;
+  if (!wrap || !sentinelRef.value) return;
+
+  observer = new IntersectionObserver(
+    (entries) => {
+      if (!entries[0].isIntersecting) return;
+      if (!hasMore.value || isLoading.value) return;
+      emit("load-more");
+    },
+    { root: wrap, rootMargin: "100px 0px", threshold: 0 }
+  );
+  observer.observe(sentinelRef.value);
+}
+
+watch(
+  [() => props.loading, () => props.onlineSongs.length],
+  () => {
+    if (props.loading || props.onlineSongs.length === 0) return;
+    nextTick(setupScrollObserver);
+  },
+  { immediate: true }
+);
+
+onUnmounted(() => {
+  if (observer && sentinelRef.value) {
+    observer.unobserve(sentinelRef.value);
+    observer.disconnect();
+  }
+  observer = null;
+});
+
 const isCurrentSong = (s: SongInfo) => props.currentSong?.id === s.id;
 
 function goArtist(a: ArtistInfo) {
@@ -43,7 +100,8 @@ function goArtist(a: ArtistInfo) {
       <h2 class="list-title">{{ t("onlineMusic.title") }}</h2>
     </div>
 
-    <div v-if="loading" class="loading-container">
+    <!-- 仅初次加载时显示骨架屏，加载更多时保持列表不切换，避免滚动回顶 -->
+    <div v-if="loading && onlineSongs.length === 0" class="loading-container">
       <el-skeleton :rows="5" animated />
     </div>
 
@@ -51,7 +109,7 @@ function goArtist(a: ArtistInfo) {
       <el-empty :description="t('onlineMusic.empty')" />
     </div>
 
-    <el-scrollbar v-else class="list-scroll">
+    <el-scrollbar ref="scrollbarRef" v-else class="list-scroll">
       <div class="list-rows">
         <div v-if="onlineArtists?.length" class="artist-strip">
           <div class="artist-strip-title">{{ t("common.artist") }}</div>
@@ -113,11 +171,13 @@ function goArtist(a: ArtistInfo) {
           </div>
         </div>
       </div>
-      <div v-if="totalCount > onlineSongs.length" class="load-more">
-        <el-button @click="emit('load-more')" type="primary" plain>{{
-          t("onlineMusic.loadMore")
-        }}</el-button>
-      </div>
+      <!-- 懒加载哨兵：滚动到此区域可见时自动加载更多 -->
+      <div
+        v-if="totalCount > onlineSongs.length"
+        ref="sentinelRef"
+        class="load-more-sentinel"
+        aria-hidden="true"
+      />
     </el-scrollbar>
   </div>
 </template>
