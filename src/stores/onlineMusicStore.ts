@@ -54,9 +54,9 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
   }
 
   function loadMoreResults() {
-    if (searchKeyword.value) {
-      void searchOnlineMusic(searchKeyword.value, currentPage.value + 1);
-    }
+    if (!searchKeyword.value || isSearchLoading.value) return;
+    if (onlineSongs.value.length >= onlineSongsTotal.value) return;
+    void searchOnlineMusic(searchKeyword.value, currentPage.value + 1);
   }
 
   function resetResults() {

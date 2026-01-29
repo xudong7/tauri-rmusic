@@ -239,11 +239,10 @@
   color: var(--el-text-color-secondary);
 }
 
-.load-more {
-  text-align: center;
-  padding: var(--app-spacing) 0;
-}
-
-.load-more .el-button {
-  border-radius: var(--app-radius-md);
+/* 懒加载哨兵：不可见，仅用于 Intersection Observer 检测触底 */
+.load-more-sentinel {
+  height: 1px;
+  width: 100%;
+  pointer-events: none;
+  visibility: hidden;
 }
