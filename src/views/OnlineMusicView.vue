@@ -26,6 +26,7 @@ import { ElMessage } from "element-plus";
 import { i18n } from "@/i18n";
 import type { SongInfo } from "@/types/model";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
+import { parseErrorMessage } from "@/utils/errorUtils";
 
 const onlineStore = useOnlineMusicStore();
 const playerStore = usePlayerStore();
@@ -44,7 +45,8 @@ async function downloadOnlineSong(song: SongInfo) {
     ElMessage.success(i18n.global.t("download.done", { fileName }));
   } catch (error) {
     console.error("下载歌曲失败:", error);
-    ElMessage.error(`${i18n.global.t("errors.downloadFailed")}: ${error}`);
+    const friendlyMessage = parseErrorMessage(error);
+    ElMessage.error(friendlyMessage);
   }
 }
 
