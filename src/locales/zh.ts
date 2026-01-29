@@ -12,6 +12,7 @@ export default {
     disable: "禁用",
     dark: "深色",
     light: "浅色",
+    warm: "暖色",
   },
   header: {
     switchToLight: "切换到亮色模式",
@@ -50,6 +51,9 @@ export default {
     title: "在线音乐",
     empty: "搜索歌曲开始播放",
     loadMore: "加载更多",
+  },
+  artist: {
+    backToSearch: "返回搜索",
   },
   playerBar: {
     noSong: "未选择歌曲",

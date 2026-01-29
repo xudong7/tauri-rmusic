@@ -187,6 +187,7 @@ html.dark .setting-item p {
   min-width: 70px;
 }
 
+.theme-select,
 .locale-select {
   width: 160px;
 }

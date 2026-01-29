@@ -70,8 +70,8 @@ function handleKeyDown(e: KeyboardEvent) {
 }
 
 function handleStorageChange(e: StorageEvent) {
-  if (e.key === "theme" && e.newValue)
-    themeStore.setThemeWithoutSave(e.newValue === "dark");
+  if (e.key === "theme" && e.newValue && ["light", "dark", "warm"].includes(e.newValue))
+    themeStore.setThemeWithoutSave(e.newValue as import("./stores/themeStore").ThemeMode);
 }
 
 onMounted(async () => {
@@ -104,7 +104,6 @@ onUnmounted(() => {
         :viewMode="viewStore.viewMode"
         :isDarkMode="themeStore.isDarkMode"
         @search="handleSearch"
-        @toggle-theme="themeStore.toggleTheme"
       />
       <div class="app-body">
         <Sidebar />

@@ -3,7 +3,8 @@
   width: 200px;
   min-width: 200px;
   background: var(--sidebar-bg, var(--app-card-bg, var(--el-bg-color)));
-  border-right: 1px solid var(--app-header-border, var(--el-border-color-lighter));
+  border-right: 1px solid
+    var(--sidebar-border-color, var(--app-header-border, var(--el-border-color-lighter)));
   display: flex;
   flex-direction: column;
   -webkit-app-region: drag;
@@ -26,7 +27,7 @@
   padding: 10px 14px;
   border-radius: var(--app-radius-md);
   cursor: pointer;
-  color: var(--el-text-color-regular);
+  color: var(--sidebar-text, var(--el-text-color-regular));
   transition:
     color 0.2s ease,
     background 0.2s ease;
@@ -34,14 +35,17 @@
 }
 
 .nav-item:hover {
-  color: var(--el-text-color-primary);
-  background: var(--hover-bg-color);
+  color: var(--sidebar-text-active, var(--el-text-color-primary));
+  background: var(--sidebar-hover-bg, var(--hover-bg-color));
 }
 
 .nav-item.is-active {
   font-weight: 600;
   color: var(--el-color-primary);
-  background: var(--active-item-bg, rgba(var(--el-color-primary-rgb), 0.08));
+  background: var(
+    --sidebar-active-bg,
+    var(--active-item-bg, rgba(var(--el-color-primary-rgb), 0.08))
+  );
 }
 
 .nav-item.is-active::before {

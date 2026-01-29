@@ -3,8 +3,6 @@ import { ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   Search,
-  Moon,
-  Sunny,
   Minus,
   FullScreen,
   ScaleToOriginal,
@@ -20,7 +18,7 @@ const props = defineProps<{
   isDarkMode: boolean;
 }>();
 
-const emit = defineEmits(["search", "toggle-theme"]);
+const emit = defineEmits(["search"]);
 
 const searchKeyword = ref("");
 const { isMaximized, minimize, toggleMaximize, close } = useWindowControls({
@@ -30,10 +28,6 @@ const maximizeIcon = computed(() => (isMaximized.value ? ScaleToOriginal : FullS
 
 function handleSearch() {
   emit("search", searchKeyword.value);
-}
-
-function toggleTheme() {
-  emit("toggle-theme");
 }
 </script>
 
@@ -64,15 +58,6 @@ function toggleTheme() {
 
     <div class="header-right">
       <div class="window-controls">
-        <div
-          class="header-button window-button"
-          @click="toggleTheme"
-          :title="isDarkMode ? t('header.switchToLight') : t('header.switchToDark')"
-        >
-          <el-icon>
-            <component :is="isDarkMode ? Moon : Sunny" />
-          </el-icon>
-        </div>
         <div
           class="header-button window-button"
           @click="minimize"
