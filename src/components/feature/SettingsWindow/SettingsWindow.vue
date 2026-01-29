@@ -9,7 +9,7 @@ import {
   InfoFilled,
 } from "@element-plus/icons-vue";
 import { open } from "@tauri-apps/plugin-dialog";
-import { useThemeStore } from "@/stores/themeStore";
+import { useThemeStore, type ThemeMode } from "@/stores/themeStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { enable, isEnabled, disable } from "@tauri-apps/plugin-autostart";
 import { setLocale, getLocale, type LocaleKey } from "@/i18n";
@@ -32,24 +32,26 @@ function handleLocaleChange(val: LocaleKey) {
 }
 
 watch(
-  () => themeStore.isDarkMode,
+  () => themeStore.themeMode,
   () => themeStore.applyTheme()
 );
 
 window.addEventListener("storage", (e) => {
-  if (e.key === "theme" && e.newValue) {
-    const shouldBeDark = e.newValue === "dark";
-    if (themeStore.isDarkMode !== shouldBeDark)
-      themeStore.setThemeWithoutSave(shouldBeDark);
+  if (e.key === "theme" && e.newValue && ["light", "dark", "warm"].includes(e.newValue)) {
+    if (themeStore.themeMode !== e.newValue)
+      themeStore.setThemeWithoutSave(e.newValue as ThemeMode);
   }
 });
 
-// 主题切换处理
-const handleThemeChange = (value: boolean) => {
-  // 使用新的 setTheme 方法
-  themeStore.setTheme(value);
-  console.log("Theme changed to:", value ? "dark" : "light");
-};
+const themeOptions: { value: ThemeMode; labelKey: string }[] = [
+  { value: "light", labelKey: "common.light" },
+  { value: "dark", labelKey: "common.dark" },
+  { value: "warm", labelKey: "common.warm" },
+];
+
+function handleThemeModeChange(val: ThemeMode) {
+  themeStore.setThemeMode(val);
+}
 
 // 选择下载目录
 const selectDownloadPath = async () => {
@@ -128,12 +130,18 @@ onMounted(async () => {
         <div class="setting-item">
           <label>{{ t("settings.themeMode") }}</label>
           <div class="setting-control">
-            <el-switch
-              v-model="themeStore.isDarkMode"
-              :active-text="t('common.dark')"
-              :inactive-text="t('common.light')"
-              @change="handleThemeChange"
-            />
+            <el-select
+              :model-value="themeStore.themeMode"
+              class="theme-select"
+              @update:model-value="handleThemeModeChange"
+            >
+              <el-option
+                v-for="opt in themeOptions"
+                :key="opt.value"
+                :value="opt.value"
+                :label="t(opt.labelKey)"
+              />
+            </el-select>
           </div>
         </div>
         <div class="setting-item">

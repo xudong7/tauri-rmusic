@@ -53,13 +53,6 @@
   background: color-mix(in srgb, var(--el-fill-color) 55%, transparent);
 }
 
-.artist-strip-title {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  margin-bottom: 8px;
-  padding-left: 4px;
-}
-
 .artist-strip-scroll {
   display: flex;
   gap: 10px;

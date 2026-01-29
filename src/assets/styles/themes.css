@@ -62,14 +62,14 @@ html {
   --hover-bg-color: rgba(107, 158, 196, 0.07);
   --active-item-bg: rgba(107, 158, 196, 0.12);
 
-  /* 按钮相关变量 */
+  /* 按钮相关变量（hover 用略深色，与主色协调） */
   --primary-button-bg: var(--el-color-primary);
   --primary-button-text: var(--el-color-white);
   --primary-button-border: var(--el-color-primary);
-  --primary-button-hover-bg: var(--el-color-primary-light-3);
-  --primary-button-hover-border: var(--el-color-primary-light-3);
-  --primary-button-active-bg: var(--el-color-primary-dark-2);
-  --primary-button-active-border: var(--el-color-primary-dark-2);
+  --primary-button-hover-bg: var(--el-color-primary-hover);
+  --primary-button-hover-border: var(--el-color-primary-hover);
+  --primary-button-active-bg: var(--el-color-primary-active);
+  --primary-button-active-border: var(--el-color-primary-active);
 
   --success-button-bg: var(--el-color-success);
   --success-button-text: var(--el-color-white);
@@ -164,6 +164,80 @@ html.dark {
   --default-button-active-border: #7eb3d8;
 }
 
+/* ---------- 暖色主题：米色/奶油色系，无突兀色 ---------- */
+html.theme-warm {
+  /* 主色：暖灰褐 #7d6e5c，与奶油背景协调，不抢眼 */
+  --el-color-primary: #7d6e5c;
+  --el-color-primary-rgb: 125, 110, 92;
+  --el-color-primary-hover: #6d5f4e;
+  --el-color-primary-active: #5d5142;
+  --el-color-primary-light-3: #9a8b7a;
+  --el-color-primary-light-5: #b5a89a;
+  --el-color-primary-light-8: rgba(125, 110, 92, 0.2);
+  --el-color-primary-dark-2: #5d5142;
+  --el-bg-color: #f5efeb;
+  --el-bg-color-overlay: #fffbf9;
+  /* 文字：暖灰褐，与米色系统一 */
+  --el-text-color-primary: #3d3832;
+  --el-text-color-regular: #5c5650;
+  --el-text-color-secondary: #7a746e;
+  --el-border-color: rgba(61, 56, 50, 0.14);
+  --el-border-color-light: rgba(61, 56, 50, 0.08);
+  --el-fill-color: #ebe6e2;
+  --el-fill-color-light: #f0ebe7;
+  --el-fill-color-blank: #fffbf9;
+  --el-mask-color: rgba(61, 56, 50, 0.12);
+  color-scheme: light;
+
+  --app-page-bg: #f5efeb;
+  --app-card-bg: #fffbf9;
+  --header-glass-bg: rgba(255, 251, 249, 0.92);
+  --player-glass-bg: rgba(255, 251, 249, 0.95);
+  --header-bg-color: var(--header-glass-bg);
+  --player-bg-color: var(--player-glass-bg);
+  --app-header-border: rgba(61, 56, 50, 0.1);
+  --app-header-shadow: 0 1px 3px rgba(61, 56, 50, 0.06);
+
+  /* 侧栏：与主区同色系 */
+  --sidebar-bg: #ebe6e2;
+  --sidebar-border-color: rgba(61, 56, 50, 0.08);
+
+  --hover-bg-color: rgba(125, 110, 92, 0.08);
+  --active-item-bg: rgba(125, 110, 92, 0.12);
+
+  /* 按钮：主色暖灰褐，默认按钮 hover 同色系 */
+  --primary-button-bg: #7d6e5c;
+  --primary-button-text: #fffbf9;
+  --primary-button-border: #7d6e5c;
+  --primary-button-hover-bg: #6d5f4e;
+  --primary-button-hover-border: #6d5f4e;
+  --primary-button-active-bg: #5d5142;
+  --primary-button-active-border: #5d5142;
+  --success-button-bg: #7d6e5c;
+  --success-button-text: #fffbf9;
+  --success-button-border: #7d6e5c;
+  --success-button-hover-bg: #6d5f4e;
+  --success-button-hover-border: #6d5f4e;
+  --success-button-active-bg: #5d5142;
+  --success-button-active-border: #5d5142;
+  --info-button-bg: var(--el-fill-color-light);
+  --info-button-text: var(--el-text-color-regular);
+  --info-button-border: var(--el-border-color);
+  --info-button-hover-bg: #e8e4e0;
+  --info-button-hover-border: var(--el-border-color);
+  --info-button-active-bg: #dfdbd6;
+  --info-button-active-border: var(--el-border-color);
+  --default-button-bg: var(--el-fill-color-blank);
+  --default-button-text: var(--el-text-color-regular);
+  --default-button-border: var(--el-border-color);
+  --default-button-hover-bg: rgba(125, 110, 92, 0.08);
+  --default-button-hover-text: #6d5f4e;
+  --default-button-hover-border: rgba(125, 110, 92, 0.4);
+  --default-button-active-bg: rgba(125, 110, 92, 0.12);
+  --default-button-active-text: #5d5142;
+  --default-button-active-border: rgba(125, 110, 92, 0.5);
+}
+
 /* ---------- 按钮组件（Element Plus 映射）---------- */
 .el-button {
   --el-button-hover-bg-color: var(--hover-bg-color, rgba(255, 255, 255, 0.1));
@@ -249,4 +323,12 @@ html.dark ::-webkit-scrollbar-thumb {
 
 html.dark ::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+html.theme-warm ::-webkit-scrollbar-thumb {
+  background: rgba(61, 56, 50, 0.22);
+}
+
+html.theme-warm ::-webkit-scrollbar-thumb:hover {
+  background: rgba(61, 56, 50, 0.36);
 }

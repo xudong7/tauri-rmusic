@@ -12,6 +12,7 @@ export default {
     disable: "Disable",
     dark: "Dark",
     light: "Light",
+    warm: "Warm",
   },
   header: {
     switchToLight: "Switch to light mode",
@@ -50,6 +51,9 @@ export default {
     title: "Online Music",
     empty: "Search for songs to play",
     loadMore: "Load More",
+  },
+  artist: {
+    backToSearch: "Back to search",
   },
   playerBar: {
     noSong: "No song selected",

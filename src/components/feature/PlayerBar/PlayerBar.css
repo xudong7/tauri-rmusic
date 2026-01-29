@@ -282,7 +282,7 @@ html.dark .player-controls .el-button.is-disabled {
 .player-controls .el-button--primary {
   background-color: var(--el-color-primary);
   border-color: var(--el-color-primary);
-  color: #fff;
+  color: #fff !important;
   transform: scale(1);
   height: 48px;
   width: 48px;
@@ -290,18 +290,38 @@ html.dark .player-controls .el-button.is-disabled {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* 深色模式 */
+.player-controls .el-button--primary .el-icon {
+  color: inherit;
+}
+
+/* 深色模式：边框与左右按钮一致，透明/黑灰不描亮 */
 .dark-theme .player-controls .el-button--primary,
 html.dark .player-controls .el-button--primary {
+  border-color: transparent;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
 }
 
+.dark-theme .player-controls .el-button--primary:hover,
+html.dark .player-controls .el-button--primary:hover {
+  border-color: transparent;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+/* hover 时背景变深、图标保持白色，便于区分 */
 .player-controls .el-button--primary:hover {
-  background-color: var(--el-color-primary);
-  border-color: var(--el-color-primary);
-  filter: brightness(1.06);
+  background-color: var(
+    --primary-button-hover-bg,
+    var(--el-color-primary-hover, var(--el-color-primary))
+  );
+  border-color: var(
+    --primary-button-hover-border,
+    var(--el-color-primary-hover, var(--el-color-primary))
+  );
+  color: #fff !important;
   transform: scale(1.1) translateY(-3px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.22),
+    0 0 0 3px rgba(255, 255, 255, 0.35);
 }
 
 .player-controls .el-button--primary:active {

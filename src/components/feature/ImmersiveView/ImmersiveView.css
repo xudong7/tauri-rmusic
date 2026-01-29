@@ -427,3 +427,19 @@
   transform: scale(0.96);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
+
+/* 暗色模式：沉浸模式播放按钮与左右按钮一致，黑灰半透明不抢眼 */
+.dark-theme .immersive-view .controls .el-button--primary,
+html.dark .immersive-view .controls .el-button--primary {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.dark-theme .immersive-view .controls .el-button--primary:hover,
+html.dark .immersive-view .controls .el-button--primary:hover {
+  background: rgba(255, 255, 255, 0.26);
+  border-color: transparent;
+  filter: none;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}

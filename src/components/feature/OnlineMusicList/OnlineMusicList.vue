@@ -112,7 +112,6 @@ function goArtist(a: ArtistInfo) {
     <el-scrollbar ref="scrollbarRef" v-else class="list-scroll">
       <div class="list-rows">
         <div v-if="onlineArtists?.length" class="artist-strip">
-          <div class="artist-strip-title">{{ t("common.artist") }}</div>
           <div class="artist-strip-scroll">
             <div
               v-for="a in onlineArtists"

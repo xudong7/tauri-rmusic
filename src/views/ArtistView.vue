@@ -11,6 +11,9 @@
       <div class="artist-name" :title="artistStore.currentArtist.name">
         {{ artistStore.currentArtist.name }}
       </div>
+      <el-button class="back-to-search" text :icon="ArrowLeft" @click="goBackToSearch">
+        {{ t("artist.backToSearch") }}
+      </el-button>
     </div>
 
     <OnlineMusicList
@@ -30,7 +33,9 @@
 
 <script setup lang="ts">
 import { onMounted, watch } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
+import { ArrowLeft } from "@element-plus/icons-vue";
 import { useArtistStore } from "@/stores/artistStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useViewStore } from "@/stores/viewStore";
@@ -43,7 +48,9 @@ import type { SongInfo } from "@/types/model";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { parseErrorMessage } from "@/utils/errorUtils";
 
+const { t } = useI18n();
 const route = useRoute();
+const router = useRouter();
 const artistStore = useArtistStore();
 const playerStore = usePlayerStore();
 const viewStore = useViewStore();
@@ -72,6 +79,10 @@ function getQueryString(v: unknown): string {
   return "";
 }
 
+function goBackToSearch() {
+  router.push({ name: "OnlineMusic" });
+}
+
 function load() {
   const id = String(route.params.id || "");
   if (!id) return;
@@ -87,8 +98,9 @@ function load() {
     };
   }
 
-  // 进入歌手页也属于在线模式
+  // 进入歌手页也属于在线模式，记录路径以便从本地/设置返回时恢复歌手页
   viewStore.setViewMode(ViewMode.ONLINE);
+  viewStore.setLastOnlinePath(route.fullPath);
   artistStore.loadArtistSongs(id);
 }
 
@@ -111,6 +123,15 @@ watch(() => route.query, load);
   gap: 14px;
   padding: 10px 8px 14px;
   flex-shrink: 0;
+}
+
+.back-to-search {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--el-text-color-secondary);
+}
+.back-to-search:hover {
+  color: var(--el-color-primary);
 }
 
 .artist-avatar {

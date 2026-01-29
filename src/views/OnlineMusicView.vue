@@ -51,9 +51,9 @@ async function downloadOnlineSong(song: SongInfo) {
 }
 
 onMounted(() => {
-  // 当进入在线音乐页面时，设置视图模式为在线
+  // 进入在线音乐页面时设置视图模式；不重置搜索结果，切换本地/设置再回来仍保留上次搜索
   viewStore.setViewMode(ViewMode.ONLINE);
-  onlineStore.resetResults();
+  viewStore.setLastOnlinePath("/online");
 });
 </script>
 
