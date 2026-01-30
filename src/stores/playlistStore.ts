@@ -68,9 +68,24 @@ export const usePlaylistStore = defineStore("playlist", () => {
     return playlists.value.find((p) => p.id === id);
   }
 
-  function addToPlaylist(playlistId: string, item: PlaylistItem) {
+  /** 判断两个播放列表项是否为同一首歌 */
+  function isSamePlaylistItem(a: PlaylistItem, b: PlaylistItem): boolean {
+    if (a.type !== b.type) return false;
+    if (a.type === "local" && b.type === "local") return a.file_name === b.file_name;
+    if (a.type === "online" && b.type === "online") return a.song.id === b.song.id;
+    return false;
+  }
+
+  /** 添加到播放列表；若已存在相同歌曲则不再添加。返回 true 表示已添加，false 表示已存在。 */
+  function addToPlaylist(playlistId: string, item: PlaylistItem): boolean {
     const list = playlists.value.find((p) => p.id === playlistId);
-    if (list) list.items.push(item);
+    if (!list) return false;
+    const alreadyExists = list.items.some((existing) =>
+      isSamePlaylistItem(existing, item)
+    );
+    if (alreadyExists) return false;
+    list.items.push(item);
+    return true;
   }
 
   function removeFromPlaylist(playlistId: string, index: number) {

@@ -116,14 +116,18 @@ async function handleAddToPlaylist(command: string, row: SongInfo) {
     }
 
     if (file_name) {
-      playlistStore.addToPlaylist(playlistId, { type: "local", file_name });
+      const added = playlistStore.addToPlaylist(playlistId, { type: "local", file_name });
       const pl = playlistStore.getPlaylist(playlistId);
       const name = pl?.name ?? "";
-      ElMessage.success(
-        didDownload
-          ? i18n.global.t("playlist.downloadedAndAdded", { name })
-          : i18n.global.t("playlist.added", { name })
-      );
+      if (added) {
+        ElMessage.success(
+          didDownload
+            ? i18n.global.t("playlist.downloadedAndAdded", { name })
+            : i18n.global.t("playlist.added", { name })
+        );
+      } else {
+        ElMessage.info(i18n.global.t("playlist.alreadyInPlaylist", { name }));
+      }
     } else {
       ElMessage.error(i18n.global.t("errors.unknownError"));
     }
