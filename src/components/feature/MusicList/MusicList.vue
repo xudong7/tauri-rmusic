@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { reactive, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { CaretRight, VideoPause, Headset, Upload } from "@element-plus/icons-vue";
+import { CaretRight, VideoPause, Headset, Upload, Plus } from "@element-plus/icons-vue";
 import type { MusicFile } from "@/types/model";
+import { usePlaylistStore } from "@/stores/playlistStore";
+import { ElMessage } from "element-plus";
 import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
 import { loadLocalCover } from "@/utils/coverUtils";
 
 const { t } = useI18n();
+const playlistStore = usePlaylistStore();
 
 const props = withDefaults(
   defineProps<{
@@ -28,6 +31,19 @@ const isCurrentMusic = (m: MusicFile) => props.currentMusic?.id === m.id;
 
 function handleRowDblClick(row: MusicFile) {
   emit("play", row);
+}
+
+function handleAddToPlaylist(command: string, row: MusicFile) {
+  const item = { type: "local" as const, file_name: row.file_name };
+  if (command === "new") {
+    const list = playlistStore.createPlaylist(t("playlist.newPlaylist"));
+    playlistStore.addToPlaylist(list.id, item);
+    ElMessage.success(t("playlist.added", { name: list.name }));
+  } else {
+    playlistStore.addToPlaylist(command, item);
+    const pl = playlistStore.getPlaylist(command);
+    ElMessage.success(t("playlist.added", { name: pl?.name ?? "" }));
+  }
 }
 
 /**
@@ -133,6 +149,28 @@ watch(
                 t("common.unknownArtist")
               }}
             </div>
+          </div>
+          <div class="col-action">
+            <el-dropdown
+              trigger="click"
+              @command="(cmd: string) => handleAddToPlaylist(cmd, row)"
+            >
+              <el-button circle size="small" :icon="Plus" link />
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="new">{{
+                    t("playlist.newPlaylist")
+                  }}</el-dropdown-item>
+                  <el-dropdown-item
+                    v-for="pl in playlistStore.playlists"
+                    :key="pl.id"
+                    :command="pl.id"
+                  >
+                    {{ pl.name || t("playlist.unnamed") }}
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
         </div>
       </div>

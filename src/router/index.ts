@@ -3,6 +3,8 @@ import LocalMusic from "@/views/LocalMusicView.vue";
 import OnlineMusic from "@/views/OnlineMusicView.vue";
 import Artist from "@/views/ArtistView.vue";
 import Settings from "@/views/SettingsView.vue";
+import PlaylistView from "@/views/PlaylistView.vue";
+import { usePlaylistStore } from "@/stores/playlistStore";
 
 const routes = [
   {
@@ -14,6 +16,21 @@ const routes = [
     path: "/online",
     name: "OnlineMusic",
     component: OnlineMusic,
+  },
+  {
+    path: "/playlist/new",
+    name: "PlaylistNew",
+    component: PlaylistView,
+    beforeEnter: (_to, _from, next) => {
+      const store = usePlaylistStore();
+      const list = store.createPlaylist("");
+      next({ path: `/playlist/${list.id}`, replace: true });
+    },
+  },
+  {
+    path: "/playlist/:id",
+    name: "Playlist",
+    component: PlaylistView,
   },
   {
     path: "/artist/:id",

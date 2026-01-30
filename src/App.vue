@@ -15,6 +15,7 @@ import { useViewStore } from "./stores/viewStore";
 import { useLocalMusicStore } from "./stores/localMusicStore";
 import { useOnlineMusicStore } from "./stores/onlineMusicStore";
 import { usePlayerStore } from "./stores/playerStore";
+import { usePlaylistStore } from "./stores/playlistStore";
 
 const { locale } = useI18n();
 const elementLocale = computed(() => (locale.value === "zh" ? zhCn : en));
@@ -24,6 +25,7 @@ const viewStore = useViewStore();
 const localStore = useLocalMusicStore();
 const onlineStore = useOnlineMusicStore();
 const playerStore = usePlayerStore();
+const playlistStore = usePlaylistStore();
 
 const { start: detectorStart, stop: detectorStop } = usePlaybackDetector(
   playerStore as any,
@@ -77,6 +79,7 @@ function handleStorageChange(e: StorageEvent) {
 onMounted(async () => {
   try {
     await localStore.initializeLocalLibrary();
+    await playlistStore.loadPlaylists();
     themeStore.initializeTheme();
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("storage", handleStorageChange);

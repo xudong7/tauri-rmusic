@@ -1,3 +1,4 @@
+/* ---------- 侧边栏容器 ---------- */
 .sidebar {
   flex: 0 0 200px;
   width: 200px;
@@ -11,32 +12,50 @@
   user-select: none;
   position: relative;
   z-index: 1;
+  box-shadow: 2px 0 16px rgba(0, 0, 0, 0.03);
 }
 
+/* 亮色下让侧边栏略深于主内容，形成层次 */
+:root:not(.dark):not(.theme-warm) .sidebar {
+  background: linear-gradient(180deg, #fafbfc 0%, #f4f5f7 100%);
+}
+
+.theme-warm .sidebar {
+  background: linear-gradient(180deg, #fffbf9 0%, #f6f2ee 100%);
+}
+
+/* ---------- 导航区域 ---------- */
 .sidebar-nav {
-  padding: 12px 8px;
+  padding: 14px 8px 16px;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
 .nav-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px;
-  border-radius: var(--app-radius-md);
+  padding: 10px 12px 10px 14px;
+  border-radius: var(--app-radius-lg);
   cursor: pointer;
   color: var(--sidebar-text, var(--el-text-color-regular));
   transition:
     color 0.2s ease,
-    background 0.2s ease;
+    background 0.2s ease,
+    transform 0.15s ease;
   -webkit-app-region: no-drag;
 }
 
 .nav-item:hover {
   color: var(--sidebar-text-active, var(--el-text-color-primary));
   background: var(--sidebar-hover-bg, var(--hover-bg-color));
+  transform: translateX(2px);
+}
+
+.nav-item:active {
+  transform: translateX(1px);
 }
 
 .nav-item.is-active {
@@ -44,8 +63,9 @@
   color: var(--el-color-primary);
   background: var(
     --sidebar-active-bg,
-    var(--active-item-bg, rgba(var(--el-color-primary-rgb), 0.08))
+    var(--active-item-bg, rgba(var(--el-color-primary-rgb), 0.12))
   );
+  transform: none;
 }
 
 .nav-item.is-active::before {
@@ -58,20 +78,164 @@
   height: 20px;
   background: var(--el-color-primary);
   border-radius: 0 2px 2px 0;
-}
-
-.nav-item {
-  position: relative;
+  box-shadow: 0 0 6px rgba(var(--el-color-primary-rgb), 0.3);
 }
 
 .nav-icon {
   font-size: 18px;
   flex-shrink: 0;
+  opacity: 0.92;
+}
+
+.nav-item.is-active .nav-icon {
+  opacity: 1;
 }
 
 .nav-label {
   font-size: 14px;
+  letter-spacing: 0.02em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ---------- 播放列表区块 ---------- */
+.playlist-section {
+  margin-top: 10px;
+  padding: 10px 8px 12px;
+  padding-left: 8px;
+  padding-right: 8px;
+  border-top: 1px solid var(--sidebar-border-color, var(--el-border-color-lighter));
+  border-radius: 0 0 var(--app-radius-md) 0;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+html.dark .playlist-section,
+.dark-theme .playlist-section {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.theme-warm .playlist-section {
+  background: rgba(61, 56, 50, 0.04);
+}
+
+.playlist-section-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px 5px;
+  min-height: 26px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--el-text-color-secondary);
+  opacity: 0.9;
+  cursor: pointer;
+  border-radius: var(--app-radius-sm);
+  transition: color 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+  -webkit-app-region: no-drag;
+}
+
+.playlist-section-title:hover {
+  color: var(--el-text-color-primary);
+  opacity: 1;
+  background: var(--sidebar-hover-bg, var(--hover-bg-color));
+}
+
+.playlist-section-title .chevron {
+  font-size: 10px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.playlist-section.is-collapsed .playlist-section-title .chevron {
+  transform: rotate(-90deg);
+}
+
+.playlist-section-title .title-icon {
+  font-size: 12px;
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+
+.playlist-section-title-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.playlist-section-add {
+  font-size: 12px;
+  color: inherit;
+  opacity: 0.8;
+  cursor: pointer;
+  padding: 2px;
+  margin: -2px -2px -2px 0;
+  border-radius: 4px;
+  transition: color 0.2s ease, opacity 0.2s ease;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.playlist-section-add:hover {
+  color: var(--el-color-primary);
+  opacity: 1;
+}
+
+.playlist-section-body {
+  overflow: hidden;
+  margin-top: 4px;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+/* 展开/收起过渡 */
+.playlist-body-enter-active,
+.playlist-body-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.playlist-body-enter-from,
+.playlist-body-leave-to {
+  opacity: 0;
+  transform: translateY(-2px);
+}
+
+.nav-item-playlist {
+  padding: 8px 10px 8px 28px;
+  border-radius: var(--app-radius-md);
+  margin-bottom: 1px;
+}
+
+.nav-item-playlist:last-child {
+  margin-bottom: 0;
+}
+
+.nav-item-playlist .nav-label {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.nav-item-playlist:hover {
+  background: var(--sidebar-hover-bg, var(--hover-bg-color));
+}
+
+.nav-item-playlist:hover .nav-label {
+  color: var(--el-text-color-primary);
+}
+
+.nav-item-playlist.is-active {
+  background: var(--sidebar-active-bg, var(--active-item-bg));
+}
+
+.nav-item-playlist.is-active .nav-label {
+  font-weight: 600;
+}
+
+/* 播放列表项无左侧主色条，用背景区分即可 */
+.nav-item-playlist.is-active::before {
+  display: none;
 }

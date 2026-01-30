@@ -1,4 +1,9 @@
-import type { ArtistSongsResult, PlaySongResult, SearchMixResult } from "@/types/model";
+import type {
+  ArtistSongsResult,
+  Playlist,
+  PlaySongResult,
+  SearchMixResult,
+} from "@/types/model";
 
 export type HandleEventAction = "play" | "pause" | "recovery" | "volume";
 
@@ -13,7 +18,9 @@ export type TauriCommand =
   | "get_song_lyric"
   | "load_cover_and_lyric"
   | "is_sink_empty"
-  | "import_music";
+  | "import_music"
+  | "read_playlists"
+  | "write_playlists";
 
 export type TauriCommandParams<C extends TauriCommand> = C extends "scan_files"
   ? { path: string | null; defaultDirectory: string | null }
@@ -48,7 +55,11 @@ export type TauriCommandParams<C extends TauriCommand> = C extends "scan_files"
                     ? void
                     : C extends "import_music"
                       ? { files: string[]; defaultDirectory: string | null }
-                      : never;
+                      : C extends "read_playlists"
+                        ? void
+                        : C extends "write_playlists"
+                          ? { playlists: Playlist[] }
+                          : never;
 
 export type TauriCommandResult<C extends TauriCommand> = C extends "scan_files"
   ? unknown
@@ -72,4 +83,8 @@ export type TauriCommandResult<C extends TauriCommand> = C extends "scan_files"
                     ? boolean
                     : C extends "import_music"
                       ? string
-                      : unknown;
+                      : C extends "read_playlists"
+                        ? Playlist[]
+                        : C extends "write_playlists"
+                          ? void
+                          : unknown;

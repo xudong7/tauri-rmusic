@@ -2,12 +2,15 @@
 import { ref, watch, onUnmounted, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { CaretRight, VideoPause, Download, Headset } from "@element-plus/icons-vue";
+import { CaretRight, VideoPause, Download, Headset, Plus } from "@element-plus/icons-vue";
+import { ElMessage } from "element-plus";
 import type { ArtistInfo, SongInfo } from "@/types/model";
 import { formatDuration, formatArtists } from "@/utils/songUtils";
+import { usePlaylistStore } from "@/stores/playlistStore";
 
 const { t } = useI18n();
 const router = useRouter();
+const playlistStore = usePlaylistStore();
 
 const props = withDefaults(
   defineProps<{
@@ -85,12 +88,24 @@ onUnmounted(() => {
 const isCurrentSong = (s: SongInfo) => props.currentSong?.id === s.id;
 
 function goArtist(a: ArtistInfo) {
-  // 将歌手基础信息一并带过去，歌手页可先渲染头部（接口返回缺字段时也能兜底）
   router.push({
     name: "Artist",
     params: { id: a.id },
     query: { name: a.name, pic_url: a.pic_url },
   });
+}
+
+function handleAddToPlaylist(command: string, row: SongInfo) {
+  const item = { type: "online" as const, song: row };
+  if (command === "new") {
+    const list = playlistStore.createPlaylist(t("playlist.newPlaylist"));
+    playlistStore.addToPlaylist(list.id, item);
+    ElMessage.success(t("playlist.added", { name: list.name }));
+  } else {
+    playlistStore.addToPlaylist(command, item);
+    const pl = playlistStore.getPlaylist(command);
+    ElMessage.success(t("playlist.added", { name: pl?.name ?? "" }));
+  }
 }
 </script>
 
@@ -167,6 +182,28 @@ function goArtist(a: ArtistInfo) {
               :icon="Download"
               @click="emit('download', row)"
             />
+          </div>
+          <div class="col-action">
+            <el-dropdown
+              trigger="click"
+              @command="(cmd: string) => handleAddToPlaylist(cmd, row)"
+            >
+              <el-button circle size="small" :icon="Plus" link />
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="new">{{
+                    t("playlist.newPlaylist")
+                  }}</el-dropdown-item>
+                  <el-dropdown-item
+                    v-for="pl in playlistStore.playlists"
+                    :key="pl.id"
+                    :command="pl.id"
+                  >
+                    {{ pl.name || t("playlist.unnamed") }}
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
         </div>
       </div>
