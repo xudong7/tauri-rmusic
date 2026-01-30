@@ -107,13 +107,6 @@
   padding: 6px 0 2px;
 }
 
-.about-version {
-  font-size: 15px !important;
-  font-weight: 600 !important;
-  color: var(--el-text-color-primary) !important;
-  margin: 0 0 6px 0 !important;
-}
-
 .about-desc {
   font-size: 13px !important;
   color: var(--el-text-color-secondary) !important;

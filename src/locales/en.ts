@@ -54,7 +54,6 @@ export default {
     downloadLocation: "Path",
     selectDownloadLocation: "Select folder",
     about: "About",
-    version: "RMusic v1.0.0",
     aboutDesc: "A music player built with Tauri and Vue",
     language: "Language",
   },

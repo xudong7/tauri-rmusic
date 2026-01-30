@@ -54,7 +54,6 @@ export default {
     downloadLocation: "路径",
     selectDownloadLocation: "选择文件夹",
     about: "关于",
-    version: "RMusic v1.0.0",
     aboutDesc: "一个基于 Tauri 和 Vue 的音乐播放器",
     language: "语言",
   },

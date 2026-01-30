@@ -21,6 +21,7 @@ A modern, lightweight cross-platform desktop music player built with Tauri 2 and
 - [Usage](#usage)
 - [Contributing](#contributing)
 - [Roadmap](#roadmap)
+- [Disclaimer](#disclaimer)
 - [License](#license)
 - [Acknowledgements](#acknowledgements)
 
@@ -28,9 +29,11 @@ A modern, lightweight cross-platform desktop music player built with Tauri 2 and
 
 ## Screenshots
 
-![Local Music](screenshots/image-2.1.png) ![Online Music](screenshots/image-2.2.png)
+![Light Mode](screenshots/image-1.png) ![Dark Mode](screenshots/image-2.png)
 
-![Immersive Mode](screenshots/image-2.3.png) ![Settings](screenshots/image-2.4.png)
+![Warm Mode](screenshots/image-3.png) ![Online Search](screenshots/image-4.png)
+
+![Settings](screenshots/image-5.png) ![Immersive Mode](screenshots/image-6.png)
 
 ---
 
@@ -41,7 +44,7 @@ A modern, lightweight cross-platform desktop music player built with Tauri 2 and
 | **Cross-platform**   | Windows, macOS, Linux                                                           |
 | **Performance**      | Rust + Tauri for minimal footprint and fast startup                             |
 | **Local playback**   | Scan folders; play MP3, WAV, OGG, FLAC                                          |
-| **Online streaming** | Search and play via KuGou and NetEase APIs (requires local proxy)               |
+| **Online streaming** | Search and play via NetEase API (requires local proxy)                         |
 | **UI**               | Vue 3 + Element Plus; light/dark and time-based auto theme                      |
 | **Playback**         | Volume, progress, repeat, shuffle; lyrics and immersive full-screen mode        |
 | **Convenience**      | System tray, keyboard shortcuts (space, arrows), download with cover and lyrics |
@@ -91,22 +94,21 @@ pnpm exec tauri dev
 npm run tauri build
 ```
 
-Output: `src-tauri/target/release/` (or `release/bundle/` for installers).
+Output: `src-tauri/target/release/` (binary); installers in `src-tauri/target/release/bundle/`.
 
 ---
 
 ## Online Music
 
-Online streaming depends on two local API proxies. Start both before using the "Online Music" tab.
+Online streaming depends on a local API proxy. Start it before using the "Online Music" tab.
 
 | Service                    | URL                     | Repository                                                                                    |
 | -------------------------- | ----------------------- | --------------------------------------------------------------------------------------------- |
 | NeteaseCloudMusicApiBackup | `http://localhost:3000` | [nooblong/NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) |
-| KuGouMusicApi              | `http://localhost:3001` | [MakcRe/KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi)                               |
 
 **Steps:**
 
-1. Clone, configure, and run both services on the ports above.
+1. Clone, configure, and run the service on the port above.
 2. In Rmusic, open **Online Music** from the navigation.
 3. Search and play; use the download action to save tracks with cover and lyrics.
 
@@ -187,5 +189,4 @@ Keep the existing style and add comments for non-obvious logic. For large change
 - [Vue.js](https://vuejs.org/) — Frontend framework
 - [Rodio](https://github.com/RustAudio/rodio) — Audio playback
 - [Element Plus](https://element-plus.org/) — UI components
-- [KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi) — KuGou proxy
-- [NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) — NetEase proxy
+- [NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) — NetEase API proxy
