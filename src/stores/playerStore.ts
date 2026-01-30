@@ -347,6 +347,17 @@ export const usePlayerStore = defineStore("player", () => {
     viewStore.exitImmersive();
   }
 
+  /** 仅同步播放状态（由托盘等外部触发播放/暂停时调用，不发起后端请求） */
+  function syncPlaybackStateFromTray(playing: boolean) {
+    if (!hasCurrentTrack.value) return;
+    isPlaying.value = playing;
+    if (playing) {
+      startPlayTimeTracking();
+    } else {
+      stopPlayTimeTracking();
+    }
+  }
+
   return {
     playMode,
     currentMusic,
@@ -373,5 +384,6 @@ export const usePlayerStore = defineStore("player", () => {
     togglePlayMode,
     showImmersive,
     exitImmersive,
+    syncPlaybackStateFromTray,
   };
 });

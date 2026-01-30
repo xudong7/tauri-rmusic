@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n";
 import zhCn from "element-plus/es/locale/lang/zh-cn";
 import en from "element-plus/es/locale/lang/en";
 import { ElConfigProvider } from "element-plus";
+import { listen } from "@tauri-apps/api/event";
 import HeaderBar from "./components/layout/HeaderBar/HeaderBar.vue";
 import Sidebar from "./components/layout/Sidebar/Sidebar.vue";
 import PlayerBar from "./components/feature/PlayerBar/PlayerBar.vue";
@@ -76,6 +77,11 @@ function handleStorageChange(e: StorageEvent) {
     themeStore.setThemeWithoutSave(e.newValue as import("./stores/themeStore").ThemeMode);
 }
 
+let unlistenTrayPrev: (() => void) | null = null;
+let unlistenTrayNext: (() => void) | null = null;
+let unlistenTrayPlay: (() => void) | null = null;
+let unlistenTrayPause: (() => void) | null = null;
+
 onMounted(async () => {
   try {
     await localStore.initializeLocalLibrary();
@@ -83,6 +89,21 @@ onMounted(async () => {
     themeStore.initializeTheme();
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("storage", handleStorageChange);
+
+    // 托盘菜单「上一曲 / 下一曲」事件
+    unlistenTrayPrev = await listen("tray-prev", () => {
+      playerStore.playNextOrPreviousMusic(-playerStore.getPlayStep(-1));
+    });
+    unlistenTrayNext = await listen("tray-next", () => {
+      playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1));
+    });
+    // 托盘菜单「播放 / 暂停」：仅同步前端状态，避免与后端重复请求
+    unlistenTrayPlay = await listen("tray-play", () => {
+      playerStore.syncPlaybackStateFromTray(true);
+    });
+    unlistenTrayPause = await listen("tray-pause", () => {
+      playerStore.syncPlaybackStateFromTray(false);
+    });
   } catch (e) {
     console.error("App init error:", e);
   }
@@ -91,6 +112,10 @@ onMounted(async () => {
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeyDown);
   window.removeEventListener("storage", handleStorageChange);
+  unlistenTrayPrev?.();
+  unlistenTrayNext?.();
+  unlistenTrayPlay?.();
+  unlistenTrayPause?.();
   playerStore.stopPlayTimeTracking();
   detectorStop();
 });

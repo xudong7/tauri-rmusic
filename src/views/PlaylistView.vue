@@ -42,8 +42,8 @@
                 <el-button
                   link
                   size="small"
-                  :icon="Delete"
-                  type="danger"
+                  :icon="Minus"
+                  type="default"
                   class="header-action-btn"
                 />
               </el-tooltip>
@@ -92,9 +92,9 @@
               <el-button
                 circle
                 size="small"
-                :icon="Delete"
+                :icon="Minus"
                 link
-                type="danger"
+                type="default"
                 @click.stop="removeAt(index)"
               />
             </div>
@@ -113,7 +113,7 @@ import {
   CaretRight,
   VideoPause,
   Headset,
-  Delete,
+  Minus,
   EditPen,
 } from "@element-plus/icons-vue";
 import type { PlaylistItem, MusicFile, SongInfo } from "@/types/model";

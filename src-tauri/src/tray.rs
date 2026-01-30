@@ -1,17 +1,27 @@
-use tauri::menu::{Menu, MenuItem};
+use tauri::menu::MenuBuilder;
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::App;
+use tauri::Emitter;
 use tauri::Manager;
 use tauri_plugin_window_state::{AppHandleExt, StateFlags};
+use tokio::sync::broadcast::Sender;
 
+use crate::music::MusicState;
 use crate::service;
 
 /// set up the tray
 pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
-    // setup the tray icon
-    let open_i = MenuItem::with_id(app, "open", "Open", true, None::<&str>)?;
-    let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&open_i, &quit_i])?;
+    // 使用 MenuBuilder 构建托盘菜单：播放控制、上一曲/下一曲、分隔符、显示/隐藏、退出
+    let menu = MenuBuilder::new(app)
+        .text("play", "Play")
+        .text("pause", "Pause")
+        .text("prev", "Previous")
+        .text("next", "Next")
+        .separator()
+        .text("show_hide", "Show / Hide")
+        .separator()
+        .text("quit", "Quit")
+        .build()?;
 
     let _tray = TrayIconBuilder::new()
         .icon(app.default_window_icon().unwrap().clone())
@@ -23,46 +33,57 @@ pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
                 button_state: MouseButtonState::Up,
                 ..
             } => {
-                // println!("left click pressed and released");
-                // in this example, let's show and focus the main window when the tray is clicked
                 let app = tray.app_handle();
                 if let Some(window) = app.get_webview_window("main") {
                     let _ = window.show();
                     let _ = window.set_focus();
                 }
             }
-            _ => {
-                // println!("unhandled event {event:?}");
-            }
+            _ => {}
         })
         .on_menu_event(|app, event| match event.id.as_ref() {
-            "open" => {
-                println!("open menu item was clicked");
+            "play" => {
+                if let Some(sender) = app.try_state::<Sender<MusicState>>() {
+                    let _ = sender.inner().send(MusicState::Recovery);
+                    let _ = app.emit("tray-play", ());
+                }
+            }
+            "pause" => {
+                if let Some(sender) = app.try_state::<Sender<MusicState>>() {
+                    let _ = sender.inner().send(MusicState::Pause);
+                    let _ = app.emit("tray-pause", ());
+                }
+            }
+            "prev" => {
+                let _ = app.emit("tray-prev", ());
+            }
+            "next" => {
+                let _ = app.emit("tray-next", ());
+            }
+            "show_hide" => {
                 if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                    let _ = window.unminimize();
+                    match window.is_visible() {
+                        Ok(true) => {
+                            let _ = window.hide();
+                        }
+                        _ => {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
                 }
             }
             "quit" => {
-                // save the window state before quitting
                 app.save_window_state(StateFlags::all()).unwrap();
-
-                // shutdown the services
-                println!("Shutting down services...");
                 if let Err(e) = service::shutdown_service("app") {
                     eprintln!("Failed to shutdown app service: {}", e);
                 }
                 if let Err(e) = service::shutdown_service("app_win") {
                     eprintln!("Failed to shutdown app_win service: {}", e);
                 }
-
-                println!("quit menu item was clicked");
                 app.exit(0);
             }
-            _ => {
-                println!("menu item {:?} not handled", event.id);
-            }
+            _ => {}
         })
         .build(app)?;
     Ok(())
