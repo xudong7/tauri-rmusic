@@ -93,16 +93,20 @@ watch(
   <div class="music-list-container">
     <div class="list-header">
       <h2 class="list-title">{{ t("musicList.title") }}</h2>
-      <el-button
+      <el-tooltip
         v-if="showImportButton"
-        type="primary"
-        :icon="Upload"
-        size="default"
-        class="import-btn"
-        @click="emit('import')"
+        :content="t('musicList.import')"
+        placement="bottom"
       >
-        {{ t("musicList.import") }}
-      </el-button>
+        <el-button
+          link
+          size="default"
+          :icon="Upload"
+          type="primary"
+          class="import-btn"
+          @click="emit('import')"
+        />
+      </el-tooltip>
     </div>
 
     <div v-if="musicFiles.length === 0" class="empty-list">

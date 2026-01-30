@@ -133,7 +133,10 @@ html.dark .playlist-section,
   opacity: 0.9;
   cursor: pointer;
   border-radius: var(--app-radius-sm);
-  transition: color 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    opacity 0.2s ease;
   -webkit-app-region: no-drag;
 }
 
@@ -172,7 +175,9 @@ html.dark .playlist-section,
   padding: 2px;
   margin: -2px -2px -2px 0;
   border-radius: 4px;
-  transition: color 0.2s ease, opacity 0.2s ease;
+  transition:
+    color 0.2s ease,
+    opacity 0.2s ease;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
@@ -194,7 +199,9 @@ html.dark .playlist-section,
 /* 展开/收起过渡 */
 .playlist-body-enter-active,
 .playlist-body-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 .playlist-body-enter-from,

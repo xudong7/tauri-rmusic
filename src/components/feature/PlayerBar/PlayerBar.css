@@ -279,9 +279,10 @@ html.dark .player-controls .el-button.is-disabled {
   background-color: rgba(255, 255, 255, 0.05);
 }
 
+/* 播放/暂停主按钮：强制与背景区分，避免浅色主题下与背景融为一体 */
 .player-controls .el-button--primary {
-  background-color: var(--el-color-primary);
-  border-color: var(--el-color-primary);
+  background-color: var(--el-color-primary) !important;
+  border-color: var(--el-color-primary) !important;
   color: #fff !important;
   transform: scale(1);
   height: 48px;
@@ -290,15 +291,26 @@ html.dark .player-controls .el-button.is-disabled {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.player-controls .el-button--primary .el-icon {
-  color: inherit;
+.player-controls .el-button--primary .el-icon,
+.player-controls .el-button--primary svg {
+  color: #fff !important;
+  fill: #fff !important;
 }
 
 /* 深色模式：边框与左右按钮一致，透明/黑灰不描亮 */
 .dark-theme .player-controls .el-button--primary,
 html.dark .player-controls .el-button--primary {
+  background-color: var(--el-color-primary) !important;
   border-color: transparent;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.dark-theme .player-controls .el-button--primary .el-icon,
+.dark-theme .player-controls .el-button--primary svg,
+html.dark .player-controls .el-button--primary .el-icon,
+html.dark .player-controls .el-button--primary svg {
+  color: #fff !important;
+  fill: #fff !important;
 }
 
 .dark-theme .player-controls .el-button--primary:hover,

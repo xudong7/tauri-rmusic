@@ -27,7 +27,7 @@ const props = withDefaults(
   }
 );
 
-const emit = defineEmits(["play", "download", "load-more"]);
+const emit = defineEmits(["play", "download", "load-more", "add-to-playlist"]);
 
 const scrollbarRef = ref<{ $el?: HTMLElement } | null>(null);
 const sentinelRef = ref<HTMLElement | null>(null);
@@ -96,16 +96,7 @@ function goArtist(a: ArtistInfo) {
 }
 
 function handleAddToPlaylist(command: string, row: SongInfo) {
-  const item = { type: "online" as const, song: row };
-  if (command === "new") {
-    const list = playlistStore.createPlaylist(t("playlist.newPlaylist"));
-    playlistStore.addToPlaylist(list.id, item);
-    ElMessage.success(t("playlist.added", { name: list.name }));
-  } else {
-    playlistStore.addToPlaylist(command, item);
-    const pl = playlistStore.getPlaylist(command);
-    ElMessage.success(t("playlist.added", { name: pl?.name ?? "" }));
-  }
+  emit("add-to-playlist", command, row);
 }
 </script>
 
@@ -180,6 +171,7 @@ function handleAddToPlaylist(command: string, row: SongInfo) {
               circle
               size="small"
               :icon="Download"
+              link
               @click="emit('download', row)"
             />
           </div>

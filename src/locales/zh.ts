@@ -1,7 +1,7 @@
 export default {
   common: {
-    localMusic: "本地音乐",
-    onlineSearch: "在线搜索",
+    localMusic: "曲库",
+    onlineSearch: "搜索",
     settings: "设置",
     unknownArtist: "未知歌手",
     unknownSong: "未知歌曲",
@@ -27,6 +27,7 @@ export default {
     notFound: "播放列表不存在",
     addToPlaylist: "添加到播放列表",
     added: "已添加到「{name}」",
+    downloadedAndAdded: "已下载并已添加到「{name}」",
   },
   header: {
     switchToLight: "切换到亮色模式",
@@ -48,9 +49,9 @@ export default {
     themeMode: "主题模式",
     appSettings: "应用设置",
     autoStart: "开机自启动",
-    download: "下载设置",
-    downloadLocation: "下载位置",
-    selectDownloadLocation: "选择下载位置",
+    download: "下载",
+    downloadLocation: "路径",
+    selectDownloadLocation: "选择文件夹",
     about: "关于",
     version: "RMusic v1.0.0",
     aboutDesc: "一个基于 Tauri 和 Vue 的音乐播放器",
@@ -58,7 +59,7 @@ export default {
   },
   musicList: {
     title: "音乐列表",
-    import: "导入音乐",
+    import: "导入",
     empty: "暂无音乐，点击「导入音乐」添加",
   },
   onlineMusic: {
