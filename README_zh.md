@@ -21,6 +21,7 @@
 - [使用说明](#使用说明)
 - [贡献指南](#贡献指南)
 - [开发规划](#开发规划)
+- [免责声明](#免责声明)
 - [许可证](#许可证)
 - [致谢](#致谢)
 
@@ -28,9 +29,11 @@
 
 ## 截图
 
-![本地音乐](screenshots/image-2.1.png) ![在线音乐](screenshots/image-2.2.png)
+![亮色模式](screenshots/image-1.png) ![暗色模式](screenshots/image-2.png)
 
-![沉浸模式](screenshots/image-2.3.png) ![设置](screenshots/image-2.4.png)
+![暖色模式](screenshots/image-3.png) ![在线搜索](screenshots/image-4.png)
+
+![设置](screenshots/image-5.png) ![沉浸模式](screenshots/image-6.png)
 
 ---
 
@@ -41,7 +44,7 @@
 | **跨平台**   | Windows、macOS、Linux                                |
 | **性能**     | Rust + Tauri，体积小、启动快                         |
 | **本地播放** | 扫描文件夹，支持 MP3、WAV、OGG、FLAC                 |
-| **在线音乐** | 通过酷狗、网易云 API 搜索与播放（需自建本地代理）    |
+| **在线音乐** | 通过网易云 API 搜索与播放（需自建本地代理）          |
 | **界面**     | Vue 3 + Element Plus，明暗主题及按时段自动切换       |
 | **播放**     | 音量、进度、循环、随机；歌词与全屏沉浸模式           |
 | **便捷**     | 系统托盘、快捷键（空格、方向键）、带封面与歌词的下载 |
@@ -91,22 +94,21 @@ pnpm exec tauri dev
 npm run tauri build
 ```
 
-输出目录：`src-tauri/target/release/`（安装包在 `release/bundle/`）。
+输出目录：`src-tauri/target/release/`（可执行文件）；安装包在 `src-tauri/target/release/bundle/`。
 
 ---
 
 ## 在线音乐
 
-在线播放依赖两个本地 API 代理服务，使用「在线音乐」前请先启动它们。
+在线播放依赖本地网易云 API 代理服务，使用「在线音乐」前请先启动该服务。
 
 | 服务                       | 地址                    | 仓库                                                                                          |
 | -------------------------- | ----------------------- | --------------------------------------------------------------------------------------------- |
 | NeteaseCloudMusicApiBackup | `http://localhost:3000` | [nooblong/NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) |
-| KuGouMusicApi              | `http://localhost:3001` | [MakcRe/KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi)                               |
 
 **步骤：**
 
-1. 克隆、配置并运行上述两个服务，确保端口正确。
+1. 克隆、配置并运行上述服务，确保端口为 3000。
 2. 在 Rmusic 中通过导航进入 **在线音乐**。
 3. 搜索、播放；使用下载按钮可将歌曲保存到本地（含封面与歌词）。
 
@@ -187,5 +189,4 @@ npm run tauri build
 - [Vue.js](https://vuejs.org/) — 前端框架
 - [Rodio](https://github.com/RustAudio/rodio) — 音频播放
 - [Element Plus](https://element-plus.org/) — UI 组件
-- [KuGouMusicApi](https://github.com/MakcRe/KuGouMusicApi) — 酷狗代理
-- [NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) — 网易云代理
+- [NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) — 网易云 API 代理

@@ -208,7 +208,6 @@ onMounted(async () => {
           <el-icon><InfoFilled /></el-icon> {{ t("settings.about") }}
         </h3>
         <div class="setting-item about-content">
-          <p class="about-version">{{ t("settings.version") }}</p>
           <p class="about-desc">{{ t("settings.aboutDesc") }}</p>
         </div>
       </div>
