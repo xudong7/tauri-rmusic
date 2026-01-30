@@ -90,7 +90,11 @@ impl Music {
                     }
                     MusicState::Volume(volume) => {
                         let sink = sink_clone.lock().await;
-                        sink.set_volume(volume / 50.0);
+                        // 使用平方曲线：人耳对响度接近对数感知，线性滑块在两端变化不明显。
+                        // normalized^2 使低端更静、高端保持最大，滑块两端变化更明显。
+                        let normalized = (volume / 100.0).clamp(0.0, 1.0);
+                        let curved = normalized * normalized;
+                        sink.set_volume(curved * 2.0);
                     }
                     MusicState::Quit => {
                         let sink = sink_clone.lock().await;
