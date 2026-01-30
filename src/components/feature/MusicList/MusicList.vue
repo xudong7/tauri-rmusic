@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, watch } from "vue";
+import { reactive, watch, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { CaretRight, VideoPause, Headset, Upload, Plus } from "@element-plus/icons-vue";
 import type { MusicFile } from "@/types/model";
@@ -7,6 +7,7 @@ import { usePlaylistStore } from "@/stores/playlistStore";
 import { ElMessage } from "element-plus";
 import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
 import { loadLocalCover } from "@/utils/coverUtils";
+import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
 
 const { t } = useI18n();
 const playlistStore = usePlaylistStore();
@@ -40,9 +41,14 @@ function handleAddToPlaylist(command: string, row: MusicFile) {
     playlistStore.addToPlaylist(list.id, item);
     ElMessage.success(t("playlist.added", { name: list.name }));
   } else {
-    playlistStore.addToPlaylist(command, item);
+    const added = playlistStore.addToPlaylist(command, item);
     const pl = playlistStore.getPlaylist(command);
-    ElMessage.success(t("playlist.added", { name: pl?.name ?? "" }));
+    const name = pl?.name ?? "";
+    if (added) {
+      ElMessage.success(t("playlist.added", { name }));
+    } else {
+      ElMessage.info(t("playlist.alreadyInPlaylist", { name }));
+    }
   }
 }
 
@@ -87,6 +93,10 @@ watch(
   },
   { immediate: true }
 );
+
+const musicFilesRef = computed(() => props.musicFiles);
+const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight } =
+  useVirtualListWhenLong<MusicFile>({ source: musicFilesRef });
 </script>
 
 <template>
@@ -113,6 +123,81 @@ watch(
       <el-empty :description="t('musicList.empty')" />
     </div>
 
+    <!-- 虚拟滚动：仅渲染可视区域，适合大量曲目 -->
+    <div
+      v-else-if="useVirtual"
+      v-bind="containerProps"
+      class="list-scroll list-scroll-virtual"
+    >
+      <div v-bind="wrapperProps" class="list-rows">
+        <div
+          v-for="{ data: row, index } in virtualList"
+          :key="row.id"
+          class="list-row"
+          :class="{ 'is-current': isCurrentMusic(row) }"
+          :title="row.file_name"
+          :data-index="index"
+          :style="{ height: rowHeight + 'px', minHeight: rowHeight + 'px' }"
+          @dblclick="handleRowDblClick(row)"
+        >
+          <div class="col-play">
+            <el-button
+              circle
+              size="small"
+              :type="isCurrentMusic(row) ? 'primary' : 'default'"
+              :icon="isCurrentMusic(row) && isPlaying ? VideoPause : CaretRight"
+              @click="emit('play', row)"
+            />
+          </div>
+          <div class="col-cover">
+            <img
+              v-if="coverById[row.id]"
+              :src="coverById[row.id]"
+              class="cover-img"
+              alt=""
+            />
+            <div v-else class="cover-placeholder">
+              <el-icon><Headset /></el-icon>
+            </div>
+          </div>
+          <div class="col-main">
+            <div class="song-title" :class="{ 'is-playing': isCurrentMusic(row) }">
+              {{ extractSongTitle(getDisplayName(row.file_name)) }}
+            </div>
+            <div class="song-artist">
+              {{
+                extractArtistName(getDisplayName(row.file_name)) ||
+                t("common.unknownArtist")
+              }}
+            </div>
+          </div>
+          <div class="col-action">
+            <el-dropdown
+              trigger="click"
+              @command="(cmd: string) => handleAddToPlaylist(cmd, row)"
+            >
+              <el-button circle size="small" :icon="Plus" link />
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="new">{{
+                    t("playlist.newPlaylist")
+                  }}</el-dropdown-item>
+                  <el-dropdown-item
+                    v-for="pl in playlistStore.playlists"
+                    :key="pl.id"
+                    :command="pl.id"
+                  >
+                    {{ pl.name || t("playlist.unnamed") }}
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 普通列表：曲目较少时使用，保留 el-scrollbar 样式 -->
     <el-scrollbar v-else class="list-scroll">
       <div class="list-rows">
         <div

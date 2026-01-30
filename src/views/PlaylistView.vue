@@ -56,6 +56,58 @@
         <el-empty :description="t('playlist.empty')" />
       </div>
 
+      <!-- 虚拟滚动：歌单条目较多时只渲染可视区域 -->
+      <div
+        v-else-if="useVirtual"
+        v-bind="containerProps"
+        class="list-scroll list-scroll-virtual"
+      >
+        <div v-bind="wrapperProps" class="list-rows">
+          <div
+            v-for="{ data: entry, index } in virtualList"
+            :key="entry.key"
+            class="list-row"
+            :class="{ 'is-current': isCurrent(entry) }"
+            :style="{ height: rowHeight + 'px', minHeight: rowHeight + 'px' }"
+            @dblclick="playAt(index)"
+          >
+            <div class="col-play">
+              <el-button
+                circle
+                size="small"
+                :type="isCurrent(entry) ? 'primary' : 'default'"
+                :icon="
+                  isCurrent(entry) && playerStore.isPlaying ? VideoPause : CaretRight
+                "
+                @click="playAt(index)"
+              />
+            </div>
+            <div class="col-cover">
+              <img v-if="entry.coverUrl" :src="entry.coverUrl" class="cover-img" alt="" />
+              <div v-else class="cover-placeholder">
+                <el-icon><Headset /></el-icon>
+              </div>
+            </div>
+            <div class="col-main">
+              <div class="song-title" :class="{ 'is-playing': isCurrent(entry) }">
+                {{ entry.title }}
+              </div>
+              <div class="song-artist">{{ entry.artist }}</div>
+            </div>
+            <div class="col-actions">
+              <el-button
+                circle
+                size="small"
+                :icon="Minus"
+                link
+                type="default"
+                @click.stop="removeAt(index)"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
       <el-scrollbar v-else class="list-scroll">
         <div class="list-rows">
           <div
@@ -108,14 +160,9 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
 import { useI18n } from "vue-i18n";
-import {
-  CaretRight,
-  VideoPause,
-  Headset,
-  Minus,
-  EditPen,
-} from "@element-plus/icons-vue";
+import { CaretRight, VideoPause, Headset, Minus, EditPen } from "@element-plus/icons-vue";
 import type { PlaylistItem, MusicFile, SongInfo } from "@/types/model";
 import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
 import { loadLocalCover } from "@/utils/coverUtils";
@@ -244,6 +291,9 @@ const displayItems = computed(() =>
   }))
 );
 
+const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight } =
+  useVirtualListWhenLong<ResolvedEntry>({ source: displayItems });
+
 function isCurrent(entry: ResolvedEntry & { coverUrl?: string }) {
   if (entry.musicFile && playerStore.currentMusic)
     return playerStore.currentMusic.file_name === entry.musicFile.file_name;
@@ -353,6 +403,11 @@ watch(editingName, (v) => {
 .list-scroll {
   flex: 1;
   min-height: 0;
+}
+
+.list-scroll-virtual {
+  overflow: auto;
+  overflow-x: hidden;
 }
 
 .list-rows {

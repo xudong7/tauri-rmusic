@@ -47,6 +47,12 @@
   min-height: 0;
 }
 
+/* 虚拟滚动容器：使用原生滚动，需占满剩余高度 */
+.list-scroll-virtual {
+  overflow: auto;
+  overflow-x: hidden;
+}
+
 .list-rows {
   padding: 0 4px 12px;
 }

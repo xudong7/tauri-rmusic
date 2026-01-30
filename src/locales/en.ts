@@ -27,6 +27,7 @@ export default {
     notFound: "Playlist not found",
     addToPlaylist: "Add to playlist",
     added: 'Added to "{name}"',
+    alreadyInPlaylist: 'Already in "{name}"',
     downloadedAndAdded: 'Downloaded and added to "{name}"',
   },
   header: {

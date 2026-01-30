@@ -21,6 +21,7 @@
     "@tauri-apps/plugin-window-state": "~2.2.2",
     "element-plus": "^2.9.8",
     "pinia": "^3.0.2",
+    "@vueuse/core": "^11.2.0",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0",
     "vue-i18n": "^10.0.4"

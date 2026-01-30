@@ -27,6 +27,7 @@ export default {
     notFound: "播放列表不存在",
     addToPlaylist: "添加到播放列表",
     added: "已添加到「{name}」",
+    alreadyInPlaylist: "该歌曲已在「{name}」中",
     downloadedAndAdded: "已下载并已添加到「{name}」",
   },
   header: {
