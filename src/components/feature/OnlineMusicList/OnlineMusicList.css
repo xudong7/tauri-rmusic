@@ -209,18 +209,16 @@
   text-align: right;
 }
 
-.col-download {
-  flex-shrink: 0;
-}
-
-.col-download .el-button {
-  width: 32px;
-  height: 32px;
-  color: var(--el-color-primary);
-}
-
+/* 下载与添加至播放列表：统一样式（圆形、link、同尺寸） */
+.col-download,
 .col-action {
   flex-shrink: 0;
+}
+
+.col-download .el-button,
+.col-action .el-button {
+  width: 32px;
+  height: 32px;
 }
 
 .loading-container,

@@ -176,10 +176,13 @@ html.dark .setting-item p {
   display: flex;
   gap: 8px;
   align-items: center;
+  width: 100%;
+  min-width: 0;
 }
 
 .download-path-container .el-input {
   flex: 1;
+  min-width: 0;
 }
 
 .download-path-container .el-button {

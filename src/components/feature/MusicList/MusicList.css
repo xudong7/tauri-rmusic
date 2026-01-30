@@ -27,6 +27,7 @@
 
 .list-header .import-btn {
   flex-shrink: 0;
+  padding: 4px 8px;
 }
 
 .list-title::before {

@@ -7,16 +7,16 @@
       <div class="list-header">
         <div class="header-left">
           <h2 class="list-title">{{ displayName }}</h2>
-          <el-button
-            v-if="!editingName"
-            link
-            type="primary"
-            size="small"
-            class="edit-name-btn"
-            @click="editingName = true"
-          >
-            {{ t("playlist.rename") }}
-          </el-button>
+          <el-tooltip v-if="!editingName" :content="t('playlist.rename')" placement="top">
+            <el-button
+              link
+              size="small"
+              :icon="EditPen"
+              type="primary"
+              class="header-action-btn"
+              @click="editingName = true"
+            />
+          </el-tooltip>
           <el-input
             v-else
             ref="nameInputRef"
@@ -34,12 +34,19 @@
             :title="t('playlist.deleteConfirm')"
             :confirm-button-text="t('common.confirmDelete')"
             :cancel-button-text="t('common.cancel')"
+            width="320"
             @confirm="confirmDelete"
           >
             <template #reference>
-              <el-button type="danger" link size="small">{{
-                t("playlist.delete")
-              }}</el-button>
+              <el-tooltip :content="t('playlist.delete')" placement="top">
+                <el-button
+                  link
+                  size="small"
+                  :icon="Delete"
+                  type="danger"
+                  class="header-action-btn"
+                />
+              </el-tooltip>
             </template>
           </el-popconfirm>
         </div>
@@ -102,7 +109,13 @@
 import { ref, computed, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { CaretRight, VideoPause, Headset, Delete } from "@element-plus/icons-vue";
+import {
+  CaretRight,
+  VideoPause,
+  Headset,
+  Delete,
+  EditPen,
+} from "@element-plus/icons-vue";
 import type { PlaylistItem, MusicFile, SongInfo } from "@/types/model";
 import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
 import { loadLocalCover } from "@/utils/coverUtils";
@@ -318,6 +331,14 @@ watch(editingName, (v) => {
 
 .header-actions {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 播放列表标题旁的重命名/删除：无边框 link 图标 */
+.header-action-btn {
+  padding: 4px 6px;
 }
 
 .empty-list,

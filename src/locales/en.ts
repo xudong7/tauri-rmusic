@@ -1,7 +1,7 @@
 export default {
   common: {
-    localMusic: "Local Music",
-    onlineSearch: "Online Search",
+    localMusic: "Library",
+    onlineSearch: "Search",
     settings: "Settings",
     unknownArtist: "Unknown Artist",
     unknownSong: "Unknown Song",
@@ -27,6 +27,7 @@ export default {
     notFound: "Playlist not found",
     addToPlaylist: "Add to playlist",
     added: 'Added to "{name}"',
+    downloadedAndAdded: 'Downloaded and added to "{name}"',
   },
   header: {
     switchToLight: "Switch to light mode",
@@ -49,8 +50,8 @@ export default {
     appSettings: "Application",
     autoStart: "Launch at startup",
     download: "Download",
-    downloadLocation: "Download location",
-    selectDownloadLocation: "Select download location",
+    downloadLocation: "Path",
+    selectDownloadLocation: "Select folder",
     about: "About",
     version: "RMusic v1.0.0",
     aboutDesc: "A music player built with Tauri and Vue",
@@ -58,7 +59,7 @@ export default {
   },
   musicList: {
     title: "Music List",
-    import: "Import Music",
+    import: "Import",
     empty: 'No music yet. Click "Import Music" to add',
   },
   onlineMusic: {
