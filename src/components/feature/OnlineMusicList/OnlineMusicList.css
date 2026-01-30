@@ -219,6 +219,10 @@
   color: var(--el-color-primary);
 }
 
+.col-action {
+  flex-shrink: 0;
+}
+
 .loading-container,
 .empty-list {
   display: flex;

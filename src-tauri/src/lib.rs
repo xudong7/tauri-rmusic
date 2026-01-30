@@ -4,6 +4,7 @@ use netease::{
     get_artist_top_songs, get_song_cover, get_song_lyric, get_song_url, play_netease_song,
     search_online_mix, search_songs,
 };
+use playlist::{read_playlists, write_playlists};
 use rodio::Sink;
 use service::setup_service;
 use std::sync::Arc;
@@ -17,6 +18,7 @@ use tray::setup_tray;
 mod file;
 mod music;
 mod netease;
+mod playlist;
 mod service;
 mod tray;
 
@@ -114,7 +116,9 @@ pub fn run() {
             download_music,
             get_song_lyric,
             load_cover_and_lyric,
-            get_song_cover
+            get_song_cover,
+            read_playlists,
+            write_playlists
         ])
         // share sender and sink with the frontend
         .manage(music.event_sender)

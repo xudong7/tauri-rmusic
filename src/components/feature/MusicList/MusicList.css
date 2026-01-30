@@ -131,6 +131,10 @@
   min-width: 0;
 }
 
+.col-action {
+  flex-shrink: 0;
+}
+
 .song-title {
   font-size: 15px;
   font-weight: 500;

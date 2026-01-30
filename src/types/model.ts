@@ -74,4 +74,18 @@ export enum PlayMode {
 export enum ViewMode {
   LOCAL = "local", // 本地音乐模式
   ONLINE = "online", // 在线音乐模式
+  PLAYLIST = "playlist", // 播放列表模式
+}
+
+// 播放列表单项（本地或在线）
+export type PlaylistItem =
+  | { type: "local"; file_name: string }
+  | { type: "online"; song: SongInfo };
+
+// 播放列表
+export interface Playlist {
+  id: string;
+  name: string;
+  items: PlaylistItem[];
+  createdAt: number;
 }
