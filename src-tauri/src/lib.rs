@@ -89,11 +89,24 @@ pub fn run() {
                 })
                 .expect("failed to get main window");
 
-            let window_for_app = window.clone();
-
-            // Handle sidecar (app)
-            setup_service(app, "app", window_for_app)
-                .unwrap_or_else(|e| println!("Failed to setup app sidecar: {}", e));
+            // Sidecar 按平台：Linux 用 app_linux，Windows 用 app_win，macOS 用 app_mac
+            let sidecar_name = {
+                #[cfg(target_os = "linux")]
+                {
+                    "app_linux"
+                }
+                #[cfg(target_os = "windows")]
+                {
+                    "app_win"
+                }
+                #[cfg(target_os = "macos")]
+                {
+                    "app_mac"
+                }
+            };
+            if let Err(e) = setup_service(app, sidecar_name, window.clone()) {
+                eprintln!("Skip sidecar {} (binary not bundled): {}", sidecar_name, e);
+            }
 
             Ok(())
         })
