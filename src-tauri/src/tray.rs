@@ -78,9 +78,6 @@ pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
                 if let Err(e) = service::shutdown_service("app") {
                     eprintln!("Failed to shutdown app service: {}", e);
                 }
-                if let Err(e) = service::shutdown_service("app_win") {
-                    eprintln!("Failed to shutdown app_win service: {}", e);
-                }
                 app.exit(0);
             }
             _ => {}

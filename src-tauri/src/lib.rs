@@ -90,15 +90,10 @@ pub fn run() {
                 .expect("failed to get main window");
 
             let window_for_app = window.clone();
-            let window_for_app_win = window.clone();
 
-            // Handle first sidecar (app)
+            // Handle sidecar (app)
             setup_service(app, "app", window_for_app)
                 .unwrap_or_else(|e| println!("Failed to setup app sidecar: {}", e));
-
-            // Handle second sidecar (app_win)
-            setup_service(app, "app_win", window_for_app_win)
-                .unwrap_or_else(|e| println!("Failed to setup app_win sidecar: {}", e));
 
             Ok(())
         })
