@@ -29,6 +29,7 @@ export default {
     added: "已添加到「{name}」",
     alreadyInPlaylist: "该歌曲已在「{name}」中",
     downloadedAndAdded: "已下载并已添加到「{name}」",
+    removeSelected: "从播放列表移除选中",
   },
   header: {
     switchToLight: "切换到亮色模式",
@@ -58,12 +59,18 @@ export default {
     language: "语言",
   },
   musicList: {
-    title: "音乐列表",
+    title: "曲库",
     import: "导入",
     empty: "暂无音乐，点击「导入音乐」添加",
+    multiSelect: "多选",
+    selectAll: "全选",
+    deselectAll: "取消全选",
+    cancelSelect: "取消多选",
+    addSelectedToPlaylist: "添加到播放列表",
+    selectedCount: "已选 {count} 首",
   },
   onlineMusic: {
-    title: "在线音乐",
+    title: "搜索",
     empty: "搜索歌曲开始播放",
     loadMore: "加载更多",
   },

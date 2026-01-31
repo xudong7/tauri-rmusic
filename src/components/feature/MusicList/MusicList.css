@@ -25,9 +25,47 @@
   flex-shrink: 0;
 }
 
-.list-header .import-btn {
+.list-header .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex-shrink: 0;
+}
+
+.list-header .select-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.list-header .select-actions .el-button {
   padding: 4px 8px;
+  font-size: 13px;
+}
+
+/* 与 Playlist 标题栏图标统一（使用 themes 变量） */
+.list-header .header-action-btn {
+  flex-shrink: 0;
+  padding: var(--list-header-btn-padding, 4px 8px);
+}
+
+.list-header .header-action-btn .el-icon {
+  font-size: var(--list-header-icon-size, 16px);
+}
+
+.list-header .batch-add-btn {
+  margin-left: 8px;
+  padding-left: 10px;
+  padding-right: 12px;
+}
+
+.list-header .batch-add-btn .batch-add-icon {
+  margin-right: 4px;
+  font-size: 14px;
+}
+
+.list-row.is-selected {
+  background: var(--active-item-bg, rgba(var(--el-color-primary-rgb), 0.08));
 }
 
 .list-title::before {
@@ -98,8 +136,8 @@
 }
 
 .col-play .el-button {
-  width: 34px;
-  height: 34px;
+  width: var(--list-row-btn-size, 34px);
+  height: var(--list-row-btn-size, 34px);
   transition:
     color 0.2s ease,
     background 0.2s ease;
@@ -140,6 +178,19 @@
 
 .col-action {
   flex-shrink: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.list-row:hover .col-action {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.col-action .el-button {
+  width: var(--list-row-btn-size, 34px);
+  height: var(--list-row-btn-size, 34px);
 }
 
 .song-title {

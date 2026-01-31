@@ -29,6 +29,7 @@ export default {
     added: 'Added to "{name}"',
     alreadyInPlaylist: 'Already in "{name}"',
     downloadedAndAdded: 'Downloaded and added to "{name}"',
+    removeSelected: "Remove selected from playlist",
   },
   header: {
     switchToLight: "Switch to light mode",
@@ -58,12 +59,18 @@ export default {
     language: "Language",
   },
   musicList: {
-    title: "Music List",
+    title: "Library",
     import: "Import",
     empty: 'No music yet. Click "Import Music" to add',
+    multiSelect: "Multi-select",
+    selectAll: "Select all",
+    deselectAll: "Deselect all",
+    cancelSelect: "Cancel",
+    addSelectedToPlaylist: "Add to playlist",
+    selectedCount: "{count} selected",
   },
   onlineMusic: {
-    title: "Online Music",
+    title: "Search",
     empty: "Search for songs to play",
     loadMore: "Load More",
   },

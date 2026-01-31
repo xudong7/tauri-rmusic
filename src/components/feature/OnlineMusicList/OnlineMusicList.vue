@@ -3,7 +3,6 @@ import { ref, watch, onUnmounted, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { CaretRight, VideoPause, Download, Headset, Plus } from "@element-plus/icons-vue";
-import { ElMessage } from "element-plus";
 import type { ArtistInfo, SongInfo } from "@/types/model";
 import { formatDuration, formatArtists } from "@/utils/songUtils";
 import { usePlaylistStore } from "@/stores/playlistStore";

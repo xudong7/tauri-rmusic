@@ -30,25 +30,61 @@
           />
         </div>
         <div class="header-actions">
-          <el-popconfirm
-            :title="t('playlist.deleteConfirm')"
-            :confirm-button-text="t('common.confirmDelete')"
-            :cancel-button-text="t('common.cancel')"
-            width="320"
-            @confirm="confirmDelete"
-          >
-            <template #reference>
-              <el-tooltip :content="t('playlist.delete')" placement="top">
+          <template v-if="selectionMode">
+            <span class="select-actions">
+              <el-button link size="small" @click="selectAll">{{
+                t("musicList.selectAll")
+              }}</el-button>
+              <el-button link size="small" @click="deselectAll">{{
+                t("musicList.deselectAll")
+              }}</el-button>
+              <el-button link size="small" @click="toggleSelectionMode">{{
+                t("musicList.cancelSelect")
+              }}</el-button>
+            </span>
+            <el-button
+              v-if="selectedIndices.size > 0"
+              type="primary"
+              size="small"
+              class="batch-remove-btn"
+              @click="removeSelectedFromPlaylist"
+            >
+              {{ t("playlist.removeSelected") }} ({{ selectedIndices.size }})
+            </el-button>
+          </template>
+          <template v-else>
+            <el-tooltip :content="t('musicList.multiSelect')" placement="bottom">
+              <el-button
+                link
+                size="small"
+                :icon="CircleCheck"
+                type="primary"
+                class="header-action-btn"
+                @click="toggleSelectionMode"
+              />
+            </el-tooltip>
+            <el-popconfirm
+              :title="t('playlist.deleteConfirm')"
+              :confirm-button-text="t('common.confirmDelete')"
+              :cancel-button-text="t('common.cancel')"
+              width="320"
+              trigger="click"
+              @confirm="confirmDelete"
+            >
+              <template #reference>
                 <el-button
                   link
                   size="small"
                   :icon="Minus"
                   type="default"
                   class="header-action-btn"
+                  :title="t('playlist.delete')"
+                  :aria-label="t('playlist.delete')"
+                  @click.stop
                 />
-              </el-tooltip>
-            </template>
-          </el-popconfirm>
+              </template>
+            </el-popconfirm>
+          </template>
         </div>
       </div>
 
@@ -67,12 +103,23 @@
             v-for="{ data: entry, index } in virtualList"
             :key="entry.key"
             class="list-row"
-            :class="{ 'is-current': isCurrent(entry) }"
+            :class="{
+              'is-current': isCurrent(entry) && !selectionMode,
+              'is-selected': isRowSelected(index),
+            }"
             :style="{ height: rowHeight + 'px', minHeight: rowHeight + 'px' }"
-            @dblclick="playAt(index)"
+            @click="selectionMode ? toggleSelectRow(index) : undefined"
+            @dblclick="!selectionMode && playAt(index)"
           >
             <div class="col-play">
+              <el-checkbox
+                v-if="selectionMode"
+                :model-value="isRowSelected(index)"
+                @click.stop
+                @change="toggleSelectRow(index)"
+              />
               <el-button
+                v-else
                 circle
                 size="small"
                 :type="isCurrent(entry) ? 'primary' : 'default'"
@@ -94,7 +141,7 @@
               </div>
               <div class="song-artist">{{ entry.artist }}</div>
             </div>
-            <div class="col-actions">
+            <div v-if="!selectionMode" class="col-actions">
               <el-button
                 circle
                 size="small"
@@ -114,11 +161,22 @@
             v-for="(entry, index) in displayItems"
             :key="entry.key"
             class="list-row"
-            :class="{ 'is-current': isCurrent(entry) }"
-            @dblclick="playAt(index)"
+            :class="{
+              'is-current': isCurrent(entry) && !selectionMode,
+              'is-selected': isRowSelected(index),
+            }"
+            @click="selectionMode ? toggleSelectRow(index) : undefined"
+            @dblclick="!selectionMode && playAt(index)"
           >
             <div class="col-play">
+              <el-checkbox
+                v-if="selectionMode"
+                :model-value="isRowSelected(index)"
+                @click.stop
+                @change="toggleSelectRow(index)"
+              />
               <el-button
+                v-else
                 circle
                 size="small"
                 :type="isCurrent(entry) ? 'primary' : 'default'"
@@ -140,7 +198,7 @@
               </div>
               <div class="song-artist">{{ entry.artist }}</div>
             </div>
-            <div class="col-actions">
+            <div v-if="!selectionMode" class="col-actions">
               <el-button
                 circle
                 size="small"
@@ -162,7 +220,14 @@ import { ref, computed, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
 import { useI18n } from "vue-i18n";
-import { CaretRight, VideoPause, Headset, Minus, EditPen } from "@element-plus/icons-vue";
+import {
+  CaretRight,
+  VideoPause,
+  Headset,
+  Minus,
+  EditPen,
+  CircleCheck,
+} from "@element-plus/icons-vue";
 import type { PlaylistItem, MusicFile, SongInfo } from "@/types/model";
 import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
 import { loadLocalCover } from "@/utils/coverUtils";
@@ -185,6 +250,48 @@ const editNameValue = ref("");
 const nameInputRef = ref<InstanceType<typeof import("element-plus").ElInput> | null>(
   null
 );
+
+const selectionMode = ref(false);
+const selectedIndices = ref<Set<number>>(new Set());
+
+function toggleSelectionMode() {
+  selectionMode.value = !selectionMode.value;
+  if (!selectionMode.value) selectedIndices.value = new Set();
+}
+
+function toggleSelectRow(index: number) {
+  if (!selectionMode.value) return;
+  const next = new Set(selectedIndices.value);
+  if (next.has(index)) next.delete(index);
+  else next.add(index);
+  selectedIndices.value = next;
+}
+
+function isRowSelected(index: number) {
+  return selectedIndices.value.has(index);
+}
+
+function selectAll() {
+  if (!playlist.value) return;
+  selectedIndices.value = new Set(
+    Array.from({ length: playlist.value.items.length }, (_, i) => i)
+  );
+}
+
+function deselectAll() {
+  selectedIndices.value = new Set();
+}
+
+function removeSelectedFromPlaylist() {
+  const list = playlist.value;
+  if (!list || selectedIndices.value.size === 0) return;
+  const indices = Array.from(selectedIndices.value).sort((a, b) => b - a);
+  for (const index of indices) {
+    playlistStore.removeFromPlaylist(list.id, index);
+  }
+  selectedIndices.value = new Set();
+  selectionMode.value = false;
+}
 
 const playlistId = computed(() => route.params.id as string);
 const playlist = computed(() =>
@@ -383,12 +490,37 @@ watch(editingName, (v) => {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
 }
 
-/* 播放列表标题旁的重命名/删除：无边框 link 图标 */
+/* 与 Library 标题栏图标统一（使用 themes 变量） */
 .header-action-btn {
-  padding: 4px 6px;
+  padding: var(--list-header-btn-padding, 4px 8px);
+}
+
+.header-action-btn .el-icon {
+  font-size: var(--list-header-icon-size, 16px);
+}
+
+.select-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.select-actions .el-button {
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+.batch-remove-btn {
+  margin-left: 8px;
+  padding-left: 10px;
+  padding-right: 12px;
+}
+
+.list-row.is-selected {
+  background: var(--active-item-bg, rgba(var(--el-color-primary-rgb), 0.08));
 }
 
 .empty-list,
@@ -452,6 +584,31 @@ watch(editingName, (v) => {
 .col-cover,
 .col-actions {
   flex-shrink: 0;
+}
+
+/* 与 Library 行内按钮统一 */
+.col-play .el-button,
+.col-actions .el-button {
+  width: var(--list-row-btn-size, 34px);
+  height: var(--list-row-btn-size, 34px);
+}
+
+.col-play .el-button:not(.el-button--primary):hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
+  background: var(--hover-bg-color);
+}
+
+/* 减号仅悬停时显示 */
+.col-actions {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.list-row:hover .col-actions {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .col-main {

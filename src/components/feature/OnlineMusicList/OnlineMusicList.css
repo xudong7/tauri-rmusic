@@ -209,10 +209,19 @@
   text-align: right;
 }
 
-/* 下载与添加至播放列表：统一样式（圆形、link、同尺寸） */
+/* 下载与添加至播放列表：统一样式（圆形、link、同尺寸），仅悬停时显示 */
 .col-download,
 .col-action {
   flex-shrink: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.list-row:hover .col-download,
+.list-row:hover .col-action {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .col-download .el-button,

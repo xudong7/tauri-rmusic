@@ -45,6 +45,11 @@ html {
 
   /* 侧边栏宽度（供 Message 等在主内容区内居中） */
   --sidebar-width: 200px;
+
+  /* 列表页（Library / Playlist）统一：标题栏按钮与行内按钮 */
+  --list-header-btn-padding: 4px 8px;
+  --list-header-icon-size: 16px;
+  --list-row-btn-size: 34px;
 }
 
 /* ---------- 亮色主题 ---------- */

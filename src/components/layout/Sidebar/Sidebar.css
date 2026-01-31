@@ -216,14 +216,14 @@ html.dark .playlist-section,
   margin-bottom: 1px;
 }
 
-.nav-item-playlist:last-child {
-  margin-bottom: 0;
-}
-
 .nav-item-playlist .nav-label {
   font-size: 13px;
   font-weight: 500;
   letter-spacing: 0.01em;
+}
+
+.nav-item-playlist:last-child {
+  margin-bottom: 0;
 }
 
 .nav-item-playlist:hover {

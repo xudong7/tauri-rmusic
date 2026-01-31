@@ -103,10 +103,14 @@ html.dark .el-message {
   color: var(--msg-error-accent) !important;
 }
 
-/* ---------- 内容与动画微调 ---------- */
+/* ---------- 内容与动画微调：较长文案省略 ---------- */
 .el-message__content {
   font-size: 14px;
   line-height: 1.4;
+  max-width: min(360px, calc(100vw - var(--sidebar-width, 200px) - 48px));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .el-message-fade-enter-from,

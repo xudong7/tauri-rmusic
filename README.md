@@ -44,7 +44,7 @@ A modern, lightweight cross-platform desktop music player built with Tauri 2 and
 | **Cross-platform**   | Windows, macOS, Linux                                                           |
 | **Performance**      | Rust + Tauri for minimal footprint and fast startup                             |
 | **Local playback**   | Scan folders; play MP3, WAV, OGG, FLAC                                          |
-| **Online streaming** | Search and play via NetEase API (requires local proxy)                         |
+| **Online streaming** | Search and play via NetEase API (requires local proxy)                          |
 | **UI**               | Vue 3 + Element Plus; light/dark and time-based auto theme                      |
 | **Playback**         | Volume, progress, repeat, shuffle; lyrics and immersive full-screen mode        |
 | **Convenience**      | System tray, keyboard shortcuts (space, arrows), download with cover and lyrics |
