@@ -25,10 +25,9 @@ html.dark {
   --el-message-padding: 12px 16px;
   --el-message-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   top: 72px !important; /* 顶栏 56px + 16px，在搜索框下方 */
-  /* 在主内容区（侧栏右侧）内水平居中，避免相对整窗居中时左侧出现大面积空白缝 */
-  left: calc(
-    var(--sidebar-width, 200px) + (100% - var(--sidebar-width, 200px)) / 2
-  ) !important;
+  /* 在整个应用窗口内水平居中 */
+  left: 50% !important;
+  transform: translateX(-50%) !important;
   padding: var(--el-message-padding) !important;
   background: var(--el-message-bg-color) !important;
   border: 1px solid var(--el-message-border-color) !important;

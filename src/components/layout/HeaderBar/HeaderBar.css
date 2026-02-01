@@ -47,6 +47,178 @@
   -webkit-app-region: no-drag; /* 搜索区域不可拖动 */
 }
 
+.search-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+/* 搜索历史下拉：横向标签 + 单条删除 */
+.search-history-dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  min-height: 52px;
+  max-height: 160px;
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--app-radius-lg, 12px);
+  box-shadow: var(--el-box-shadow-light);
+  z-index: 2000;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.search-history-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 6px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  flex-shrink: 0;
+}
+
+.search-history-header .el-icon {
+  font-size: 14px;
+}
+
+.search-history-header span:first-of-type {
+  flex: 1;
+}
+
+.search-history-clear-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--app-radius-md);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.search-history-clear-btn:hover {
+  color: var(--el-color-primary);
+  background: var(--el-fill-color-light);
+}
+
+.search-history-clear-btn .el-icon {
+  font-size: 12px;
+}
+
+/* 横向标签列表 */
+.search-history-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 12px 12px;
+  overflow-y: auto;
+  align-content: flex-start;
+}
+
+.search-history-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 180px;
+  padding: 6px 8px 6px 12px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 9999px;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.search-history-chip:hover {
+  background: var(--el-fill-color);
+  border-color: var(--el-border-color);
+  color: var(--el-color-primary);
+}
+
+.search-history-chip-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.search-history-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: var(--el-text-color-secondary);
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.search-history-chip-remove .el-icon {
+  font-size: 12px;
+}
+
+.search-history-chip:hover .search-history-chip-remove {
+  color: var(--el-text-color-regular);
+}
+
+.search-history-chip-remove:hover {
+  color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9);
+}
+
+.search-history-empty {
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--el-text-color-placeholder);
+  text-align: center;
+}
+
+/* 深色模式：历史面板与标签边框减弱，避免太白突兀 */
+html.dark .search-history-dropdown {
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+html.dark .search-history-chip {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+html.dark .search-history-chip:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* 历史下拉过渡 */
+.history-dropdown-enter-active,
+.history-dropdown-leave-active {
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+.history-dropdown-enter-from,
+.history-dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
 .header-right {
   display: flex;
   justify-content: flex-end;
