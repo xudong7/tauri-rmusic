@@ -2,6 +2,26 @@ use tauri::Emitter;
 use tauri_plugin_shell::process::CommandEvent;
 use tauri_plugin_shell::ShellExt;
 
+/// 返回当前平台的 sidecar 名称（与 build.rs / lib.rs 中使用的名称一致）
+pub fn sidecar_name_for_current_platform() -> &'static str {
+    #[cfg(target_os = "linux")]
+    {
+        "app_linux"
+    }
+    #[cfg(target_os = "macos")]
+    {
+        "app_mac"
+    }
+    #[cfg(target_os = "windows")]
+    {
+        "app_win"
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
+    {
+        "app"
+    }
+}
+
 /// set up the service for the sidecar
 pub fn setup_service(
     app: &tauri::App,

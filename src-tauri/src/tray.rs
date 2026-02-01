@@ -75,8 +75,9 @@ pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
             }
             "quit" => {
                 app.save_window_state(StateFlags::all()).unwrap();
-                if let Err(e) = service::shutdown_service("app") {
-                    eprintln!("Failed to shutdown app service: {}", e);
+                let sidecar_name = service::sidecar_name_for_current_platform();
+                if let Err(e) = service::shutdown_service(sidecar_name) {
+                    eprintln!("Failed to shutdown sidecar {}: {}", sidecar_name, e);
                 }
                 app.exit(0);
             }
