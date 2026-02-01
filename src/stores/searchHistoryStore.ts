@@ -1,15 +1,13 @@
-import { ref, computed } from "vue";
+import { computed, ref } from "vue";
 import { defineStore } from "pinia";
+import { SEARCH_HISTORY_MAX_ITEMS, STORAGE_KEY_SEARCH_HISTORY } from "@/constants";
 import { ViewMode } from "@/types/model";
-
-const STORAGE_KEY = "rmusic-search-history";
-const MAX_ITEMS = 20;
 
 type HistoryKey = "local" | "online";
 
 function loadFromStorage(): Record<HistoryKey, string[]> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY_SEARCH_HISTORY);
     if (!raw) return { local: [], online: [] };
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     const local = Array.isArray(parsed.local)
@@ -18,7 +16,10 @@ function loadFromStorage(): Record<HistoryKey, string[]> {
     const online = Array.isArray(parsed.online)
       ? parsed.online.filter((s): s is string => typeof s === "string")
       : [];
-    return { local: local.slice(0, MAX_ITEMS), online: online.slice(0, MAX_ITEMS) };
+    return {
+      local: local.slice(0, SEARCH_HISTORY_MAX_ITEMS),
+      online: online.slice(0, SEARCH_HISTORY_MAX_ITEMS),
+    };
   } catch {
     return { local: [], online: [] };
   }
@@ -26,9 +27,9 @@ function loadFromStorage(): Record<HistoryKey, string[]> {
 
 function saveToStorage(data: Record<HistoryKey, string[]>) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(STORAGE_KEY_SEARCH_HISTORY, JSON.stringify(data));
   } catch {
-    // ignore
+    /* ignore */
   }
 }
 
@@ -36,6 +37,7 @@ function toKey(mode: ViewMode): HistoryKey {
   return mode === ViewMode.LOCAL ? "local" : "online";
 }
 
+/** 搜索历史 store：按本地/在线分别持久化到 localStorage，支持增、删、清 */
 export const useSearchHistoryStore = defineStore("searchHistory", () => {
   const data = ref<Record<HistoryKey, string[]>>(loadFromStorage());
 
@@ -54,7 +56,7 @@ export const useSearchHistoryStore = defineStore("searchHistory", () => {
     const idx = list.indexOf(k);
     if (idx !== -1) list.splice(idx, 1);
     list.unshift(k);
-    data.value = { ...data.value, [key]: list.slice(0, MAX_ITEMS) };
+    data.value = { ...data.value, [key]: list.slice(0, SEARCH_HISTORY_MAX_ITEMS) };
     saveToStorage(data.value);
   }
 

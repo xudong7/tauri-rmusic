@@ -1,12 +1,13 @@
-import { ref, computed } from "vue";
+import { computed, ref } from "vue";
 import { defineStore } from "pinia";
+import { STORAGE_KEY_THEME } from "@/constants";
 
 export type ThemeMode = "light" | "dark" | "warm";
 
 const THEME_VALID: ThemeMode[] = ["light", "dark", "warm"];
 
 export const useThemeStore = defineStore("theme", () => {
-  const saved = localStorage.getItem("theme");
+  const saved = localStorage.getItem(STORAGE_KEY_THEME);
   const themeMode = ref<ThemeMode>(
     THEME_VALID.includes(saved as ThemeMode) ? (saved as ThemeMode) : "light"
   );
@@ -18,7 +19,7 @@ export const useThemeStore = defineStore("theme", () => {
     const next: ThemeMode = hours < 8 || hours >= 18 ? "dark" : "light";
     if (themeMode.value !== next) {
       themeMode.value = next;
-      localStorage.setItem("theme", next);
+      localStorage.setItem(STORAGE_KEY_THEME, next);
       applyTheme();
     }
   }
@@ -35,7 +36,7 @@ export const useThemeStore = defineStore("theme", () => {
 
   function setThemeMode(mode: ThemeMode) {
     themeMode.value = mode;
-    localStorage.setItem("theme", mode);
+    localStorage.setItem(STORAGE_KEY_THEME, mode);
     applyTheme();
   }
 
@@ -46,7 +47,7 @@ export const useThemeStore = defineStore("theme", () => {
 
   /** 供应用启动时调用：优先使用保存的 theme，否则按时间自动设置 */
   function initializeTheme() {
-    const saved = localStorage.getItem("theme");
+    const saved = localStorage.getItem(STORAGE_KEY_THEME);
     if (!THEME_VALID.includes(saved as ThemeMode)) setThemeByTime();
     else applyTheme();
   }

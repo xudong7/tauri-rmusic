@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import {
-  Search,
-  Minus,
-  FullScreen,
-  ScaleToOriginal,
   Close,
   Clock,
   Delete,
+  FullScreen,
+  Minus,
+  ScaleToOriginal,
+  Search,
 } from "@element-plus/icons-vue";
 import { ViewMode } from "@/types/model";
 import { useWindowControls } from "@/composables/useWindowControls";
@@ -26,13 +26,14 @@ const emit = defineEmits(["search"]);
 
 const searchKeyword = ref("");
 const showHistoryDropdown = ref(false);
+const searchWrapperRef = ref<HTMLElement | null>(null);
+/** 失焦后延迟关闭历史面板，避免点击历史项时误关 */
 let blurTimer: ReturnType<typeof setTimeout> | null = null;
 
 const { isMaximized, minimize, toggleMaximize, close } = useWindowControls({
   onClose: "hide",
 });
 const maximizeIcon = computed(() => (isMaximized.value ? ScaleToOriginal : FullScreen));
-
 const historyList = computed(() => searchHistoryStore.getHistory(props.viewMode));
 
 watch(
@@ -59,9 +60,25 @@ function onSearchFocus() {
 
 function onSearchBlur() {
   blurTimer = setTimeout(() => {
+    const el = searchWrapperRef.value;
+    if (el?.contains(document.activeElement)) {
+      blurTimer = null;
+      return;
+    }
     showHistoryDropdown.value = false;
     blurTimer = null;
   }, 200);
+}
+
+function onSearchWrapperClick(e: MouseEvent) {
+  const target = e.target as HTMLElement;
+  const dropdown = searchWrapperRef.value?.querySelector(".search-history-dropdown");
+  if (dropdown?.contains(target)) return;
+  if (blurTimer) {
+    clearTimeout(blurTimer);
+    blurTimer = null;
+  }
+  showHistoryDropdown.value = true;
 }
 
 function selectHistory(item: string) {
@@ -91,7 +108,7 @@ function clearHistory(e: Event) {
     <div class="header-left" />
     <div class="header-center">
       <div class="search-section">
-        <div class="search-wrapper">
+        <div ref="searchWrapperRef" class="search-wrapper" @click="onSearchWrapperClick">
           <el-input
             v-model="searchKeyword"
             :placeholder="
@@ -158,22 +175,22 @@ function clearHistory(e: Event) {
       <div class="window-controls">
         <div
           class="header-button window-button"
-          @click="minimize"
           :title="t('header.minimize')"
+          @click="minimize"
         >
           <el-icon><Minus /></el-icon>
         </div>
         <div
           class="header-button window-button"
-          @click="toggleMaximize"
           :title="isMaximized ? t('header.restore') : t('header.maximize')"
+          @click="toggleMaximize"
         >
           <el-icon><component :is="maximizeIcon" /></el-icon>
         </div>
         <div
           class="header-button window-button close"
-          @click="close"
           :title="t('header.close')"
+          @click="close"
         >
           <el-icon><Close /></el-icon>
         </div>

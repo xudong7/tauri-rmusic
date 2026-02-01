@@ -1,11 +1,12 @@
 import { createI18n } from "vue-i18n";
+import { STORAGE_KEY_LOCALE } from "@/constants";
 import zh from "@/locales/zh";
 import en from "@/locales/en";
 
 export const SUPPORTED_LOCALES = ["zh", "en"] as const;
 export type LocaleKey = (typeof SUPPORTED_LOCALES)[number];
 
-const savedLocale = localStorage.getItem("locale") as LocaleKey | null;
+const savedLocale = localStorage.getItem(STORAGE_KEY_LOCALE) as LocaleKey | null;
 const fallback: LocaleKey = "zh";
 const initialLocale: LocaleKey =
   savedLocale && SUPPORTED_LOCALES.includes(savedLocale) ? savedLocale : fallback;
@@ -22,7 +23,7 @@ export const i18n = createI18n({
 
 export function setLocale(locale: LocaleKey) {
   i18n.global.locale.value = locale;
-  localStorage.setItem("locale", locale);
+  localStorage.setItem(STORAGE_KEY_LOCALE, locale);
 }
 
 export function getLocale(): LocaleKey {
