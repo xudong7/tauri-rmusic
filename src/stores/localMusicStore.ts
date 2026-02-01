@@ -1,6 +1,7 @@
 import { ref } from "vue";
 import { defineStore } from "pinia";
 import { ElMessage } from "element-plus";
+import { STORAGE_KEY_DEFAULT_DIRECTORY } from "@/constants";
 import type { MusicFile } from "@/types/model";
 import { i18n } from "@/i18n";
 import { getDefaultMusicDir, scanFiles } from "@/api/commands/file";
@@ -51,7 +52,7 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
   async function setDefaultDirectory(path: string) {
     try {
       defaultDirectory.value = path;
-      localStorage.setItem("defaultDirectory", path);
+      localStorage.setItem(STORAGE_KEY_DEFAULT_DIRECTORY, path);
       ElMessage.success(i18n.global.t("messages.setDirSuccess"));
     } catch (error) {
       console.error("设置默认目录失败:", error);
@@ -68,7 +69,7 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
       const systemDefaultDir = await getDefaultMusicDir();
       if (systemDefaultDir) {
         defaultDirectory.value = systemDefaultDir;
-        localStorage.removeItem("defaultDirectory");
+        localStorage.removeItem(STORAGE_KEY_DEFAULT_DIRECTORY);
         await loadMusicFiles(systemDefaultDir);
         ElMessage.success(i18n.global.t("messages.resetDirSuccess"));
       }
@@ -80,7 +81,7 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
 
   async function initializeLocalLibrary() {
     try {
-      const savedDefaultDir = localStorage.getItem("defaultDirectory");
+      const savedDefaultDir = localStorage.getItem(STORAGE_KEY_DEFAULT_DIRECTORY);
       if (savedDefaultDir) {
         defaultDirectory.value = savedDefaultDir;
         currentDirectory.value = `${savedDefaultDir}/music`;

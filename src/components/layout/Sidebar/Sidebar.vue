@@ -3,10 +3,9 @@ import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { Folder, Search, Setting, Plus, List, ArrowDown } from "@element-plus/icons-vue";
+import { STORAGE_KEY_SIDEBAR_PLAYLIST_EXPANDED } from "@/constants";
 import { useViewStore } from "@/stores/viewStore";
 import { usePlaylistStore } from "@/stores/playlistStore";
-
-const STORAGE_KEY_PLAYLIST_EXPANDED = "sidebar_playlist_expanded";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -18,7 +17,7 @@ const playlistSectionExpanded = ref(true);
 
 onMounted(() => {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY_PLAYLIST_EXPANDED);
+    const saved = localStorage.getItem(STORAGE_KEY_SIDEBAR_PLAYLIST_EXPANDED);
     if (saved !== null) playlistSectionExpanded.value = saved === "1";
   } catch {
     /* ignore */
@@ -29,7 +28,7 @@ function togglePlaylistSection() {
   playlistSectionExpanded.value = !playlistSectionExpanded.value;
   try {
     localStorage.setItem(
-      STORAGE_KEY_PLAYLIST_EXPANDED,
+      STORAGE_KEY_SIDEBAR_PLAYLIST_EXPANDED,
       playlistSectionExpanded.value ? "1" : "0"
     );
   } catch {

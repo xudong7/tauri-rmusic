@@ -11,7 +11,7 @@ on:
       - main
       - master
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   build:
@@ -24,9 +24,9 @@ jobs:
           - platform: macos-latest
             args: --target aarch64-apple-darwin
           - platform: ubuntu-22.04
-            args: ''
+            args: ""
           - platform: windows-latest
-            args: ''
+            args: ""
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -44,8 +44,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
-          cache: 'npm'
+          node-version: "lts/*"
+          cache: "npm"
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -55,7 +55,7 @@ jobs:
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: './src-tauri -> target'
+          workspaces: "./src-tauri -> target"
 
       - name: Install frontend dependencies
         run: npm ci
@@ -66,10 +66,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           # 项目使用 npm（package-lock.json），显式指定避免 action 误用 pnpm
-          tauriScript: 'npm run tauri'
+          tauriScript: "npm run tauri"
           tagName: app-v__VERSION__
-          releaseName: 'Rmusic v__VERSION__'
-          releaseBody: 'See the assets to download this version and install.'
+          releaseName: "Rmusic v__VERSION__"
+          releaseBody: "See the assets to download this version and install."
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}

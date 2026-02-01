@@ -42,6 +42,10 @@ export default {
   search: {
     placeholderLocal: "Search local songs...",
     placeholderOnline: "Search online songs...",
+    historyTitle: "Search history",
+    clearHistory: "Clear history",
+    removeItem: "Remove this item",
+    noHistory: "No search history yet",
   },
   settings: {
     title: "Settings",

@@ -1,6 +1,7 @@
 import { ref, watch } from "vue";
 import { defineStore } from "pinia";
 import { ElMessage } from "element-plus";
+import { PLAYLIST_SAVE_DEBOUNCE_MS } from "@/constants";
 import type { Playlist, PlaylistItem } from "@/types/model";
 import { readPlaylists, writePlaylists } from "@/api/commands/playlist";
 import { i18n } from "@/i18n";
@@ -11,7 +12,6 @@ function generateId(): string {
 
 /** 防抖写入：避免连续多次写入 */
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
-const SAVE_DEBOUNCE_MS = 300;
 
 export const usePlaylistStore = defineStore("playlist", () => {
   const playlists = ref<Playlist[]>([]);
@@ -38,7 +38,7 @@ export const usePlaylistStore = defineStore("playlist", () => {
         console.error("[playlist] save failed:", e);
         ElMessage.error(`${i18n.global.t("errors.unknownError")}: ${e}`);
       }
-    }, SAVE_DEBOUNCE_MS);
+    }, PLAYLIST_SAVE_DEBOUNCE_MS);
   }
 
   watch(playlists, () => scheduleSave(), { deep: true });

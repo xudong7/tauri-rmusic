@@ -1,6 +1,6 @@
 [package]
 name = "rmusic"
-version = "1.2.1"
+version = "1.2.2"
 description = "A modern, lightweight cross-platform desktop music player built with Tauri 2 and Vue 3. Play local audio files and stream online music through third-party API proxies."
 authors = ["xudong7"]
 edition = "2021"
