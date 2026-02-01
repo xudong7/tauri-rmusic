@@ -16,8 +16,8 @@ export const SEARCH_HISTORY_MAX_ITEMS = 20;
 export const PLAYLIST_SAVE_DEBOUNCE_MS = 300;
 
 /* ---------- 列表与虚拟滚动 ---------- */
-/** 默认封面图路径 */
-export const DEFAULT_COVER_URL = "/icon-new.jpg";
+/** 默认封面图路径（对应 public/icon.png） */
+export const DEFAULT_COVER_URL = "/icon.png";
 
 /** 列表行高（与 CSS .list-row min-height + margin-bottom 一致），用于虚拟滚动计算 */
 export const LIST_ROW_HEIGHT = 64;
