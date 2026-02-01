@@ -1,7 +1,9 @@
 use std::fs::{self, File};
 use std::path::{Path, PathBuf};
 
+#[cfg(unix)]
 const SIDECAR_BASES: &[&str] = &["app_linux", "app_mac", "app_win"];
+#[cfg(unix)]
 const SIDECAR_MODE: u32 = 0o755;
 
 fn main() {
@@ -11,7 +13,7 @@ fn main() {
 
     if zip_path.exists() {
         if let Err(e) = extract_zip(&zip_path, &manifest_dir) {
-            panic!("Failed to extract binaries.zip: {}", e);
+            eprintln!("cargo:warning=Failed to extract binaries.zip (skip sidecar): {}", e);
         }
     }
 
@@ -80,14 +82,14 @@ fn ensure_sidecar_with_target_triple(binaries_dir: &Path) -> Result<(), Box<dyn 
 }
 
 /// 对 binaries 目录下的 sidecar 可执行文件加可执行位（无后缀与带 target triple 后缀的文件均处理）。
-fn chmod_sidecars(binaries_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
+fn chmod_sidecars(_binaries_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
         let target = std::env::var("TARGET").unwrap_or_default();
         for base in SIDECAR_BASES {
             for name in [base.to_string(), format!("{}-{}", base, target)] {
-                let path = binaries_dir.join(&name);
+                let path = _binaries_dir.join(&name);
                 if path.exists() {
                     let mut perms = fs::metadata(&path)?.permissions();
                     perms.set_mode(SIDECAR_MODE);
