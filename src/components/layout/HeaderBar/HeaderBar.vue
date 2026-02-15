@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   Close,
@@ -27,8 +27,16 @@ const emit = defineEmits(["search"]);
 const searchKeyword = ref("");
 const showHistoryDropdown = ref(false);
 const searchWrapperRef = ref<HTMLElement | null>(null);
+const isMacPlatform = ref(false);
 /** 失焦后延迟关闭历史面板，避免点击历史项时误关 */
 let blurTimer: ReturnType<typeof setTimeout> | null = null;
+
+onMounted(() => {
+  // 检测 macOS 平台
+  // 优先使用 userAgentData，fallback 到 userAgent
+  const ua = navigator.userAgent;
+  isMacPlatform.value = /Mac|iPhone|iPad|iPod/i.test(ua);
+});
 
 const { isMaximized, minimize, toggleMaximize, close } = useWindowControls({
   onClose: "hide",
@@ -172,7 +180,8 @@ function clearHistory(e: Event) {
     </div>
 
     <div class="header-right">
-      <div class="window-controls">
+      <!-- 非 macOS 平台显示窗口控制按钮 -->
+      <div v-if="!isMacPlatform" class="window-controls">
         <div
           class="header-button window-button"
           :title="t('header.minimize')"

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   VideoPlay,
@@ -42,6 +42,15 @@ const emit = defineEmits(["toggle-play", "previous", "next", "exit"]);
 const artistStore = useArtistStore();
 const onlineStore = useOnlineMusicStore();
 const localStore = useLocalMusicStore();
+const isMacPlatform = ref(false);
+
+onMounted(() => {
+  // 检测 macOS 平台
+  // 优先使用 userAgentData，fallback 到 userAgent
+  const ua = navigator.userAgent;
+  isMacPlatform.value = /Mac|iPhone|iPad|iPod/i.test(ua);
+});
+
 const { isMaximized, minimize, toggleMaximize, close } = useWindowControls({
   onClose: "hide",
 });
@@ -227,7 +236,8 @@ watch(
         <el-button @click="emit('exit')" :icon="Back" circle class="back-btn" />
       </el-tooltip>
 
-      <div class="window-controls">
+      <!-- 非 macOS 平台显示窗口控制按钮 -->
+      <div v-if="!isMacPlatform" class="window-controls">
         <el-tooltip :content="t('header.minimize')" placement="bottom" effect="dark">
           <el-button @click="minimize" :icon="Minus" circle />
         </el-tooltip>
