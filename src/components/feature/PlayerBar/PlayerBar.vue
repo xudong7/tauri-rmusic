@@ -8,6 +8,7 @@ import {
   ArrowRight,
   Sort,
   Refresh,
+  RefreshRight,
 } from "@element-plus/icons-vue";
 import { PlayMode, type MusicFile, type SongInfo } from "@/types/model";
 import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
@@ -73,6 +74,28 @@ const { coverUrl } = useCoverLoader({
   currentMusic: () => props.currentMusic,
   currentOnlineSong: () => props.currentOnlineSong,
   getDefaultDirectory: () => localStore.getDefaultDirectory(),
+});
+
+const playModeIcon = computed(() => {
+  switch (props.playMode) {
+    case PlayMode.REPEAT_ONE:
+      return RefreshRight;
+    case PlayMode.RANDOM:
+      return Refresh;
+    default:
+      return Sort;
+  }
+});
+
+const playModeTooltip = computed(() => {
+  switch (props.playMode) {
+    case PlayMode.REPEAT_ONE:
+      return t("playerBar.repeatOne");
+    case PlayMode.RANDOM:
+      return t("playerBar.random");
+    default:
+      return t("playerBar.sequential");
+  }
 });
 
 // 处理音量变化
@@ -190,21 +213,8 @@ watch(volume, () => {
           height="6px"
           style="width: 120px"
         />
-        <el-tooltip
-          :content="
-            playMode === PlayMode.SEQUENTIAL
-              ? t('playerBar.sequential')
-              : t('playerBar.random')
-          "
-          placement="top"
-          effect="light"
-        >
-          <el-button
-            circle
-            :icon="playMode === PlayMode.SEQUENTIAL ? Sort : Refresh"
-            @click="emit('toggle-play-mode')"
-            :type="playMode === PlayMode.RANDOM ? 'default' : 'default'"
-          />
+        <el-tooltip :content="playModeTooltip" placement="top" effect="light">
+          <el-button circle :icon="playModeIcon" @click="emit('toggle-play-mode')" />
         </el-tooltip>
       </div>
     </div>

@@ -326,14 +326,27 @@ export const usePlayerStore = defineStore("player", () => {
   }
 
   function togglePlayMode() {
-    playMode.value =
-      playMode.value === PlayMode.SEQUENTIAL ? PlayMode.RANDOM : PlayMode.SEQUENTIAL;
+    const modes = [PlayMode.SEQUENTIAL, PlayMode.RANDOM, PlayMode.REPEAT_ONE];
+    const currentIndex = modes.indexOf(playMode.value);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    playMode.value = modes[nextIndex];
+
     const modeKey =
       playMode.value === PlayMode.SEQUENTIAL
         ? "playerBar.sequential"
-        : "playerBar.random";
+        : playMode.value === PlayMode.RANDOM
+          ? "playerBar.random"
+          : "playerBar.repeatOne";
     const modeName = i18n.global.t(modeKey);
     ElMessage.success(i18n.global.t("messages.playModeSwitch", { mode: modeName }));
+  }
+
+  async function replayCurrentSong() {
+    if (currentMusic.value) {
+      await playMusic(currentMusic.value);
+    } else if (currentOnlineSong.value) {
+      await playOnlineSong(currentOnlineSong.value);
+    }
   }
 
   function showImmersive() {
@@ -382,6 +395,7 @@ export const usePlayerStore = defineStore("player", () => {
     getRandomStep,
     getPlayStep,
     togglePlayMode,
+    replayCurrentSong,
     showImmersive,
     exitImmersive,
     syncPlaybackStateFromTray,

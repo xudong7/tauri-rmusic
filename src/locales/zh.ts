@@ -89,6 +89,7 @@ export default {
     pause: "暂停",
     sequential: "顺序播放",
     random: "随机播放",
+    repeatOne: "单曲循环",
   },
   lyric: {
     noLyric: "暂无歌词",
