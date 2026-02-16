@@ -90,7 +90,7 @@ pub async fn get_response(
         .send()
         .await
         .map_err(|e| format!("API request error: {}", e))?;
-    if response.status().is_client_error() {
+    if response.status().is_client_error() || response.status().is_server_error() {
         return Err(format!("API request error: HTTP {}", response.status()));
     }
     Ok(response)
@@ -102,6 +102,9 @@ async fn get_text(response: reqwest::Response) -> Result<String, String> {
         .text()
         .await
         .map_err(|e| format!("Read text error: {}", e))?;
+    if text.is_empty() {
+        return Err("Empty response".to_string());
+    }
     Ok(text)
 }
 
@@ -113,7 +116,10 @@ async fn get_response_json(
     let response = get_response(client, url).await?;
     let text = get_text(response).await?;
     let json: serde_json::Value = serde_json::from_str(&text)
-        .map_err(|e| format!("Serialize json error: {}, content: {}", e, &text[..200]))?;
+        .map_err(|e| {
+            let preview = if text.len() > 200 { &text[..200] } else { &text };
+            format!("Serialize json error: {}, content: {}", e, preview)
+        })?;
     Ok(json)
 }
 

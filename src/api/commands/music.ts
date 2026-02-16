@@ -31,3 +31,17 @@ export async function downloadMusic(args: {
 export async function isSinkEmpty(): Promise<boolean> {
   return await invokeCommand("is_sink_empty");
 }
+
+export interface PlaybackProgress {
+  position_ms: number;
+  duration_ms: number;
+  is_ended: boolean;
+}
+
+export async function getProgress(): Promise<PlaybackProgress> {
+  return await invokeCommand("get_progress");
+}
+
+export async function seekTo(positionMs: number): Promise<void> {
+  return await invokeCommand("seek_to", { positionMs });
+}

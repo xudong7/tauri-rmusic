@@ -1,19 +1,26 @@
-use rodio::Decoder;
-use rodio::OutputStream;
-use rodio::Sink;
+use rodio::{Decoder, OutputStream, Sink, Source};
 use serde::Serialize;
 use std::fs::File;
 use std::io::BufReader;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::broadcast::Sender;
 use tokio::sync::{broadcast, Mutex};
 
 use crate::netease;
 
+#[derive(Serialize, Debug)]
+pub struct PlaybackProgress {
+    pub position_ms: u64,
+    pub duration_ms: u64,
+    pub is_ended: bool,
+}
+
 pub struct Music {
     pub event_sender: Sender<MusicState>,
     _stream: OutputStream,
     pub sink: Arc<Mutex<Sink>>,
+    pub current_duration_ms: Arc<Mutex<u64>>,
 }
 
 #[derive(Serialize, Debug)]
@@ -38,6 +45,8 @@ impl Music {
         let (_stream, stream_handle) = OutputStream::try_default().unwrap();
         let sink = Arc::new(Mutex::new(Sink::try_new(&stream_handle).unwrap()));
         let sink_clone = Arc::clone(&sink);
+        let duration_clone = Arc::new(Mutex::new(0u64));
+        let duration_for_spawn = Arc::clone(&duration_clone);
 
         // spawn a thread to handle the music events
         tokio::spawn(async move {
@@ -45,28 +54,31 @@ impl Music {
             while let Ok(event) = event_receiver.recv().await {
                 match event {
                     MusicState::Play(path) => {
-                        // unlock the sink
                         {
                             let sink = sink_clone.lock().await;
                             sink.clear();
                         }
-                        // check if the path is a URL
+                        let duration_for_state = Arc::clone(&duration_for_spawn);
                         if path.starts_with("http://") || path.starts_with("https://") {
                             let sink_for_http = Arc::clone(&sink_clone);
                             let path_clone = path.clone();
 
-                            // 直接在当前任务中处理在线播放，避免竞态条件
-                            match online_play(&path_clone, sink_for_http).await {
+                            match online_play(&path_clone, sink_for_http, duration_for_state).await {
                                 Ok(_) => println!("Begin play online song: {}", path_clone),
                                 Err(e) => eprintln!("Play online song error: {}", e),
                             }
                         } else {
-                            // local file
                             match File::open(&path) {
                                 Ok(file) => {
                                     let file = BufReader::new(file);
                                     match Decoder::new(file) {
                                         Ok(source) => {
+                                            let total_dur = source.total_duration();
+                                            let dur_ms = total_dur.map(|d: Duration| d.as_millis() as u64).unwrap_or(0);
+                                            {
+                                                let mut dur = duration_for_state.lock().await;
+                                                *dur = dur_ms;
+                                            }
                                             let sink = sink_clone.lock().await;
                                             sink.append(source);
                                             if sink.is_paused() {
@@ -108,11 +120,12 @@ impl Music {
             event_sender,
             _stream,
             sink,
+            current_duration_ms: duration_clone,
         }
     }
 }
 
-async fn online_play(url: &str, sink: Arc<Mutex<Sink>>) -> Result<(), String> {
+async fn online_play(url: &str, sink: Arc<Mutex<Sink>>, duration: Arc<Mutex<u64>>) -> Result<(), String> {
     let client = netease::get_client()?;
     let response = client
         .get(url)
@@ -137,7 +150,14 @@ async fn online_play(url: &str, sink: Arc<Mutex<Sink>>) -> Result<(), String> {
             return Err(format!("decode online song error: {}", e));
         }
     };
-    // 使用异步锁而不是 try_lock，确保一致性
+    
+    let total_dur = source.total_duration();
+    let dur_ms = total_dur.map(|d: Duration| d.as_millis() as u64).unwrap_or(0);
+    {
+        let mut dur = duration.lock().await;
+        *dur = dur_ms;
+    }
+    
     let sink_lock = sink.lock().await;
     sink_lock.append(source);
     if sink_lock.is_paused() {
@@ -145,4 +165,52 @@ async fn online_play(url: &str, sink: Arc<Mutex<Sink>>) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+#[tauri::command]
+pub async fn get_progress(
+    sink: tauri::State<'_, Arc<Mutex<Sink>>>,
+    duration: tauri::State<'_, Arc<Mutex<u64>>>,
+) -> Result<PlaybackProgress, String> {
+    let sink = sink.lock().await;
+    let position = sink.get_pos();
+    let position_ms = position.as_millis() as u64;
+    
+    let duration_ms = *duration.lock().await;
+    let is_ended = sink.empty() && position_ms > 0;
+    
+    Ok(PlaybackProgress {
+        position_ms,
+        duration_ms,
+        is_ended,
+    })
+}
+
+#[derive(Serialize, Debug)]
+pub struct SeekResult {
+    pub success: bool,
+    pub should_play_next: bool,
+}
+
+#[tauri::command]
+pub async fn seek_to(
+    sink: tauri::State<'_, Arc<Mutex<Sink>>>,
+    duration: tauri::State<'_, Arc<Mutex<u64>>>,
+    position_ms: u64,
+) -> Result<SeekResult, String> {
+    let actual_duration = *duration.lock().await;
+    if position_ms > actual_duration && actual_duration > 0 {
+        return Ok(SeekResult {
+            success: false,
+            should_play_next: true,
+        });
+    }
+    let sink = sink.lock().await;
+    let duration = Duration::from_millis(position_ms);
+    sink.try_seek(duration)
+        .map_err(|e| format!("seek error: {:?}", e))?;
+    Ok(SeekResult {
+        success: true,
+        should_play_next: false,
+    })
 }

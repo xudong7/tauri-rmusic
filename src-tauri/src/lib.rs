@@ -1,5 +1,5 @@
 use file::{download_music, get_default_music_dir, import_music, load_cover_and_lyric, scan_files};
-use music::{Music, MusicState};
+use music::{get_progress, seek_to, Music, MusicState};
 use netease::{
     get_artist_top_songs, get_song_cover, get_song_lyric, get_song_url, play_netease_song,
     search_online_mix, search_songs,
@@ -113,6 +113,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             is_sink_empty,
             handle_event,
+            get_progress,
+            seek_to,
             scan_files,
             search_songs,
             search_online_mix,
@@ -128,9 +130,10 @@ pub fn run() {
             read_playlists,
             write_playlists
         ])
-        // share sender and sink with the frontend
+        // share sender, sink, and duration with the frontend
         .manage(music.event_sender)
         .manage(music.sink)
+        .manage(music.current_duration_ms)
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

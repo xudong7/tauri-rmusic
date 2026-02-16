@@ -144,12 +144,15 @@ onUnmounted(() => {
         :currentOnlineSong="playerStore.currentOnlineSong"
         :isPlaying="playerStore.isPlaying"
         :playMode="playerStore.playMode"
+        :currentPlayTime="playerStore.currentPlayTime"
+        :currentTrackDuration="playerStore.currentTrackDuration"
         @toggle-play="playerStore.togglePlay"
         @volume-change="playerStore.adjustVolume"
         @previous="playerStore.playNextOrPreviousMusic(-playerStore.getPlayStep(-1))"
         @next="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1))"
         @toggle-play-mode="playerStore.togglePlayMode"
         @show-immersive="playerStore.showImmersive"
+        @seek="playerStore.seekToPosition"
       />
 
       <ImmersiveView
@@ -158,10 +161,15 @@ onUnmounted(() => {
         :currentMusic="playerStore.currentMusic"
         :isPlaying="playerStore.isPlaying"
         :currentTime="playerStore.currentPlayTime"
+        :currentTrackDuration="playerStore.currentTrackDuration"
+        :playMode="playerStore.playMode"
         @toggle-play="playerStore.togglePlay"
         @next="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1))"
         @previous="playerStore.playNextOrPreviousMusic(-playerStore.getPlayStep(-1))"
         @exit="playerStore.exitImmersive"
+        @seek="playerStore.seekToPosition"
+        @volume-change="playerStore.adjustVolume"
+        @toggle-play-mode="playerStore.togglePlayMode"
       />
     </div>
   </el-config-provider>

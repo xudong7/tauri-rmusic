@@ -89,6 +89,7 @@ export default {
     pause: "Pause",
     sequential: "Sequential",
     random: "Shuffle",
+    repeatOne: "Repeat One",
   },
   lyric: {
     noLyric: "No lyrics",

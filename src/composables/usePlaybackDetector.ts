@@ -3,18 +3,21 @@
  * 从 App.vue 抽离，降低 App 内聚、便于维护
  */
 import { isSinkEmpty } from "@/api/commands/music";
+import { PlayMode } from "@/types/model";
 const CHECK_INTERVAL = 1000;
 const REQUIRED_EMPTY_COUNT = 3;
 const MIN_TIME_BETWEEN_CHECKS = 1000;
 
-/** 需具备 hasCurrentTrack、isLoadingSong、isPlaying、stopPlayTimeTracking、playNextOrPreviousMusic */
+/** 需具备 hasCurrentTrack、isLoadingSong、isPlaying、stopPlayTimeTracking、playNextOrPreviousMusic、playMode */
 export function usePlaybackDetector(
   store: {
     hasCurrentTrack: boolean;
     isLoadingSong: boolean;
     isPlaying: boolean;
+    playMode: PlayMode;
     stopPlayTimeTracking: () => void;
     playNextOrPreviousMusic: (step: number) => Promise<void>;
+    replayCurrentSong: () => Promise<void>;
   },
   getPlayStep: (direction: number) => number
 ) {
@@ -49,7 +52,12 @@ export function usePlaybackDetector(
           (store as { isPlaying: boolean }).isPlaying = false;
           store.stopPlayTimeTracking();
           await new Promise((r) => setTimeout(r, 500));
-          await store.playNextOrPreviousMusic(getPlayStep(1));
+
+          if (store.playMode === PlayMode.REPEAT_ONE) {
+            await store.replayCurrentSong();
+          } else {
+            await store.playNextOrPreviousMusic(getPlayStep(1));
+          }
           resetCounters();
         }
       } else {

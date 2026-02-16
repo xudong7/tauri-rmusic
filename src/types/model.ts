@@ -68,6 +68,7 @@ export interface PlaySongResult {
 export enum PlayMode {
   SEQUENTIAL = "sequential", // 顺序播放
   RANDOM = "random", // 随机播放
+  REPEAT_ONE = "repeat-one", // 单曲循环
 }
 
 // 应用的视图模式

@@ -20,7 +20,9 @@ export type TauriCommand =
   | "is_sink_empty"
   | "import_music"
   | "read_playlists"
-  | "write_playlists";
+  | "write_playlists"
+  | "get_progress"
+  | "seek_to";
 
 export type TauriCommandParams<C extends TauriCommand> = C extends "scan_files"
   ? { path: string | null; defaultDirectory: string | null }
@@ -59,7 +61,11 @@ export type TauriCommandParams<C extends TauriCommand> = C extends "scan_files"
                         ? void
                         : C extends "write_playlists"
                           ? { playlists: Playlist[] }
-                          : never;
+                          : C extends "get_progress"
+                            ? void
+                            : C extends "seek_to"
+                              ? { positionMs: number }
+                              : never;
 
 export type TauriCommandResult<C extends TauriCommand> = C extends "scan_files"
   ? unknown
@@ -87,4 +93,12 @@ export type TauriCommandResult<C extends TauriCommand> = C extends "scan_files"
                         ? Playlist[]
                         : C extends "write_playlists"
                           ? void
-                          : unknown;
+                          : C extends "get_progress"
+                            ? {
+                                position_ms: number;
+                                duration_ms: number;
+                                is_ended: boolean;
+                              }
+                            : C extends "seek_to"
+                              ? { success: boolean; should_play_next: boolean }
+                              : unknown;
