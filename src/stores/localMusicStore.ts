@@ -1,4 +1,4 @@
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { defineStore } from "pinia";
 import { ElMessage } from "element-plus";
 import { STORAGE_KEY_DEFAULT_DIRECTORY } from "@/constants";
@@ -8,10 +8,18 @@ import { getDefaultMusicDir, scanFiles } from "@/api/commands/file";
 
 export const useLocalMusicStore = defineStore("localMusic", () => {
   const musicFiles = ref<MusicFile[]>([]);
+  const searchKeyword = ref("");
   const currentDirectory = ref("");
-  const currentMusic = ref<MusicFile | null>(null); // 仅用于兼容旧接口（实际播放状态在 playerStore）
+  const currentMusic = ref<MusicFile | null>(null);
 
   const defaultDirectory = ref<string | null>(null);
+
+  const filteredMusicFiles = computed(() => {
+    if (!searchKeyword.value.trim()) return musicFiles.value;
+    return musicFiles.value.filter((file) =>
+      file.file_name.toLowerCase().includes(searchKeyword.value.toLowerCase())
+    );
+  });
 
   async function loadMusicFiles(path?: string) {
     try {
@@ -31,21 +39,15 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
   }
 
   function searchLocalMusic(keyword: string) {
+    searchKeyword.value = keyword;
     if (!keyword.trim()) {
-      void refreshCurrentDirectory();
       return;
     }
-    const filteredFiles = musicFiles.value.filter((file) =>
-      file.file_name.toLowerCase().includes(keyword.toLowerCase())
-    );
-    musicFiles.value = filteredFiles;
-
-    if (filteredFiles.length === 0) {
+    const count = filteredMusicFiles.value.length;
+    if (count === 0) {
       ElMessage.info(i18n.global.t("messages.noSearchResult"));
     } else {
-      ElMessage.success(
-        i18n.global.t("messages.foundSongs", { count: filteredFiles.length })
-      );
+      ElMessage.success(i18n.global.t("messages.foundSongs", { count }));
     }
   }
 
@@ -102,6 +104,8 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
 
   return {
     musicFiles,
+    filteredMusicFiles,
+    searchKeyword,
     currentDirectory,
     currentMusic,
     defaultDirectory,

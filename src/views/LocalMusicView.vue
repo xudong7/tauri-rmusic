@@ -1,7 +1,7 @@
 <template>
   <div class="local-music-view">
     <MusicList
-      :musicFiles="localStore.musicFiles"
+      :musicFiles="localStore.filteredMusicFiles"
       :currentMusic="playerStore.currentMusic"
       :isPlaying="playerStore.isPlaying"
       :getDefaultDirectory="localStore.getDefaultDirectory"
