@@ -26,6 +26,8 @@ const props = defineProps<{
   currentOnlineSong: SongInfo | null;
   isPlaying: boolean;
   playMode: PlayMode;
+  currentPlayTime: number;
+  currentTrackDuration: number;
 }>();
 
 const emit = defineEmits([
@@ -35,9 +37,12 @@ const emit = defineEmits([
   "previous",
   "toggle-play-mode",
   "show-immersive",
+  "seek",
 ]);
 
 const volume = ref(50);
+const sliderValue = ref(0);
+const isDragging = ref(false);
 const artistStore = useArtistStore();
 const onlineStore = useOnlineMusicStore();
 const localStore = useLocalMusicStore();
@@ -115,6 +120,33 @@ function enterImmersiveMode() {
 watch(volume, () => {
   handleVolumeChange();
 });
+
+function formatTime(ms: number): string {
+  if (!ms || ms <= 0) return "0:00";
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+const currentTimeDisplay = computed(() => formatTime(props.currentPlayTime));
+const durationDisplay = computed(() => formatTime(props.currentTrackDuration));
+
+const progressPercent = computed(() => {
+  if (!props.currentTrackDuration || props.currentTrackDuration <= 0) return 0;
+  return (props.currentPlayTime / props.currentTrackDuration) * 100;
+});
+
+function handleProgressChange(value: number) {
+  const newPosition = Math.floor((value / 100) * props.currentTrackDuration);
+  emit("seek", newPosition);
+}
+
+watch(progressPercent, (newVal) => {
+  if (!isDragging.value) {
+    sliderValue.value = newVal;
+  }
+});
 </script>
 
 <template>
@@ -155,6 +187,23 @@ watch(volume, () => {
             </template>
           </div>
         </div>
+      </div>
+
+      <div class="player-progress">
+        <span class="time-display">{{ currentTimeDisplay }}</span>
+        <el-slider
+          v-model="sliderValue"
+          :max="100"
+          :min="0"
+          :step="0.1"
+          :show-tooltip="false"
+          :disabled="!currentMusic && !currentOnlineSong"
+          class="progress-slider"
+          @focus="isDragging = true"
+          @blur="isDragging = false"
+          @change="handleProgressChange"
+        />
+        <span class="time-display">{{ durationDisplay }}</span>
       </div>
 
       <div class="player-controls">

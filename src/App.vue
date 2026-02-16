@@ -144,12 +144,15 @@ onUnmounted(() => {
         :currentOnlineSong="playerStore.currentOnlineSong"
         :isPlaying="playerStore.isPlaying"
         :playMode="playerStore.playMode"
+        :currentPlayTime="playerStore.currentPlayTime"
+        :currentTrackDuration="playerStore.currentTrackDuration"
         @toggle-play="playerStore.togglePlay"
         @volume-change="playerStore.adjustVolume"
         @previous="playerStore.playNextOrPreviousMusic(-playerStore.getPlayStep(-1))"
         @next="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1))"
         @toggle-play-mode="playerStore.togglePlayMode"
         @show-immersive="playerStore.showImmersive"
+        @seek="playerStore.seekToPosition"
       />
 
       <ImmersiveView

@@ -4,7 +4,7 @@ import { ElMessage } from "element-plus";
 import type { MusicFile, SongInfo } from "@/types/model";
 import { PlayMode, ViewMode } from "@/types/model";
 import { i18n } from "@/i18n";
-import { handleEvent, playNeteaseSong } from "@/api/commands/music";
+import { handleEvent, playNeteaseSong, getProgress, seekTo } from "@/api/commands/music";
 import { useViewStore } from "./viewStore";
 import { useLocalMusicStore } from "./localMusicStore";
 import { useOnlineMusicStore } from "./onlineMusicStore";
@@ -23,6 +23,7 @@ export const usePlayerStore = defineStore("player", () => {
   const isPlaying = ref(false);
   const isLoadingSong = ref(false);
   const currentPlayTime = ref(0);
+  const currentTrackDurationMs = ref(0);
   /** 当前从播放列表播放时记录列表 id，用于上一曲/下一曲 */
   const currentPlaylistId = ref<string | null>(null);
 
@@ -35,6 +36,7 @@ export const usePlayerStore = defineStore("player", () => {
 
   const currentTrackDuration = computed(() => {
     if (currentOnlineSong.value?.duration) return currentOnlineSong.value.duration;
+    if (currentTrackDurationMs.value > 0) return currentTrackDurationMs.value;
     return 0;
   });
 
@@ -71,9 +73,24 @@ export const usePlayerStore = defineStore("player", () => {
     stopPlayTimeTracking();
     const startOffset = currentPlayTime.value;
     playStartTimestamp = Date.now() - startOffset;
-    playTimeUpdateInterval = window.setInterval(() => {
-      currentPlayTime.value = Date.now() - playStartTimestamp;
-    }, 200);
+    playTimeUpdateInterval = window.setInterval(async () => {
+      if (isPlaying.value) {
+        const backendPos = await getProgress().catch(() => null);
+        if (backendPos) {
+          currentPlayTime.value = backendPos.position_ms;
+          if (backendPos.is_ended && backendPos.position_ms < backendPos.duration_ms) {
+            currentTrackDurationMs.value = backendPos.position_ms;
+          } else if (backendPos.duration_ms > 0) {
+            currentTrackDurationMs.value = backendPos.duration_ms;
+          }
+          playStartTimestamp = Date.now() - backendPos.position_ms;
+        } else {
+          currentPlayTime.value = Date.now() - playStartTimestamp;
+        }
+      } else {
+        currentPlayTime.value = Date.now() - playStartTimestamp;
+      }
+    }, 500);
   }
 
   function stopPlayTimeTracking() {
@@ -371,6 +388,32 @@ export const usePlayerStore = defineStore("player", () => {
     }
   }
 
+  async function syncProgressFromBackend() {
+    try {
+      const progress = await getProgress();
+      currentPlayTime.value = progress.position_ms;
+      currentTrackDurationMs.value = progress.duration_ms;
+    } catch (error) {
+      console.error("[播放控制] 获取进度失败:", error);
+    }
+  }
+
+  async function seekToPosition(positionMs: number) {
+    try {
+      const result = await seekTo(positionMs);
+      if (result.should_play_next) {
+        await playNextOrPreviousMusic(getPlayStep(1));
+        return;
+      }
+      if (result.success) {
+        currentPlayTime.value = positionMs;
+        playStartTimestamp = Date.now() - positionMs;
+      }
+    } catch (error) {
+      console.error("[播放控制] 跳转失败:", error);
+    }
+  }
+
   return {
     playMode,
     currentMusic,
@@ -399,5 +442,7 @@ export const usePlayerStore = defineStore("player", () => {
     showImmersive,
     exitImmersive,
     syncPlaybackStateFromTray,
+    syncProgressFromBackend,
+    seekToPosition,
   };
 });

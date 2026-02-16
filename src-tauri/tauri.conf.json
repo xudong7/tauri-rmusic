@@ -18,7 +18,8 @@
         "height": 1000,
         "decorations": false,
         "center": true,
-        "shadow": true
+        "shadow": true,
+        "devtools": true
       }
     ],
     "security": {
