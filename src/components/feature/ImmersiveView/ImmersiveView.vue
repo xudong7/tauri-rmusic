@@ -7,6 +7,9 @@ import {
   Back,
   ArrowLeft,
   ArrowRight,
+  Sort,
+  Refresh,
+  RefreshRight,
   Headset,
   Minus,
   FullScreen,
@@ -14,6 +17,7 @@ import {
   Close,
 } from "@element-plus/icons-vue";
 import type { SongInfo, MusicFile } from "@/types/model";
+import { PlayMode } from "@/types/model";
 import LyricView from "@/components/feature/LyricView/LyricView.vue";
 import { useCoverLoader } from "@/composables/useCoverLoader";
 import { useArtistNavigation } from "@/composables/useArtistNavigation";
@@ -35,14 +39,85 @@ const props = defineProps<{
   currentMusic: MusicFile | null;
   isPlaying: boolean;
   currentTime?: number;
+  currentTrackDuration?: number;
+  playMode?: PlayMode;
 }>();
 
-const emit = defineEmits(["toggle-play", "previous", "next", "exit"]);
+const emit = defineEmits([
+  "toggle-play",
+  "previous",
+  "next",
+  "exit",
+  "seek",
+  "volume-change",
+  "toggle-play-mode",
+]);
 
 const artistStore = useArtistStore();
 const onlineStore = useOnlineMusicStore();
 const localStore = useLocalMusicStore();
 const isMacPlatform = ref(false);
+
+const volume = ref(50);
+const sliderValue = ref(0);
+const isDragging = ref(false);
+
+function formatTime(ms: number): string {
+  if (!ms || ms <= 0) return "0:00";
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+const currentPlayTime = computed(() => props.currentTime ?? 0);
+const currentTimeDisplay = computed(() => formatTime(currentPlayTime.value));
+const durationDisplay = computed(() =>
+  formatTime(props.currentTrackDuration ?? 0)
+);
+const progressPercent = computed(() => {
+  const duration = props.currentTrackDuration ?? 0;
+  if (!duration || duration <= 0) return 0;
+  return (currentPlayTime.value / duration) * 100;
+});
+
+function handleProgressChange(value: number) {
+  const duration = props.currentTrackDuration ?? 0;
+  const newPosition = Math.floor((value / 100) * duration);
+  emit("seek", newPosition);
+}
+
+watch(progressPercent, (newVal) => {
+  if (!isDragging.value) sliderValue.value = newVal;
+});
+
+watch(volume, () => {
+  emit("volume-change", volume.value);
+});
+
+const playModeIcon = computed(() => {
+  const mode = props.playMode ?? PlayMode.SEQUENTIAL;
+  switch (mode) {
+    case PlayMode.REPEAT_ONE:
+      return RefreshRight;
+    case PlayMode.RANDOM:
+      return Refresh;
+    default:
+      return Sort;
+  }
+});
+
+const playModeTooltip = computed(() => {
+  const mode = props.playMode ?? PlayMode.SEQUENTIAL;
+  switch (mode) {
+    case PlayMode.REPEAT_ONE:
+      return t("playerBar.repeatOne");
+    case PlayMode.RANDOM:
+      return t("playerBar.random");
+    default:
+      return t("playerBar.sequential");
+  }
+});
 
 onMounted(() => {
   // 检测 macOS 平台
@@ -307,28 +382,71 @@ watch(
       </div>
     </div>
     <div class="control-section">
-      <div class="controls">
-        <el-tooltip :content="t('playerBar.previous')" placement="top" effect="dark">
-          <el-button circle :icon="ArrowLeft" @click="emit('previous')" />
-        </el-tooltip>
+      <div class="immersive-progress">
+        <span class="time-display">{{ currentTimeDisplay }}</span>
+        <el-slider
+          v-model="sliderValue"
+          :max="100"
+          :min="0"
+          :step="0.1"
+          :show-tooltip="false"
+          class="progress-slider"
+          @focus="isDragging = true"
+          @blur="isDragging = false"
+          @change="handleProgressChange"
+        />
+        <span class="time-display">{{ durationDisplay }}</span>
+      </div>
+      <div class="immersive-controls-row">
+        <div class="immersive-controls-left" aria-hidden="true"></div>
+        <div class="controls">
+          <el-tooltip :content="t('playerBar.previous')" placement="top" effect="dark">
+            <el-button circle :icon="ArrowLeft" @click="emit('previous')" />
+          </el-tooltip>
 
-        <el-tooltip
-          :content="isPlaying ? t('playerBar.pause') : t('playerBar.play')"
-          placement="top"
-          effect="dark"
-        >
-          <el-button
-            circle
-            size="large"
-            :icon="isPlaying ? VideoPause : VideoPlay"
-            @click="emit('toggle-play')"
-            type="primary"
-          />
-        </el-tooltip>
+          <el-tooltip
+            :content="isPlaying ? t('playerBar.pause') : t('playerBar.play')"
+            placement="top"
+            effect="dark"
+          >
+            <el-button
+              circle
+              size="large"
+              :icon="isPlaying ? VideoPause : VideoPlay"
+              @click="emit('toggle-play')"
+              type="primary"
+            />
+          </el-tooltip>
 
-        <el-tooltip :content="t('playerBar.next')" placement="top" effect="dark">
-          <el-button circle :icon="ArrowRight" @click="emit('next')" />
-        </el-tooltip>
+          <el-tooltip :content="t('playerBar.next')" placement="top" effect="dark">
+            <el-button circle :icon="ArrowRight" @click="emit('next')" />
+          </el-tooltip>
+        </div>
+        <div class="immersive-right">
+          <el-tooltip :content="playModeTooltip" placement="top" effect="dark">
+            <el-button
+              circle
+              :icon="playModeIcon"
+              class="play-mode-btn"
+              @click="emit('toggle-play-mode')"
+            />
+          </el-tooltip>
+          <div class="volume-bar">
+            <span class="volume-speaker-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+              </svg>
+            </span>
+            <el-slider
+              v-model="volume"
+              :max="100"
+              :min="0"
+              :step="1"
+              :show-tooltip="false"
+              class="volume-slider volume-slider-h"
+            />
+          </div>
+        </div>
       </div>
     </div>
   </div>

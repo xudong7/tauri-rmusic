@@ -300,81 +300,195 @@
   padding: 0; /* 确保没有内边距 */
 }
 
+/* 底部控制区：完全透明，无色块无边框，与沉浸背景一体 */
 .control-section {
   position: relative;
-  padding: var(--app-spacing-lg) var(--app-spacing-xl) var(--app-spacing-xl);
   z-index: 1;
   width: 100%;
-  max-width: 900px;
+  max-width: 720px;
   margin: 0 auto;
   box-sizing: border-box;
+  padding: var(--app-spacing-lg) var(--app-spacing-xl);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
-.time-display {
+/* 进度条行：时间 + 滑块 + 时间，留足空间 */
+.immersive-progress {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 16px;
-  margin-bottom: 25px;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.immersive-progress .time-display {
+  font-size: 13px;
+  min-width: 44px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.88);
+  font-variant-numeric: tabular-nums;
+  margin: 0;
   font-weight: 500;
 }
 
-.progress-bar {
+.immersive-progress .progress-slider {
   flex: 1;
+  min-width: 0;
+}
+
+.immersive-progress .progress-slider ::deep(.el-slider__runway) {
+  height: 5px;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.48);
+  transition: height 0.2s ease;
+}
+
+.immersive-progress .progress-slider:hover ::deep(.el-slider__runway) {
   height: 6px;
-  background-color: rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
-  margin: 0 15px;
-  overflow: hidden;
-  cursor: pointer;
-  position: relative;
-  transition: all 0.3s ease;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+  background-color: rgba(255, 255, 255, 0.55);
 }
 
-.progress-bar:hover {
-  height: 8px;
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-.progress-inner {
+.immersive-progress .progress-slider ::deep(.el-slider__bar) {
   height: 100%;
-  background-color: var(--el-color-primary);
-  border-radius: 6px;
-  transition: width 0.1s linear;
-  position: relative;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  border-radius: 9999px;
+  background: linear-gradient(
+    90deg,
+    var(--el-color-primary),
+    var(--el-color-primary-light-5, var(--el-color-primary))
+  );
 }
 
-.progress-inner::after {
-  content: "";
-  position: absolute;
-  right: -6px;
-  top: 50%;
-  transform: translateY(-50%);
+.immersive-progress .progress-slider ::deep(.el-slider__button) {
   width: 12px;
   height: 12px;
-  background-color: #fff;
-  border-radius: 50%;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  background-color: var(--el-color-primary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
   opacity: 0;
-  transition:
-    opacity 0.3s ease,
-    transform 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.15s ease;
 }
 
-.progress-bar:hover .progress-inner::after {
+.immersive-progress .progress-slider:hover ::deep(.el-slider__button) {
   opacity: 1;
-  transform: translateY(-50%) scale(1.2);
+}
+
+.immersive-progress .progress-slider ::deep(.el-slider__button:hover) {
+  transform: scale(1.15);
+}
+
+/* 控制行：左占位 | 中播放按钮 | 右播放模式+音量，保证播放键居中 */
+.immersive-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.immersive-controls-left {
+  width: 160px;
+  min-width: 160px;
+  flex-shrink: 0;
 }
 
 .controls {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 16px;
-  margin-top: var(--app-spacing);
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+.immersive-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  width: 160px;
+  min-width: 160px;
+  flex-shrink: 0;
+}
+
+.immersive-right .play-mode-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.9);
+  transition: all 0.2s ease;
+}
+
+.immersive-right .play-mode-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: var(--el-color-primary);
+}
+
+/* 音量条：扬声器图标 + 横向滑块 */
+.immersive-right .volume-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  max-width: 112px;
+}
+
+.immersive-right .volume-bar .volume-slider-h {
+  flex: 1;
+  min-width: 0;
+}
+
+.immersive-right .volume-speaker-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.immersive-right .volume-speaker-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.immersive-right .volume-slider-h ::deep(.el-slider__runway) {
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.immersive-right .volume-slider-h ::deep(.el-slider__bar) {
+  height: 100%;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.immersive-right .volume-slider-h ::deep(.el-slider__button-wrapper) {
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.immersive-right .volume-slider-h ::deep(.el-slider__button) {
+  width: 10px;
+  height: 10px;
+  border: none;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  opacity: 1;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.immersive-right .volume-slider-h ::deep(.el-slider:hover .el-slider__button),
+.immersive-right .volume-slider-h ::deep(.el-slider__button:hover) {
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
 
 .controls .el-button {
@@ -442,4 +556,22 @@ html.dark .immersive-view .controls .el-button--primary:hover {
   border-color: transparent;
   filter: none;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* 小屏时缩小两侧占位，避免控制条过宽 */
+@media (max-width: 640px) {
+  .control-section {
+    max-width: 100%;
+    padding: var(--app-spacing) var(--app-spacing-lg);
+  }
+
+  .immersive-controls-left,
+  .immersive-right {
+    width: 100px;
+    min-width: 100px;
+  }
+
+  .immersive-right .volume-bar {
+    max-width: 72px;
+  }
 }

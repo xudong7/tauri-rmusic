@@ -151,42 +151,88 @@ watch(progressPercent, (newVal) => {
 
 <template>
   <div class="player-bar">
-    <div class="player-row">
-      <div class="player-left">
-        <div class="cover-container" @click="enterImmersiveMode">
-          <CoverImage
-            :src="coverUrl"
-            alt="Album Cover"
-            :clickable="Boolean(currentOnlineSong || currentMusic)"
-            :size="56"
-            :radius="10"
+    <!-- 左侧：封面 + 歌曲信息 -->
+    <div class="player-left">
+      <div class="cover-container" @click="enterImmersiveMode">
+        <CoverImage
+          :src="coverUrl"
+          alt="Album Cover"
+          :clickable="Boolean(currentOnlineSong || currentMusic)"
+          :size="44"
+          :radius="6"
+        />
+      </div>
+      <div class="song-info">
+        <div class="song-name" :title="songTitle">{{ songTitle }}</div>
+        <div
+          v-if="currentArtistDisplay"
+          class="artist-name"
+          :title="currentArtistDisplay"
+        >
+          <template v-if="artistNames.length">
+            <template v-for="(a, idx) in artistNames" :key="a + idx">
+              <span
+                class="artist-part"
+                :class="{ 'artist-link': canNavigateArtist }"
+                @click.stop="navigateArtistByName(a)"
+                :title="`${a}（点击查看）`"
+              >
+                {{ a }}
+              </span>
+              <span v-if="idx < artistNames.length - 1" class="artist-sep">, </span>
+            </template>
+          </template>
+          <template v-else>
+            {{ currentArtistDisplay }}
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <!-- 中间：播放控制 + 进度条 -->
+    <div class="player-center">
+      <div class="player-controls">
+        <el-tooltip
+          :content="t('playerBar.previous')"
+          placement="top"
+          effect="light"
+          :disabled="!currentMusic && !currentOnlineSong"
+        >
+          <el-button
+            class="control-btn"
+            :icon="ArrowLeft"
+            :disabled="!currentMusic && !currentOnlineSong"
+            @click="emit('previous')"
           />
-        </div>
-        <div class="song-info">
-          <div class="song-name" :title="songTitle">{{ songTitle }}</div>
-          <div
-            v-if="currentArtistDisplay"
-            class="artist-name"
-            :title="currentArtistDisplay"
-          >
-            <template v-if="artistNames.length">
-              <template v-for="(a, idx) in artistNames" :key="a + idx">
-                <span
-                  class="artist-part"
-                  :class="{ 'artist-link': canNavigateArtist }"
-                  @click.stop="navigateArtistByName(a)"
-                  :title="`${a}（点击查看）`"
-                >
-                  {{ a }}
-                </span>
-                <span v-if="idx < artistNames.length - 1" class="artist-sep">, </span>
-              </template>
-            </template>
-            <template v-else>
-              {{ currentArtistDisplay }}
-            </template>
-          </div>
-        </div>
+        </el-tooltip>
+
+        <el-tooltip
+          :content="isPlaying ? t('playerBar.pause') : t('playerBar.play')"
+          placement="top"
+          effect="light"
+          :disabled="!currentMusic && !currentOnlineSong"
+        >
+          <el-button
+            class="control-btn play-btn"
+            :icon="isPlaying ? VideoPause : VideoPlay"
+            :disabled="!currentMusic && !currentOnlineSong"
+            @click="emit('toggle-play')"
+          />
+        </el-tooltip>
+
+        <el-tooltip
+          :content="t('playerBar.next')"
+          placement="top"
+          effect="light"
+          :disabled="!currentMusic && !currentOnlineSong"
+        >
+          <el-button
+            class="control-btn"
+            :icon="ArrowRight"
+            :disabled="!currentMusic && !currentOnlineSong"
+            @click="emit('next')"
+          />
+        </el-tooltip>
       </div>
 
       <div class="player-progress">
@@ -205,66 +251,33 @@ watch(progressPercent, (newVal) => {
         />
         <span class="time-display">{{ durationDisplay }}</span>
       </div>
+    </div>
 
-      <div class="player-controls">
-        <el-tooltip
-          :content="t('playerBar.previous')"
-          placement="top"
-          effect="light"
-          :disabled="!currentMusic && !currentOnlineSong"
-        >
-          <el-button
-            circle
-            :icon="ArrowLeft"
-            :disabled="!currentMusic && !currentOnlineSong"
-            @click="emit('previous')"
-          />
-        </el-tooltip>
-
-        <el-tooltip
-          :content="isPlaying ? t('playerBar.pause') : t('playerBar.play')"
-          placement="top"
-          effect="light"
-          :disabled="!currentMusic && !currentOnlineSong"
-        >
-          <el-button
-            circle
-            size="large"
-            :icon="isPlaying ? VideoPause : VideoPlay"
-            :disabled="!currentMusic && !currentOnlineSong"
-            @click="emit('toggle-play')"
-            type="primary"
-          />
-        </el-tooltip>
-
-        <el-tooltip
-          :content="t('playerBar.next')"
-          placement="top"
-          effect="light"
-          :disabled="!currentMusic && !currentOnlineSong"
-        >
-          <el-button
-            circle
-            :icon="ArrowRight"
-            :disabled="!currentMusic && !currentOnlineSong"
-            @click="emit('next')"
-          />
-        </el-tooltip>
-      </div>
-
-      <div class="volume-control">
+    <!-- 右侧：播放模式 + 内联音量条 -->
+    <div class="player-right">
+      <el-tooltip :content="playModeTooltip" placement="top" effect="light">
+        <el-button
+          class="play-mode-btn"
+          :class="{ 'is-active': true }"
+          circle
+          :icon="playModeIcon"
+          @click="emit('toggle-play-mode')"
+        />
+      </el-tooltip>
+      <div class="volume-bar">
+        <span class="volume-speaker-icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+          </svg>
+        </span>
         <el-slider
           v-model="volume"
           :max="100"
           :min="0"
           :step="1"
-          show-tooltip
-          height="6px"
-          style="width: 120px"
+          :show-tooltip="false"
+          class="volume-slider volume-slider-h"
         />
-        <el-tooltip :content="playModeTooltip" placement="top" effect="light">
-          <el-button circle :icon="playModeIcon" @click="emit('toggle-play-mode')" />
-        </el-tooltip>
       </div>
     </div>
   </div>
