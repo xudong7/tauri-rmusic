@@ -38,13 +38,17 @@ html {
   --app-header-border: rgba(0, 0, 0, 0.05);
   --app-header-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 
-  /* 主色（淡蓝，自然低对比） */
-  --el-color-primary: #6b9ec4;
-  --el-color-primary-hover: #5d8fb8;
-  --el-color-primary-active: #5282a8;
+  /* 主色 */
+  --el-color-primary: #7a9bb5;
+  --el-color-primary-hover: #6a8ba3;
+  --el-color-primary-active: #5a7b91;
+  --el-color-primary-light-3: #a3b9cc;
+  --el-color-primary-light-5: #c2d3e0;
+  --el-color-primary-light-8: rgba(122, 155, 181, 0.15);
+  --el-color-primary-dark-2: #4a6b81;
 
   /* 侧边栏宽度（供 Message 等在主内容区内居中） */
-  --sidebar-width: 200px;
+  --sidebar-width: 160px;
 
   /* 列表页（Library / Playlist）统一：标题栏按钮与行内按钮 */
   --list-header-btn-padding: 4px 8px;
@@ -60,12 +64,12 @@ html {
   --header-glass-bg: rgba(255, 255, 255, 0.88);
   --player-glass-bg: rgba(250, 250, 252, 0.92);
 
-  /* 列表与悬停语义色（淡蓝，低透明度保持自然） */
+  /* 列表与悬停语义色 */
   --header-bg-color: var(--header-glass-bg);
   --player-bg-color: var(--player-glass-bg);
   --sidebar-bg: var(--app-card-bg);
-  --hover-bg-color: rgba(107, 158, 196, 0.07);
-  --active-item-bg: rgba(107, 158, 196, 0.12);
+  --hover-bg-color: rgba(90, 138, 181, 0.04);
+  --active-item-bg: rgba(90, 138, 181, 0.08);
 
   /* 按钮相关变量（hover 用略深色，与主色协调） */
   --primary-button-bg: var(--el-color-primary);
@@ -106,7 +110,7 @@ html {
 /* ---------- 深色主题 ---------- */
 html.dark {
   /* Element Plus 覆盖 */
-  --el-color-primary: #7eb3d8;
+  --el-color-primary: #8aadd0;
   --el-bg-color: #121212;
   --el-bg-color-overlay: #1e1e1e;
   --el-text-color-primary: #f3f4f6;
@@ -131,26 +135,26 @@ html.dark {
   --sidebar-bg: var(--app-card-bg);
   --app-header-border: rgba(255, 255, 255, 0.06);
   --app-header-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-  --hover-bg-color: rgba(255, 255, 255, 0.06);
-  --active-item-bg: rgba(126, 179, 216, 0.14);
+  --hover-bg-color: rgba(255, 255, 255, 0.04);
+  --active-item-bg: rgba(106, 158, 200, 0.1);
 
-  /* 按钮 - 深色（淡蓝系） */
+  /* 按钮 - 深色 */
   --primary-button-bg: var(--el-color-primary);
   --primary-button-text: var(--el-color-white);
   --primary-button-border: var(--el-color-primary);
   --primary-button-hover-bg: #5a8ab5;
   --primary-button-hover-border: #5a8ab5;
   --primary-button-hover-text: #ffffff;
-  --primary-button-active-bg: #4a7a9e;
-  --primary-button-active-border: #4a7a9e;
+  --primary-button-active-bg: #4d7aa3;
+  --primary-button-active-border: #4d7aa3;
   --success-button-bg: var(--el-color-primary);
   --success-button-text: var(--el-color-white);
   --success-button-border: var(--el-color-primary);
   --success-button-hover-bg: #5a8ab5;
   --success-button-hover-border: #5a8ab5;
   --success-button-hover-text: #ffffff;
-  --success-button-active-bg: #4a7a9e;
-  --success-button-active-border: #4a7a9e;
+  --success-button-active-bg: #4d7aa3;
+  --success-button-active-border: #4d7aa3;
   --info-button-bg: var(--el-fill-color-light);
   --info-button-text: var(--el-text-color-regular);
   --info-button-border: var(--el-border-color);
@@ -161,28 +165,28 @@ html.dark {
   --default-button-bg: var(--el-fill-color-blank);
   --default-button-text: var(--el-text-color-regular);
   --default-button-border: var(--el-border-color);
-  --default-button-hover-bg: rgba(126, 179, 216, 0.14);
-  --default-button-hover-text: #9ac4e8;
-  --default-button-hover-border: #9ac4e8;
-  --default-button-active-bg: rgba(126, 179, 216, 0.18);
-  --default-button-active-text: #7eb3d8;
-  --default-button-active-border: #7eb3d8;
+  --default-button-hover-bg: rgba(106, 158, 200, 0.12);
+  --default-button-hover-text: #8ac4e6;
+  --default-button-hover-border: #8ac4e6;
+  --default-button-active-bg: rgba(106, 158, 200, 0.16);
+  --default-button-active-text: #6a9ec8;
+  --default-button-active-border: #6a9ec8;
 }
 
-/* ---------- 暖色主题：米色/奶油色系，无突兀色 ---------- */
+/* ---------- 暖色主题：米色/奶油色系 ---------- */
 html.theme-warm {
-  /* 主色：暖灰褐 #7d6e5c，与奶油背景协调，不抢眼 */
-  --el-color-primary: #7d6e5c;
-  --el-color-primary-rgb: 125, 110, 92;
-  --el-color-primary-hover: #6d5f4e;
-  --el-color-primary-active: #5d5142;
-  --el-color-primary-light-3: #9a8b7a;
-  --el-color-primary-light-5: #b5a89a;
-  --el-color-primary-light-8: rgba(125, 110, 92, 0.2);
-  --el-color-primary-dark-2: #5d5142;
+  /* 主色 */
+  --el-color-primary: #8a8070;
+  --el-color-primary-rgb: 138, 128, 112;
+  --el-color-primary-hover: #7a7060;
+  --el-color-primary-active: #6a6050;
+  --el-color-primary-light-3: #a09a8a;
+  --el-color-primary-light-5: #b8b0a0;
+  --el-color-primary-light-8: rgba(138, 128, 112, 0.15);
+  --el-color-primary-dark-2: #5a5040;
   --el-bg-color: #f5efeb;
   --el-bg-color-overlay: #fffbf9;
-  /* 文字：暖灰褐，与米色系统一 */
+  /* 文字 */
   --el-text-color-primary: #3d3832;
   --el-text-color-regular: #5c5650;
   --el-text-color-secondary: #7a746e;
@@ -207,24 +211,25 @@ html.theme-warm {
   --sidebar-bg: #ebe6e2;
   --sidebar-border-color: rgba(61, 56, 50, 0.08);
 
-  --hover-bg-color: rgba(125, 110, 92, 0.08);
-  --active-item-bg: rgba(125, 110, 92, 0.12);
+  --hover-bg-color: rgba(125, 110, 92, 0.04);
+  --active-item-bg: rgba(125, 110, 92, 0.08);
 
   /* 按钮：主色暖灰褐，默认按钮 hover 同色系 */
-  --primary-button-bg: #7d6e5c;
+  --primary-button-bg: #8a8070;
   --primary-button-text: #fffbf9;
-  --primary-button-border: #7d6e5c;
-  --primary-button-hover-bg: #6d5f4e;
-  --primary-button-hover-border: #6d5f4e;
-  --primary-button-active-bg: #5d5142;
-  --primary-button-active-border: #5d5142;
-  --success-button-bg: #7d6e5c;
+  --primary-button-border: #8a8070;
+  --primary-button-hover-bg: #7a7060;
+  --primary-button-hover-border: #7a7060;
+  --primary-button-active-bg: #6a6050;
+  --primary-button-active-border: #6a6050;
+  --success-button-bg: #8a8070;
   --success-button-text: #fffbf9;
-  --success-button-border: #7d6e5c;
-  --success-button-hover-bg: #6d5f4e;
-  --success-button-hover-border: #6d5f4e;
-  --success-button-active-bg: #5d5142;
-  --success-button-active-border: #5d5142;
+  --success-button-border: #8a8070;
+  --success-button-hover-bg: #7a7060;
+  --success-button-hover-border: #7a7060;
+  --success-button-hover-text: #fffbf9;
+  --success-button-active-bg: #6a6050;
+  --success-button-active-border: #6a6050;
   --info-button-bg: var(--el-fill-color-light);
   --info-button-text: var(--el-text-color-regular);
   --info-button-border: var(--el-border-color);
@@ -235,12 +240,12 @@ html.theme-warm {
   --default-button-bg: var(--el-fill-color-blank);
   --default-button-text: var(--el-text-color-regular);
   --default-button-border: var(--el-border-color);
-  --default-button-hover-bg: rgba(125, 110, 92, 0.08);
-  --default-button-hover-text: #6d5f4e;
-  --default-button-hover-border: rgba(125, 110, 92, 0.4);
-  --default-button-active-bg: rgba(125, 110, 92, 0.12);
-  --default-button-active-text: #5d5142;
-  --default-button-active-border: rgba(125, 110, 92, 0.5);
+  --default-button-hover-bg: rgba(138, 128, 112, 0.06);
+  --default-button-hover-text: #7a7060;
+  --default-button-hover-border: rgba(138, 128, 112, 0.3);
+  --default-button-active-bg: rgba(138, 128, 112, 0.1);
+  --default-button-active-text: #6a6050;
+  --default-button-active-border: rgba(138, 128, 112, 0.4);
 }
 
 /* ---------- 按钮组件（Element Plus 映射）---------- */
@@ -302,8 +307,8 @@ html.theme-warm {
 /* ---------- 滚动条 ---------- */
 :root::-webkit-scrollbar,
 *::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 
 :root ::-webkit-scrollbar-track,

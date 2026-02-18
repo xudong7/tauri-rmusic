@@ -41,10 +41,10 @@
 
 .search-section {
   width: 100%;
-  max-width: 380px;
-  min-width: 200px;
+  max-width: 320px;
+  min-width: 180px;
   position: relative;
-  -webkit-app-region: no-drag; /* 搜索区域不可拖动 */
+  -webkit-app-region: no-drag;
 }
 
 .search-wrapper {
@@ -250,8 +250,8 @@ html.dark .search-history-chip:hover {
 
 .header-button.el-button {
   border: 1px solid transparent;
-  padding: 8px 14px;
-  height: 34px;
+  padding: 6px 12px;
+  height: 32px;
   font-weight: 500;
 }
 
@@ -264,8 +264,8 @@ html.dark .search-history-chip:hover {
 }
 
 .window-button {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -273,11 +273,10 @@ html.dark .search-history-chip:hover {
   border-radius: var(--app-radius-full, 50%);
   position: relative;
   overflow: hidden;
-  color: var(--el-text-color-regular);
+  color: var(--el-text-color-secondary);
   transition:
     color 0.2s ease,
-    background 0.2s ease,
-    transform 0.2s ease;
+    background 0.2s ease;
 }
 
 .window-button:hover {
@@ -286,11 +285,11 @@ html.dark .search-history-chip:hover {
 }
 
 .window-button:active {
-  transform: scale(0.98);
+  background: var(--active-item-bg);
 }
 
 .window-button .el-icon {
-  font-size: 16px;
+  font-size: 15px;
   transition: all 0.2s ease;
 }
 
@@ -321,10 +320,10 @@ input,
 
 .search-input:deep(.el-input__wrapper) {
   border-radius: var(--app-radius-full, 9999px);
-  padding: 0 18px 0 44px;
+  padding: 0 16px 0 40px;
   border: 1px solid var(--el-border-color-lighter);
   background: var(--el-fill-color-blank);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: none;
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
@@ -339,8 +338,8 @@ html.dark .search-input:deep(.el-input__wrapper) {
 }
 
 .search-pill.search-input:deep(.el-input__wrapper) {
-  min-height: 38px;
-  height: 38px;
+  min-height: 36px;
+  height: 36px;
 }
 
 .search-input:deep(.el-input__wrapper:hover) {
@@ -354,12 +353,12 @@ html.dark .search-input:deep(.el-input__wrapper:hover) {
 
 .search-input:deep(.el-input__wrapper.is-focus) {
   border-color: var(--el-color-primary);
-  box-shadow: 0 0 0 2px var(--el-color-primary-light-8, rgba(107, 158, 196, 0.25));
+  box-shadow: 0 0 0 2px var(--el-color-primary-light-8, rgba(107, 158, 196, 0.15));
 }
 
 html.dark .search-input:deep(.el-input__wrapper.is-focus) {
   background: rgba(255, 255, 255, 0.06);
-  box-shadow: 0 0 0 2px rgba(126, 179, 216, 0.35);
+  box-shadow: 0 0 0 2px rgba(138, 173, 208, 0.2);
 }
 
 .search-input:deep(.el-input__prefix) {

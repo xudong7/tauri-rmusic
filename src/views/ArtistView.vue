@@ -185,7 +185,7 @@ watch(() => route.query, load);
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 10px 8px 14px;
+  padding: 12px 8px 16px;
   flex-shrink: 0;
 }
 
@@ -193,30 +193,33 @@ watch(() => route.query, load);
   flex-shrink: 0;
   margin-left: auto;
   color: var(--el-text-color-secondary);
+  transition: color 0.2s ease;
 }
 .back-to-search:hover {
   color: var(--el-color-primary);
 }
 
 .artist-avatar {
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   object-fit: cover;
   background: var(--el-fill-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .artist-avatar.placeholder {
-  border: 1px solid color-mix(in srgb, var(--el-border-color) 70%, transparent);
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .artist-name {
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 600;
   color: var(--el-text-color-primary);
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.01em;
 }
 </style>

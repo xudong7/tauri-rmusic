@@ -72,9 +72,7 @@ function formatTime(ms: number): string {
 
 const currentPlayTime = computed(() => props.currentTime ?? 0);
 const currentTimeDisplay = computed(() => formatTime(currentPlayTime.value));
-const durationDisplay = computed(() =>
-  formatTime(props.currentTrackDuration ?? 0)
-);
+const durationDisplay = computed(() => formatTime(props.currentTrackDuration ?? 0));
 const progressPercent = computed(() => {
   const duration = props.currentTrackDuration ?? 0;
   if (!duration || duration <= 0) return 0;
@@ -260,27 +258,35 @@ const backgroundStyle = computed(() => {
 
 // 背景滤镜样式
 const backgroundFilterStyle = computed(() => {
-  return `blur(30px) brightness(${imageAnalysisState.value.brightness})`;
+  return `blur(40px) brightness(${imageAnalysisState.value.brightness * 0.85})`;
 });
 
-// 覆盖层透明度样式
+// 覆盖层透明度样式 - 使用更优雅的渐变，保留更多专辑封面细节
 const overlayStyle = computed(() => {
-  // 根据图片亮度调整覆盖层透明度
-  // 亮图片需要更暗的覆盖层，暗图片需要更透明的覆盖层
-  let opacity;
+  const brightness = imageAnalysisState.value.brightness;
+  let gradientOpacity: string;
+  let solidOpacity: number;
 
-  if (imageAnalysisState.value.brightness > 0.8) {
-    // 如果背景很亮，覆盖层应该更暗
-    opacity = 0.8;
-  } else if (imageAnalysisState.value.brightness > 0.6) {
-    // 中等亮度
-    opacity = 0.7;
+  if (brightness > 0.7) {
+    // 亮图片 - 轻微暗化，保留更多细节
+    gradientOpacity = "0.35";
+    solidOpacity = 0.45;
+  } else if (brightness > 0.5) {
+    // 中等亮度 - 适度暗化
+    gradientOpacity = "0.45";
+    solidOpacity = 0.55;
   } else {
-    // 背景较暗，覆盖层应该更透明
-    opacity = 0.6;
+    // 暗图片 - 稍暗但不沉闷
+    gradientOpacity = "0.5";
+    solidOpacity = 0.6;
   }
   return {
-    background: `rgba(0, 0, 0, ${opacity * 0.8})`,
+    background: `linear-gradient(
+      180deg,
+      rgba(0, 0, 0, ${gradientOpacity}) 0%,
+      rgba(0, 0, 0, ${solidOpacity}) 50%,
+      rgba(0, 0, 0, ${Number(gradientOpacity) + 0.15}) 100%
+    )`,
   };
 });
 
@@ -433,8 +439,14 @@ watch(
           </el-tooltip>
           <div class="volume-bar">
             <span class="volume-speaker-icon" aria-hidden="true">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path
+                  d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"
+                />
               </svg>
             </span>
             <el-slider

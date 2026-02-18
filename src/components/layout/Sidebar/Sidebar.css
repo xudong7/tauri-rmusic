@@ -1,8 +1,8 @@
 /* ---------- 侧边栏容器 ---------- */
 .sidebar {
-  flex: 0 0 200px;
-  width: 200px;
-  min-width: 200px;
+  flex: 0 0 160px;
+  width: 160px;
+  min-width: 160px;
   background: var(--sidebar-bg, var(--app-card-bg, var(--el-bg-color)));
   border-right: 1px solid
     var(--sidebar-border-color, var(--app-header-border, var(--el-border-color-lighter)));
@@ -36,26 +36,25 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px 10px 14px;
-  border-radius: var(--app-radius-lg);
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--app-radius-md);
   cursor: pointer;
   color: var(--sidebar-text, var(--el-text-color-regular));
   transition:
     color 0.2s ease,
     background 0.2s ease,
-    transform 0.15s ease;
+    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
   -webkit-app-region: no-drag;
 }
 
 .nav-item:hover {
   color: var(--sidebar-text-active, var(--el-text-color-primary));
   background: var(--sidebar-hover-bg, var(--hover-bg-color));
-  transform: translateX(2px);
 }
 
 .nav-item:active {
-  transform: translateX(1px);
+  transform: scale(0.99);
 }
 
 .nav-item.is-active {
@@ -63,22 +62,9 @@
   color: var(--el-color-primary);
   background: var(
     --sidebar-active-bg,
-    var(--active-item-bg, rgba(var(--el-color-primary-rgb), 0.12))
+    var(--active-item-bg, rgba(var(--el-color-primary-rgb), 0.06))
   );
   transform: none;
-}
-
-.nav-item.is-active::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 20px;
-  background: var(--el-color-primary);
-  border-radius: 0 2px 2px 0;
-  box-shadow: 0 0 6px rgba(var(--el-color-primary-rgb), 0.3);
 }
 
 .nav-icon {
@@ -92,11 +78,12 @@
 }
 
 .nav-label {
-  font-size: 14px;
+  font-size: 13px;
   letter-spacing: 0.02em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: 500;
 }
 
 /* ---------- 播放列表区块 ---------- */

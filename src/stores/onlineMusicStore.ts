@@ -37,7 +37,7 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
         onlineSongs.value = result.songs;
         onlineArtists.value = result.artists ?? [];
       } else {
-        onlineSongs.value = [...onlineSongs.value, ...result.songs];
+        onlineSongs.value.push(...result.songs);
       }
 
       onlineSongsTotal.value = result.total;
