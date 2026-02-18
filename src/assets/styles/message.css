@@ -18,6 +18,13 @@ html.dark {
   --msg-error-accent: #d97575;
 }
 
+html.theme-warm {
+  --msg-success-accent: #7a9a80;
+  --msg-info-accent: var(--el-color-primary);
+  --msg-warning-accent: #a09060;
+  --msg-error-accent: #b07070;
+}
+
 /* ---------- 基础容器：毛玻璃、位置、圆角 ---------- */
 .el-message {
   --el-message-bg-color: #ffffff; /* 浅色：不透明白，避免半透明+blur 在左缘漏色 */
@@ -47,6 +54,15 @@ html.dark .el-message {
   box-shadow: var(--el-message-box-shadow) !important;
   backdrop-filter: blur(var(--app-glass-blur, 16px));
   -webkit-backdrop-filter: blur(var(--app-glass-blur, 16px));
+}
+
+html.theme-warm .el-message {
+  --el-message-bg-color: rgba(255, 251, 249, 0.98);
+  --el-message-border-color: rgba(61, 56, 50, 0.1);
+  --el-message-box-shadow: 0 4px 12px rgba(61, 56, 50, 0.08);
+  background: var(--el-message-bg-color) !important;
+  border-color: var(--el-message-border-color) !important;
+  box-shadow: var(--el-message-box-shadow) !important;
 }
 
 /* ---------- Success / Info / Warning / Error：统一不加左侧色条，inset 在浅色和深色都会漏色 ---------- */

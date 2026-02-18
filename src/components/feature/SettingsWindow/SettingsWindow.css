@@ -32,14 +32,14 @@
   background: var(--app-card-bg, var(--el-bg-color-overlay));
   border-radius: var(--app-radius-xl);
   border: 1px solid var(--el-border-color-lighter);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease;
 }
 
 .settings-section:hover {
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
   border-color: var(--el-color-primary-light-8);
 }
 
@@ -124,7 +124,7 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
-/* 深色模式适配 */
+/* 暖色模式适配 */
 .dark .settings-window,
 html.dark .settings-window {
   color: var(--el-text-color-primary);
@@ -134,12 +134,12 @@ html.dark .settings-window {
 html.dark .settings-section {
   background: var(--el-bg-color-overlay);
   border: 1px solid var(--el-border-color);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
 .dark .settings-section:hover,
 html.dark .settings-section:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   border-color: var(--el-color-primary);
 }
 
@@ -161,6 +161,46 @@ html.dark .setting-item > label {
 
 .dark .setting-item p,
 html.dark .setting-item p {
+  color: var(--el-text-color-secondary);
+}
+
+/* 暖色模式适配 */
+.theme-warm .settings-window,
+html.theme-warm .settings-window {
+  color: var(--el-text-color-primary);
+}
+
+.theme-warm .settings-section,
+html.theme-warm .settings-section {
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color);
+  box-shadow: 0 2px 8px rgba(61, 56, 50, 0.06);
+}
+
+.theme-warm .settings-section:hover,
+html.theme-warm .settings-section:hover {
+  box-shadow: 0 4px 12px rgba(61, 56, 50, 0.1);
+  border-color: var(--el-color-primary-light-5);
+}
+
+.theme-warm .settings-section .section-title,
+html.theme-warm .settings-section .section-title {
+  color: var(--el-text-color-primary);
+  border-bottom-color: var(--el-border-color);
+}
+
+.theme-warm .settings-section .section-title .el-icon,
+html.theme-warm .settings-section .section-title .el-icon {
+  color: var(--el-color-primary);
+}
+
+.theme-warm .setting-item > label,
+html.theme-warm .setting-item > label {
+  color: var(--el-text-color-regular);
+}
+
+.theme-warm .setting-item p,
+html.theme-warm .setting-item p {
   color: var(--el-text-color-secondary);
 }
 

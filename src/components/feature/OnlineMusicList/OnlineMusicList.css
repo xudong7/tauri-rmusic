@@ -17,12 +17,13 @@
 
 .list-title {
   margin: 0;
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 600;
   color: var(--el-text-color-primary);
-  padding-left: 14px;
+  padding-left: 12px;
   position: relative;
   flex-shrink: 0;
+  letter-spacing: -0.01em;
 }
 
 .list-title::before {
@@ -31,8 +32,8 @@
   left: 0;
   top: 50%;
   transform: translateY(-50%);
-  width: 4px;
-  height: 60%;
+  width: 3px;
+  height: 55%;
   background: var(--el-color-primary);
   border-radius: 2px;
 }
@@ -111,19 +112,20 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 12px;
-  margin-bottom: 4px;
+  padding: 12px 10px;
+  margin-bottom: 2px;
   border-radius: var(--app-radius-md);
   cursor: pointer;
-  min-height: 60px;
+  min-height: 56px;
   box-sizing: border-box;
   transition:
     background 0.2s ease,
-    transform 0.15s ease;
+    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .list-row:hover {
   background: var(--hover-bg-color);
+  transform: translateX(2px);
 }
 
 .list-row.is-current {
@@ -156,15 +158,20 @@
 }
 
 .cover-img {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--app-radius-sm);
   object-fit: cover;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.list-row:hover .cover-img {
+  transform: scale(1.03);
 }
 
 .cover-placeholder {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--app-radius-sm);
   background: var(--el-fill-color);
   display: flex;
@@ -179,12 +186,13 @@
 }
 
 .song-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--el-text-color-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: 0.01em;
 }
 
 .song-title.is-playing {
@@ -193,9 +201,9 @@
 }
 
 .song-meta {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--el-text-color-secondary);
-  margin-top: 2px;
+  margin-top: 3px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
