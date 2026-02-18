@@ -8,18 +8,16 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: fadeIn 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: fadeIn 0.4s cubic-bezier(0.22, 1, 0.36, 1);
   color: var(--el-text-color-primary);
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    filter: blur(10px);
   }
   to {
     opacity: 1;
-    filter: blur(0);
   }
 }
 
@@ -29,19 +27,9 @@
   left: -15px;
   width: calc(100% + 30px);
   height: calc(100% + 30px);
-  transform: scale(1.15);
+  transform: scale(1.1);
   z-index: -2;
-  transition: all 1.5s cubic-bezier(0.22, 1, 0.36, 1);
-  animation: slowZoom 20s infinite alternate ease-in-out;
-}
-
-@keyframes slowZoom {
-  0% {
-    transform: scale(1.15);
-  }
-  100% {
-    transform: scale(1.25);
-  }
+  transition: all 1.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .overlay {
@@ -69,28 +57,19 @@
 }
 
 .window-controls .el-button {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
   border: none;
-  color: #fff;
-  width: 34px;
-  height: 34px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  color: rgba(255, 255, 255, 0.8);
+  width: 32px;
+  height: 32px;
   transition:
     color 0.2s ease,
-    background 0.2s ease,
-    transform 0.2s ease;
-  position: relative;
-  overflow: hidden;
+    background 0.2s ease;
 }
 
 .window-controls .el-button:hover {
-  background: rgba(255, 255, 255, 0.18);
-  color: var(--el-color-primary);
-  transform: translateY(-1px);
-}
-
-.window-controls .el-button:active {
-  transform: scale(0.98);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
 }
 
 .window-controls .el-button:nth-child(3):hover {
@@ -99,28 +78,19 @@
 }
 
 .back-btn {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
   border: none;
-  color: #fff;
-  width: 34px;
-  height: 34px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  color: rgba(255, 255, 255, 0.8);
+  width: 32px;
+  height: 32px;
   transition:
     color 0.2s ease,
-    background 0.2s ease,
-    transform 0.2s ease;
-  position: relative;
-  overflow: hidden;
+    background 0.2s ease;
 }
 
 .back-btn:hover {
-  background: rgba(255, 255, 255, 0.18);
-  color: var(--el-color-primary);
-  transform: translateY(-1px);
-}
-
-.back-btn:active {
-  transform: scale(0.98);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
 }
 
 .content-section {
@@ -161,57 +131,42 @@
 }
 
 .cover-container {
-  width: 360px;
-  height: 360px;
-  border-radius: var(--app-radius-lg);
+  width: 320px;
+  height: 320px;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow:
-    0 20px 40px rgba(0, 0, 0, 0.5),
-    0 10px 15px rgba(0, 0, 0, 0.3);
-  margin-bottom: 0;
-  transition: transform 0.6s cubic-bezier(0.21, 1.02, 0.73, 1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  transition:
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.5s ease;
   position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  animation: floatAnimation 4s infinite ease-in-out alternate;
-}
-
-@keyframes floatAnimation {
-  0% {
-    transform: translateY(0);
-  }
-  100% {
-    transform: translateY(-10px);
-  }
 }
 
 .cover-container:hover {
-  transform: scale(1.05) translateY(-10px);
-  box-shadow:
-    0 25px 50px rgba(0, 0, 0, 0.6),
-    0 15px 20px rgba(0, 0, 0, 0.4);
-  border: 3px solid rgba(255, 255, 255, 0.3);
+  transform: scale(1.015);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
 }
 
 .song-cover {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 1s ease;
+  transition: transform 0.8s ease;
 }
 
 .cover-container:hover .song-cover {
-  transform: scale(1.1) rotate(2deg);
+  transform: scale(1.04);
 }
 
 .no-cover {
   width: 100%;
   height: 100%;
-  background-color: rgba(107, 158, 196, 0.18);
+  background-color: rgba(90, 138, 181, 0.15);
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 80px;
-  color: rgba(255, 255, 255, 0.8);
+  font-size: 72px;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 /* 歌曲信息部分 */
@@ -222,32 +177,20 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  animation: fadeInUp 1s ease-out;
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 /* 歌曲标题样式 */
 .song-title {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 600;
   color: #fff;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
-  margin: 0 0 var(--app-spacing-sm) 0;
-  letter-spacing: 0.5px;
+  margin: 0 0 10px 0;
+  letter-spacing: 0.2px;
 }
 
 /* 歌手名称容器 */
@@ -259,22 +202,20 @@
   overflow: visible;
 }
 
-/* 歌手名称样式（容器） */
 .song-artist {
   margin: 0;
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.78);
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  color: rgba(255, 255, 255, 0.65);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
   transition: color 0.2s ease;
-  padding: 4px 0;
 }
 
 .song-artist:hover {
-  color: rgba(255, 255, 255, 0.95);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 /* 歌手名可点击跳转歌手页 */
@@ -284,8 +225,6 @@
 
 .song-artist .artist-part.artist-link:hover {
   color: var(--el-color-primary);
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
 
 /* 歌词容器样式 */
@@ -341,15 +280,15 @@
 }
 
 .immersive-progress .progress-slider ::deep(.el-slider__runway) {
-  height: 5px;
+  height: 3px;
   border-radius: 9999px;
-  background-color: rgba(255, 255, 255, 0.48);
+  background-color: rgba(255, 255, 255, 0.15);
   transition: height 0.2s ease;
 }
 
 .immersive-progress .progress-slider:hover ::deep(.el-slider__runway) {
-  height: 6px;
-  background-color: rgba(255, 255, 255, 0.55);
+  height: 4px;
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 .immersive-progress .progress-slider ::deep(.el-slider__bar) {
@@ -358,18 +297,25 @@
   background: linear-gradient(
     90deg,
     var(--el-color-primary),
-    var(--el-color-primary-light-5, var(--el-color-primary))
+    var(--el-color-primary-light-3, var(--el-color-primary))
   );
 }
 
 .immersive-progress .progress-slider ::deep(.el-slider__button) {
-  width: 12px;
-  height: 12px;
-  border: 2px solid rgba(255, 255, 255, 0.95);
+  width: 10px;
+  height: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
   background-color: var(--el-color-primary);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
   opacity: 0;
-  transition: opacity 0.2s ease, transform 0.15s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.immersive-progress .progress-slider:hover ::deep(.el-slider__runway) {
+  height: 5px;
+  background-color: rgba(255, 255, 255, 0.25);
 }
 
 .immersive-progress .progress-slider:hover ::deep(.el-slider__button) {
@@ -377,7 +323,7 @@
 }
 
 .immersive-progress .progress-slider ::deep(.el-slider__button:hover) {
-  transform: scale(1.15);
+  transform: scale(1.1);
 }
 
 /* 控制行：左占位 | 中播放按钮 | 右播放模式+音量，保证播放键居中 */
@@ -413,19 +359,18 @@
 }
 
 .immersive-right .play-mode-btn {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.9);
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.7);
   transition: all 0.2s ease;
 }
 
 .immersive-right .play-mode-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.5);
-  color: var(--el-color-primary);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
 }
 
 /* 音量条：扬声器图标 + 横向滑块 */
@@ -459,15 +404,15 @@
 }
 
 .immersive-right .volume-slider-h ::deep(.el-slider__runway) {
-  height: 4px;
+  height: 3px;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .immersive-right .volume-slider-h ::deep(.el-slider__bar) {
   height: 100%;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .immersive-right .volume-slider-h ::deep(.el-slider__button-wrapper) {
@@ -482,7 +427,9 @@
   background: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   opacity: 1;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .immersive-right .volume-slider-h ::deep(.el-slider:hover .el-slider__button),
@@ -493,24 +440,20 @@
 
 .controls .el-button {
   transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
     background 0.2s ease;
   border: none;
-  height: 40px;
-  width: 40px;
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  position: relative;
-  overflow: hidden;
+  height: 44px;
+  width: 44px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
 }
 
 .controls .el-button:hover {
-  transform: translateY(-3px);
-  background: rgba(255, 255, 255, 0.18);
-  color: var(--el-color-primary);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
 }
 
 .controls .el-button:active {
@@ -522,40 +465,39 @@
   background-color: var(--el-color-primary);
   border-color: var(--el-color-primary);
   color: #fff;
-  height: 48px;
-  width: 48px;
+  height: 52px;
+  width: 52px;
   font-size: 18px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .controls .el-button--primary:hover {
   background-color: var(--el-color-primary);
   border-color: var(--el-color-primary);
   color: #fff;
-  filter: brightness(1.06);
-  transform: scale(1.1) translateY(-3px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  filter: brightness(1.05);
+  transform: scale(1.03);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
 }
 
 .controls .el-button--primary:active {
-  transform: scale(0.96);
+  transform: scale(0.98);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* 暗色模式：沉浸模式播放按钮与左右按钮一致，黑灰半透明不抢眼 */
 .dark-theme .immersive-view .controls .el-button--primary,
 html.dark .immersive-view .controls .el-button--primary {
-  background: rgba(255, 255, 255, 0.18);
-  border-color: transparent;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  background: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 
 .dark-theme .immersive-view .controls .el-button--primary:hover,
 html.dark .immersive-view .controls .el-button--primary:hover {
-  background: rgba(255, 255, 255, 0.26);
-  border-color: transparent;
-  filter: none;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  background: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  filter: brightness(1.08);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
 }
 
 /* 小屏时缩小两侧占位，避免控制条过宽 */

@@ -26,18 +26,18 @@ html.dark .player-bar {
   display: flex;
   align-items: center;
   gap: 12px;
-  width: 220px;
-  min-width: 180px;
+  width: 200px;
+  min-width: 160px;
   flex-shrink: 0;
 }
 
 .cover-container {
   width: 44px;
   height: 44px;
-  border-radius: 6px;
+  border-radius: 8px;
   overflow: hidden;
   flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   cursor: pointer;
   transition:
     transform 0.2s ease,
@@ -45,8 +45,8 @@ html.dark .player-bar {
 }
 
 .cover-container:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transform: scale(1.03);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
 }
 
 .cover-image {
@@ -117,17 +117,17 @@ html.dark .player-bar {
   background: none !important;
   border: none !important;
   color: var(--el-text-color-primary);
-  padding: 4px;
-  font-size: 16px;
-  opacity: 0.8;
+  padding: 6px;
+  font-size: 18px;
+  opacity: 0.65;
   transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
+    opacity 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .player-controls .control-btn:hover {
   opacity: 1;
-  transform: scale(1.1);
+  transform: scale(1.06);
 }
 
 .player-controls .control-btn:disabled {
@@ -138,16 +138,21 @@ html.dark .player-bar {
   background: var(--el-color-primary) !important;
   border: none !important;
   color: #fff !important;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  font-size: 12px;
+  font-size: 13px;
   opacity: 1;
-  padding: 4px;
+  padding: 5px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  transition:
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .player-controls .play-btn:hover {
-  transform: scale(1.1);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
 }
 
 .player-progress {
@@ -160,10 +165,11 @@ html.dark .player-bar {
 
 .player-progress .time-display {
   font-size: 11px;
-  min-width: 35px;
+  min-width: 38px;
   text-align: center;
   color: var(--el-text-color-secondary);
   font-variant-numeric: tabular-nums;
+  font-weight: 500;
 }
 
 .player-progress .progress-slider {
@@ -172,29 +178,38 @@ html.dark .player-bar {
 
 .player-progress ::deep(.el-slider__runway) {
   height: 3px;
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: rgba(0, 0, 0, 0.06);
+  border-radius: 2px;
+  transition: height 0.2s ease;
 }
 
 html.dark .player-progress ::deep(.el-slider__runway) {
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: rgba(255, 255, 255, 0.12);
 }
 
 .player-progress ::deep(.el-slider__bar) {
   height: 100%;
-  background-color: var(--el-color-primary);
+  background: linear-gradient(
+    90deg,
+    var(--el-color-primary),
+    var(--el-color-primary-light-3, var(--el-color-primary))
+  );
 }
 
 .player-progress ::deep(.el-slider__button) {
-  width: 5px;
-  height: 5px;
+  width: 8px;
+  height: 8px;
   border: none;
   background-color: var(--el-color-primary);
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .player-progress:hover ::deep(.el-slider__button) {
   opacity: 1;
+  transform: scale(1);
 }
 
 .player-progress:hover ::deep(.el-slider__runway) {
@@ -216,14 +231,14 @@ html.dark .player-progress ::deep(.el-slider__runway) {
   width: 28px;
   height: 28px;
   padding: 0;
-  border: 1px solid var(--el-border-color-light);
+  border: 1px solid transparent !important;
   background: transparent !important;
   color: var(--el-text-color-secondary) !important;
   transition: all 0.2s ease;
 }
 
 .play-mode-btn:hover {
-  border-color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5, var(--el-color-primary)) !important;
   color: var(--el-color-primary) !important;
 }
 
@@ -263,13 +278,13 @@ html.dark .volume-speaker-icon {
 }
 
 .volume-bar .volume-slider-h ::deep(.el-slider__runway) {
-  height: 4px;
+  height: 3px;
   border-radius: var(--app-radius-full, 9999px);
   background: var(--el-border-color);
 }
 
 html.dark .volume-bar .volume-slider-h ::deep(.el-slider__runway) {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .volume-bar .volume-slider-h ::deep(.el-slider__bar) {
@@ -279,7 +294,7 @@ html.dark .volume-bar .volume-slider-h ::deep(.el-slider__runway) {
 }
 
 html.dark .volume-bar .volume-slider-h ::deep(.el-slider__bar) {
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.6);
 }
 
 .volume-bar .volume-slider-h ::deep(.el-slider__button-wrapper) {
@@ -288,19 +303,21 @@ html.dark .volume-bar .volume-slider-h ::deep(.el-slider__bar) {
 }
 
 .volume-bar .volume-slider-h ::deep(.el-slider__button) {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border: none;
   background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   opacity: 1;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.2s ease;
 }
 
 .volume-bar .volume-slider-h ::deep(.el-slider:hover .el-slider__button),
 .volume-bar .volume-slider-h ::deep(.el-slider__button:hover) {
-  transform: scale(1.1);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transform: scale(1.15);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
 }
 
 /* 响应式 */
