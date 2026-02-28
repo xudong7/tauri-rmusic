@@ -1,3 +1,4 @@
+/* Apple Music 风格沉浸式播放器 - 左右布局 */
 .immersive-view {
   position: fixed;
   top: 0;
@@ -8,512 +9,315 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: fadeIn 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-  color: var(--el-text-color-primary);
+  color: #fff;
+  background: #000;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
+/* 动态背景 */
 .background-cover {
   position: absolute;
-  top: -15px;
-  left: -15px;
-  width: calc(100% + 30px);
-  height: calc(100% + 30px);
-  transform: scale(1.1);
-  z-index: -2;
-  transition: all 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  transition: background-image 0.6s ease;
 }
 
+.background-cover::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.7) 0%,
+    rgba(0, 0, 0, 0.5) 50%,
+    rgba(0, 0, 0, 0.8) 100%
+  );
+}
+
+/* 遮罩层 */
 .overlay {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: -1;
-  backdrop-filter: blur(2px);
+  z-index: 1;
+  background: transparent;
 }
 
+/* 顶部控制栏 */
 .top-section {
   position: relative;
-  padding: var(--app-spacing-lg);
+  z-index: 10;
+  padding: 12px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  z-index: 1;
 }
 
+/* 返回按钮 */
+.back-btn {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: none !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  width: 32px;
+  height: 32px;
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* 窗口控制按钮 */
 .window-controls {
   display: flex;
   gap: 6px;
 }
 
 .window-controls .el-button {
-  background: rgba(255, 255, 255, 0.06);
-  border: none;
-  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: none !important;
+  color: rgba(255, 255, 255, 0.9) !important;
   width: 32px;
   height: 32px;
-  transition:
-    color 0.2s ease,
-    background 0.2s ease;
 }
 
 .window-controls .el-button:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.2) !important;
 }
 
 .window-controls .el-button:nth-child(3):hover {
-  color: #fff;
-  background-color: #e54d4d;
+  background: #ff453a !important;
 }
 
-.back-btn {
-  background: rgba(255, 255, 255, 0.06);
-  border: none;
-  color: rgba(255, 255, 255, 0.8);
-  width: 32px;
-  height: 32px;
-  transition:
-    color 0.2s ease,
-    background 0.2s ease;
-}
-
-.back-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-}
-
+/* 主内容区域 - 左右布局 */
 .content-section {
   position: relative;
+  z-index: 5;
   flex: 1;
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  padding: var(--app-spacing-lg);
+  padding: 0 80px;
   overflow: hidden;
-  z-index: 1;
-  width: 100%;
-  box-sizing: border-box;
-  gap: calc(2 * var(--app-spacing-xl));
-  max-width: 1000px;
-  margin: 0 auto;
+  gap: 100px;
 }
 
-/* 左侧封面容器 */
+/* 左侧区域：封面 + 控制 */
 .left-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  width: 45%; /* 略微调整宽度比例 */
-  height: 100%;
+  gap: 24px;
+  flex-shrink: 0;
+  width: 380px;
 }
 
-/* 右侧信息与歌词容器 */
-.right-section {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-  width: 30%; /* 略微调整宽度比例 */
-  height: 380px;
-}
-
+/* 封面容器 */
 .cover-container {
-  width: 320px;
-  height: 320px;
-  border-radius: 12px;
+  width: 380px;
+  height: 380px;
+  border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-  transition:
-    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.5s ease;
-  position: relative;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  transition: transform 0.3s ease;
 }
 
 .cover-container:hover {
-  transform: scale(1.015);
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+  transform: scale(1.01);
 }
 
 .song-cover {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.8s ease;
 }
 
-.cover-container:hover .song-cover {
-  transform: scale(1.04);
-}
-
+/* 无封面占位 */
 .no-cover {
   width: 100%;
   height: 100%;
-  background-color: rgba(90, 138, 181, 0.15);
+  background: linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 100%);
   display: flex;
   justify-content: center;
   align-items: center;
   font-size: 72px;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.25);
 }
 
-/* 歌曲信息部分 */
+/* 歌曲信息 */
 .song-info {
-  text-align: left;
+  text-align: center;
   width: 100%;
-  margin-bottom: var(--app-spacing);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  max-width: 380px;
 }
 
-/* 歌曲标题样式 */
 .song-title {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 600;
   color: #fff;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100%;
-  margin: 0 0 10px 0;
-  letter-spacing: 0.2px;
-}
-
-/* 歌手名称容器 */
-.song-artist-container {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  position: relative;
-  overflow: visible;
+  margin: 0 0 6px 0;
 }
 
 .song-artist {
-  margin: 0;
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.65);
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  color: rgba(255, 255, 255, 0.6);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100%;
-  transition: color 0.2s ease;
 }
 
-.song-artist:hover {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-/* 歌手名可点击跳转歌手页 */
 .song-artist .artist-part.artist-link {
   cursor: pointer;
 }
 
 .song-artist .artist-part.artist-link:hover {
   color: var(--el-color-primary);
+  text-decoration: underline;
 }
 
-/* 歌词容器样式 */
-.lyric-view-container {
-  width: 100%;
-  height: calc(100% - 80px); /* 留出标题和歌手的空间 */
+/* 控制按钮 */
+.controls {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  overflow: hidden;
-  background: transparent;
-  padding: 0; /* 确保没有内边距 */
+  justify-content: center;
+  align-items: center;
+  gap: 32px;
+  margin-top: 8px;
 }
 
-/* 底部控制区：完全透明，无色块无边框，与沉浸背景一体 */
-.control-section {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  max-width: 720px;
-  margin: 0 auto;
-  box-sizing: border-box;
-  padding: var(--app-spacing-lg) var(--app-spacing-xl);
-  background: transparent;
+.controls .el-button {
   border: none;
-  border-radius: 0;
-  box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  height: 40px;
+  width: 40px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
 }
 
-/* 进度条行：时间 + 滑块 + 时间，留足空间 */
+.controls .el-button:hover {
+  color: #fff;
+}
+
+/* 播放/暂停按钮 */
+.controls .el-button--primary {
+  background-color: #fff !important;
+  border-color: #fff !important;
+  color: #000 !important;
+  height: 56px !important;
+  width: 56px !important;
+  font-size: 20px;
+}
+
+/* 进度条 */
 .immersive-progress {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 20px;
+  margin-top: 20px;
+  width: 100%;
+  max-width: 380px;
 }
 
 .immersive-progress .time-display {
-  font-size: 13px;
-  min-width: 44px;
-  text-align: center;
-  color: rgba(255, 255, 255, 0.88);
+  font-size: 11px;
+  min-width: 36px;
+  color: rgba(255, 255, 255, 0.5);
   font-variant-numeric: tabular-nums;
-  margin: 0;
-  font-weight: 500;
 }
 
 .immersive-progress .progress-slider {
   flex: 1;
-  min-width: 0;
 }
 
 .immersive-progress .progress-slider ::deep(.el-slider__runway) {
   height: 3px;
-  border-radius: 9999px;
-  background-color: rgba(255, 255, 255, 0.15);
-  transition: height 0.2s ease;
-}
-
-.immersive-progress .progress-slider:hover ::deep(.el-slider__runway) {
-  height: 4px;
   background-color: rgba(255, 255, 255, 0.2);
 }
 
 .immersive-progress .progress-slider ::deep(.el-slider__bar) {
   height: 100%;
-  border-radius: 9999px;
-  background: linear-gradient(
-    90deg,
-    var(--el-color-primary),
-    var(--el-color-primary-light-3, var(--el-color-primary))
-  );
+  background: #fff;
 }
 
 .immersive-progress .progress-slider ::deep(.el-slider__button) {
   width: 10px;
   height: 10px;
-  border: 2px solid rgba(255, 255, 255, 0.9);
-  background-color: var(--el-color-primary);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  border: 2px solid #fff;
+  background-color: #fff;
   opacity: 0;
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.immersive-progress .progress-slider:hover ::deep(.el-slider__runway) {
-  height: 5px;
-  background-color: rgba(255, 255, 255, 0.25);
 }
 
 .immersive-progress .progress-slider:hover ::deep(.el-slider__button) {
   opacity: 1;
 }
 
-.immersive-progress .progress-slider ::deep(.el-slider__button:hover) {
-  transform: scale(1.1);
-}
-
-/* 控制行：左占位 | 中播放按钮 | 右播放模式+音量，保证播放键居中 */
-.immersive-controls-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.immersive-controls-left {
-  width: 160px;
-  min-width: 160px;
-  flex-shrink: 0;
-}
-
-.controls {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 20px;
-  flex-shrink: 0;
-}
-
-.immersive-right {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 14px;
-  width: 160px;
-  min-width: 160px;
-  flex-shrink: 0;
-}
-
-.immersive-right .play-mode-btn {
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: none;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.7);
-  transition: all 0.2s ease;
-}
-
-.immersive-right .play-mode-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-}
-
-/* 音量条：扬声器图标 + 横向滑块 */
-.immersive-right .volume-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+/* 右侧区域：歌词 */
+.right-section {
   flex: 1;
-  min-width: 0;
-  max-width: 112px;
-}
-
-.immersive-right .volume-bar .volume-slider-h {
-  flex: 1;
-  min-width: 0;
-}
-
-.immersive-right .volume-speaker-icon {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   justify-content: center;
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  color: rgba(255, 255, 255, 0.75);
+  height: 100%;
+  width: 380px;
+  max-width: 380px;
 }
 
-.immersive-right .volume-speaker-icon svg {
+/* 歌词容器 */
+.lyric-view-container {
   width: 100%;
-  height: 100%;
+  height: 350px;
+  display: flex;
+  flex-direction: column;
 }
 
-.immersive-right .volume-slider-h ::deep(.el-slider__runway) {
-  height: 3px;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.2);
+/* 底部控制区 - 简约 */
+.control-section {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding: 0 60px 24px;
+  display: none;
 }
 
-.immersive-right .volume-slider-h ::deep(.el-slider__bar) {
-  height: 100%;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.5);
-}
+/* 响应式适配 */
+@media (max-width: 900px) {
+  .content-section {
+    flex-direction: column;
+    padding: 20px;
+    gap: 32px;
+  }
 
-.immersive-right .volume-slider-h ::deep(.el-slider__button-wrapper) {
-  top: 50%;
-  transform: translate(-50%, -50%);
-}
+  .left-section {
+    width: 100%;
+  }
 
-.immersive-right .volume-slider-h ::deep(.el-slider__button) {
-  width: 10px;
-  height: 10px;
-  border: none;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  opacity: 1;
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
-}
+  .cover-container {
+    width: 280px;
+    height: 280px;
+  }
 
-.immersive-right .volume-slider-h ::deep(.el-slider:hover .el-slider__button),
-.immersive-right .volume-slider-h ::deep(.el-slider__button:hover) {
-  transform: scale(1.1);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-}
-
-.controls .el-button {
-  transition:
-    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
-    background 0.2s ease;
-  border: none;
-  height: 44px;
-  width: 44px;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.9);
-  border-radius: 50%;
-}
-
-.controls .el-button:hover {
-  transform: translateY(-1px);
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-}
-
-.controls .el-button:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-}
-
-.controls .el-button--primary {
-  background-color: var(--el-color-primary);
-  border-color: var(--el-color-primary);
-  color: #fff;
-  height: 52px;
-  width: 52px;
-  font-size: 18px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-}
-
-.controls .el-button--primary:hover {
-  background-color: var(--el-color-primary);
-  border-color: var(--el-color-primary);
-  color: #fff;
-  filter: brightness(1.05);
-  transform: scale(1.03);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-}
-
-.controls .el-button--primary:active {
-  transform: scale(0.98);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-.dark-theme .immersive-view .controls .el-button--primary,
-html.dark .immersive-view .controls .el-button--primary {
-  background: var(--el-color-primary);
-  border-color: var(--el-color-primary);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-}
-
-.dark-theme .immersive-view .controls .el-button--primary:hover,
-html.dark .immersive-view .controls .el-button--primary:hover {
-  background: var(--el-color-primary);
-  border-color: var(--el-color-primary);
-  filter: brightness(1.08);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
-}
-
-/* 小屏时缩小两侧占位，避免控制条过宽 */
-@media (max-width: 640px) {
-  .control-section {
+  .right-section {
+    width: 100%;
     max-width: 100%;
-    padding: var(--app-spacing) var(--app-spacing-lg);
+    padding-right: 0;
+    height: 250px;
   }
 
-  .immersive-controls-left,
-  .immersive-right {
-    width: 100px;
-    min-width: 100px;
-  }
-
-  .immersive-right .volume-bar {
-    max-width: 72px;
+  .lyric-view-container {
+    height: 200px;
   }
 }

@@ -336,6 +336,7 @@ watch(
     </div>
 
     <div class="content-section">
+      <!-- 左侧：封面 + 歌曲信息 + 控制 -->
       <div class="left-section">
         <div class="cover-container">
           <img
@@ -348,9 +349,7 @@ watch(
             <el-icon><Headset /></el-icon>
           </div>
         </div>
-      </div>
 
-      <div class="right-section">
         <div class="song-info">
           <h1 class="song-title" :title="songTitle">{{ songTitle }}</h1>
           <div class="song-artist-container">
@@ -377,6 +376,40 @@ watch(
             </div>
           </div>
         </div>
+
+        <!-- 控制按钮 -->
+        <div class="controls">
+          <el-button circle :icon="ArrowLeft" @click="emit('previous')" />
+          <el-button
+            circle
+            size="large"
+            :icon="isPlaying ? VideoPause : VideoPlay"
+            @click="emit('toggle-play')"
+            type="primary"
+          />
+          <el-button circle :icon="ArrowRight" @click="emit('next')" />
+        </div>
+
+        <!-- 进度条 -->
+        <div class="immersive-progress">
+          <span class="time-display">{{ currentTimeDisplay }}</span>
+          <el-slider
+            v-model="sliderValue"
+            :max="100"
+            :min="0"
+            :step="0.1"
+            :show-tooltip="false"
+            class="progress-slider"
+            @focus="isDragging = true"
+            @blur="isDragging = false"
+            @change="handleProgressChange"
+          />
+          <span class="time-display">{{ durationDisplay }}</span>
+        </div>
+      </div>
+
+      <!-- 右侧：歌词 -->
+      <div class="right-section">
         <div class="lyric-view-container">
           <LyricView
             :currentSong="currentSong"
@@ -384,80 +417,6 @@ watch(
             :isPlaying="isPlaying"
             :currentTime="currentTime"
           />
-        </div>
-      </div>
-    </div>
-    <div class="control-section">
-      <div class="immersive-progress">
-        <span class="time-display">{{ currentTimeDisplay }}</span>
-        <el-slider
-          v-model="sliderValue"
-          :max="100"
-          :min="0"
-          :step="0.1"
-          :show-tooltip="false"
-          class="progress-slider"
-          @focus="isDragging = true"
-          @blur="isDragging = false"
-          @change="handleProgressChange"
-        />
-        <span class="time-display">{{ durationDisplay }}</span>
-      </div>
-      <div class="immersive-controls-row">
-        <div class="immersive-controls-left" aria-hidden="true"></div>
-        <div class="controls">
-          <el-tooltip :content="t('playerBar.previous')" placement="top" effect="dark">
-            <el-button circle :icon="ArrowLeft" @click="emit('previous')" />
-          </el-tooltip>
-
-          <el-tooltip
-            :content="isPlaying ? t('playerBar.pause') : t('playerBar.play')"
-            placement="top"
-            effect="dark"
-          >
-            <el-button
-              circle
-              size="large"
-              :icon="isPlaying ? VideoPause : VideoPlay"
-              @click="emit('toggle-play')"
-              type="primary"
-            />
-          </el-tooltip>
-
-          <el-tooltip :content="t('playerBar.next')" placement="top" effect="dark">
-            <el-button circle :icon="ArrowRight" @click="emit('next')" />
-          </el-tooltip>
-        </div>
-        <div class="immersive-right">
-          <el-tooltip :content="playModeTooltip" placement="top" effect="dark">
-            <el-button
-              circle
-              :icon="playModeIcon"
-              class="play-mode-btn"
-              @click="emit('toggle-play-mode')"
-            />
-          </el-tooltip>
-          <div class="volume-bar">
-            <span class="volume-speaker-icon" aria-hidden="true">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
-                <path
-                  d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"
-                />
-              </svg>
-            </span>
-            <el-slider
-              v-model="volume"
-              :max="100"
-              :min="0"
-              :step="1"
-              :show-tooltip="false"
-              class="volume-slider volume-slider-h"
-            />
-          </div>
         </div>
       </div>
     </div>
