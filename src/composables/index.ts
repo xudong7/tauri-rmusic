@@ -2,6 +2,7 @@
 export { useArtistNavigation } from "./useArtistNavigation";
 export { useCoverLoader } from "./useCoverLoader";
 export { usePlaybackDetector } from "./usePlaybackDetector";
+export { usePlaybackProgressSlider } from "./usePlaybackProgressSlider";
 export { useVirtualListWhenLong } from "./useVirtualListWhenLong";
 export type { UseVirtualListWhenLongOptions } from "./useVirtualListWhenLong";
 export { useWindowControls } from "./useWindowControls";

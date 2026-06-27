@@ -25,7 +25,7 @@ watch(
   () => props.currentTime,
   (newTime) => {
     // 使用播放时间更新歌词
-    if (newTime !== undefined && props.isPlaying && playerStore.isLoadingSong === false) {
+    if (newTime !== undefined && playerStore.isLoadingSong === false) {
       // 如果有外部传入的时间，直接使用并更新当前行
       currentLyricTime.value = newTime;
       updateCurrentLine();

@@ -15,6 +15,7 @@ import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/son
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import { useArtistNavigation } from "@/composables/useArtistNavigation";
 import { useCoverLoader } from "@/composables/useCoverLoader";
+import { usePlaybackProgressSlider } from "@/composables/usePlaybackProgressSlider";
 import { useArtistStore } from "@/stores/artistStore";
 import { useOnlineMusicStore } from "@/stores/onlineMusicStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
@@ -41,8 +42,6 @@ const emit = defineEmits([
 ]);
 
 const volume = ref(50);
-const sliderValue = ref(0);
-const isDragging = ref(false);
 const artistStore = useArtistStore();
 const onlineStore = useOnlineMusicStore();
 const localStore = useLocalMusicStore();
@@ -121,31 +120,18 @@ watch(volume, () => {
   handleVolumeChange();
 });
 
-function formatTime(ms: number): string {
-  if (!ms || ms <= 0) return "0:00";
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-}
-
-const currentTimeDisplay = computed(() => formatTime(props.currentPlayTime));
-const durationDisplay = computed(() => formatTime(props.currentTrackDuration));
-
-const progressPercent = computed(() => {
-  if (!props.currentTrackDuration || props.currentTrackDuration <= 0) return 0;
-  return (props.currentPlayTime / props.currentTrackDuration) * 100;
-});
-
-function handleProgressChange(value: number) {
-  const newPosition = Math.floor((value / 100) * props.currentTrackDuration);
-  emit("seek", newPosition);
-}
-
-watch(progressPercent, (newVal) => {
-  if (!isDragging.value) {
-    sliderValue.value = newVal;
-  }
+const {
+  sliderValue,
+  progressDisabled,
+  currentTimeDisplay,
+  durationDisplay,
+  handleProgressInput,
+  handleProgressChange,
+} = usePlaybackProgressSlider({
+  currentTime: () => props.currentPlayTime,
+  duration: () => props.currentTrackDuration,
+  hasTrack: () => Boolean(props.currentMusic || props.currentOnlineSong),
+  onSeek: (positionMs) => emit("seek", positionMs),
 });
 </script>
 
@@ -243,10 +229,9 @@ watch(progressPercent, (newVal) => {
           :min="0"
           :step="0.1"
           :show-tooltip="false"
-          :disabled="!currentMusic && !currentOnlineSong"
+          :disabled="progressDisabled"
           class="progress-slider"
-          @focus="isDragging = true"
-          @blur="isDragging = false"
+          @input="handleProgressInput"
           @change="handleProgressChange"
         />
         <span class="time-display">{{ durationDisplay }}</span>

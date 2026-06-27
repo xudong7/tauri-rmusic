@@ -7,20 +7,17 @@ import {
   Back,
   ArrowLeft,
   ArrowRight,
-  Sort,
-  Refresh,
-  RefreshRight,
   Headset,
   Minus,
   FullScreen,
   ScaleToOriginal,
   Close,
 } from "@element-plus/icons-vue";
-import type { SongInfo, MusicFile } from "@/types/model";
-import { PlayMode } from "@/types/model";
+import type { SongInfo, MusicFile, PlayMode } from "@/types/model";
 import LyricView from "@/components/feature/LyricView/LyricView.vue";
 import { useCoverLoader } from "@/composables/useCoverLoader";
 import { useArtistNavigation } from "@/composables/useArtistNavigation";
+import { usePlaybackProgressSlider } from "@/composables/usePlaybackProgressSlider";
 import {
   getDisplayName,
   extractArtistName,
@@ -59,62 +56,23 @@ const localStore = useLocalMusicStore();
 const isMacPlatform = ref(false);
 
 const volume = ref(50);
-const sliderValue = ref(0);
-const isDragging = ref(false);
-
-function formatTime(ms: number): string {
-  if (!ms || ms <= 0) return "0:00";
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-}
-
-const currentPlayTime = computed(() => props.currentTime ?? 0);
-const currentTimeDisplay = computed(() => formatTime(currentPlayTime.value));
-const durationDisplay = computed(() => formatTime(props.currentTrackDuration ?? 0));
-const progressPercent = computed(() => {
-  const duration = props.currentTrackDuration ?? 0;
-  if (!duration || duration <= 0) return 0;
-  return (currentPlayTime.value / duration) * 100;
-});
-
-function handleProgressChange(value: number) {
-  const duration = props.currentTrackDuration ?? 0;
-  const newPosition = Math.floor((value / 100) * duration);
-  emit("seek", newPosition);
-}
-
-watch(progressPercent, (newVal) => {
-  if (!isDragging.value) sliderValue.value = newVal;
-});
 
 watch(volume, () => {
   emit("volume-change", volume.value);
 });
 
-const playModeIcon = computed(() => {
-  const mode = props.playMode ?? PlayMode.SEQUENTIAL;
-  switch (mode) {
-    case PlayMode.REPEAT_ONE:
-      return RefreshRight;
-    case PlayMode.RANDOM:
-      return Refresh;
-    default:
-      return Sort;
-  }
-});
-
-const playModeTooltip = computed(() => {
-  const mode = props.playMode ?? PlayMode.SEQUENTIAL;
-  switch (mode) {
-    case PlayMode.REPEAT_ONE:
-      return t("playerBar.repeatOne");
-    case PlayMode.RANDOM:
-      return t("playerBar.random");
-    default:
-      return t("playerBar.sequential");
-  }
+const {
+  sliderValue,
+  progressDisabled,
+  currentTimeDisplay,
+  durationDisplay,
+  handleProgressInput,
+  handleProgressChange,
+} = usePlaybackProgressSlider({
+  currentTime: () => props.currentTime ?? 0,
+  duration: () => props.currentTrackDuration ?? 0,
+  hasTrack: () => Boolean(props.currentSong || props.currentMusic),
+  onSeek: (positionMs) => emit("seek", positionMs),
 });
 
 onMounted(() => {
@@ -399,9 +357,9 @@ watch(
             :min="0"
             :step="0.1"
             :show-tooltip="false"
+            :disabled="progressDisabled"
             class="progress-slider"
-            @focus="isDragging = true"
-            @blur="isDragging = false"
+            @input="handleProgressInput"
             @change="handleProgressChange"
           />
           <span class="time-display">{{ durationDisplay }}</span>

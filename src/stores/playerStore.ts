@@ -35,8 +35,8 @@ export const usePlayerStore = defineStore("player", () => {
   );
 
   const currentTrackDuration = computed(() => {
-    if (currentOnlineSong.value?.duration) return currentOnlineSong.value.duration;
     if (currentTrackDurationMs.value > 0) return currentTrackDurationMs.value;
+    if (currentOnlineSong.value?.duration) return currentOnlineSong.value.duration;
     return 0;
   });
 
@@ -69,6 +69,30 @@ export const usePlayerStore = defineStore("player", () => {
     return null;
   });
 
+  function clampPlayTime(positionMs: number): number {
+    const duration = currentTrackDuration.value;
+    const safePosition = Math.max(0, positionMs || 0);
+    return duration > 0 ? Math.min(safePosition, duration) : safePosition;
+  }
+
+  function resetProgressState() {
+    currentPlayTime.value = 0;
+    currentTrackDurationMs.value = 0;
+    playStartTimestamp = 0;
+  }
+
+  function updateProgressFromBackend(progress: {
+    position_ms: number;
+    duration_ms: number;
+    is_ended?: boolean;
+  }) {
+    if (progress.duration_ms > 0) {
+      currentTrackDurationMs.value = progress.duration_ms;
+    }
+    currentPlayTime.value = clampPlayTime(progress.position_ms);
+    playStartTimestamp = Date.now() - currentPlayTime.value;
+  }
+
   function startPlayTimeTracking() {
     stopPlayTimeTracking();
     const startOffset = currentPlayTime.value;
@@ -77,18 +101,12 @@ export const usePlayerStore = defineStore("player", () => {
       if (isPlaying.value) {
         const backendPos = await getProgress().catch(() => null);
         if (backendPos) {
-          currentPlayTime.value = backendPos.position_ms;
-          if (backendPos.is_ended && backendPos.position_ms < backendPos.duration_ms) {
-            currentTrackDurationMs.value = backendPos.position_ms;
-          } else if (backendPos.duration_ms > 0) {
-            currentTrackDurationMs.value = backendPos.duration_ms;
-          }
-          playStartTimestamp = Date.now() - backendPos.position_ms;
+          updateProgressFromBackend(backendPos);
         } else {
-          currentPlayTime.value = Date.now() - playStartTimestamp;
+          currentPlayTime.value = clampPlayTime(Date.now() - playStartTimestamp);
         }
       } else {
-        currentPlayTime.value = Date.now() - playStartTimestamp;
+        currentPlayTime.value = clampPlayTime(Date.now() - playStartTimestamp);
       }
     }, 500);
   }
@@ -96,7 +114,7 @@ export const usePlayerStore = defineStore("player", () => {
   function stopPlayTimeTracking() {
     if (playTimeUpdateInterval !== null) {
       if (isPlaying.value && playStartTimestamp !== 0) {
-        currentPlayTime.value = Date.now() - playStartTimestamp;
+        currentPlayTime.value = clampPlayTime(Date.now() - playStartTimestamp);
       }
       clearInterval(playTimeUpdateInterval);
       playTimeUpdateInterval = null;
@@ -110,8 +128,8 @@ export const usePlayerStore = defineStore("player", () => {
 
       isLoadingSong.value = true;
       isPlaying.value = false;
-      currentPlayTime.value = 0;
       stopPlayTimeTracking();
+      resetProgressState();
 
       currentMusic.value = music;
       currentOnlineSong.value = null;
@@ -133,8 +151,8 @@ export const usePlayerStore = defineStore("player", () => {
       ElMessage.error(`${i18n.global.t("errors.playFailed")}: ${error}`);
       isLoadingSong.value = false;
       isPlaying.value = false;
-      currentPlayTime.value = 0;
       stopPlayTimeTracking();
+      resetProgressState();
     }
   }
 
@@ -160,8 +178,8 @@ export const usePlayerStore = defineStore("player", () => {
 
       isLoadingSong.value = true;
       isPlaying.value = false;
-      currentPlayTime.value = 0;
       stopPlayTimeTracking();
+      resetProgressState();
 
       currentOnlineSong.value = song;
       currentMusic.value = null;
@@ -197,8 +215,8 @@ export const usePlayerStore = defineStore("player", () => {
       ElMessage.error(`${i18n.global.t("errors.playFailedOnline")}: ${error}`);
       isLoadingSong.value = false;
       isPlaying.value = false;
-      currentPlayTime.value = 0;
       stopPlayTimeTracking();
+      resetProgressState();
     }
   }
 
@@ -391,8 +409,7 @@ export const usePlayerStore = defineStore("player", () => {
   async function syncProgressFromBackend() {
     try {
       const progress = await getProgress();
-      currentPlayTime.value = progress.position_ms;
-      currentTrackDurationMs.value = progress.duration_ms;
+      updateProgressFromBackend(progress);
     } catch (error) {
       console.error("[播放控制] 获取进度失败:", error);
     }
@@ -406,11 +423,14 @@ export const usePlayerStore = defineStore("player", () => {
         return;
       }
       if (result.success) {
-        currentPlayTime.value = positionMs;
-        playStartTimestamp = Date.now() - positionMs;
+        currentPlayTime.value = clampPlayTime(positionMs);
+        playStartTimestamp = Date.now() - currentPlayTime.value;
+      } else {
+        await syncProgressFromBackend();
       }
     } catch (error) {
       console.error("[播放控制] 跳转失败:", error);
+      await syncProgressFromBackend();
     }
   }
 

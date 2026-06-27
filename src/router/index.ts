@@ -1,4 +1,9 @@
-import { createRouter, createWebHistory } from "vue-router";
+import {
+  createRouter,
+  createWebHistory,
+  type NavigationGuardNext,
+  type RouteLocationNormalized,
+} from "vue-router";
 import LocalMusic from "@/views/LocalMusicView.vue";
 import OnlineMusic from "@/views/OnlineMusicView.vue";
 import Artist from "@/views/ArtistView.vue";
@@ -21,7 +26,11 @@ const routes = [
     path: "/playlist/new",
     name: "PlaylistNew",
     component: PlaylistView,
-    beforeEnter: (_to, _from, next) => {
+    beforeEnter: (
+      _to: RouteLocationNormalized,
+      _from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
       const store = usePlaylistStore();
       const list = store.createPlaylist("");
       next({ path: `/playlist/${list.id}`, replace: true });

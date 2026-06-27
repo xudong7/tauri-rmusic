@@ -38,10 +38,15 @@ export interface PlaybackProgress {
   is_ended: boolean;
 }
 
+export interface SeekResult {
+  success: boolean;
+  should_play_next: boolean;
+}
+
 export async function getProgress(): Promise<PlaybackProgress> {
   return await invokeCommand("get_progress");
 }
 
-export async function seekTo(positionMs: number): Promise<void> {
+export async function seekTo(positionMs: number): Promise<SeekResult> {
   return await invokeCommand("seek_to", { positionMs });
 }
