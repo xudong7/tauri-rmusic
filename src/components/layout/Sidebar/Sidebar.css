@@ -1,14 +1,13 @@
 /* ---------- 侧边栏容器 ---------- */
 .sidebar {
-  flex: 0 0 160px;
-  width: 160px;
-  min-width: 160px;
+  flex: 0 0 var(--app-sidebar-width, 160px);
+  width: var(--app-sidebar-width, 160px);
+  min-width: var(--app-sidebar-width, 160px);
   background: var(--sidebar-bg, var(--app-card-bg, var(--el-bg-color)));
   border-right: 1px solid
     var(--sidebar-border-color, var(--app-header-border, var(--el-border-color-lighter)));
   display: flex;
   flex-direction: column;
-  -webkit-app-region: drag;
   user-select: none;
   position: relative;
   z-index: 1;
@@ -45,7 +44,6 @@
     color 0.2s ease,
     background 0.2s ease,
     transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
-  -webkit-app-region: no-drag;
 }
 
 .nav-item:hover {
@@ -124,7 +122,6 @@ html.dark .playlist-section,
     color 0.2s ease,
     background 0.2s ease,
     opacity 0.2s ease;
-  -webkit-app-region: no-drag;
 }
 
 .playlist-section-title:hover {
@@ -232,4 +229,25 @@ html.dark .playlist-section,
 /* 播放列表项无左侧主色条，用背景区分即可 */
 .nav-item-playlist.is-active::before {
   display: none;
+}
+
+@media (max-width: 960px) {
+  .sidebar-nav {
+    padding: 12px 6px 14px;
+  }
+
+  .nav-item {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .playlist-section {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  .nav-label,
+  .nav-item-playlist .nav-label {
+    font-size: 12px;
+  }
 }

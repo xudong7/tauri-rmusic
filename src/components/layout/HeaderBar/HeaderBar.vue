@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted } from "vue";
+import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   Close,
@@ -12,7 +12,9 @@ import {
 } from "@element-plus/icons-vue";
 import { ViewMode } from "@/types/model";
 import { useWindowControls } from "@/composables/useWindowControls";
+import { useWindowDrag } from "@/composables/useWindowDrag";
 import { useSearchHistoryStore } from "@/stores/searchHistoryStore";
+import { usePlatform } from "@/composables/usePlatform";
 
 const { t } = useI18n();
 const searchHistoryStore = useSearchHistoryStore();
@@ -27,20 +29,15 @@ const emit = defineEmits(["search"]);
 const searchKeyword = ref("");
 const showHistoryDropdown = ref(false);
 const searchWrapperRef = ref<HTMLElement | null>(null);
-const isMacPlatform = ref(false);
 /** 失焦后延迟关闭历史面板，避免点击历史项时误关 */
 let blurTimer: ReturnType<typeof setTimeout> | null = null;
 
-onMounted(() => {
-  // 检测 macOS 平台
-  // 优先使用 userAgentData，fallback 到 userAgent
-  const ua = navigator.userAgent;
-  isMacPlatform.value = /Mac|iPhone|iPad|iPod/i.test(ua);
-});
+const { isMacPlatform } = usePlatform();
 
 const { isMaximized, minimize, toggleMaximize, close } = useWindowControls({
   onClose: "hide",
 });
+const { startWindowDrag } = useWindowDrag();
 const maximizeIcon = computed(() => (isMaximized.value ? ScaleToOriginal : FullScreen));
 const historyList = computed(() => searchHistoryStore.getHistory(props.viewMode));
 
@@ -111,7 +108,12 @@ function clearHistory(e: Event) {
 <template>
   <div
     class="header-bar"
-    :class="{ 'is-maximized': isMaximized, 'is-dark-mode': isDarkMode }"
+    :class="{
+      'is-maximized': isMaximized,
+      'is-dark-mode': isDarkMode,
+      'is-mac-platform': isMacPlatform,
+    }"
+    @mousedown="startWindowDrag"
   >
     <div class="header-left" />
     <div class="header-center">

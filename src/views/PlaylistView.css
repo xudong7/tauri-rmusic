@@ -4,6 +4,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-width: 0;
 }
 
 .list-header {
@@ -13,6 +14,7 @@
   margin-bottom: var(--app-spacing);
   min-height: 44px;
   flex-shrink: 0;
+  gap: 16px;
 }
 
 .header-left {
@@ -55,13 +57,22 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .header-action-btn {
   padding: var(--list-header-btn-padding, 4px 8px);
+  background: var(--app-button-bg);
+  border-color: var(--app-button-border);
+  box-shadow: var(--app-button-shadow);
 }
 
-.header-action-btn .el-icon {
+.header-action-btn:hover {
+  background: var(--app-button-hover-bg);
+  box-shadow: var(--app-button-hover-shadow);
+}
+
+:deep(.header-action-btn .el-icon) {
   font-size: var(--list-header-icon-size, 16px);
 }
 
@@ -71,15 +82,20 @@
   gap: 2px;
 }
 
-.select-actions .el-button {
-  padding: 4px 8px;
+:deep(.select-actions .el-button) {
+  height: var(--app-icon-btn-sm);
+  padding: 0 10px;
   font-size: 13px;
+  color: var(--el-text-color-secondary);
+  background: transparent;
+  border-color: transparent;
 }
 
 .batch-remove-btn {
   margin-left: 8px;
   padding-left: 10px;
   padding-right: 12px;
+  box-shadow: var(--app-button-shadow);
 }
 
 .list-row.is-selected {
@@ -107,6 +123,7 @@
 
 .list-rows {
   padding: 0 4px 12px;
+  min-width: 0;
 }
 
 .list-row {
@@ -122,12 +139,12 @@
   box-sizing: border-box;
   transition:
     background 0.2s ease,
-    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow 0.2s ease;
 }
 
 .list-row:hover {
   background: var(--hover-bg-color);
-  transform: translateX(2px);
+  box-shadow: inset 0 0 0 1px var(--el-border-color-lighter);
 }
 
 .list-row.is-current {
@@ -152,16 +169,48 @@
   flex-shrink: 0;
 }
 
-.col-play .el-button,
-.col-actions .el-button {
-  width: var(--list-row-btn-size, 34px);
-  height: var(--list-row-btn-size, 34px);
+.col-cover {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--app-radius-sm);
 }
 
-.col-play .el-button:not(.el-button--primary):hover {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary-light-5);
-  background: var(--hover-bg-color);
+:deep(.col-play .el-button),
+:deep(.col-actions .el-button) {
+  width: var(--list-row-btn-size, var(--app-icon-btn-md));
+  height: var(--list-row-btn-size, var(--app-icon-btn-md));
+  border: 1px solid transparent;
+  color: var(--app-icon-button-color);
+  background: transparent;
+  transition:
+    background var(--app-control-transition),
+    border-color var(--app-control-transition),
+    color var(--app-control-transition),
+    box-shadow var(--app-control-transition),
+    transform var(--app-control-transition);
+}
+
+:deep(.col-play .el-button:not(.el-button--primary):hover) {
+  color: var(--app-icon-button-hover-color);
+  border-color: var(--app-button-border);
+  background: var(--app-icon-button-hover-bg);
+}
+
+:deep(.col-play .el-button.el-button--primary) {
+  background: var(--app-play-button-bg);
+  border-color: transparent;
+  color: var(--app-play-button-color);
+  box-shadow: var(--app-play-button-shadow);
+}
+
+:deep(.col-actions .el-button:hover) {
+  color: var(--app-icon-button-hover-color);
+  border-color: var(--app-button-border);
+  background: var(--app-icon-button-hover-bg);
 }
 
 .col-actions {
@@ -170,7 +219,8 @@
   transition: opacity 0.2s ease;
 }
 
-.list-row:hover .col-actions {
+.list-row:hover .col-actions,
+.list-row:focus-within .col-actions {
   opacity: 1;
   pointer-events: auto;
 }
@@ -183,6 +233,10 @@
 .cover-img {
   width: 44px;
   height: 44px;
+  max-width: 44px;
+  max-height: 44px;
+  display: block;
+  flex: 0 0 44px;
   border-radius: var(--app-radius-sm);
   object-fit: cover;
   transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
@@ -195,6 +249,9 @@
 .cover-placeholder {
   width: 44px;
   height: 44px;
+  max-width: 44px;
+  max-height: 44px;
+  flex: 0 0 44px;
   border-radius: var(--app-radius-sm);
   background: var(--el-fill-color);
   display: flex;
@@ -225,4 +282,34 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+@media (hover: none) {
+  .col-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+@media (max-width: 960px) {
+  .list-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .list-row {
+    gap: 10px;
+    padding: 10px 8px;
+  }
+
+  .name-input {
+    width: min(180px, 100%);
+  }
 }

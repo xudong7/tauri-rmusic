@@ -16,6 +16,8 @@
         "title": "rmusic",
         "width": 1200,
         "height": 1000,
+        "minWidth": 900,
+        "minHeight": 640,
         "decorations": false,
         "center": true,
         "shadow": true,

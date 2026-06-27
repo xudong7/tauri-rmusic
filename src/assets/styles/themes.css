@@ -30,6 +30,15 @@ html {
   --app-spacing-sm: 8px;
   --app-spacing-lg: 24px;
   --app-spacing-xl: 28px;
+  --app-content-padding: 28px;
+  --app-content-padding-compact: 16px;
+
+  /* 主布局尺寸 */
+  --app-header-height: 56px;
+  --app-player-height: 64px;
+  --app-sidebar-width: 160px;
+  --app-sidebar-width-compact: 136px;
+  --app-search-max-width: 320px;
 
   /* 毛玻璃与阴影 */
   --app-glass-blur: 16px;
@@ -48,12 +57,49 @@ html {
   --el-color-primary-dark-2: #4a6b81;
 
   /* 侧边栏宽度（供 Message 等在主内容区内居中） */
-  --sidebar-width: 160px;
+  --sidebar-width: var(--app-sidebar-width);
 
   /* 列表页（Library / Playlist）统一：标题栏按钮与行内按钮 */
   --list-header-btn-padding: 4px 8px;
   --list-header-icon-size: 16px;
   --list-row-btn-size: 34px;
+
+  /* 按钮与控件：macOS / Apple Music 风格 */
+  --app-button-height: 32px;
+  --app-button-padding-x: 13px;
+  --app-icon-btn-sm: 28px;
+  --app-icon-btn-md: 32px;
+  --app-icon-btn-lg: 40px;
+  --app-play-btn-sm: 34px;
+  --app-play-btn-lg: 56px;
+  --app-button-radius: var(--app-radius-full);
+  --app-control-transition: 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  --app-button-bg: rgba(255, 255, 255, 0.58);
+  --app-button-border: rgba(24, 33, 42, 0.08);
+  --app-button-hover-bg: rgba(255, 255, 255, 0.9);
+  --app-button-active-bg: rgba(235, 239, 243, 0.92);
+  --app-button-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --app-button-hover-shadow: 0 5px 16px rgba(15, 23, 42, 0.1);
+  --app-icon-button-bg: transparent;
+  --app-icon-button-color: var(--el-text-color-secondary);
+  --app-icon-button-hover-bg: rgba(94, 125, 154, 0.1);
+  --app-icon-button-hover-color: var(--el-color-primary);
+  --app-play-button-bg: var(--el-color-primary);
+  --app-play-button-color: #fff;
+  --app-play-button-shadow: 0 6px 18px rgba(74, 107, 129, 0.18);
+  --app-play-button-hover-shadow: 0 10px 24px rgba(74, 107, 129, 0.24);
+  --app-slider-track-bg: rgba(20, 29, 38, 0.08);
+  --app-slider-fill-bg: linear-gradient(
+    90deg,
+    var(--el-color-primary),
+    var(--el-color-primary-light-3, var(--el-color-primary))
+  );
+  --app-slider-thumb-size: 8px;
+  --app-slider-thumb-bg: #fff;
+  --app-slider-thumb-border: rgba(91, 124, 150, 0.38);
+  --app-slider-thumb-shadow:
+    0 1px 4px rgba(15, 23, 42, 0.16),
+    0 0 0 1px rgba(255, 255, 255, 0.55);
 }
 
 /* ---------- 亮色主题 ---------- */
@@ -171,6 +217,21 @@ html.dark {
   --default-button-active-bg: rgba(106, 158, 200, 0.16);
   --default-button-active-text: #6a9ec8;
   --default-button-active-border: #6a9ec8;
+  --app-button-bg: rgba(255, 255, 255, 0.06);
+  --app-button-border: rgba(255, 255, 255, 0.09);
+  --app-button-hover-bg: rgba(255, 255, 255, 0.1);
+  --app-button-active-bg: rgba(255, 255, 255, 0.13);
+  --app-button-shadow: none;
+  --app-button-hover-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+  --app-icon-button-hover-bg: rgba(138, 173, 208, 0.13);
+  --app-play-button-shadow: 0 8px 22px rgba(53, 92, 125, 0.3);
+  --app-play-button-hover-shadow: 0 12px 28px rgba(53, 92, 125, 0.38);
+  --app-slider-track-bg: rgba(255, 255, 255, 0.12);
+  --app-slider-thumb-bg: color-mix(in srgb, var(--el-color-primary) 30%, #fff);
+  --app-slider-thumb-border: rgba(255, 255, 255, 0.2);
+  --app-slider-thumb-shadow:
+    0 1px 5px rgba(0, 0, 0, 0.34),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 /* ---------- 暖色主题：米色/奶油色系 ---------- */
@@ -198,8 +259,8 @@ html.theme-warm {
   --el-mask-color: rgba(61, 56, 50, 0.12);
   color-scheme: light;
 
-  --app-page-bg: #f5efeb;
-  --app-card-bg: #fffbf9;
+  --app-page-bg: #f4f0ed;
+  --app-card-bg: #fffdfb;
   --header-glass-bg: rgba(255, 251, 249, 0.92);
   --player-glass-bg: rgba(255, 251, 249, 0.95);
   --header-bg-color: var(--header-glass-bg);
@@ -208,7 +269,7 @@ html.theme-warm {
   --app-header-shadow: 0 1px 3px rgba(61, 56, 50, 0.06);
 
   /* 侧栏：与主区同色系 */
-  --sidebar-bg: #ebe6e2;
+  --sidebar-bg: #ede7e2;
   --sidebar-border-color: rgba(61, 56, 50, 0.08);
 
   --hover-bg-color: rgba(125, 110, 92, 0.04);
@@ -246,12 +307,122 @@ html.theme-warm {
   --default-button-active-bg: rgba(138, 128, 112, 0.1);
   --default-button-active-text: #6a6050;
   --default-button-active-border: rgba(138, 128, 112, 0.4);
+  --app-button-bg: rgba(255, 253, 251, 0.66);
+  --app-button-border: rgba(61, 56, 50, 0.1);
+  --app-button-hover-bg: rgba(255, 253, 251, 0.94);
+  --app-button-active-bg: rgba(235, 229, 222, 0.9);
+  --app-icon-button-hover-bg: rgba(138, 128, 112, 0.1);
+  --app-icon-button-hover-color: #7a7060;
+  --app-play-button-shadow: 0 6px 18px rgba(91, 78, 62, 0.18);
+  --app-play-button-hover-shadow: 0 10px 24px rgba(91, 78, 62, 0.24);
+  --app-slider-track-bg: rgba(61, 56, 50, 0.1);
+  --app-slider-thumb-border: rgba(138, 128, 112, 0.32);
+}
+
+@media (max-width: 960px) {
+  :root {
+    --app-content-padding: var(--app-content-padding-compact);
+    --app-sidebar-width: var(--app-sidebar-width-compact);
+    --sidebar-width: var(--app-sidebar-width-compact);
+    --app-search-max-width: 280px;
+  }
 }
 
 /* ---------- 按钮组件（Element Plus 映射）---------- */
 .el-button {
   --el-button-hover-bg-color: var(--hover-bg-color, rgba(255, 255, 255, 0.1));
   --el-button-hover-text-color: var(--el-color-primary);
+  height: var(--app-button-height);
+  border-radius: var(--app-button-radius) !important;
+  font-weight: 500;
+  letter-spacing: 0;
+  box-shadow: none;
+  transition:
+    background-color var(--app-control-transition),
+    border-color var(--app-control-transition),
+    color var(--app-control-transition),
+    box-shadow var(--app-control-transition),
+    transform var(--app-control-transition);
+}
+
+.el-button:not(.is-circle):not(.is-link):not(.is-text) {
+  padding-left: var(--app-button-padding-x);
+  padding-right: var(--app-button-padding-x);
+}
+
+.el-button.is-circle {
+  width: var(--app-icon-btn-md);
+  height: var(--app-icon-btn-md);
+  padding: 0;
+}
+
+.el-button--small.is-circle {
+  width: var(--app-icon-btn-sm);
+  height: var(--app-icon-btn-sm);
+}
+
+.el-button:not(.is-disabled):hover {
+  transform: translateY(-1px);
+}
+
+.el-button:not(.is-disabled):active {
+  transform: translateY(0);
+}
+
+.el-button.is-link,
+.el-button.is-text {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.el-button.is-link:hover,
+.el-button.is-text:hover {
+  background: var(--app-icon-button-hover-bg);
+}
+
+.el-slider__runway {
+  height: 3px;
+  border-radius: var(--app-radius-full);
+  background: var(--app-slider-track-bg);
+  transition:
+    height var(--app-control-transition),
+    background-color var(--app-control-transition);
+}
+
+.el-slider__bar {
+  height: 100%;
+  border-radius: var(--app-radius-full);
+  background: var(--app-slider-fill-bg);
+}
+
+.el-slider__button-wrapper {
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  transform: translate(-50%, -50%);
+}
+
+.el-slider__button {
+  width: var(--app-slider-thumb-size);
+  height: var(--app-slider-thumb-size);
+  box-sizing: border-box;
+  border: 1px solid var(--app-slider-thumb-border);
+  background: var(--app-slider-thumb-bg);
+  box-shadow: var(--app-slider-thumb-shadow);
+  transition:
+    transform var(--app-control-transition),
+    box-shadow var(--app-control-transition);
+}
+
+.el-slider:hover .el-slider__runway {
+  height: 4px;
+}
+
+.el-slider:hover .el-slider__button,
+.el-slider__button:hover,
+.el-slider__button.dragging {
+  transform: scale(1.16);
 }
 
 .el-button--primary {

@@ -10,20 +10,34 @@
   flex-direction: column;
   overflow: hidden;
   color: #fff;
-  background: #000;
+  background:
+    radial-gradient(circle at 26% 24%, rgba(118, 153, 191, 0.24), transparent 34%),
+    radial-gradient(circle at 78% 22%, rgba(169, 119, 143, 0.16), transparent 30%),
+    linear-gradient(135deg, #071015 0%, #090b0f 46%, #120f13 100%);
+  --immersive-shell-padding-x: clamp(28px, 5vw, 88px);
+  --immersive-shell-padding-bottom: clamp(24px, 5vh, 56px);
+  --immersive-content-gap: clamp(40px, 7vw, 104px);
+  --immersive-cover-size: clamp(270px, min(32vw, 52vh), 380px);
+  --immersive-lyrics-height: clamp(260px, 42vh, 390px);
+  --immersive-titlebar-height: 44px;
+  user-select: none;
 }
 
 /* 动态背景 */
 .background-cover {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: -40px;
+  left: -40px;
+  width: calc(100% + 80px);
+  height: calc(100% + 80px);
   z-index: 0;
   background-size: cover;
   background-position: center;
-  transition: background-image 0.6s ease;
+  opacity: 0.78;
+  transform: scale(1.03);
+  transition:
+    background-image 0.6s ease,
+    opacity 0.3s ease;
 }
 
 .background-cover::before {
@@ -35,9 +49,9 @@
   height: 100%;
   background: linear-gradient(
     135deg,
-    rgba(0, 0, 0, 0.7) 0%,
-    rgba(0, 0, 0, 0.5) 50%,
-    rgba(0, 0, 0, 0.8) 100%
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(0, 0, 0, 0.12) 48%,
+    rgba(0, 0, 0, 0.28) 100%
   );
 }
 
@@ -50,47 +64,87 @@
   height: 100%;
   z-index: 1;
   background: transparent;
+  pointer-events: none;
+}
+
+.immersive-titlebar-drag-region {
+  position: absolute;
+  inset: 0 0 auto;
+  height: var(--immersive-titlebar-height);
+  z-index: 8;
+  pointer-events: auto;
 }
 
 /* 顶部控制栏 */
 .top-section {
-  position: relative;
+  position: absolute;
+  top: 12px;
+  left: 20px;
+  right: 20px;
   z-index: 10;
-  padding: 12px 20px;
+  padding: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  pointer-events: none;
+}
+
+.immersive-view.is-mac-platform .top-section {
+  top: 10px;
+  left: 20px;
+  right: 18px;
+  justify-content: flex-end;
 }
 
 /* 返回按钮 */
 .back-btn {
-  background: rgba(255, 255, 255, 0.1) !important;
-  border: none !important;
-  color: rgba(255, 255, 255, 0.9) !important;
-  width: 32px;
-  height: 32px;
+  pointer-events: auto;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: rgba(255, 255, 255, 0.58) !important;
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px !important;
+  box-shadow: none;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .back-btn:hover {
-  background: rgba(255, 255, 255, 0.2) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+  transform: none;
+}
+
+.back-btn:active {
+  background: rgba(255, 255, 255, 0.14) !important;
+  color: #fff !important;
 }
 
 /* 窗口控制按钮 */
 .window-controls {
   display: flex;
   gap: 6px;
+  pointer-events: auto;
 }
 
 .window-controls .el-button {
-  background: rgba(255, 255, 255, 0.1) !important;
-  border: none !important;
-  color: rgba(255, 255, 255, 0.9) !important;
-  width: 32px;
-  height: 32px;
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  color: rgba(255, 255, 255, 0.86) !important;
+  width: var(--app-icon-btn-md);
+  height: var(--app-icon-btn-md);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .window-controls .el-button:hover {
-  background: rgba(255, 255, 255, 0.2) !important;
+  background: rgba(255, 255, 255, 0.22) !important;
+  color: #fff !important;
 }
 
 .window-controls .el-button:nth-child(3):hover {
@@ -102,13 +156,20 @@
   position: relative;
   z-index: 5;
   flex: 1;
-  display: flex;
-  flex-direction: row;
+  min-height: 0;
+  display: grid;
+  grid-template-columns:
+    minmax(230px, var(--immersive-cover-size))
+    minmax(260px, 430px);
   align-items: center;
   justify-content: center;
-  padding: 0 80px;
+  align-content: center;
+  padding:
+    clamp(28px, 6vh, 64px)
+    var(--immersive-shell-padding-x)
+    var(--immersive-shell-padding-bottom);
   overflow: hidden;
-  gap: 100px;
+  gap: var(--immersive-content-gap);
 }
 
 /* 左侧区域：封面 + 控制 */
@@ -116,15 +177,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
-  flex-shrink: 0;
-  width: 380px;
+  justify-self: center;
+  gap: clamp(12px, 2vh, 22px);
+  width: min(100%, var(--immersive-cover-size));
+  min-width: 0;
 }
 
 /* 封面容器 */
 .cover-container {
-  width: 380px;
-  height: 380px;
+  width: var(--immersive-cover-size);
+  height: var(--immersive-cover-size);
+  max-width: 100%;
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
@@ -157,7 +220,8 @@
 .song-info {
   text-align: center;
   width: 100%;
-  max-width: 380px;
+  max-width: var(--immersive-cover-size);
+  min-width: 0;
 }
 
 .song-title {
@@ -192,20 +256,28 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 32px;
-  margin-top: 8px;
+  gap: clamp(24px, 4vw, 36px);
+  margin-top: 2px;
 }
 
 .controls .el-button {
-  border: none;
-  height: 40px;
-  width: 40px;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.85);
+  border: 1px solid transparent !important;
+  height: var(--app-icon-btn-lg);
+  width: var(--app-icon-btn-lg);
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.72) !important;
+  transition:
+    background var(--app-control-transition),
+    border-color var(--app-control-transition),
+    color var(--app-control-transition),
+    transform var(--app-control-transition);
 }
 
 .controls .el-button:hover {
-  color: #fff;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: #fff !important;
+  transform: translateY(-1px);
 }
 
 /* 播放/暂停按钮 */
@@ -213,9 +285,17 @@
   background-color: #fff !important;
   border-color: #fff !important;
   color: #000 !important;
-  height: 56px !important;
-  width: 56px !important;
+  height: var(--app-play-btn-lg) !important;
+  width: var(--app-play-btn-lg) !important;
   font-size: 20px;
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.42);
+}
+
+.controls .el-button--primary:hover {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  transform: translateY(-1px) scale(1.02);
 }
 
 /* 进度条 */
@@ -223,9 +303,9 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: 20px;
+  margin-top: 6px;
   width: 100%;
-  max-width: 380px;
+  max-width: var(--immersive-cover-size);
 }
 
 .immersive-progress .time-display {
@@ -242,41 +322,73 @@
 .immersive-progress .progress-slider ::deep(.el-slider__runway) {
   height: 3px;
   background-color: rgba(255, 255, 255, 0.2);
+  border-radius: var(--app-radius-full, 9999px);
+  transition:
+    height 0.2s ease,
+    background-color 0.2s ease;
 }
 
 .immersive-progress .progress-slider ::deep(.el-slider__bar) {
   height: 100%;
   background: #fff;
+  border-radius: var(--app-radius-full, 9999px);
+}
+
+.immersive-progress .progress-slider ::deep(.el-slider__button-wrapper) {
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  transform: translate(-50%, -50%);
 }
 
 .immersive-progress .progress-slider ::deep(.el-slider__button) {
-  width: 10px;
-  height: 10px;
-  border: 2px solid #fff;
-  background-color: #fff;
-  opacity: 0;
+  width: var(--app-slider-thumb-size);
+  height: var(--app-slider-thumb-size);
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.24),
+    0 0 0 1px rgba(255, 255, 255, 0.18);
+  opacity: 1;
+  transition:
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.18s ease;
 }
 
-.immersive-progress .progress-slider:hover ::deep(.el-slider__button) {
-  opacity: 1;
+.immersive-progress .progress-slider:hover ::deep(.el-slider__runway) {
+  height: 4px;
+  background-color: rgba(255, 255, 255, 0.24);
+}
+
+.immersive-progress .progress-slider:hover ::deep(.el-slider__button),
+.immersive-progress .progress-slider ::deep(.el-slider__button:hover),
+.immersive-progress .progress-slider ::deep(.el-slider__button.dragging) {
+  transform: scale(1.18);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.28),
+    0 0 0 2px rgba(255, 255, 255, 0.2);
 }
 
 /* 右侧区域：歌词 */
 .right-section {
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  height: 100%;
-  width: 380px;
-  max-width: 380px;
+  justify-self: start;
+  min-width: 0;
+  width: min(100%, 430px);
+  max-width: 420px;
+  height: var(--immersive-lyrics-height);
+  max-height: 100%;
 }
 
 /* 歌词容器 */
 .lyric-view-container {
   width: 100%;
-  height: 350px;
+  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -294,30 +406,114 @@
 }
 
 /* 响应式适配 */
-@media (max-width: 900px) {
+@media (max-width: 720px) {
+  .immersive-view {
+    --immersive-shell-padding-x: 22px;
+    --immersive-shell-padding-bottom: 20px;
+    --immersive-cover-size: clamp(178px, 35vh, 230px);
+    --immersive-lyrics-height: clamp(132px, 24vh, 180px);
+  }
+
   .content-section {
-    flex-direction: column;
-    padding: 20px;
-    gap: 32px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(120px, var(--immersive-lyrics-height));
+    padding:
+      clamp(38px, 6vh, 52px)
+      var(--immersive-shell-padding-x)
+      var(--immersive-shell-padding-bottom);
+    gap: clamp(12px, 2.2vh, 18px);
   }
 
   .left-section {
     width: 100%;
   }
 
-  .cover-container {
-    width: 280px;
-    height: 280px;
+  .song-title {
+    font-size: 18px;
   }
 
   .right-section {
     width: 100%;
-    max-width: 100%;
+    max-width: min(520px, 100%);
+    justify-self: center;
     padding-right: 0;
-    height: 250px;
+    height: var(--immersive-lyrics-height);
+  }
+}
+
+@media (max-height: 720px) {
+  .immersive-view {
+    --immersive-shell-padding-bottom: 20px;
+    --immersive-content-gap: clamp(28px, 5vw, 64px);
+    --immersive-cover-size: clamp(210px, min(30vw, 42vh), 290px);
+    --immersive-lyrics-height: clamp(220px, 38vh, 300px);
   }
 
-  .lyric-view-container {
-    height: 200px;
+  .content-section {
+    align-items: center;
+    padding-top: clamp(28px, 5vh, 40px);
+  }
+
+  .left-section {
+    gap: 10px;
+  }
+
+  .controls .el-button--primary {
+    height: 52px !important;
+    width: 52px !important;
+  }
+
+  .immersive-progress {
+    margin-top: 2px;
+  }
+}
+
+@media (max-width: 880px) and (max-height: 720px) {
+  .immersive-view {
+    --immersive-shell-padding-x: 24px;
+    --immersive-content-gap: clamp(24px, 4vw, 36px);
+  }
+
+  .content-section {
+    grid-template-columns:
+      minmax(200px, var(--immersive-cover-size))
+      minmax(230px, 360px);
+  }
+}
+
+@media (max-width: 720px) and (max-height: 720px) {
+  .immersive-view {
+    --immersive-cover-size: clamp(150px, 28vh, 188px);
+    --immersive-lyrics-height: clamp(112px, 22vh, 150px);
+  }
+
+  .immersive-view.is-mac-platform .top-section {
+    top: 10px;
+    right: 18px;
+  }
+
+  .content-section {
+    gap: 10px;
+  }
+
+  .left-section {
+    gap: 8px;
+  }
+
+  .controls {
+    margin-top: 0;
+  }
+
+  .immersive-progress {
+    margin-top: 8px;
+  }
+
+  .right-section {
+    height: var(--immersive-lyrics-height);
+  }
+
+  .song-title {
+    font-size: 17px;
+    margin-bottom: 4px;
   }
 }

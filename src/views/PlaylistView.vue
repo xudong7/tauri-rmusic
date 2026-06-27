@@ -434,4 +434,4 @@ watch(editingName, (v) => {
 });
 </script>
 
-<link rel="stylesheet" href="./PlaylistView.css" />
+<style scoped src="./PlaylistView.css"></style>

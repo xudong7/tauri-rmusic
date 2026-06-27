@@ -5,6 +5,7 @@ import zhCn from "element-plus/es/locale/lang/zh-cn";
 import en from "element-plus/es/locale/lang/en";
 import { ElConfigProvider } from "element-plus";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import HeaderBar from "./components/layout/HeaderBar/HeaderBar.vue";
 import Sidebar from "./components/layout/Sidebar/Sidebar.vue";
 import PlayerBar from "./components/feature/PlayerBar/PlayerBar.vue";
@@ -82,8 +83,20 @@ let unlistenTrayNext: (() => void) | null = null;
 let unlistenTrayPlay: (() => void) | null = null;
 let unlistenTrayPause: (() => void) | null = null;
 
+async function applyWindowSizeConstraints() {
+  try {
+    await getCurrentWindow().setSizeConstraints({
+      minWidth: 900,
+      minHeight: 640,
+    });
+  } catch (e) {
+    console.error("Set window size constraints error:", e);
+  }
+}
+
 onMounted(async () => {
   try {
+    await applyWindowSizeConstraints();
     await localStore.initializeLocalLibrary();
     await playlistStore.loadPlaylists();
     themeStore.initializeTheme();
@@ -180,6 +193,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
   width: 100%;
   overflow: hidden;
   color: var(--el-text-color-primary);
@@ -201,7 +215,7 @@ onUnmounted(() => {
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  padding: var(--app-spacing-xl, 28px);
+  padding: var(--app-content-padding, var(--app-spacing-xl, 28px));
   box-sizing: border-box;
 }
 
