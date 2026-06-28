@@ -6,18 +6,31 @@ export interface UseLocalCoverCacheOptions<T> {
   getFileName: (item: T) => string;
   getDefaultDirectory: () => string | null;
   concurrency?: number;
+  maxEntries?: number;
 }
 
 const DEFAULT_COVER_CONCURRENCY = 4;
+const DEFAULT_MAX_COVER_CACHE_ENTRIES = 300;
 
 export function useLocalCoverCache<T>(options: UseLocalCoverCacheOptions<T>) {
   const coverByKey = reactive<Record<string, string>>({});
   const queue: T[] = [];
   const pendingKeys = new Set<string>();
+  const cachedKeys: string[] = [];
   let running = 0;
 
   function normalizeKey(item: T): string {
     return String(options.getKey(item));
+  }
+
+  function setCachedCover(key: string, value: string) {
+    const maxEntries = options.maxEntries ?? DEFAULT_MAX_COVER_CACHE_ENTRIES;
+    if (coverByKey[key] === undefined) cachedKeys.push(key);
+    coverByKey[key] = value;
+    while (cachedKeys.length > maxEntries) {
+      const keyToDelete = cachedKeys.shift();
+      if (keyToDelete) delete coverByKey[keyToDelete];
+    }
   }
 
   function pumpQueue() {
@@ -37,9 +50,9 @@ export function useLocalCoverCache<T>(options: UseLocalCoverCacheOptions<T>) {
             options.getFileName(item),
             options.getDefaultDirectory
           );
-          coverByKey[key] = url || "";
+          setCachedCover(key, url || "");
         } catch {
-          coverByKey[key] = "";
+          setCachedCover(key, "");
         } finally {
           pendingKeys.delete(key);
           running--;
@@ -65,10 +78,18 @@ export function useLocalCoverCache<T>(options: UseLocalCoverCacheOptions<T>) {
     return coverByKey[normalizeKey(item)] ?? "";
   }
 
+  function clear() {
+    queue.length = 0;
+    pendingKeys.clear();
+    cachedKeys.length = 0;
+    for (const key of Object.keys(coverByKey)) delete coverByKey[key];
+  }
+
   return {
     coverByKey,
     getCover,
     schedule,
     scheduleMany,
+    clear,
   };
 }

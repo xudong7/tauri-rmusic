@@ -16,6 +16,15 @@ pub struct PlaybackProgress {
     pub is_ended: bool,
 }
 
+#[derive(Serialize, Debug)]
+pub struct PlaybackState {
+    pub position_ms: u64,
+    pub duration_ms: u64,
+    pub is_ended: bool,
+    pub is_paused: bool,
+    pub has_track: bool,
+}
+
 pub struct Music {
     pub event_sender: Sender<MusicState>,
     _stream: OutputStream,
@@ -39,11 +48,14 @@ pub enum MusicState {
 }
 
 impl Music {
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self, String> {
         let (event_sender, mut event_receiver) = broadcast::channel(100);
 
-        let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-        let sink = Arc::new(Mutex::new(Sink::try_new(&stream_handle).unwrap()));
+        let (_stream, stream_handle) =
+            OutputStream::try_default().map_err(|e| format!("init audio output: {}", e))?;
+        let sink = Arc::new(Mutex::new(
+            Sink::try_new(&stream_handle).map_err(|e| format!("init audio sink: {}", e))?,
+        ));
         let sink_clone = Arc::clone(&sink);
         let duration_clone = Arc::new(Mutex::new(0u64));
         let duration_for_spawn = Arc::clone(&duration_clone);
@@ -119,12 +131,12 @@ impl Music {
             }
         });
 
-        Self {
+        Ok(Self {
             event_sender,
             _stream,
             sink,
             current_duration_ms: duration_clone,
-        }
+        })
     }
 }
 
@@ -181,17 +193,32 @@ pub async fn get_progress(
     sink: tauri::State<'_, Arc<Mutex<Sink>>>,
     duration: tauri::State<'_, Arc<Mutex<u64>>>,
 ) -> Result<PlaybackProgress, String> {
+    let state = get_playback_state(sink, duration).await?;
+    Ok(PlaybackProgress {
+        position_ms: state.position_ms,
+        duration_ms: state.duration_ms,
+        is_ended: state.is_ended,
+    })
+}
+
+#[tauri::command]
+pub async fn get_playback_state(
+    sink: tauri::State<'_, Arc<Mutex<Sink>>>,
+    duration: tauri::State<'_, Arc<Mutex<u64>>>,
+) -> Result<PlaybackState, String> {
     let sink = sink.lock().await;
     let position = sink.get_pos();
     let position_ms = position.as_millis() as u64;
-
     let duration_ms = *duration.lock().await;
-    let is_ended = sink.empty() && position_ms > 0;
+    let has_track = duration_ms > 0 || !sink.empty() || position_ms > 0;
+    let is_ended = has_track && sink.empty() && position_ms > 0;
 
-    Ok(PlaybackProgress {
+    Ok(PlaybackState {
         position_ms,
         duration_ms,
         is_ended,
+        is_paused: sink.is_paused(),
+        has_track,
     })
 }
 

@@ -185,7 +185,7 @@ const {
           :disabled="!currentMusic && !currentOnlineSong"
         >
           <el-button
-            class="control-btn"
+            class="control-btn app-icon-button"
             :icon="ArrowLeft"
             :disabled="!currentMusic && !currentOnlineSong"
             @click="emit('previous')"
@@ -199,7 +199,7 @@ const {
           :disabled="!currentMusic && !currentOnlineSong"
         >
           <el-button
-            class="control-btn play-btn"
+            class="control-btn play-btn app-play-button"
             :icon="isPlaying ? VideoPause : VideoPlay"
             :disabled="!currentMusic && !currentOnlineSong"
             @click="emit('toggle-play')"
@@ -213,7 +213,7 @@ const {
           :disabled="!currentMusic && !currentOnlineSong"
         >
           <el-button
-            class="control-btn"
+            class="control-btn app-icon-button"
             :icon="ArrowRight"
             :disabled="!currentMusic && !currentOnlineSong"
             @click="emit('next')"
@@ -242,7 +242,7 @@ const {
     <div class="player-right">
       <el-tooltip :content="playModeTooltip" placement="top" effect="light">
         <el-button
-          class="play-mode-btn"
+          class="play-mode-btn app-icon-button"
           :class="{ 'is-active': true }"
           circle
           :icon="playModeIcon"

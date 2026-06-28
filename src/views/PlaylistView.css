@@ -230,7 +230,8 @@
   min-width: 0;
 }
 
-.cover-img {
+.cover-img,
+.col-cover .cover-image {
   width: 44px;
   height: 44px;
   max-width: 44px;
@@ -242,7 +243,8 @@
   transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.list-row:hover .cover-img {
+.list-row:hover .cover-img,
+.list-row:hover .col-cover .cover-image {
   transform: scale(1.03);
 }
 

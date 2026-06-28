@@ -473,6 +473,56 @@ html.theme-warm {
   --el-button-disabled-text-color: var(--el-text-color-placeholder);
 }
 
+/* ---------- 应用级控件类：供复杂组件复用 ---------- */
+.app-icon-button {
+  width: var(--app-icon-btn-md);
+  height: var(--app-icon-btn-md);
+  padding: 0;
+  border: 1px solid transparent !important;
+  border-radius: var(--app-radius-full) !important;
+  background: var(--app-icon-button-bg) !important;
+  color: var(--app-icon-button-color) !important;
+  transition:
+    background var(--app-control-transition),
+    border-color var(--app-control-transition),
+    color var(--app-control-transition),
+    transform var(--app-control-transition);
+}
+
+.app-icon-button:not(.is-disabled):hover {
+  background: var(--app-icon-button-hover-bg) !important;
+  border-color: var(--app-button-border) !important;
+  color: var(--app-icon-button-hover-color) !important;
+  transform: translateY(-1px);
+}
+
+.app-play-button {
+  width: var(--app-play-btn-sm);
+  height: var(--app-play-btn-sm);
+  padding: 0;
+  border: 0 !important;
+  border-radius: var(--app-radius-full) !important;
+  background: var(--app-play-button-bg) !important;
+  color: var(--app-play-button-color) !important;
+  box-shadow: var(--app-play-button-shadow);
+  transition:
+    transform var(--app-control-transition),
+    box-shadow var(--app-control-transition),
+    background var(--app-control-transition);
+}
+
+.app-play-button:not(.is-disabled):hover {
+  transform: translateY(-1px) scale(1.03);
+  box-shadow: var(--app-play-button-hover-shadow);
+}
+
+.app-list-row {
+  border-radius: var(--app-radius-md);
+  transition:
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
 /* ---------- 滚动条 ---------- */
 :root::-webkit-scrollbar,
 *::-webkit-scrollbar {

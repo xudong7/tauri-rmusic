@@ -43,6 +43,11 @@
   min-height: 0;
 }
 
+.list-scroll-virtual {
+  overflow: auto;
+  overflow-x: hidden;
+}
+
 .list-rows {
   padding: 0 4px 12px;
 }
@@ -81,7 +86,8 @@
   transform: translateY(-2px);
 }
 
-.artist-avatar {
+.artist-avatar,
+.artist-avatar-cover {
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -95,7 +101,8 @@
   transition: box-shadow 0.2s ease;
 }
 
-.artist-card:hover .artist-avatar {
+.artist-card:hover .artist-avatar,
+.artist-card:hover .artist-avatar-cover {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
 }
 
@@ -174,7 +181,8 @@
   flex-shrink: 0;
 }
 
-.cover-img {
+.cover-img,
+.col-cover .cover-image {
   width: 44px;
   height: 44px;
   border-radius: var(--app-radius-sm);
@@ -182,7 +190,8 @@
   transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.list-row:hover .cover-img {
+.list-row:hover .cover-img,
+.list-row:hover .col-cover .cover-image {
   transform: scale(1.03);
 }
 

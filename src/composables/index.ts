@@ -6,6 +6,7 @@ export { useCoverLoader } from "./useCoverLoader";
 export { useLocalCoverCache } from "./useLocalCoverCache";
 export type { UseLocalCoverCacheOptions } from "./useLocalCoverCache";
 export { usePlaybackDetector } from "./usePlaybackDetector";
+export { usePlaybackClock } from "./usePlaybackClock";
 export { usePlaybackProgressSlider } from "./usePlaybackProgressSlider";
 export { usePlatform } from "./usePlatform";
 export { useStorageThemeSync } from "./useStorageThemeSync";

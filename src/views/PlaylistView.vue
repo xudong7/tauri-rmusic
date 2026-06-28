@@ -130,10 +130,7 @@
               />
             </div>
             <div class="col-cover">
-              <img v-if="entry.coverUrl" :src="entry.coverUrl" class="cover-img" alt="" />
-              <div v-else class="cover-placeholder">
-                <el-icon><Headset /></el-icon>
-              </div>
+              <CoverImage :src="entry.coverUrl" alt="" :size="44" :radius="6" />
             </div>
             <div class="col-main">
               <div class="song-title" :class="{ 'is-playing': isCurrent(entry) }">
@@ -187,10 +184,7 @@
               />
             </div>
             <div class="col-cover">
-              <img v-if="entry.coverUrl" :src="entry.coverUrl" class="cover-img" alt="" />
-              <div v-else class="cover-placeholder">
-                <el-icon><Headset /></el-icon>
-              </div>
+              <CoverImage :src="entry.coverUrl" alt="" :size="44" :radius="6" />
             </div>
             <div class="col-main">
               <div class="song-title" :class="{ 'is-playing': isCurrent(entry) }">
@@ -224,7 +218,6 @@ import { useI18n } from "vue-i18n";
 import {
   CaretRight,
   VideoPause,
-  Headset,
   Minus,
   EditPen,
   CircleCheck,
@@ -236,6 +229,7 @@ import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useViewStore } from "@/stores/viewStore";
 import { ViewMode } from "@/types/model";
+import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 
 const { t } = useI18n();
 const route = useRoute();

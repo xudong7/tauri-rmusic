@@ -4,7 +4,6 @@ import { useI18n } from "vue-i18n";
 import {
   CaretRight,
   VideoPause,
-  Headset,
   Upload,
   Plus,
   CircleCheck,
@@ -15,6 +14,7 @@ import { ElMessage } from "element-plus";
 import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
 import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
 import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
+import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 
 const { t } = useI18n();
 const playlistStore = usePlaylistStore();
@@ -25,6 +25,27 @@ const selectedIds = ref<Set<number>>(new Set());
 const selectedFiles = computed(() =>
   props.musicFiles.filter((f) => selectedIds.value.has(f.id))
 );
+
+const displayInfoById = computed(() => {
+  const map = new Map<number, { title: string; artist: string }>();
+  for (const file of props.musicFiles) {
+    const displayName = getDisplayName(file.file_name);
+    map.set(file.id, {
+      title: extractSongTitle(displayName),
+      artist: extractArtistName(displayName) || t("common.unknownArtist"),
+    });
+  }
+  return map;
+});
+
+function getDisplayInfo(row: MusicFile) {
+  return (
+    displayInfoById.value.get(row.id) ?? {
+      title: getDisplayName(row.file_name),
+      artist: t("common.unknownArtist"),
+    }
+  );
+}
 
 function toggleSelectionMode() {
   selectionMode.value = !selectionMode.value;
@@ -255,26 +276,13 @@ const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight } =
             />
           </div>
           <div class="col-cover">
-            <img
-              v-if="coverById[row.id]"
-              :src="coverById[row.id]"
-              class="cover-img"
-              alt=""
-            />
-            <div v-else class="cover-placeholder">
-              <el-icon><Headset /></el-icon>
-            </div>
+            <CoverImage :src="coverById[row.id]" alt="" :size="44" :radius="6" />
           </div>
           <div class="col-main">
             <div class="song-title" :class="{ 'is-playing': isCurrentMusic(row) }">
-              {{ extractSongTitle(getDisplayName(row.file_name)) }}
+              {{ getDisplayInfo(row).title }}
             </div>
-            <div class="song-artist">
-              {{
-                extractArtistName(getDisplayName(row.file_name)) ||
-                t("common.unknownArtist")
-              }}
-            </div>
+            <div class="song-artist">{{ getDisplayInfo(row).artist }}</div>
           </div>
           <div v-if="!selectionMode" class="col-action">
             <el-dropdown
@@ -334,26 +342,13 @@ const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight } =
             />
           </div>
           <div class="col-cover">
-            <img
-              v-if="coverById[row.id]"
-              :src="coverById[row.id]"
-              class="cover-img"
-              alt=""
-            />
-            <div v-else class="cover-placeholder">
-              <el-icon><Headset /></el-icon>
-            </div>
+            <CoverImage :src="coverById[row.id]" alt="" :size="44" :radius="6" />
           </div>
           <div class="col-main">
             <div class="song-title" :class="{ 'is-playing': isCurrentMusic(row) }">
-              {{ extractSongTitle(getDisplayName(row.file_name)) }}
+              {{ getDisplayInfo(row).title }}
             </div>
-            <div class="song-artist">
-              {{
-                extractArtistName(getDisplayName(row.file_name)) ||
-                t("common.unknownArtist")
-              }}
-            </div>
+            <div class="song-artist">{{ getDisplayInfo(row).artist }}</div>
           </div>
           <div v-if="!selectionMode" class="col-action">
             <el-dropdown

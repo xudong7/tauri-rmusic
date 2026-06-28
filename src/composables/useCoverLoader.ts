@@ -1,4 +1,4 @@
-import { ref, computed, watchEffect } from "vue";
+import { ref, computed, watch } from "vue";
 import type { MusicFile, SongInfo } from "@/types/model";
 import { loadLocalCover } from "@/utils/coverUtils";
 import { DEFAULT_COVER_URL } from "@/constants";
@@ -9,20 +9,25 @@ export function useCoverLoader(args: {
   getDefaultDirectory: () => string | null;
 }) {
   const localCoverUrl = ref("");
+  let requestId = 0;
 
-  async function refreshLocalCover() {
+  const currentLocalFileName = computed(() => args.currentMusic()?.file_name ?? "");
+
+  async function refreshLocalCover(fileName = currentLocalFileName.value) {
     const music = args.currentMusic();
-    if (!music) {
+    const nextRequestId = ++requestId;
+    if (!music || !fileName) {
       localCoverUrl.value = "";
       return;
     }
-    localCoverUrl.value = await loadLocalCover(music.file_name, args.getDefaultDirectory);
+    const url = await loadLocalCover(fileName, args.getDefaultDirectory);
+    if (nextRequestId === requestId) {
+      localCoverUrl.value = url;
+    }
   }
 
-  watchEffect(() => {
-    // 仅当本地曲目变化时刷新本地封面
-    void args.currentMusic();
-    void refreshLocalCover();
+  watch(currentLocalFileName, (fileName) => void refreshLocalCover(fileName), {
+    immediate: true,
   });
 
   const coverUrl = computed(() => {

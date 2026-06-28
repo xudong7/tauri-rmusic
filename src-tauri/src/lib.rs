@@ -1,5 +1,8 @@
-use file::{download_music, get_default_music_dir, import_music, load_cover_and_lyric, scan_files};
-use music::{get_progress, seek_to, Music, MusicState};
+use file::{
+    download_music, get_default_music_dir, import_music, load_cover_and_lyric,
+    load_local_cover_path, load_local_lyric, scan_files,
+};
+use music::{get_playback_state, get_progress, seek_to, Music, MusicState};
 use netease::{
     get_artist_top_songs, get_song_cover, get_song_lyric, get_song_url, play_netease_song,
     search_online_mix, search_songs,
@@ -67,7 +70,13 @@ async fn is_sink_empty(sink: tauri::State<'_, Arc<Mutex<Sink>>>) -> Result<bool,
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let music = Music::new();
+    let music = match Music::new() {
+        Ok(music) => music,
+        Err(e) => {
+            eprintln!("Failed to initialize audio: {}", e);
+            return;
+        }
+    };
     tauri::Builder::default()
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::LaunchAgent,
@@ -91,7 +100,9 @@ pub fn run() {
         }))
         .setup(|app| {
             // setup the tray icon
-            setup_tray(app).unwrap();
+            if let Err(e) = setup_tray(app) {
+                eprintln!("Failed to setup tray: {}", e);
+            }
 
             // Get the main window - use "main" as the default window label
             let window = app
@@ -127,6 +138,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             is_sink_empty,
             handle_event,
+            get_playback_state,
             get_progress,
             seek_to,
             scan_files,
@@ -140,6 +152,8 @@ pub fn run() {
             download_music,
             get_song_lyric,
             load_cover_and_lyric,
+            load_local_cover_path,
+            load_local_lyric,
             get_song_cover,
             read_playlists,
             write_playlists

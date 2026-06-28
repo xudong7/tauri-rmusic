@@ -13,8 +13,10 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
   const searchKeyword = ref("");
   const currentPage = ref(1);
   const pageSize = ref(20);
+  let searchRequestId = 0;
 
   async function searchOnlineMusic(keyword: string, page = 1) {
+    const requestId = ++searchRequestId;
     try {
       if (page === 1) {
         onlineSongs.value = [];
@@ -32,6 +34,8 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
         pagesize: pageSize.value,
         artistLimit: 6,
       });
+
+      if (requestId !== searchRequestId) return;
 
       if (page === 1) {
         onlineSongs.value = result.songs;

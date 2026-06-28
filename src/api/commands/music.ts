@@ -38,6 +38,11 @@ export interface PlaybackProgress {
   is_ended: boolean;
 }
 
+export interface PlaybackState extends PlaybackProgress {
+  is_paused: boolean;
+  has_track: boolean;
+}
+
 export interface SeekResult {
   success: boolean;
   should_play_next: boolean;
@@ -45,6 +50,10 @@ export interface SeekResult {
 
 export async function getProgress(): Promise<PlaybackProgress> {
   return await invokeCommand("get_progress");
+}
+
+export async function getPlaybackState(): Promise<PlaybackState> {
+  return await invokeCommand("get_playback_state");
 }
 
 export async function seekTo(positionMs: number): Promise<SeekResult> {

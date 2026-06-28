@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, watch, computed } from "vue";
+import { onMounted, onUnmounted, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import zhCn from "element-plus/es/locale/lang/zh-cn";
 import en from "element-plus/es/locale/lang/en";
@@ -10,7 +10,6 @@ import PlayerBar from "./components/feature/PlayerBar/PlayerBar.vue";
 import ImmersiveView from "./components/feature/ImmersiveView/ImmersiveView.vue";
 import { ViewMode } from "./types/model";
 import { useAppKeyboardShortcuts } from "./composables/useAppKeyboardShortcuts";
-import { usePlaybackDetector } from "./composables/usePlaybackDetector";
 import { useStorageThemeSync } from "./composables/useStorageThemeSync";
 import { useTrayPlaybackEvents } from "./composables/useTrayPlaybackEvents";
 import { useWindowSizeConstraints } from "./composables/useWindowSizeConstraints";
@@ -31,10 +30,6 @@ const onlineStore = useOnlineMusicStore();
 const playerStore = usePlayerStore();
 const playlistStore = usePlaylistStore();
 
-const { start: detectorStart, stop: detectorStop } = usePlaybackDetector(
-  playerStore,
-  (d) => playerStore.getPlayStep(d)
-);
 const windowSizeConstraints = useWindowSizeConstraints({
   minWidth: 900,
   minHeight: 640,
@@ -53,20 +48,6 @@ const trayEvents = useTrayPlaybackEvents({
   onPlay: () => playerStore.syncPlaybackStateFromTray(true),
   onPause: () => playerStore.syncPlaybackStateFromTray(false),
 });
-
-const playbackState = computed(() => ({
-  hasTrack: playerStore.hasCurrentTrack,
-  isLoading: playerStore.isLoadingSong,
-}));
-
-watch(
-  playbackState,
-  (s) => {
-    if (s.hasTrack && !s.isLoading) detectorStart();
-    else detectorStop();
-  },
-  { immediate: true, deep: true }
-);
 
 function handleSearch(keyword: string) {
   if (viewStore.viewMode === ViewMode.LOCAL) localStore.searchLocalMusic(keyword);
@@ -92,7 +73,6 @@ onUnmounted(() => {
   themeSync.stop();
   trayEvents.stop();
   playerStore.stopPlayTimeTracking();
-  detectorStop();
 });
 </script>
 
