@@ -63,7 +63,8 @@ impl Music {
                             let sink_for_http = Arc::clone(&sink_clone);
                             let path_clone = path.clone();
 
-                            match online_play(&path_clone, sink_for_http, duration_for_state).await {
+                            match online_play(&path_clone, sink_for_http, duration_for_state).await
+                            {
                                 Ok(_) => println!("Begin play online song: {}", path_clone),
                                 Err(e) => eprintln!("Play online song error: {}", e),
                             }
@@ -74,7 +75,9 @@ impl Music {
                                     match Decoder::new(file) {
                                         Ok(source) => {
                                             let total_dur = source.total_duration();
-                                            let dur_ms = total_dur.map(|d: Duration| d.as_millis() as u64).unwrap_or(0);
+                                            let dur_ms = total_dur
+                                                .map(|d: Duration| d.as_millis() as u64)
+                                                .unwrap_or(0);
                                             {
                                                 let mut dur = duration_for_state.lock().await;
                                                 *dur = dur_ms;
@@ -125,7 +128,11 @@ impl Music {
     }
 }
 
-async fn online_play(url: &str, sink: Arc<Mutex<Sink>>, duration: Arc<Mutex<u64>>) -> Result<(), String> {
+async fn online_play(
+    url: &str,
+    sink: Arc<Mutex<Sink>>,
+    duration: Arc<Mutex<u64>>,
+) -> Result<(), String> {
     let client = netease::get_client()?;
     let response = client
         .get(url)
@@ -150,14 +157,16 @@ async fn online_play(url: &str, sink: Arc<Mutex<Sink>>, duration: Arc<Mutex<u64>
             return Err(format!("decode online song error: {}", e));
         }
     };
-    
+
     let total_dur = source.total_duration();
-    let dur_ms = total_dur.map(|d: Duration| d.as_millis() as u64).unwrap_or(0);
+    let dur_ms = total_dur
+        .map(|d: Duration| d.as_millis() as u64)
+        .unwrap_or(0);
     {
         let mut dur = duration.lock().await;
         *dur = dur_ms;
     }
-    
+
     let sink_lock = sink.lock().await;
     sink_lock.append(source);
     if sink_lock.is_paused() {
@@ -175,10 +184,10 @@ pub async fn get_progress(
     let sink = sink.lock().await;
     let position = sink.get_pos();
     let position_ms = position.as_millis() as u64;
-    
+
     let duration_ms = *duration.lock().await;
     let is_ended = sink.empty() && position_ms > 0;
-    
+
     Ok(PlaybackProgress {
         position_ms,
         duration_ms,

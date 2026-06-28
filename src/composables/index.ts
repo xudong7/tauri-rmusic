@@ -1,10 +1,17 @@
 /** 统一导出 composables，便于扩展与按需引入 */
+export { useAppKeyboardShortcuts } from "./useAppKeyboardShortcuts";
 export { useArtistNavigation } from "./useArtistNavigation";
+export { useCoverBrightness } from "./useCoverBrightness";
 export { useCoverLoader } from "./useCoverLoader";
+export { useLocalCoverCache } from "./useLocalCoverCache";
+export type { UseLocalCoverCacheOptions } from "./useLocalCoverCache";
 export { usePlaybackDetector } from "./usePlaybackDetector";
 export { usePlaybackProgressSlider } from "./usePlaybackProgressSlider";
 export { usePlatform } from "./usePlatform";
+export { useStorageThemeSync } from "./useStorageThemeSync";
+export { useTrayPlaybackEvents } from "./useTrayPlaybackEvents";
 export { useVirtualListWhenLong } from "./useVirtualListWhenLong";
 export type { UseVirtualListWhenLongOptions } from "./useVirtualListWhenLong";
 export { useWindowControls } from "./useWindowControls";
 export { useWindowDrag } from "./useWindowDrag";
+export { useWindowSizeConstraints } from "./useWindowSizeConstraints";

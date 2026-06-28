@@ -218,6 +218,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
 import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
 import { useI18n } from "vue-i18n";
 import {
@@ -230,7 +231,6 @@ import {
 } from "@element-plus/icons-vue";
 import type { PlaylistItem, MusicFile, SongInfo } from "@/types/model";
 import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
-import { loadLocalCover } from "@/utils/coverUtils";
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { usePlayerStore } from "@/stores/playerStore";
@@ -369,24 +369,19 @@ const resolvedItems = computed(() => {
   return result;
 });
 
-// 为本地项异步加载封面
-const coverByKey = ref<Record<string, string>>({});
+const { getCover, scheduleMany: scheduleLocalCoverLoadMany } =
+  useLocalCoverCache<ResolvedEntry>({
+    getKey: (entry) => entry.key,
+    getFileName: (entry) => (entry.item.type === "local" ? entry.item.file_name : ""),
+    getDefaultDirectory: () => localStore.getDefaultDirectory(),
+  });
+
 watch(
   resolvedItems,
   (items) => {
-    items.forEach((entry) => {
-      if (
-        entry.item.type === "local" &&
-        entry.musicFile &&
-        !coverByKey.value[entry.key]
-      ) {
-        loadLocalCover(entry.item.file_name, () => localStore.getDefaultDirectory()).then(
-          (url) => {
-            coverByKey.value[entry.key] = url ?? "";
-          }
-        );
-      }
-    });
+    scheduleLocalCoverLoadMany(
+      items.filter((entry) => entry.item.type === "local" && entry.musicFile)
+    );
   },
   { immediate: true, deep: true }
 );
@@ -394,7 +389,7 @@ watch(
 const displayItems = computed(() =>
   resolvedItems.value.map((e) => ({
     ...e,
-    coverUrl: e.item.type === "online" ? e.coverUrl : (coverByKey.value[e.key] ?? ""),
+    coverUrl: e.item.type === "online" ? e.coverUrl : getCover(e),
   }))
 );
 

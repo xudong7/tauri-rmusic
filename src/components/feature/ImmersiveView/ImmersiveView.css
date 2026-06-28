@@ -41,7 +41,7 @@
 }
 
 .background-cover::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -164,9 +164,7 @@
   align-items: center;
   justify-content: center;
   align-content: center;
-  padding:
-    clamp(28px, 6vh, 64px)
-    var(--immersive-shell-padding-x)
+  padding: clamp(28px, 6vh, 64px) var(--immersive-shell-padding-x)
     var(--immersive-shell-padding-bottom);
   overflow: hidden;
   gap: var(--immersive-content-gap);
@@ -417,9 +415,7 @@
   .content-section {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(120px, var(--immersive-lyrics-height));
-    padding:
-      clamp(38px, 6vh, 52px)
-      var(--immersive-shell-padding-x)
+    padding: clamp(38px, 6vh, 52px) var(--immersive-shell-padding-x)
       var(--immersive-shell-padding-bottom);
     gap: clamp(12px, 2.2vh, 18px);
   }

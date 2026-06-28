@@ -47,20 +47,6 @@ pub struct ArtistSongsResult {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct LyricInfo {
-    pub id: String,
-    pub accesskey: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Lyric {
-    pub content: String,
-    pub fmt: String,
-    pub contenttype: u32,
-    pub charset: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub struct PlaySongResult {
     pub url: String,
     pub id: String,
@@ -115,11 +101,14 @@ async fn get_response_json(
 ) -> Result<serde_json::Value, String> {
     let response = get_response(client, url).await?;
     let text = get_text(response).await?;
-    let json: serde_json::Value = serde_json::from_str(&text)
-        .map_err(|e| {
-            let preview = if text.len() > 200 { &text[..200] } else { &text };
-            format!("Serialize json error: {}, content: {}", e, preview)
-        })?;
+    let json: serde_json::Value = serde_json::from_str(&text).map_err(|e| {
+        let preview = if text.len() > 200 {
+            &text[..200]
+        } else {
+            &text
+        };
+        format!("Serialize json error: {}, content: {}", e, preview)
+    })?;
     Ok(json)
 }
 

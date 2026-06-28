@@ -4,14 +4,16 @@ import { useI18n } from "vue-i18n";
 import zhCn from "element-plus/es/locale/lang/zh-cn";
 import en from "element-plus/es/locale/lang/en";
 import { ElConfigProvider } from "element-plus";
-import { listen } from "@tauri-apps/api/event";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import HeaderBar from "./components/layout/HeaderBar/HeaderBar.vue";
 import Sidebar from "./components/layout/Sidebar/Sidebar.vue";
 import PlayerBar from "./components/feature/PlayerBar/PlayerBar.vue";
 import ImmersiveView from "./components/feature/ImmersiveView/ImmersiveView.vue";
 import { ViewMode } from "./types/model";
+import { useAppKeyboardShortcuts } from "./composables/useAppKeyboardShortcuts";
 import { usePlaybackDetector } from "./composables/usePlaybackDetector";
+import { useStorageThemeSync } from "./composables/useStorageThemeSync";
+import { useTrayPlaybackEvents } from "./composables/useTrayPlaybackEvents";
+import { useWindowSizeConstraints } from "./composables/useWindowSizeConstraints";
 import { useThemeStore } from "./stores/themeStore";
 import { useViewStore } from "./stores/viewStore";
 import { useLocalMusicStore } from "./stores/localMusicStore";
@@ -30,9 +32,27 @@ const playerStore = usePlayerStore();
 const playlistStore = usePlaylistStore();
 
 const { start: detectorStart, stop: detectorStop } = usePlaybackDetector(
-  playerStore as any,
+  playerStore,
   (d) => playerStore.getPlayStep(d)
 );
+const windowSizeConstraints = useWindowSizeConstraints({
+  minWidth: 900,
+  minHeight: 640,
+});
+const keyboardShortcuts = useAppKeyboardShortcuts({
+  onPrevious: () => playerStore.playNextOrPreviousMusic(-playerStore.getPlayStep(-1)),
+  onTogglePlay: () => playerStore.togglePlay(),
+  onNext: () => playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1)),
+});
+const themeSync = useStorageThemeSync({
+  setThemeWithoutSave: themeStore.setThemeWithoutSave,
+});
+const trayEvents = useTrayPlaybackEvents({
+  onPrevious: () => playerStore.playNextOrPreviousMusic(-playerStore.getPlayStep(-1)),
+  onNext: () => playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1)),
+  onPlay: () => playerStore.syncPlaybackStateFromTray(true),
+  onPause: () => playerStore.syncPlaybackStateFromTray(false),
+});
 
 const playbackState = computed(() => ({
   hasTrack: playerStore.hasCurrentTrack,
@@ -53,82 +73,24 @@ function handleSearch(keyword: string) {
   else onlineStore.searchOnlineMusic(keyword);
 }
 
-function handleKeyDown(e: KeyboardEvent) {
-  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)
-    return;
-  const step = playerStore.getPlayStep;
-  switch (e.key) {
-    case "ArrowLeft":
-      playerStore.playNextOrPreviousMusic(-step(-1));
-      e.preventDefault();
-      break;
-    case " ":
-      playerStore.togglePlay();
-      e.preventDefault();
-      break;
-    case "ArrowRight":
-      playerStore.playNextOrPreviousMusic(step(1));
-      e.preventDefault();
-      break;
-  }
-}
-
-function handleStorageChange(e: StorageEvent) {
-  if (e.key === "theme" && e.newValue && ["light", "dark", "warm"].includes(e.newValue))
-    themeStore.setThemeWithoutSave(e.newValue as import("./stores/themeStore").ThemeMode);
-}
-
-let unlistenTrayPrev: (() => void) | null = null;
-let unlistenTrayNext: (() => void) | null = null;
-let unlistenTrayPlay: (() => void) | null = null;
-let unlistenTrayPause: (() => void) | null = null;
-
-async function applyWindowSizeConstraints() {
-  try {
-    await getCurrentWindow().setSizeConstraints({
-      minWidth: 900,
-      minHeight: 640,
-    });
-  } catch (e) {
-    console.error("Set window size constraints error:", e);
-  }
-}
-
 onMounted(async () => {
   try {
-    await applyWindowSizeConstraints();
+    await windowSizeConstraints.apply();
     await localStore.initializeLocalLibrary();
     await playlistStore.loadPlaylists();
     themeStore.initializeTheme();
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("storage", handleStorageChange);
-
-    // 托盘菜单「上一曲 / 下一曲」事件
-    unlistenTrayPrev = await listen("tray-prev", () => {
-      playerStore.playNextOrPreviousMusic(-playerStore.getPlayStep(-1));
-    });
-    unlistenTrayNext = await listen("tray-next", () => {
-      playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1));
-    });
-    // 托盘菜单「播放 / 暂停」：仅同步前端状态，避免与后端重复请求
-    unlistenTrayPlay = await listen("tray-play", () => {
-      playerStore.syncPlaybackStateFromTray(true);
-    });
-    unlistenTrayPause = await listen("tray-pause", () => {
-      playerStore.syncPlaybackStateFromTray(false);
-    });
+    keyboardShortcuts.start();
+    themeSync.start();
+    await trayEvents.start();
   } catch (e) {
     console.error("App init error:", e);
   }
 });
 
 onUnmounted(() => {
-  window.removeEventListener("keydown", handleKeyDown);
-  window.removeEventListener("storage", handleStorageChange);
-  unlistenTrayPrev?.();
-  unlistenTrayNext?.();
-  unlistenTrayPlay?.();
-  unlistenTrayPause?.();
+  keyboardShortcuts.stop();
+  themeSync.stop();
+  trayEvents.stop();
   playerStore.stopPlayTimeTracking();
   detectorStop();
 });

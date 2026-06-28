@@ -10,6 +10,31 @@ import { useLocalMusicStore } from "./localMusicStore";
 import { useOnlineMusicStore } from "./onlineMusicStore";
 import { usePlaylistStore } from "./playlistStore";
 
+function normalizeIndex(index: number, length: number): number {
+  return ((index % length) + length) % length;
+}
+
+function getSequentialIndex(currentIndex: number, step: number, length: number): number {
+  return normalizeIndex(currentIndex + step, length);
+}
+
+function getRandomIndex(currentIndex: number, direction: number, length: number): number {
+  if (length <= 1) return currentIndex;
+  const offset = Math.floor(Math.random() * (length - 1)) + 1;
+  return normalizeIndex(currentIndex + offset * (direction > 0 ? 1 : -1), length);
+}
+
+function getNextIndex(options: {
+  currentIndex: number;
+  step: number;
+  length: number;
+  playMode: PlayMode;
+}): number {
+  const { currentIndex, step, length, playMode } = options;
+  if (playMode === PlayMode.RANDOM) return getRandomIndex(currentIndex, step, length);
+  return getSequentialIndex(currentIndex, step, length);
+}
+
 export const usePlayerStore = defineStore("player", () => {
   const viewStore = useViewStore();
   const localStore = useLocalMusicStore();
@@ -290,16 +315,12 @@ export const usePlayerStore = defineStore("player", () => {
             }
           }
           if (currentIndex === -1) currentIndex = 0;
-          let nextIndex: number;
-          if (playMode.value === PlayMode.RANDOM && list.items.length > 1) {
-            const r = Math.floor(Math.random() * (list.items.length - 1)) + 1;
-            const effStep = r * (step > 0 ? 1 : -1);
-            nextIndex = (currentIndex + effStep) % list.items.length;
-            if (nextIndex < 0) nextIndex = list.items.length + nextIndex;
-          } else {
-            nextIndex = (currentIndex + step) % list.items.length;
-            if (nextIndex < 0) nextIndex = list.items.length + nextIndex;
-          }
+          const nextIndex = getNextIndex({
+            currentIndex,
+            step,
+            length: list.items.length,
+            playMode: playMode.value,
+          });
           await playFromPlaylist(currentPlaylistId.value, nextIndex);
           return;
         }
@@ -317,8 +338,11 @@ export const usePlayerStore = defineStore("player", () => {
         );
         if (currentIndex === -1) currentIndex = 0;
 
-        let nextIndex = (currentIndex + step) % localStore.musicFiles.length;
-        if (nextIndex < 0) nextIndex = localStore.musicFiles.length + nextIndex;
+        const nextIndex = getSequentialIndex(
+          currentIndex,
+          step,
+          localStore.musicFiles.length
+        );
 
         await playMusic(localStore.musicFiles[nextIndex]);
       } else {
@@ -332,8 +356,11 @@ export const usePlayerStore = defineStore("player", () => {
         );
         if (currentIndex === -1) currentIndex = 0;
 
-        let nextIndex = (currentIndex + step) % onlineStore.onlineSongs.length;
-        if (nextIndex < 0) nextIndex = onlineStore.onlineSongs.length + nextIndex;
+        const nextIndex = getSequentialIndex(
+          currentIndex,
+          step,
+          onlineStore.onlineSongs.length
+        );
 
         await playOnlineSong(onlineStore.onlineSongs[nextIndex]);
       }

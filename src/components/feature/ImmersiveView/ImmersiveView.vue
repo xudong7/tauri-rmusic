@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   VideoPlay,
@@ -14,6 +14,7 @@ import {
 } from "@element-plus/icons-vue";
 import type { SongInfo, MusicFile, PlayMode } from "@/types/model";
 import LyricView from "@/components/feature/LyricView/LyricView.vue";
+import { useCoverBrightness } from "@/composables/useCoverBrightness";
 import { useCoverLoader } from "@/composables/useCoverLoader";
 import { useArtistNavigation } from "@/composables/useArtistNavigation";
 import { usePlaybackProgressSlider } from "@/composables/usePlaybackProgressSlider";
@@ -41,15 +42,15 @@ const props = defineProps<{
   playMode?: PlayMode;
 }>();
 
-const emit = defineEmits([
-  "toggle-play",
-  "previous",
-  "next",
-  "exit",
-  "seek",
-  "volume-change",
-  "toggle-play-mode",
-]);
+const emit = defineEmits<{
+  "toggle-play": [];
+  previous: [];
+  next: [];
+  exit: [];
+  seek: [positionMs: number];
+  "volume-change": [volume: number];
+  "toggle-play-mode": [];
+}>();
 
 const artistStore = useArtistStore();
 const onlineStore = useOnlineMusicStore();
@@ -87,87 +88,7 @@ const { coverUrl: currentCoverUrl } = useCoverLoader({
   currentOnlineSong: () => props.currentSong,
   getDefaultDirectory: () => localStore.getDefaultDirectory(),
 });
-
-// 图片亮度分析状态
-const imageAnalysisState = ref({
-  brightness: 0.7, // 默认亮度
-  isAnalyzing: false,
-  isAnalyzed: false,
-});
-
-// 分析图片亮度
-async function analyzeCoverBrightness(imageUrl: string) {
-  if (!imageUrl || imageAnalysisState.value.isAnalyzing) return;
-
-  imageAnalysisState.value.isAnalyzing = true;
-
-  try {
-    // 创建一个隐藏的图片元素来加载图片
-    const img = new Image();
-    img.crossOrigin = "Anonymous";
-
-    await new Promise((resolve, reject) => {
-      img.onload = resolve;
-      img.onerror = reject;
-      img.src = imageUrl;
-    });
-
-    // 使用 canvas 分析图片亮度
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    canvas.width = img.width;
-    canvas.height = img.height;
-    ctx.drawImage(img, 0, 0);
-
-    // 获取图像数据
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-
-    // 计算平均亮度 (0-255)
-    let totalBrightness = 0;
-    let count = 0;
-
-    // 每隔几个像素采样一次，提高性能
-    const sampleStep = Math.max(1, Math.floor(data.length / 4 / 1000));
-
-    for (let i = 0; i < data.length; i += 4 * sampleStep) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-
-      // 加权亮度计算 (人眼对绿色最敏感)
-      const pixelBrightness = 0.299 * r + 0.587 * g + 0.114 * b;
-      totalBrightness += pixelBrightness;
-      count++;
-    }
-
-    // 计算平均亮度并归一化到 0-1 范围
-    const averageBrightness = totalBrightness / count / 255;
-
-    // 根据图片亮度计算合适的背景亮度值
-    // 亮图片需要降低背景亮度，暗图片需要提高背景亮度
-    let adjustedBrightness;
-
-    if (averageBrightness < 0.3) {
-      adjustedBrightness = 1.12;
-    } else if (averageBrightness < 0.6) {
-      adjustedBrightness = 1.02;
-    } else {
-      adjustedBrightness = 0.92;
-    }
-
-    imageAnalysisState.value.brightness = adjustedBrightness;
-    imageAnalysisState.value.isAnalyzed = true;
-  } catch (error) {
-    console.error("分析封面图片亮度失败:", error);
-    // 使用默认值
-    imageAnalysisState.value.brightness = 0.7;
-  } finally {
-    imageAnalysisState.value.isAnalyzing = false;
-  }
-}
+const { brightness: imageAnalysisState } = useCoverBrightness(currentCoverUrl);
 
 // 当前歌曲标题
 const songTitle = computed(() => {
@@ -236,18 +157,6 @@ const overlayStyle = computed(() => {
     )`,
   };
 });
-
-// 监听封面URL变化，重新分析亮度
-watch(
-  () => currentCoverUrl.value,
-  (newUrl) => {
-    if (newUrl) {
-      imageAnalysisState.value.isAnalyzed = false;
-      analyzeCoverBrightness(newUrl);
-    }
-  },
-  { immediate: true }
-);
 </script>
 
 <template>

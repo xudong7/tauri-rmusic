@@ -57,7 +57,8 @@ pub fn read_playlists(app_handle: AppHandle) -> Result<Vec<Playlist>, String> {
     }
     let f = File::open(&path).map_err(|e| format!("open playlists: {}", e))?;
     let reader = BufReader::new(f);
-    let list: Vec<Playlist> = serde_json::from_reader(reader).map_err(|e| format!("parse playlists: {}", e))?;
+    let list: Vec<Playlist> =
+        serde_json::from_reader(reader).map_err(|e| format!("parse playlists: {}", e))?;
     Ok(list)
 }
 
@@ -70,7 +71,10 @@ pub fn write_playlists(app_handle: AppHandle, playlists: Vec<Playlist>) -> Resul
     }
     let f = File::create(&path).map_err(|e| format!("create playlists file: {}", e))?;
     let mut writer = BufWriter::new(f);
-    serde_json::to_writer_pretty(&mut writer, &playlists).map_err(|e| format!("serialize playlists: {}", e))?;
-    writer.flush().map_err(|e| format!("flush playlists: {}", e))?;
+    serde_json::to_writer_pretty(&mut writer, &playlists)
+        .map_err(|e| format!("serialize playlists: {}", e))?;
+    writer
+        .flush()
+        .map_err(|e| format!("flush playlists: {}", e))?;
     Ok(())
 }

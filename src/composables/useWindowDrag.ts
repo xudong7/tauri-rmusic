@@ -19,8 +19,7 @@ export function useWindowDrag() {
 
   async function startWindowDrag(event: MouseEvent) {
     if (event.button !== 0 || event.defaultPrevented) return;
-    if (event.target instanceof Element && event.target.closest(NO_DRAG_SELECTOR))
-      return;
+    if (event.target instanceof Element && event.target.closest(NO_DRAG_SELECTOR)) return;
 
     event.preventDefault();
 

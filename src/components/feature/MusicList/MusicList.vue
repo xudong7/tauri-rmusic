@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, watch, computed } from "vue";
+import { ref, watch, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   CaretRight,
@@ -13,7 +13,7 @@ import type { MusicFile } from "@/types/model";
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { ElMessage } from "element-plus";
 import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
-import { loadLocalCover } from "@/utils/coverUtils";
+import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
 import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
 
 const { t } = useI18n();
@@ -121,44 +121,18 @@ function handleAddToPlaylist(command: string, row: MusicFile) {
   }
 }
 
-/**
- * 本地列表封面：按需加载 + 缓存 + 并发限制，避免大量 invoke 卡顿
- */
-const coverById = reactive<Record<number, string>>({});
-const coverQueue: MusicFile[] = [];
-let coverRunning = 0;
-const MAX_COVER_CONCURRENCY = 4;
-
-function scheduleCoverLoad(file: MusicFile) {
-  if (coverById[file.id] !== undefined) return;
-  coverQueue.push(file);
-  pumpCoverQueue();
-}
-
-function pumpCoverQueue() {
-  while (coverRunning < MAX_COVER_CONCURRENCY && coverQueue.length > 0) {
-    const file = coverQueue.shift()!;
-    if (coverById[file.id] !== undefined) continue;
-    coverRunning++;
-    (async () => {
-      try {
-        const url = await loadLocalCover(file.file_name, props.getDefaultDirectory);
-        coverById[file.id] = url || "";
-      } catch {
-        coverById[file.id] = "";
-      } finally {
-        coverRunning--;
-        pumpCoverQueue();
-      }
-    })();
-  }
-}
+const { coverByKey: coverById, scheduleMany: scheduleCoverLoadMany } =
+  useLocalCoverCache<MusicFile>({
+    getKey: (file) => file.id,
+    getFileName: (file) => file.file_name,
+    getDefaultDirectory: props.getDefaultDirectory,
+  });
 
 watch(
   () => props.musicFiles,
   (files) => {
     // 每次列表更新时为新条目加载封面；旧的 cache 保留
-    for (const f of files) scheduleCoverLoad(f);
+    scheduleCoverLoadMany(files);
   },
   { immediate: true }
 );

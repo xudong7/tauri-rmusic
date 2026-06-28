@@ -98,8 +98,7 @@ html {
   --app-slider-thumb-bg: #fff;
   --app-slider-thumb-border: rgba(91, 124, 150, 0.38);
   --app-slider-thumb-shadow:
-    0 1px 4px rgba(15, 23, 42, 0.16),
-    0 0 0 1px rgba(255, 255, 255, 0.55);
+    0 1px 4px rgba(15, 23, 42, 0.16), 0 0 0 1px rgba(255, 255, 255, 0.55);
 }
 
 /* ---------- 亮色主题 ---------- */
@@ -230,8 +229,7 @@ html.dark {
   --app-slider-thumb-bg: color-mix(in srgb, var(--el-color-primary) 30%, #fff);
   --app-slider-thumb-border: rgba(255, 255, 255, 0.2);
   --app-slider-thumb-shadow:
-    0 1px 5px rgba(0, 0, 0, 0.34),
-    0 0 0 1px rgba(255, 255, 255, 0.1);
+    0 1px 5px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 /* ---------- 暖色主题：米色/奶油色系 ---------- */

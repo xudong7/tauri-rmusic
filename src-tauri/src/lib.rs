@@ -25,22 +25,36 @@ mod tray;
 /// handle the music events
 /// play, pause, recovery, volume, quit
 #[tauri::command]
-fn handle_event(sender: tauri::State<Sender<MusicState>>, event: String) {
-    let event: serde_json::Value = serde_json::from_str(&event).unwrap();
-    if let Some(act) = event["action"].as_str() {
-        match act {
-            "play" => event["path"]
+fn handle_event(sender: tauri::State<Sender<MusicState>>, event: String) -> Result<(), String> {
+    let event: serde_json::Value =
+        serde_json::from_str(&event).map_err(|e| format!("Parse music event error: {}", e))?;
+    let action = event["action"]
+        .as_str()
+        .ok_or_else(|| "Missing music event action".to_string())?;
+
+    let music_state = match action {
+        "play" => {
+            let path = event["path"]
                 .as_str()
-                .map(|path| sender.send(MusicState::Play(path.to_owned()))),
-            "recovery" => Some(sender.send(MusicState::Recovery)),
-            "pause" => Some(sender.send(MusicState::Pause)),
-            "volume" => event["volume"]
+                .ok_or_else(|| "Missing play path".to_string())?;
+            MusicState::Play(path.to_owned())
+        }
+        "recovery" => MusicState::Recovery,
+        "pause" => MusicState::Pause,
+        "volume" => {
+            let volume = event["volume"]
                 .as_f64()
-                .map(|vol| sender.send(MusicState::Volume(vol as f32))),
-            "quit" => Some(sender.send(MusicState::Quit)),
-            _ => None,
-        };
-    }
+                .ok_or_else(|| "Missing volume".to_string())?;
+            MusicState::Volume(volume as f32)
+        }
+        "quit" => MusicState::Quit,
+        _ => return Err(format!("Unknown music event action: {}", action)),
+    };
+
+    sender
+        .send(music_state)
+        .map(|_| ())
+        .map_err(|e| format!("Send music event error: {}", e))
 }
 
 /// check if the sink is empty
