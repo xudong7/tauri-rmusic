@@ -333,6 +333,14 @@ pub fn get_online_audio_cache_size(app_handle: AppHandle) -> Result<u64, String>
 }
 
 #[tauri::command]
+pub fn get_online_audio_cache_path(app_handle: AppHandle) -> Result<String, String> {
+    online_cache_dir(&app_handle)?
+        .to_str()
+        .map(|path| path.to_string())
+        .ok_or_else(|| "cache path trans error".to_string())
+}
+
+#[tauri::command]
 pub fn clear_online_audio_cache(app_handle: AppHandle) -> Result<(), String> {
     let cache_dir = online_cache_dir(&app_handle)?;
     for entry in fs::read_dir(cache_dir).map_err(|e| format!("read online cache dir: {}", e))? {

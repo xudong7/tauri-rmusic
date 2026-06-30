@@ -3,8 +3,8 @@ use file::{
     load_local_cover_path, load_local_lyric, scan_files,
 };
 use music::{
-    clear_online_audio_cache, get_online_audio_cache_size, get_playback_state, get_progress,
-    play_track, seek_to, Music, MusicState,
+    clear_online_audio_cache, get_online_audio_cache_path, get_online_audio_cache_size,
+    get_playback_state, get_progress, play_track, seek_to, Music, MusicState,
 };
 use netease::{
     check_online_service_status, get_artist_top_songs, get_song_cover, get_song_lyric,
@@ -145,6 +145,7 @@ pub fn run() {
             get_progress,
             play_track,
             get_online_audio_cache_size,
+            get_online_audio_cache_path,
             clear_online_audio_cache,
             seek_to,
             scan_files,

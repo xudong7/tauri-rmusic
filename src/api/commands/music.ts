@@ -27,6 +27,10 @@ export async function getOnlineAudioCacheSize(): Promise<number> {
   return await invokeCommand("get_online_audio_cache_size");
 }
 
+export async function getOnlineAudioCachePath(): Promise<string> {
+  return await invokeCommand("get_online_audio_cache_path");
+}
+
 export async function clearOnlineAudioCache(): Promise<void> {
   return await invokeCommand("clear_online_audio_cache");
 }

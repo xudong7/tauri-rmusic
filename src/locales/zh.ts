@@ -58,8 +58,10 @@ export default {
     download: "下载",
     downloadLocation: "路径",
     selectDownloadLocation: "选择文件夹",
+    libraryRoot: "根目录",
     cache: "缓存",
     onlineAudioCache: "在线音频缓存",
+    cachePath: "缓存路径",
     clearCache: "清理缓存",
     about: "关于",
     aboutDesc: "一个基于 Tauri 和 Vue 的音乐播放器",
@@ -126,6 +128,7 @@ export default {
     resetDirSuccess: "已重置为默认下载目录",
     playModeSwitch: "已切换到{mode}模式",
     cacheCleared: "缓存已清理",
+    pathCopied: "路径已复制",
   },
   errors: {
     loadMusicFailed: "加载音乐文件失败",

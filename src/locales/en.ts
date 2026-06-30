@@ -58,8 +58,10 @@ export default {
     download: "Download",
     downloadLocation: "Path",
     selectDownloadLocation: "Select folder",
+    libraryRoot: "Root",
     cache: "Cache",
     onlineAudioCache: "Online audio cache",
+    cachePath: "Cache path",
     clearCache: "Clear cache",
     about: "About",
     aboutDesc: "A music player built with Tauri and Vue",
@@ -126,6 +128,7 @@ export default {
     resetDirSuccess: "Reset to default download directory",
     playModeSwitch: "Switched to {mode}",
     cacheCleared: "Cache cleared",
+    pathCopied: "Path copied",
   },
   errors: {
     loadMusicFailed: "Failed to load music files",
