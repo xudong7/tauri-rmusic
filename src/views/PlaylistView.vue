@@ -324,6 +324,7 @@ interface ResolvedEntry {
   title: string;
   artist: string;
   coverUrl: string;
+  coverKey: string;
   item: PlaylistItem;
   musicFile: MusicFile | null;
   songInfo: SongInfo | null;
@@ -343,6 +344,7 @@ const resolvedItems = computed(() => {
         title: extractSongTitle(display) || display,
         artist: extractArtistName(display) || t("common.unknownArtist"),
         coverUrl: "", // 下面用 reactive 或单独加载
+        coverKey: file?.key ?? item.file_name,
         item,
         musicFile: file ?? null,
         songInfo: null,
@@ -354,6 +356,7 @@ const resolvedItems = computed(() => {
         title: s.name,
         artist: s.artists?.join(", ") ?? t("common.unknownArtist"),
         coverUrl: s.pic_url ?? "",
+        coverKey: s.id,
         item,
         musicFile: null,
         songInfo: s,
@@ -365,7 +368,7 @@ const resolvedItems = computed(() => {
 
 const { getCover, scheduleMany: scheduleLocalCoverLoadMany } =
   useLocalCoverCache<ResolvedEntry>({
-    getKey: (entry) => entry.key,
+    getKey: (entry) => entry.coverKey,
     getFileName: (entry) => (entry.item.type === "local" ? entry.item.file_name : ""),
     getDefaultDirectory: () => localStore.getDefaultDirectory(),
   });

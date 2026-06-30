@@ -2,6 +2,11 @@
 export interface MusicFile {
   id: number;
   file_name: string;
+  key?: string;
+  relative_path?: string;
+  extension?: string;
+  modified_ms?: number;
+  search_text?: string;
 }
 
 // 在线音乐信息模型
@@ -62,6 +67,18 @@ export interface PlaySongResult {
   name: string;
   artist: string;
   pic_url: string;
+}
+
+export type PlaybackSource =
+  | { type: "local"; path: string }
+  | { type: "online"; url: string; cache_key: string };
+
+export interface PlayStartResult {
+  position_ms: number;
+  duration_ms: number;
+  is_paused: boolean;
+  has_track: boolean;
+  track_id: number;
 }
 
 // 播放模式

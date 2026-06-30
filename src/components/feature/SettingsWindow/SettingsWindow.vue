@@ -7,12 +7,15 @@ import {
   CircleCheck,
   Download,
   InfoFilled,
+  Delete,
 } from "@element-plus/icons-vue";
+import { ElMessage } from "element-plus";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useThemeStore, type ThemeMode } from "@/stores/themeStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { enable, isEnabled, disable } from "@tauri-apps/plugin-autostart";
 import { setLocale, getLocale, type LocaleKey } from "@/i18n";
+import { clearOnlineAudioCache, getOnlineAudioCacheSize } from "@/api/commands/music";
 
 const { t } = useI18n();
 const themeStore = useThemeStore();
@@ -20,6 +23,8 @@ const localStore = useLocalMusicStore();
 const downloadPath = ref("");
 const autoStartEnabled = ref(false);
 const currentLocale = ref<LocaleKey>(getLocale());
+const onlineCacheSize = ref(0);
+const clearingCache = ref(false);
 
 const localeOptions: { value: LocaleKey; labelKey: string }[] = [
   { value: "zh", labelKey: "settings.languageZh" },
@@ -48,6 +53,31 @@ const themeOptions: { value: ThemeMode; labelKey: string }[] = [
   { value: "dark", labelKey: "common.dark" },
   { value: "warm", labelKey: "common.warm" },
 ];
+
+function formatBytes(bytes: number) {
+  if (bytes <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const value = bytes / 1024 ** index;
+  return `${value >= 10 || index === 0 ? value.toFixed(0) : value.toFixed(1)} ${units[index]}`;
+}
+
+async function refreshOnlineCacheSize() {
+  onlineCacheSize.value = await getOnlineAudioCacheSize();
+}
+
+async function handleClearOnlineCache() {
+  clearingCache.value = true;
+  try {
+    await clearOnlineAudioCache();
+    await refreshOnlineCacheSize();
+    ElMessage.success(t("messages.cacheCleared"));
+  } catch (error) {
+    ElMessage.error(`${t("errors.clearCacheFailed")}: ${error}`);
+  } finally {
+    clearingCache.value = false;
+  }
+}
 
 function handleThemeModeChange(val: ThemeMode) {
   themeStore.setThemeMode(val);
@@ -108,6 +138,7 @@ onMounted(async () => {
     themeStore.initializeTheme();
     const dir = localStore.getDefaultDirectory();
     if (dir) downloadPath.value = dir;
+    await refreshOnlineCacheSize();
     try {
       autoStartEnabled.value = await isEnabled();
     } catch (e) {
@@ -198,6 +229,25 @@ onMounted(async () => {
             </el-button>
             <el-button @click="resetDownloadPath" type="default">
               {{ t("common.reset") }}
+            </el-button>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3 class="section-title">
+          <el-icon><Delete /></el-icon> {{ t("settings.cache") }}
+        </h3>
+        <div class="setting-item">
+          <label>{{ t("settings.onlineAudioCache") }}</label>
+          <div class="setting-control cache-control">
+            <span class="cache-size">{{ formatBytes(onlineCacheSize) }}</span>
+            <el-button
+              type="default"
+              :loading="clearingCache"
+              @click="handleClearOnlineCache"
+            >
+              {{ t("settings.clearCache") }}
             </el-button>
           </div>
         </div>

@@ -88,6 +88,16 @@
   align-items: center;
 }
 
+.cache-control {
+  gap: 10px;
+}
+
+.cache-size {
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
 .setting-item > .download-path-container {
   flex: 1;
   min-width: 0;

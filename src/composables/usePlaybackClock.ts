@@ -11,6 +11,7 @@ export function usePlaybackClock(options: {
   getIsLoading: () => boolean;
   setPosition: (positionMs: number) => void;
   setDuration: (durationMs: number) => void;
+  shouldAcceptState?: (state: PlaybackState) => boolean;
   onEnded: () => Promise<void>;
 }) {
   let interval: number | null = null;
@@ -37,6 +38,7 @@ export function usePlaybackClock(options: {
     if (syncInFlight) return syncInFlight;
     syncInFlight = (async () => {
       const state = await options.getBackendState();
+      if (options.shouldAcceptState && !options.shouldAcceptState(state)) return;
       if (state.duration_ms > 0) options.setDuration(state.duration_ms);
       options.setPosition(state.position_ms);
       resetLocalClock(state.position_ms);

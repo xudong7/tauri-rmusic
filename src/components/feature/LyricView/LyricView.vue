@@ -7,6 +7,13 @@ import { getSongLyric } from "@/api/commands/netease";
 import { loadLocalLyric as loadLocalLyricText } from "@/api/commands/file";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
+import {
+  findLyricIndex,
+  getCachedLyric,
+  parseLyric,
+  setCachedLyric,
+  type LyricLine,
+} from "@/composables/useLyrics";
 
 const { t } = useI18n();
 
@@ -19,7 +26,6 @@ const props = defineProps<{
 
 const playerStore = usePlayerStore();
 const localStore = useLocalMusicStore();
-const lyricCache = new Map<string, Array<{ time: number; text: string }>>();
 
 // 监听当前播放时间变化
 watch(
@@ -35,7 +41,7 @@ watch(
 );
 
 // 歌词数据
-const lyricData = ref<Array<{ time: number; text: string }>>([]);
+const lyricData = ref<LyricLine[]>([]);
 // 加载状态
 const loading = ref(false);
 // 当前显示的歌词索引
@@ -97,38 +103,12 @@ function stopLyricUpdate() {
   }
 }
 
-// 解析LRC歌词
-function parseLyric(lrc: string): Array<{ time: number; text: string }> {
-  if (!lrc) return [];
-
-  const lines = lrc.split("\n");
-  const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
-  const result: Array<{ time: number; text: string }> = [];
-
-  for (const line of lines) {
-    const match = line.match(timeRegex);
-    if (match) {
-      const minutes = parseInt(match[1]);
-      const seconds = parseInt(match[2]);
-      const milliseconds = parseInt(match[3].padEnd(3, "0"));
-      const time = minutes * 60 * 1000 + seconds * 1000 + milliseconds;
-      const text = line.replace(timeRegex, "").trim();
-
-      if (text) {
-        result.push({ time, text });
-      }
-    }
-  }
-
-  return result.sort((a, b) => a.time - b.time);
-}
-
 // 加载歌词
 async function loadLyric(song: SongInfo) {
   if (!song || !song.file_hash) return;
 
   const cacheKey = `online:${song.id}`;
-  const cached = lyricCache.get(cacheKey);
+  const cached = getCachedLyric(cacheKey);
   if (cached) {
     lyricData.value = cached;
     return;
@@ -148,7 +128,7 @@ async function loadLyric(song: SongInfo) {
       // 解析歌词
       const parsed = parseLyric(lyricContent);
       if (requestId !== lyricLoadRequestId) return;
-      lyricCache.set(cacheKey, parsed);
+      setCachedLyric(cacheKey, parsed);
       lyricData.value = parsed;
     } else {
       if (requestId !== lyricLoadRequestId) return;
@@ -168,7 +148,7 @@ async function loadLocalLyric(music: MusicFile) {
   if (!music || !music.file_name) return;
 
   const cacheKey = `local:${music.file_name}`;
-  const cached = lyricCache.get(cacheKey);
+  const cached = getCachedLyric(cacheKey);
   if (cached) {
     lyricData.value = cached;
     return;
@@ -187,7 +167,7 @@ async function loadLocalLyric(music: MusicFile) {
       // 解析歌词
       const parsed = parseLyric(lyricContent);
       if (requestId !== lyricLoadRequestId) return;
-      lyricCache.set(cacheKey, parsed);
+      setCachedLyric(cacheKey, parsed);
       lyricData.value = parsed;
     } else {
       if (requestId !== lyricLoadRequestId) return;
@@ -206,17 +186,8 @@ async function loadLocalLyric(music: MusicFile) {
 function updateCurrentLine() {
   if (lyricData.value.length === 0) return;
 
-  // 找到当前时间对应的歌词行
   const time = currentLyricTime.value;
-  let index = lyricData.value.findIndex((item) => item.time > time);
-
-  // 如果没找到或者超过范围，取最后一行
-  if (index === -1) {
-    index = lyricData.value.length;
-  }
-
-  // 当前行是上一行
-  const newIndex = index > 0 ? index - 1 : 0;
+  const newIndex = findLyricIndex(lyricData.value, time);
 
   // 如果索引变化了，更新并滚动
   if (newIndex !== currentIndex.value) {

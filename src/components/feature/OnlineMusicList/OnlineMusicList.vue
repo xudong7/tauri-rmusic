@@ -153,6 +153,7 @@ function handleAddToPlaylist(command: string, row: SongInfo) {
                 alt=""
                 :size="54"
                 :radius="999"
+                variant="artist"
                 class="artist-avatar-cover"
               />
               <div class="artist-name" :title="a.name">{{ a.name }}</div>
@@ -247,6 +248,7 @@ function handleAddToPlaylist(command: string, row: SongInfo) {
                 alt=""
                 :size="54"
                 :radius="999"
+                variant="artist"
                 class="artist-avatar-cover"
               />
               <div class="artist-name" :title="a.name">{{ a.name }}</div>

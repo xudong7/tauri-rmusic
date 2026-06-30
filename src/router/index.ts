@@ -4,12 +4,13 @@ import {
   type NavigationGuardNext,
   type RouteLocationNormalized,
 } from "vue-router";
-import LocalMusic from "@/views/LocalMusicView.vue";
-import OnlineMusic from "@/views/OnlineMusicView.vue";
-import Artist from "@/views/ArtistView.vue";
-import Settings from "@/views/SettingsView.vue";
-import PlaylistView from "@/views/PlaylistView.vue";
 import { usePlaylistStore } from "@/stores/playlistStore";
+
+const LocalMusic = () => import("@/views/LocalMusicView.vue");
+const OnlineMusic = () => import("@/views/OnlineMusicView.vue");
+const Artist = () => import("@/views/ArtistView.vue");
+const Settings = () => import("@/views/SettingsView.vue");
+const PlaylistView = () => import("@/views/PlaylistView.vue");
 
 const routes = [
   {

@@ -142,12 +142,11 @@ function handleAddToPlaylist(command: string, row: MusicFile) {
   }
 }
 
-const { coverByKey: coverById, scheduleMany: scheduleCoverLoadMany } =
-  useLocalCoverCache<MusicFile>({
-    getKey: (file) => file.id,
-    getFileName: (file) => file.file_name,
-    getDefaultDirectory: props.getDefaultDirectory,
-  });
+const { getCover, scheduleMany: scheduleCoverLoadMany } = useLocalCoverCache<MusicFile>({
+  getKey: (file) => file.key ?? file.id,
+  getFileName: (file) => file.file_name,
+  getDefaultDirectory: props.getDefaultDirectory,
+});
 
 watch(
   () => props.musicFiles,
@@ -276,7 +275,7 @@ const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight } =
             />
           </div>
           <div class="col-cover">
-            <CoverImage :src="coverById[row.id]" alt="" :size="44" :radius="6" />
+            <CoverImage :src="getCover(row)" alt="" :size="44" :radius="6" />
           </div>
           <div class="col-main">
             <div class="song-title" :class="{ 'is-playing': isCurrentMusic(row) }">
@@ -342,7 +341,7 @@ const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight } =
             />
           </div>
           <div class="col-cover">
-            <CoverImage :src="coverById[row.id]" alt="" :size="44" :radius="6" />
+            <CoverImage :src="getCover(row)" alt="" :size="44" :radius="6" />
           </div>
           <div class="col-main">
             <div class="song-title" :class="{ 'is-playing': isCurrentMusic(row) }">

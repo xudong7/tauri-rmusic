@@ -2,7 +2,10 @@ use file::{
     download_music, get_default_music_dir, import_music, load_cover_and_lyric,
     load_local_cover_path, load_local_lyric, scan_files,
 };
-use music::{get_playback_state, get_progress, seek_to, Music, MusicState};
+use music::{
+    clear_online_audio_cache, get_online_audio_cache_size, get_playback_state, get_progress,
+    play_track, seek_to, Music, MusicState,
+};
 use netease::{
     get_artist_top_songs, get_song_cover, get_song_lyric, get_song_url, play_netease_song,
     search_online_mix, search_songs,
@@ -140,6 +143,9 @@ pub fn run() {
             handle_event,
             get_playback_state,
             get_progress,
+            play_track,
+            get_online_audio_cache_size,
+            clear_online_audio_cache,
             seek_to,
             scan_files,
             search_songs,
@@ -162,6 +168,7 @@ pub fn run() {
         .manage(music.event_sender)
         .manage(music.sink)
         .manage(music.current_duration_ms)
+        .manage(music.current_track_id)
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

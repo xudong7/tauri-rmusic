@@ -1,11 +1,51 @@
 use crate::music::MusicFile;
 use crate::netease;
 use crate::netease::get_song_url;
+use sha1::{Digest, Sha1};
 use std::fs::{self, create_dir_all, read_dir, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::time::UNIX_EPOCH;
 use tauri::AppHandle;
 use tauri::Manager;
+
+fn supported_audio_extension(path: &Path) -> Option<String> {
+    let extension = path.extension()?.to_str()?.to_lowercase();
+    ["mp3", "wav", "ogg", "flac"]
+        .contains(&extension.as_str())
+        .then_some(extension)
+}
+
+fn path_key(path: &Path) -> String {
+    let mut hasher = Sha1::new();
+    hasher.update(path.to_string_lossy().as_bytes());
+    format!("{:x}", hasher.finalize())
+}
+
+fn modified_ms(path: &Path) -> u64 {
+    path.metadata()
+        .and_then(|metadata| metadata.modified())
+        .ok()
+        .and_then(|modified| modified.duration_since(UNIX_EPOCH).ok())
+        .map(|duration| duration.as_millis() as u64)
+        .unwrap_or(0)
+}
+
+fn music_file_from_path(id: i32, absolute_path: &Path, relative_path: &Path) -> Option<MusicFile> {
+    let file_name = relative_path.to_str()?.to_string();
+    let extension = supported_audio_extension(absolute_path)?;
+    let search_text = file_name.to_lowercase();
+
+    Some(MusicFile {
+        id,
+        file_name: file_name.clone(),
+        key: path_key(absolute_path),
+        relative_path: file_name,
+        extension,
+        modified_ms: modified_ms(absolute_path),
+        search_text,
+    })
+}
 
 /// recursive scan the directory
 /// and add the files to the list
@@ -31,16 +71,11 @@ pub fn scan_directory(
 
             if path.is_dir() {
                 scan_directory(base_path, &path, files, id);
-            } else if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
-                if ["mp3", "wav", "ogg", "flac"].contains(&extension.to_lowercase().as_str()) {
-                    if let Ok(relative) = path.strip_prefix(base_path) {
-                        if let Some(rel_path_str) = relative.to_str() {
-                            files.push(MusicFile {
-                                id: *id,
-                                file_name: rel_path_str.to_string(),
-                            });
-                            *id += 1;
-                        }
+            } else if supported_audio_extension(&path).is_some() {
+                if let Ok(relative) = path.strip_prefix(base_path) {
+                    if let Some(file) = music_file_from_path(*id, &path, relative) {
+                        files.push(file);
+                        *id += 1;
                     }
                 }
             }
@@ -87,13 +122,11 @@ pub fn scan_files(
             file.id = index as i32;
         }
     } else {
-        if let Some(extension) = path_obj.extension().and_then(|ext| ext.to_str()) {
-            if ["mp3", "wav", "ogg", "flac"].contains(&extension.to_lowercase().as_str()) {
-                if let Some(file_name) = path_obj.file_name().and_then(|f| f.to_str()) {
-                    music_files.push(MusicFile {
-                        id: id_counter,
-                        file_name: file_name.to_string(),
-                    });
+        if supported_audio_extension(path_obj).is_some() {
+            if let Some(file_name) = path_obj.file_name() {
+                let relative = Path::new(file_name);
+                if let Some(file) = music_file_from_path(id_counter, path_obj, relative) {
+                    music_files.push(file);
                 }
             }
         }

@@ -25,7 +25,9 @@ export function useLocalCoverCache<T>(options: UseLocalCoverCacheOptions<T>) {
 
   function setCachedCover(key: string, value: string) {
     const maxEntries = options.maxEntries ?? DEFAULT_MAX_COVER_CACHE_ENTRIES;
-    if (coverByKey[key] === undefined) cachedKeys.push(key);
+    const existingIndex = cachedKeys.indexOf(key);
+    if (existingIndex >= 0) cachedKeys.splice(existingIndex, 1);
+    cachedKeys.push(key);
     coverByKey[key] = value;
     while (cachedKeys.length > maxEntries) {
       const keyToDelete = cachedKeys.shift();
@@ -75,7 +77,15 @@ export function useLocalCoverCache<T>(options: UseLocalCoverCacheOptions<T>) {
   }
 
   function getCover(item: T): string {
-    return coverByKey[normalizeKey(item)] ?? "";
+    const key = normalizeKey(item);
+    if (coverByKey[key] !== undefined) {
+      const existingIndex = cachedKeys.indexOf(key);
+      if (existingIndex >= 0) {
+        cachedKeys.splice(existingIndex, 1);
+        cachedKeys.push(key);
+      }
+    }
+    return coverByKey[key] ?? "";
   }
 
   function clear() {

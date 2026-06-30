@@ -7,6 +7,7 @@ import { i18n } from "@/i18n";
 import {
   handleEvent,
   playNeteaseSong,
+  playTrack,
   getPlaybackState,
   seekTo,
 } from "@/api/commands/music";
@@ -55,6 +56,7 @@ export const usePlayerStore = defineStore("player", () => {
   const isLoadingSong = ref(false);
   const currentPlayTime = ref(0);
   const currentTrackDurationMs = ref(0);
+  const currentBackendTrackId = ref(0);
   /** 当前从播放列表播放时记录列表 id，用于上一曲/下一曲 */
   const currentPlaylistId = ref<string | null>(null);
 
@@ -106,13 +108,22 @@ export const usePlayerStore = defineStore("player", () => {
   function resetProgressState() {
     currentPlayTime.value = 0;
     currentTrackDurationMs.value = 0;
+    currentBackendTrackId.value = 0;
   }
 
   function updateProgressFromBackend(progress: {
     position_ms: number;
     duration_ms: number;
     is_ended?: boolean;
+    track_id?: number;
   }) {
+    if (
+      progress.track_id !== undefined &&
+      currentBackendTrackId.value > 0 &&
+      progress.track_id !== currentBackendTrackId.value
+    ) {
+      return;
+    }
     if (progress.duration_ms > 0) {
       currentTrackDurationMs.value = progress.duration_ms;
     }
@@ -143,6 +154,8 @@ export const usePlayerStore = defineStore("player", () => {
     setDuration: (durationMs) => {
       if (durationMs > 0) currentTrackDurationMs.value = durationMs;
     },
+    shouldAcceptState: (state) =>
+      currentBackendTrackId.value === 0 || state.track_id === currentBackendTrackId.value,
     onEnded: handlePlaybackEnded,
   });
 
@@ -168,7 +181,9 @@ export const usePlayerStore = defineStore("player", () => {
       currentOnlineSong.value = null;
 
       const fullPath = `${localStore.currentDirectory}/${music.file_name}`;
-      await handleEvent("play", { path: fullPath });
+      const playResult = await playTrack({ type: "local", path: fullPath });
+      currentBackendTrackId.value = playResult.track_id;
+      updateProgressFromBackend(playResult);
 
       isLoadingSong.value = false;
       isPlaying.value = true;
@@ -223,7 +238,13 @@ export const usePlayerStore = defineStore("player", () => {
       });
 
       console.log("[播放控制] 获取到播放URL，准备播放");
-      await handleEvent("play", { path: playResult.url });
+      const startResult = await playTrack({
+        type: "online",
+        url: playResult.url,
+        cache_key: song.id,
+      });
+      currentBackendTrackId.value = startResult.track_id;
+      updateProgressFromBackend(startResult);
 
       isLoadingSong.value = false;
       isPlaying.value = true;

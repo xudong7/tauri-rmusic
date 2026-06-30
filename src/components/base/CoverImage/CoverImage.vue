@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { Headset } from "@element-plus/icons-vue";
-import { DEFAULT_COVER_URL } from "@/constants";
+import { Collection, Headset, User } from "@element-plus/icons-vue";
+
+type CoverVariant = "track" | "artist" | "album";
 
 const props = withDefaults(
   defineProps<{
@@ -13,15 +14,17 @@ const props = withDefaults(
     fallback?: string;
     lazy?: boolean;
     fit?: "cover" | "contain";
+    variant?: CoverVariant;
   }>(),
   {
     alt: "cover",
     clickable: false,
     size: 56,
     radius: 10,
-    fallback: DEFAULT_COVER_URL,
+    fallback: "",
     lazy: true,
     fit: "cover",
+    variant: "track",
   }
 );
 
@@ -44,6 +47,12 @@ const imageSrc = computed(() => {
 
 const shouldShowImage = computed(() => Boolean(imageSrc.value));
 
+const placeholderIcon = computed(() => {
+  if (props.variant === "artist") return User;
+  if (props.variant === "album") return Collection;
+  return Headset;
+});
+
 watch(
   () => props.src,
   () => {
@@ -65,7 +74,7 @@ watch(
       @error="hasError = true"
     />
     <div v-else class="placeholder" :style="boxStyle">
-      <el-icon class="icon"><Headset /></el-icon>
+      <el-icon class="icon"><component :is="placeholderIcon" /></el-icon>
     </div>
   </div>
 </template>
@@ -74,7 +83,9 @@ watch(
 .cover-image {
   overflow: hidden;
   flex-shrink: 0;
-  background: var(--el-fill-color);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent), var(--el-fill-color);
+  border: 1px solid var(--el-border-color-light);
 }
 
 .cover-image.clickable {
@@ -91,10 +102,12 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
+  color: var(--el-text-color-secondary);
 }
 
 .icon {
-  width: 70%;
-  height: 70%;
+  width: 42%;
+  height: 42%;
+  opacity: 0.64;
 }
 </style>
