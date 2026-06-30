@@ -14,10 +14,12 @@ import { ViewMode } from "@/types/model";
 import { useWindowControls } from "@/composables/useWindowControls";
 import { useWindowDrag } from "@/composables/useWindowDrag";
 import { useSearchHistoryStore } from "@/stores/searchHistoryStore";
+import { useOnlineServiceStore } from "@/stores/onlineServiceStore";
 import { usePlatform } from "@/composables/usePlatform";
 
 const { t } = useI18n();
 const searchHistoryStore = useSearchHistoryStore();
+const onlineServiceStore = useOnlineServiceStore();
 
 const props = defineProps<{
   viewMode: ViewMode;
@@ -40,6 +42,23 @@ const { isMaximized, minimize, toggleMaximize, close } = useWindowControls({
 const { startWindowDrag } = useWindowDrag();
 const maximizeIcon = computed(() => (isMaximized.value ? ScaleToOriginal : FullScreen));
 const historyList = computed(() => searchHistoryStore.getHistory(props.viewMode));
+const showOnlineServiceStatus = computed(() => props.viewMode === ViewMode.ONLINE);
+const onlineServiceStatusTitle = computed(() => {
+  if (onlineServiceStore.state === "checking") return t("onlineService.checking");
+  if (onlineServiceStore.state === "restarting") return t("onlineService.restarting");
+  if (onlineServiceStore.isAvailable) return t("onlineService.available");
+  return onlineServiceStore.message
+    ? `${t("onlineService.unavailable")}: ${onlineServiceStore.message} · ${t("onlineService.clickToRestart")}`
+    : `${t("onlineService.unavailable")} · ${t("onlineService.clickToRestart")}`;
+});
+
+function handleOnlineServiceStatusClick() {
+  if (onlineServiceStore.state === "unavailable") {
+    void onlineServiceStore.restartService();
+    return;
+  }
+  void onlineServiceStore.checkNow();
+}
 
 watch(
   () => props.viewMode,
@@ -182,6 +201,22 @@ function clearHistory(e: Event) {
     </div>
 
     <div class="header-right">
+      <el-tooltip
+        v-if="showOnlineServiceStatus"
+        :content="onlineServiceStatusTitle"
+        placement="bottom"
+        effect="light"
+      >
+        <button
+          type="button"
+          class="service-status"
+          :class="`is-${onlineServiceStore.state}`"
+          :aria-label="onlineServiceStatusTitle"
+          @click.stop="handleOnlineServiceStatusClick"
+        >
+          <span class="service-status-dot" />
+        </button>
+      </el-tooltip>
       <!-- 非 macOS 平台显示窗口控制按钮 -->
       <div v-if="!isMacPlatform" class="window-controls">
         <div

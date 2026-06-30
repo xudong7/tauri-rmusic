@@ -81,6 +81,13 @@ export default {
     empty: "Search for songs to play",
     loadMore: "Load More",
   },
+  onlineService: {
+    checking: "Checking online service",
+    restarting: "Refreshing online service",
+    available: "Online service available",
+    unavailable: "Online service unavailable",
+    clickToRestart: "Click to refresh service",
+  },
   artist: {
     backToSearch: "Back to search",
   },

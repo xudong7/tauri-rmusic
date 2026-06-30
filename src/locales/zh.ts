@@ -81,6 +81,13 @@ export default {
     empty: "搜索歌曲开始播放",
     loadMore: "加载更多",
   },
+  onlineService: {
+    checking: "正在检测在线服务",
+    restarting: "正在刷新在线服务",
+    available: "在线服务可用",
+    unavailable: "在线服务不可用",
+    clickToRestart: "点击刷新服务",
+  },
   artist: {
     backToSearch: "返回搜索",
   },

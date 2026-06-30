@@ -7,12 +7,12 @@ use music::{
     play_track, seek_to, Music, MusicState,
 };
 use netease::{
-    get_artist_top_songs, get_song_cover, get_song_lyric, get_song_url, play_netease_song,
-    search_online_mix, search_songs,
+    check_online_service_status, get_artist_top_songs, get_song_cover, get_song_lyric,
+    get_song_url, play_netease_song, search_online_mix, search_songs,
 };
 use playlist::{read_playlists, write_playlists};
 use rodio::Sink;
-use service::setup_service;
+use service::{restart_online_service, setup_service};
 use std::sync::Arc;
 use tauri::Manager;
 use tauri_plugin_autostart::MacosLauncher;
@@ -148,6 +148,8 @@ pub fn run() {
             clear_online_audio_cache,
             seek_to,
             scan_files,
+            check_online_service_status,
+            restart_online_service,
             search_songs,
             search_online_mix,
             get_artist_top_songs,

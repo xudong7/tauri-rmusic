@@ -81,6 +81,12 @@ export interface PlayStartResult {
   track_id: number;
 }
 
+export interface OnlineServiceStatus {
+  available: boolean;
+  status_code: number | null;
+  message: string;
+}
+
 // 播放模式
 export enum PlayMode {
   SEQUENTIAL = "sequential", // 顺序播放

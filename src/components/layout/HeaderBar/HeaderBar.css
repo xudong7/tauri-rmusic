@@ -226,6 +226,66 @@ html.dark .search-history-chip:hover {
   gap: 12px;
 }
 
+.service-status {
+  width: var(--app-icon-btn-md);
+  height: var(--app-icon-btn-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--app-radius-full);
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition:
+    background var(--app-control-transition),
+    border-color var(--app-control-transition),
+    transform var(--app-control-transition);
+}
+
+.service-status:hover {
+  background: var(--app-icon-button-hover-bg);
+  border-color: var(--app-button-border);
+  transform: translateY(-1px);
+}
+
+.service-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--el-color-warning);
+  box-shadow: 0 0 0 3px rgba(230, 162, 60, 0.16);
+}
+
+.service-status.is-available .service-status-dot {
+  background: var(--el-color-success);
+  box-shadow: 0 0 0 3px rgba(103, 194, 58, 0.14);
+}
+
+.service-status.is-unavailable .service-status-dot {
+  background: var(--el-color-danger);
+  box-shadow: 0 0 0 3px rgba(245, 108, 108, 0.14);
+}
+
+.service-status.is-checking .service-status-dot,
+.service-status.is-restarting .service-status-dot {
+  animation: service-status-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes service-status-pulse {
+  0%,
+  100% {
+    opacity: 0.52;
+    transform: scale(0.86);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .window-controls {
   display: flex;
   align-items: center;

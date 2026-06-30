@@ -17,6 +17,7 @@ import { useThemeStore } from "./stores/themeStore";
 import { useViewStore } from "./stores/viewStore";
 import { useLocalMusicStore } from "./stores/localMusicStore";
 import { useOnlineMusicStore } from "./stores/onlineMusicStore";
+import { useOnlineServiceStore } from "./stores/onlineServiceStore";
 import { usePlayerStore } from "./stores/playerStore";
 import { usePlaylistStore } from "./stores/playlistStore";
 
@@ -27,6 +28,7 @@ const themeStore = useThemeStore();
 const viewStore = useViewStore();
 const localStore = useLocalMusicStore();
 const onlineStore = useOnlineMusicStore();
+const onlineServiceStore = useOnlineServiceStore();
 const playerStore = usePlayerStore();
 const playlistStore = usePlaylistStore();
 
@@ -62,6 +64,7 @@ onMounted(async () => {
     themeStore.initializeTheme();
     keyboardShortcuts.start();
     themeSync.start();
+    onlineServiceStore.start();
     await trayEvents.start();
   } catch (e) {
     console.error("App init error:", e);
@@ -71,6 +74,7 @@ onMounted(async () => {
 onUnmounted(() => {
   keyboardShortcuts.stop();
   themeSync.stop();
+  onlineServiceStore.stop();
   trayEvents.stop();
   playerStore.stopPlayTimeTracking();
 });
