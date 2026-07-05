@@ -13,7 +13,10 @@ fn main() {
 
     if zip_path.exists() {
         if let Err(e) = extract_zip(&zip_path, &manifest_dir) {
-            eprintln!("cargo:warning=Failed to extract binaries.zip (skip sidecar): {}", e);
+            eprintln!(
+                "cargo:warning=Failed to extract binaries.zip (skip sidecar): {}",
+                e
+            );
         }
     }
 
@@ -52,18 +55,25 @@ fn extract_zip(zip_path: &Path, out_dir: &Path) -> Result<(), Box<dyn std::error
 }
 
 /// Tauri 2 要求 sidecar 文件名为 `base-<TARGET_TRIPLE>`。将 zip 内的无后缀二进制复制为带 target triple 的文件供 Tauri 查找。
-fn ensure_sidecar_with_target_triple(binaries_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
-    let target = std::env::var("TARGET").map_err(|_| {
-        std::io::Error::new(std::io::ErrorKind::NotFound, "TARGET env not set")
-    })?;
+fn ensure_sidecar_with_target_triple(
+    binaries_dir: &Path,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let target = std::env::var("TARGET")
+        .map_err(|_| std::io::Error::new(std::io::ErrorKind::NotFound, "TARGET env not set"))?;
 
     let (base_name, ext) = {
         #[cfg(target_os = "linux")]
-        { ("app_linux", "") }
+        {
+            ("app_linux", "")
+        }
         #[cfg(target_os = "macos")]
-        { ("app_mac", "") }
+        {
+            ("app_mac", "")
+        }
         #[cfg(target_os = "windows")]
-        { ("app_win", ".exe") }
+        {
+            ("app_win", ".exe")
+        }
         #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
         return Ok(());
     };

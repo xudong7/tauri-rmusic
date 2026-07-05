@@ -8,17 +8,16 @@
 }
 
 .settings-page-title {
-  margin: 0 0 18px 0;
-  font-size: 22px;
+  margin: 0 0 16px 0;
+  font-size: 20px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: var(--el-text-color-primary);
 }
 
 .settings-content {
   flex: 1;
-  padding: 20px;
-  padding-bottom: 24px;
+  padding: 18px 28px 24px;
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
@@ -27,19 +26,19 @@
 /* 滚动条与音乐列表一致，使用 themes.css 全局样式（6px、透明轨道、灰色滑块） */
 
 .settings-section {
-  margin-bottom: 18px;
-  padding: 18px 20px;
+  margin-bottom: 12px;
+  padding: 14px 16px;
   background: var(--app-card-bg, var(--el-bg-color-overlay));
-  border-radius: var(--app-radius-xl);
+  border-radius: var(--app-radius-md);
   border: 1px solid var(--el-border-color-lighter);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.035);
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease;
 }
 
 .settings-section:hover {
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
   border-color: var(--el-color-primary-light-8);
 }
 
@@ -47,8 +46,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 0 0 12px 0;
-  font-size: 16px;
+  margin: 0 0 10px 0;
+  font-size: 15px;
   font-weight: 600;
   color: var(--el-text-color-primary);
   border-bottom: 1px solid var(--el-border-color-lighter);
@@ -60,24 +59,29 @@
   color: var(--el-color-primary);
 }
 
-.setting-item {
+.setting-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
-  padding: 10px 0;
+  min-height: 40px;
+  padding: 6px 0;
   gap: 12px;
 }
 
-.setting-item:last-child {
+.setting-row:last-child {
   margin-bottom: 0;
 }
 
-.setting-item > label {
+.setting-row > label {
   font-size: 14px;
   font-weight: 500;
   color: var(--el-text-color-regular);
-  flex: 0 0 110px;
+  flex: 0 0 160px;
+  white-space: nowrap;
+}
+
+.setting-row-stacked {
+  align-items: center;
 }
 
 .setting-control {
@@ -88,12 +92,17 @@
   align-items: center;
 }
 
-.setting-item > .download-path-container {
-  flex: 1;
-  min-width: 0;
+.cache-control {
+  gap: 10px;
 }
 
-.setting-item p {
+.cache-size {
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.setting-row p {
   margin: 4px 0;
   color: var(--el-text-color-secondary);
   font-size: 14px;
@@ -114,14 +123,52 @@
 }
 
 /* 下载路径输入框 */
-.download-path-container .download-path-input {
-  --el-input-hover-border-color: var(--el-border-color);
-  --el-input-focus-border-color: var(--el-color-primary);
+.setting-actions {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
-.download-path-container .download-path-input :deep(.el-input__wrapper) {
-  border-radius: var(--app-radius-md);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+.path-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 34px;
+  margin-top: 2px;
+  padding: 4px 0 2px;
+}
+
+.path-summary-label {
+  flex: 0 0 160px;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.path-summary-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--el-text-color-regular);
+  font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  background: transparent;
+}
+
+.path-copy {
+  width: 26px;
+  height: 26px;
+  color: var(--el-text-color-secondary);
+}
+
+.path-copy:hover {
+  color: var(--el-color-primary);
+  background: var(--app-icon-button-hover-bg);
 }
 
 /* 暖色模式适配 */
@@ -154,13 +201,13 @@ html.dark .settings-section .section-title .el-icon {
   color: var(--el-color-primary);
 }
 
-.dark .setting-item > label,
-html.dark .setting-item > label {
+.dark .setting-row > label,
+html.dark .setting-row > label {
   color: var(--el-text-color-regular);
 }
 
-.dark .setting-item p,
-html.dark .setting-item p {
+.dark .setting-row p,
+html.dark .setting-row p {
   color: var(--el-text-color-secondary);
 }
 
@@ -194,36 +241,49 @@ html.theme-warm .settings-section .section-title .el-icon {
   color: var(--el-color-primary);
 }
 
-.theme-warm .setting-item > label,
-html.theme-warm .setting-item > label {
+.theme-warm .setting-row > label,
+html.theme-warm .setting-row > label {
   color: var(--el-text-color-regular);
 }
 
-.theme-warm .setting-item p,
-html.theme-warm .setting-item p {
+.theme-warm .setting-row p,
+html.theme-warm .setting-row p {
   color: var(--el-text-color-secondary);
 }
 
-/* 下载路径容器样式 */
-.download-path-container {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  width: 100%;
-  min-width: 0;
-}
-
-.download-path-container .el-input {
-  flex: 1;
-  min-width: 0;
-}
-
-.download-path-container .el-button {
+.setting-actions .el-button {
   flex-shrink: 0;
   min-width: 70px;
+  box-shadow: var(--app-button-shadow);
+}
+
+.setting-actions .el-button:hover {
+  box-shadow: var(--app-button-hover-shadow);
 }
 
 .theme-select,
 .locale-select {
   width: 160px;
+}
+
+@media (max-width: 960px) {
+  .settings-content {
+    padding: 14px;
+  }
+
+  .settings-section {
+    padding: 12px 14px;
+  }
+
+  .setting-row {
+    align-items: flex-start;
+  }
+
+  .setting-row > label {
+    flex-basis: 110px;
+  }
+
+  .path-summary-label {
+    flex-basis: 110px;
+  }
 }

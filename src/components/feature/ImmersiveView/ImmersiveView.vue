@@ -1,26 +1,25 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from "vue";
+import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   VideoPlay,
   VideoPause,
-  Back,
   ArrowLeft,
   ArrowRight,
-  Sort,
-  Refresh,
-  RefreshRight,
   Headset,
   Minus,
   FullScreen,
   ScaleToOriginal,
   Close,
 } from "@element-plus/icons-vue";
-import type { SongInfo, MusicFile } from "@/types/model";
-import { PlayMode } from "@/types/model";
+import type { SongInfo, MusicFile, PlayMode } from "@/types/model";
 import LyricView from "@/components/feature/LyricView/LyricView.vue";
+import { useCoverBrightness } from "@/composables/useCoverBrightness";
 import { useCoverLoader } from "@/composables/useCoverLoader";
 import { useArtistNavigation } from "@/composables/useArtistNavigation";
+import { usePlaybackProgressSlider } from "@/composables/usePlaybackProgressSlider";
+import { usePlatform } from "@/composables/usePlatform";
+import { useWindowDrag } from "@/composables/useWindowDrag";
 import {
   getDisplayName,
   extractArtistName,
@@ -43,90 +42,45 @@ const props = defineProps<{
   playMode?: PlayMode;
 }>();
 
-const emit = defineEmits([
-  "toggle-play",
-  "previous",
-  "next",
-  "exit",
-  "seek",
-  "volume-change",
-  "toggle-play-mode",
-]);
+const emit = defineEmits<{
+  "toggle-play": [];
+  previous: [];
+  next: [];
+  exit: [];
+  seek: [positionMs: number];
+  "volume-change": [volume: number];
+  "toggle-play-mode": [];
+}>();
 
 const artistStore = useArtistStore();
 const onlineStore = useOnlineMusicStore();
 const localStore = useLocalMusicStore();
-const isMacPlatform = ref(false);
+const { isMacPlatform } = usePlatform();
 
 const volume = ref(50);
-const sliderValue = ref(0);
-const isDragging = ref(false);
-
-function formatTime(ms: number): string {
-  if (!ms || ms <= 0) return "0:00";
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-}
-
-const currentPlayTime = computed(() => props.currentTime ?? 0);
-const currentTimeDisplay = computed(() => formatTime(currentPlayTime.value));
-const durationDisplay = computed(() => formatTime(props.currentTrackDuration ?? 0));
-const progressPercent = computed(() => {
-  const duration = props.currentTrackDuration ?? 0;
-  if (!duration || duration <= 0) return 0;
-  return (currentPlayTime.value / duration) * 100;
-});
-
-function handleProgressChange(value: number) {
-  const duration = props.currentTrackDuration ?? 0;
-  const newPosition = Math.floor((value / 100) * duration);
-  emit("seek", newPosition);
-}
-
-watch(progressPercent, (newVal) => {
-  if (!isDragging.value) sliderValue.value = newVal;
-});
 
 watch(volume, () => {
   emit("volume-change", volume.value);
 });
 
-const playModeIcon = computed(() => {
-  const mode = props.playMode ?? PlayMode.SEQUENTIAL;
-  switch (mode) {
-    case PlayMode.REPEAT_ONE:
-      return RefreshRight;
-    case PlayMode.RANDOM:
-      return Refresh;
-    default:
-      return Sort;
-  }
-});
-
-const playModeTooltip = computed(() => {
-  const mode = props.playMode ?? PlayMode.SEQUENTIAL;
-  switch (mode) {
-    case PlayMode.REPEAT_ONE:
-      return t("playerBar.repeatOne");
-    case PlayMode.RANDOM:
-      return t("playerBar.random");
-    default:
-      return t("playerBar.sequential");
-  }
-});
-
-onMounted(() => {
-  // 检测 macOS 平台
-  // 优先使用 userAgentData，fallback 到 userAgent
-  const ua = navigator.userAgent;
-  isMacPlatform.value = /Mac|iPhone|iPad|iPod/i.test(ua);
+const {
+  sliderValue,
+  progressDisabled,
+  currentTimeDisplay,
+  durationDisplay,
+  handleProgressInput,
+  handleProgressChange,
+} = usePlaybackProgressSlider({
+  currentTime: () => props.currentTime ?? 0,
+  duration: () => props.currentTrackDuration ?? 0,
+  hasTrack: () => Boolean(props.currentSong || props.currentMusic),
+  onSeek: (positionMs) => emit("seek", positionMs),
 });
 
 const { isMaximized, minimize, toggleMaximize, close } = useWindowControls({
   onClose: "hide",
 });
+const { startWindowDrag } = useWindowDrag();
 const maximizeIcon = computed(() => (isMaximized.value ? ScaleToOriginal : FullScreen));
 
 const { coverUrl: currentCoverUrl } = useCoverLoader({
@@ -134,90 +88,7 @@ const { coverUrl: currentCoverUrl } = useCoverLoader({
   currentOnlineSong: () => props.currentSong,
   getDefaultDirectory: () => localStore.getDefaultDirectory(),
 });
-
-// 图片亮度分析状态
-const imageAnalysisState = ref({
-  brightness: 0.7, // 默认亮度
-  isAnalyzing: false,
-  isAnalyzed: false,
-});
-
-// 分析图片亮度
-async function analyzeCoverBrightness(imageUrl: string) {
-  if (!imageUrl || imageAnalysisState.value.isAnalyzing) return;
-
-  imageAnalysisState.value.isAnalyzing = true;
-
-  try {
-    // 创建一个隐藏的图片元素来加载图片
-    const img = new Image();
-    img.crossOrigin = "Anonymous";
-
-    await new Promise((resolve, reject) => {
-      img.onload = resolve;
-      img.onerror = reject;
-      img.src = imageUrl;
-    });
-
-    // 使用 canvas 分析图片亮度
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    canvas.width = img.width;
-    canvas.height = img.height;
-    ctx.drawImage(img, 0, 0);
-
-    // 获取图像数据
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-
-    // 计算平均亮度 (0-255)
-    let totalBrightness = 0;
-    let count = 0;
-
-    // 每隔几个像素采样一次，提高性能
-    const sampleStep = Math.max(1, Math.floor(data.length / 4 / 1000));
-
-    for (let i = 0; i < data.length; i += 4 * sampleStep) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-
-      // 加权亮度计算 (人眼对绿色最敏感)
-      const pixelBrightness = 0.299 * r + 0.587 * g + 0.114 * b;
-      totalBrightness += pixelBrightness;
-      count++;
-    }
-
-    // 计算平均亮度并归一化到 0-1 范围
-    const averageBrightness = totalBrightness / count / 255;
-
-    // 根据图片亮度计算合适的背景亮度值
-    // 亮图片需要降低背景亮度，暗图片需要提高背景亮度
-    let adjustedBrightness;
-
-    if (averageBrightness < 0.3) {
-      // 暗图片，稍微提高亮度
-      adjustedBrightness = 0.9;
-    } else if (averageBrightness < 0.6) {
-      // 中等亮度，适中调整
-      adjustedBrightness = 0.7;
-    } else {
-      // 亮图片，降低亮度
-      adjustedBrightness = 0.5;
-    }
-
-    imageAnalysisState.value.brightness = adjustedBrightness;
-    imageAnalysisState.value.isAnalyzed = true;
-  } catch (error) {
-    console.error("分析封面图片亮度失败:", error);
-    // 使用默认值
-    imageAnalysisState.value.brightness = 0.7;
-  } finally {
-    imageAnalysisState.value.isAnalyzing = false;
-  }
-}
+const { brightness: imageAnalysisState } = useCoverBrightness(currentCoverUrl);
 
 // 当前歌曲标题
 const songTitle = computed(() => {
@@ -258,7 +129,7 @@ const backgroundStyle = computed(() => {
 
 // 背景滤镜样式
 const backgroundFilterStyle = computed(() => {
-  return `blur(40px) brightness(${imageAnalysisState.value.brightness * 0.85})`;
+  return `blur(42px) saturate(1.18) brightness(${imageAnalysisState.value.brightness})`;
 });
 
 // 覆盖层透明度样式 - 使用更优雅的渐变，保留更多专辑封面细节
@@ -267,54 +138,50 @@ const overlayStyle = computed(() => {
   let gradientOpacity: string;
   let solidOpacity: number;
 
-  if (brightness > 0.7) {
-    // 亮图片 - 轻微暗化，保留更多细节
-    gradientOpacity = "0.35";
-    solidOpacity = 0.45;
-  } else if (brightness > 0.5) {
-    // 中等亮度 - 适度暗化
-    gradientOpacity = "0.45";
-    solidOpacity = 0.55;
+  if (brightness >= 1.08) {
+    gradientOpacity = "0.32";
+    solidOpacity = 0.46;
+  } else if (brightness >= 0.98) {
+    gradientOpacity = "0.28";
+    solidOpacity = 0.4;
   } else {
-    // 暗图片 - 稍暗但不沉闷
-    gradientOpacity = "0.5";
-    solidOpacity = 0.6;
+    gradientOpacity = "0.22";
+    solidOpacity = 0.34;
   }
   return {
     background: `linear-gradient(
-      180deg,
+      135deg,
       rgba(0, 0, 0, ${gradientOpacity}) 0%,
-      rgba(0, 0, 0, ${solidOpacity}) 50%,
-      rgba(0, 0, 0, ${Number(gradientOpacity) + 0.15}) 100%
+      rgba(0, 0, 0, ${solidOpacity}) 58%,
+      rgba(0, 0, 0, ${Number(gradientOpacity) + 0.12}) 100%
     )`,
   };
 });
-
-// 监听封面URL变化，重新分析亮度
-watch(
-  () => currentCoverUrl.value,
-  (newUrl) => {
-    if (newUrl) {
-      imageAnalysisState.value.isAnalyzed = false;
-      analyzeCoverBrightness(newUrl);
-    }
-  },
-  { immediate: true }
-);
 </script>
 
 <template>
-  <div class="immersive-view">
+  <div class="immersive-view" :class="{ 'is-mac-platform': isMacPlatform }">
     <div
       v-if="currentCoverUrl"
       class="background-cover"
       :style="[backgroundStyle, { filter: backgroundFilterStyle }]"
     ></div>
     <div class="overlay" :style="overlayStyle"></div>
+    <div
+      class="immersive-titlebar-drag-region"
+      aria-hidden="true"
+      @mousedown="startWindowDrag"
+    ></div>
 
     <div class="top-section">
-      <el-tooltip :content="t('common.back')" placement="bottom" effect="dark">
-        <el-button @click="emit('exit')" :icon="Back" circle class="back-btn" />
+      <el-tooltip :content="t('common.close')" placement="bottom" effect="dark">
+        <el-button
+          data-no-drag
+          @click="emit('exit')"
+          :icon="ScaleToOriginal"
+          circle
+          class="back-btn"
+        />
       </el-tooltip>
 
       <!-- 非 macOS 平台显示窗口控制按钮 -->
@@ -399,9 +266,9 @@ watch(
             :min="0"
             :step="0.1"
             :show-tooltip="false"
+            :disabled="progressDisabled"
             class="progress-slider"
-            @focus="isDragging = true"
-            @blur="isDragging = false"
+            @input="handleProgressInput"
             @change="handleProgressChange"
           />
           <span class="time-display">{{ durationDisplay }}</span>

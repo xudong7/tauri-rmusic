@@ -1,12 +1,18 @@
-use file::{download_music, get_default_music_dir, import_music, load_cover_and_lyric, scan_files};
-use music::{get_progress, seek_to, Music, MusicState};
+use file::{
+    download_music, get_default_music_dir, import_music, load_cover_and_lyric,
+    load_local_cover_path, load_local_lyric, scan_files,
+};
+use music::{
+    clear_online_audio_cache, get_online_audio_cache_path, get_online_audio_cache_size,
+    get_playback_state, get_progress, play_track, seek_to, Music, MusicState,
+};
 use netease::{
-    get_artist_top_songs, get_song_cover, get_song_lyric, get_song_url, play_netease_song,
-    search_online_mix, search_songs,
+    check_online_service_status, get_artist_top_songs, get_song_cover, get_song_lyric,
+    get_song_url, play_netease_song, search_online_mix, search_songs,
 };
 use playlist::{read_playlists, write_playlists};
 use rodio::Sink;
-use service::setup_service;
+use service::{restart_online_service, setup_service};
 use std::sync::Arc;
 use tauri::Manager;
 use tauri_plugin_autostart::MacosLauncher;
@@ -25,22 +31,36 @@ mod tray;
 /// handle the music events
 /// play, pause, recovery, volume, quit
 #[tauri::command]
-fn handle_event(sender: tauri::State<Sender<MusicState>>, event: String) {
-    let event: serde_json::Value = serde_json::from_str(&event).unwrap();
-    if let Some(act) = event["action"].as_str() {
-        match act {
-            "play" => event["path"]
+fn handle_event(sender: tauri::State<Sender<MusicState>>, event: String) -> Result<(), String> {
+    let event: serde_json::Value =
+        serde_json::from_str(&event).map_err(|e| format!("Parse music event error: {}", e))?;
+    let action = event["action"]
+        .as_str()
+        .ok_or_else(|| "Missing music event action".to_string())?;
+
+    let music_state = match action {
+        "play" => {
+            let path = event["path"]
                 .as_str()
-                .map(|path| sender.send(MusicState::Play(path.to_owned()))),
-            "recovery" => Some(sender.send(MusicState::Recovery)),
-            "pause" => Some(sender.send(MusicState::Pause)),
-            "volume" => event["volume"]
+                .ok_or_else(|| "Missing play path".to_string())?;
+            MusicState::Play(path.to_owned())
+        }
+        "recovery" => MusicState::Recovery,
+        "pause" => MusicState::Pause,
+        "volume" => {
+            let volume = event["volume"]
                 .as_f64()
-                .map(|vol| sender.send(MusicState::Volume(vol as f32))),
-            "quit" => Some(sender.send(MusicState::Quit)),
-            _ => None,
-        };
-    }
+                .ok_or_else(|| "Missing volume".to_string())?;
+            MusicState::Volume(volume as f32)
+        }
+        "quit" => MusicState::Quit,
+        _ => return Err(format!("Unknown music event action: {}", action)),
+    };
+
+    sender
+        .send(music_state)
+        .map(|_| ())
+        .map_err(|e| format!("Send music event error: {}", e))
 }
 
 /// check if the sink is empty
@@ -53,7 +73,13 @@ async fn is_sink_empty(sink: tauri::State<'_, Arc<Mutex<Sink>>>) -> Result<bool,
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let music = Music::new();
+    let music = match Music::new() {
+        Ok(music) => music,
+        Err(e) => {
+            eprintln!("Failed to initialize audio: {}", e);
+            return;
+        }
+    };
     tauri::Builder::default()
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::LaunchAgent,
@@ -77,7 +103,9 @@ pub fn run() {
         }))
         .setup(|app| {
             // setup the tray icon
-            setup_tray(app).unwrap();
+            if let Err(e) = setup_tray(app) {
+                eprintln!("Failed to setup tray: {}", e);
+            }
 
             // Get the main window - use "main" as the default window label
             let window = app
@@ -113,9 +141,16 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             is_sink_empty,
             handle_event,
+            get_playback_state,
             get_progress,
+            play_track,
+            get_online_audio_cache_size,
+            get_online_audio_cache_path,
+            clear_online_audio_cache,
             seek_to,
             scan_files,
+            check_online_service_status,
+            restart_online_service,
             search_songs,
             search_online_mix,
             get_artist_top_songs,
@@ -126,6 +161,8 @@ pub fn run() {
             download_music,
             get_song_lyric,
             load_cover_and_lyric,
+            load_local_cover_path,
+            load_local_lyric,
             get_song_cover,
             read_playlists,
             write_playlists
@@ -134,6 +171,7 @@ pub fn run() {
         .manage(music.event_sender)
         .manage(music.sink)
         .manage(music.current_duration_ms)
+        .manage(music.current_track_id)
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

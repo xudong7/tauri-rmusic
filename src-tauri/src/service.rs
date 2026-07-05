@@ -1,4 +1,5 @@
-use tauri::Emitter;
+use std::time::Duration;
+use tauri::{Emitter, Manager};
 use tauri_plugin_shell::process::CommandEvent;
 use tauri_plugin_shell::ShellExt;
 
@@ -28,7 +29,15 @@ pub fn setup_service(
     service_name: &str,
     window: tauri::webview::WebviewWindow,
 ) -> Result<(), String> {
-    let app_sidecar_command = app
+    spawn_service(app.handle(), service_name, Some(window))
+}
+
+fn spawn_service(
+    app_handle: &tauri::AppHandle,
+    service_name: &str,
+    window: Option<tauri::webview::WebviewWindow>,
+) -> Result<(), String> {
+    let app_sidecar_command = app_handle
         .shell()
         .sidecar(service_name)
         .map_err(|e| format!("Failed to get sidecar command for {}: {}", service_name, e))?;
@@ -41,8 +50,10 @@ pub fn setup_service(
         // 读取诸如 stdout 之类的事件
         while let Some(event) = rx.recv().await {
             if let CommandEvent::Stdout(line) = event {
-                if let Err(e) = window.emit("message", Some(format!("{:?}", line))) {
-                    eprintln!("Failed to emit event: {}", e);
+                if let Some(window) = &window {
+                    if let Err(e) = window.emit("message", Some(format!("{:?}", line))) {
+                        eprintln!("Failed to emit event: {}", e);
+                    }
                 }
                 // 写入 stdin
                 if let Err(e) = child.write("message from Rust\n".as_bytes()) {
@@ -51,6 +62,17 @@ pub fn setup_service(
             }
         }
     });
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn restart_online_service(app_handle: tauri::AppHandle) -> Result<(), String> {
+    let service_name = sidecar_name_for_current_platform();
+    shutdown_service(service_name)?;
+    tokio::time::sleep(Duration::from_millis(500)).await;
+    let window = app_handle.get_webview_window("main");
+    spawn_service(&app_handle, service_name, window)?;
+    tokio::time::sleep(Duration::from_millis(800)).await;
     Ok(())
 }
 

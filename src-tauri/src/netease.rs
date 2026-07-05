@@ -1,5 +1,6 @@
 use reqwest;
 use serde::{Deserialize, Serialize};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SongInfo {
@@ -47,26 +48,19 @@ pub struct ArtistSongsResult {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct LyricInfo {
-    pub id: String,
-    pub accesskey: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Lyric {
-    pub content: String,
-    pub fmt: String,
-    pub contenttype: u32,
-    pub charset: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub struct PlaySongResult {
     pub url: String,
     pub id: String,
     pub name: String,
     pub artist: String,
     pub pic_url: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct OnlineServiceStatus {
+    pub available: bool,
+    pub status_code: Option<u16>,
+    pub message: String,
 }
 
 const LOCAL_API_BASE: &str = "http://localhost:3000";
@@ -78,6 +72,44 @@ pub fn get_client() -> Result<reqwest::Client, String> {
         .build()
         .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
     Ok(client)
+}
+
+#[tauri::command]
+pub async fn check_online_service_status() -> Result<OnlineServiceStatus, String> {
+    let client = reqwest::Client::builder()
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
+        .timeout(Duration::from_secs(2))
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_millis())
+        .unwrap_or(0);
+    let url = format!("{}/login/status?timestamp={}", LOCAL_API_BASE, timestamp);
+
+    match client.get(&url).send().await {
+        Ok(response) => {
+            let status = response.status();
+            if status.is_success() {
+                Ok(OnlineServiceStatus {
+                    available: true,
+                    status_code: Some(status.as_u16()),
+                    message: "ok".to_string(),
+                })
+            } else {
+                Ok(OnlineServiceStatus {
+                    available: false,
+                    status_code: Some(status.as_u16()),
+                    message: format!("HTTP {}", status),
+                })
+            }
+        }
+        Err(error) => Ok(OnlineServiceStatus {
+            available: false,
+            status_code: None,
+            message: error.to_string(),
+        }),
+    }
 }
 
 /// get client response
@@ -115,11 +147,14 @@ async fn get_response_json(
 ) -> Result<serde_json::Value, String> {
     let response = get_response(client, url).await?;
     let text = get_text(response).await?;
-    let json: serde_json::Value = serde_json::from_str(&text)
-        .map_err(|e| {
-            let preview = if text.len() > 200 { &text[..200] } else { &text };
-            format!("Serialize json error: {}, content: {}", e, preview)
-        })?;
+    let json: serde_json::Value = serde_json::from_str(&text).map_err(|e| {
+        let preview = if text.len() > 200 {
+            &text[..200]
+        } else {
+            &text
+        };
+        format!("Serialize json error: {}, content: {}", e, preview)
+    })?;
     Ok(json)
 }
 

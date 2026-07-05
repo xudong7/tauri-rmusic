@@ -23,8 +23,7 @@ pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
         .text("quit", "Quit")
         .build()?;
 
-    let _tray = TrayIconBuilder::new()
-        .icon(app.default_window_icon().unwrap().clone())
+    let mut tray_builder = TrayIconBuilder::new()
         .menu(&menu)
         .show_menu_on_left_click(true)
         .on_tray_icon_event(|tray, event| match event {
@@ -74,7 +73,9 @@ pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
             "quit" => {
-                app.save_window_state(StateFlags::all()).unwrap();
+                if let Err(e) = app.save_window_state(StateFlags::all()) {
+                    eprintln!("Failed to save window state: {}", e);
+                }
                 let sidecar_name = service::sidecar_name_for_current_platform();
                 if let Err(e) = service::shutdown_service(sidecar_name) {
                     eprintln!("Failed to shutdown sidecar {}: {}", sidecar_name, e);
@@ -82,7 +83,12 @@ pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
                 app.exit(0);
             }
             _ => {}
-        })
-        .build(app)?;
+        });
+
+    if let Some(icon) = app.default_window_icon() {
+        tray_builder = tray_builder.icon(icon.clone());
+    }
+
+    let _tray = tray_builder.build(app)?;
     Ok(())
 }

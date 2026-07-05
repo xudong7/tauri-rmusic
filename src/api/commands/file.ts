@@ -26,3 +26,17 @@ export async function loadCoverAndLyric(args: {
 }): Promise<[string, string]> {
   return await invokeCommand("load_cover_and_lyric", args);
 }
+
+export async function loadLocalCoverPath(args: {
+  fileName: string;
+  defaultDirectory: string | null;
+}): Promise<string | null> {
+  return await invokeCommand("load_local_cover_path", args);
+}
+
+export async function loadLocalLyric(args: {
+  fileName: string;
+  defaultDirectory: string | null;
+}): Promise<string> {
+  return await invokeCommand("load_local_lyric", args);
+}

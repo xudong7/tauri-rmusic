@@ -16,8 +16,9 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
 
   const filteredMusicFiles = computed(() => {
     if (!searchKeyword.value.trim()) return musicFiles.value;
+    const keyword = searchKeyword.value.trim().toLowerCase();
     return musicFiles.value.filter((file) =>
-      file.file_name.toLowerCase().includes(searchKeyword.value.toLowerCase())
+      (file.search_text || file.file_name.toLowerCase()).includes(keyword)
     );
   });
 

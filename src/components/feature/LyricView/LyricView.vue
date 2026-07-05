@@ -4,9 +4,16 @@ import { useI18n } from "vue-i18n";
 import { ElScrollbar } from "element-plus";
 import type { SongInfo, MusicFile } from "@/types/model";
 import { getSongLyric } from "@/api/commands/netease";
-import { loadCoverAndLyric } from "@/api/commands/file";
+import { loadLocalLyric as loadLocalLyricText } from "@/api/commands/file";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
+import {
+  findLyricIndex,
+  getCachedLyric,
+  parseLyric,
+  setCachedLyric,
+  type LyricLine,
+} from "@/composables/useLyrics";
 
 const { t } = useI18n();
 
@@ -25,7 +32,7 @@ watch(
   () => props.currentTime,
   (newTime) => {
     // 使用播放时间更新歌词
-    if (newTime !== undefined && props.isPlaying && playerStore.isLoadingSong === false) {
+    if (newTime !== undefined && playerStore.isLoadingSong === false) {
       // 如果有外部传入的时间，直接使用并更新当前行
       currentLyricTime.value = newTime;
       updateCurrentLine();
@@ -34,7 +41,7 @@ watch(
 );
 
 // 歌词数据
-const lyricData = ref<Array<{ time: number; text: string }>>([]);
+const lyricData = ref<LyricLine[]>([]);
 // 加载状态
 const loading = ref(false);
 // 当前显示的歌词索引
@@ -44,6 +51,7 @@ const lyricScrollRef = ref<InstanceType<typeof ElScrollbar> | null>(null);
 // 通过状态模拟实现简单的歌词滚动
 const currentLyricTime = ref(0);
 let lyricUpdateInterval: number | null = null;
+let lyricLoadRequestId = 0;
 
 // 组件挂载时，初始化播放时间
 onMounted(() => {
@@ -59,12 +67,8 @@ watch(
   () => props.isPlaying,
   (isPlaying) => {
     if (isPlaying) {
-      // 开始歌词滚动
-      console.log("[歌词] 开始歌词滚动");
       startLyricUpdate();
     } else {
-      // 停止模拟歌词滚动
-      console.log("[歌词] 停止歌词滚动，播放已暂停");
       stopLyricUpdate();
     }
   },
@@ -73,25 +77,20 @@ watch(
 
 // 开始模拟歌词滚动
 function startLyricUpdate() {
-  // 清除之前的定时器
-  stopLyricUpdate();
-
-  // 如果有外部传入的时间，立即同步
   if (props.currentTime !== undefined) {
     currentLyricTime.value = props.currentTime;
     updateCurrentLine();
+    return;
   }
+
+  // 清除之前的定时器
+  stopLyricUpdate();
 
   // 开始新的定时器
   lyricUpdateInterval = window.setInterval(() => {
     if (props.currentTime !== undefined) {
-      // 使用实际播放时间
       currentLyricTime.value = props.currentTime;
-    } else {
-      // 回退到模拟方式，但确保增加的时间和更新间隔匹配
-      // 使用200ms的更新频率，但每次只增加200ms的播放时间
-      currentLyricTime.value += 200;
-    }
+    } else currentLyricTime.value += 200;
     updateCurrentLine();
   }, 200); // 更新频率提高到200ms，让滚动更流畅
 }
@@ -104,36 +103,18 @@ function stopLyricUpdate() {
   }
 }
 
-// 解析LRC歌词
-function parseLyric(lrc: string): Array<{ time: number; text: string }> {
-  if (!lrc) return [];
-
-  const lines = lrc.split("\n");
-  const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
-  const result: Array<{ time: number; text: string }> = [];
-
-  for (const line of lines) {
-    const match = line.match(timeRegex);
-    if (match) {
-      const minutes = parseInt(match[1]);
-      const seconds = parseInt(match[2]);
-      const milliseconds = parseInt(match[3].padEnd(3, "0"));
-      const time = minutes * 60 * 1000 + seconds * 1000 + milliseconds;
-      const text = line.replace(timeRegex, "").trim();
-
-      if (text) {
-        result.push({ time, text });
-      }
-    }
-  }
-
-  return result.sort((a, b) => a.time - b.time);
-}
-
 // 加载歌词
 async function loadLyric(song: SongInfo) {
   if (!song || !song.file_hash) return;
 
+  const cacheKey = `online:${song.id}`;
+  const cached = getCachedLyric(cacheKey);
+  if (cached) {
+    lyricData.value = cached;
+    return;
+  }
+
+  const requestId = ++lyricLoadRequestId;
   loading.value = true;
   lyricData.value = [];
 
@@ -145,15 +126,20 @@ async function loadLyric(song: SongInfo) {
 
     if (lyricContent) {
       // 解析歌词
-      lyricData.value = parseLyric(lyricContent);
+      const parsed = parseLyric(lyricContent);
+      if (requestId !== lyricLoadRequestId) return;
+      setCachedLyric(cacheKey, parsed);
+      lyricData.value = parsed;
     } else {
+      if (requestId !== lyricLoadRequestId) return;
       lyricData.value = [{ time: 0, text: t("lyric.noLyric") }];
     }
   } catch (error) {
+    if (requestId !== lyricLoadRequestId) return;
     console.error("加载歌词失败:", error);
     lyricData.value = [{ time: 0, text: t("lyric.loadFailed") }];
   } finally {
-    loading.value = false;
+    if (requestId === lyricLoadRequestId) loading.value = false;
   }
 }
 
@@ -161,27 +147,38 @@ async function loadLyric(song: SongInfo) {
 async function loadLocalLyric(music: MusicFile) {
   if (!music || !music.file_name) return;
 
+  const cacheKey = `local:${music.file_name}`;
+  const cached = getCachedLyric(cacheKey);
+  if (cached) {
+    lyricData.value = cached;
+    return;
+  }
+
+  const requestId = ++lyricLoadRequestId;
   loading.value = true;
   lyricData.value = [];
   try {
-    const result = await loadCoverAndLyric({
+    const lyricContent = await loadLocalLyricText({
       fileName: music.file_name,
       defaultDirectory: localStore.getDefaultDirectory(),
     });
 
-    const [_, lyricContent] = result;
-
     if (lyricContent) {
       // 解析歌词
-      lyricData.value = parseLyric(lyricContent as string);
+      const parsed = parseLyric(lyricContent);
+      if (requestId !== lyricLoadRequestId) return;
+      setCachedLyric(cacheKey, parsed);
+      lyricData.value = parsed;
     } else {
+      if (requestId !== lyricLoadRequestId) return;
       lyricData.value = [{ time: 0, text: t("lyric.noLyric") }];
     }
   } catch (error) {
+    if (requestId !== lyricLoadRequestId) return;
     console.error("加载本地歌词失败:", error);
     lyricData.value = [{ time: 0, text: t("lyric.loadFailed") }];
   } finally {
-    loading.value = false;
+    if (requestId === lyricLoadRequestId) loading.value = false;
   }
 }
 
@@ -189,17 +186,8 @@ async function loadLocalLyric(music: MusicFile) {
 function updateCurrentLine() {
   if (lyricData.value.length === 0) return;
 
-  // 找到当前时间对应的歌词行
   const time = currentLyricTime.value;
-  let index = lyricData.value.findIndex((item) => item.time > time);
-
-  // 如果没找到或者超过范围，取最后一行
-  if (index === -1) {
-    index = lyricData.value.length;
-  }
-
-  // 当前行是上一行
-  const newIndex = index > 0 ? index - 1 : 0;
+  const newIndex = findLyricIndex(lyricData.value, time);
 
   // 如果索引变化了，更新并滚动
   if (newIndex !== currentIndex.value) {
@@ -233,6 +221,7 @@ watch(
     // 重置当前时间和索引
     currentLyricTime.value = 0;
     currentIndex.value = -1;
+    lyricLoadRequestId++;
 
     if (newSong) {
       await loadLyric(newSong);
@@ -262,6 +251,7 @@ watch(
       // 重置当前时间和索引
       currentLyricTime.value = 0;
       currentIndex.value = -1;
+      lyricLoadRequestId++;
 
       if (newMusic) {
         await loadLocalLyric(newMusic);

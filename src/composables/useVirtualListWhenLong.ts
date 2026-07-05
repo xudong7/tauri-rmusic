@@ -8,7 +8,7 @@ import {
 
 export interface UseVirtualListWhenLongOptions<T = unknown> {
   /** 源数组（ref 或 computed），如 computed(() => props.items) */
-  source: MaybeRef<readonly T[]>;
+  source: MaybeRef<T[]>;
   /** 行高，默认使用全局 LIST_ROW_HEIGHT */
   itemHeight?: number;
   /** 超过该数量启用虚拟滚动，默认 VIRTUAL_LIST_THRESHOLD */

@@ -40,14 +40,26 @@
 }
 
 .list-header .select-actions .el-button {
-  padding: 4px 8px;
+  height: var(--app-icon-btn-sm);
+  padding: 0 10px;
   font-size: 13px;
+  color: var(--el-text-color-secondary);
+  background: transparent;
+  border-color: transparent;
 }
 
 /* 与 Playlist 标题栏图标统一（使用 themes 变量） */
 .list-header .header-action-btn {
   flex-shrink: 0;
   padding: var(--list-header-btn-padding, 4px 8px);
+  background: var(--app-button-bg);
+  border-color: var(--app-button-border);
+  box-shadow: var(--app-button-shadow);
+}
+
+.list-header .header-action-btn:hover {
+  background: var(--app-button-hover-bg);
+  box-shadow: var(--app-button-hover-shadow);
 }
 
 .list-header .header-action-btn .el-icon {
@@ -58,6 +70,7 @@
   margin-left: 8px;
   padding-left: 10px;
   padding-right: 12px;
+  box-shadow: var(--app-play-button-shadow);
 }
 
 .list-header .batch-add-btn .batch-add-icon {
@@ -109,12 +122,12 @@
   box-sizing: border-box;
   transition:
     background 0.2s ease,
-    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow 0.2s ease;
 }
 
 .list-row:hover {
   background: var(--hover-bg-color);
-  transform: translateX(2px);
+  box-shadow: inset 0 0 0 1px var(--el-border-color-lighter);
 }
 
 .list-row.is-current {
@@ -138,24 +151,33 @@
 }
 
 .col-play .el-button {
-  width: var(--list-row-btn-size, 34px);
-  height: var(--list-row-btn-size, 34px);
+  width: var(--list-row-btn-size, var(--app-icon-btn-md));
+  height: var(--list-row-btn-size, var(--app-icon-btn-md));
+  border: 1px solid var(--app-button-border) !important;
+  background: var(--app-button-bg) !important;
+  color: var(--app-icon-button-color) !important;
+  box-shadow: var(--app-button-shadow);
   transition:
     color 0.2s ease,
-    background 0.2s ease;
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform var(--app-control-transition);
 }
 
 .col-play .el-button:not(.el-button--primary):hover {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary-light-5);
-  background: var(--hover-bg-color);
+  color: var(--app-icon-button-hover-color) !important;
+  border-color: var(--app-button-border) !important;
+  background: var(--app-button-hover-bg) !important;
+  box-shadow: var(--app-button-hover-shadow);
 }
 
 .col-cover {
   flex-shrink: 0;
 }
 
-.cover-img {
+.cover-img,
+.col-cover .cover-image {
   width: 44px;
   height: 44px;
   border-radius: var(--app-radius-sm);
@@ -163,7 +185,8 @@
   transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.list-row:hover .cover-img {
+.list-row:hover .cover-img,
+.list-row:hover .col-cover .cover-image {
   transform: scale(1.03);
 }
 
@@ -190,14 +213,24 @@
   transition: opacity 0.2s ease;
 }
 
-.list-row:hover .col-action {
+.list-row:hover .col-action,
+.list-row:focus-within .col-action {
   opacity: 1;
   pointer-events: auto;
 }
 
 .col-action .el-button {
-  width: var(--list-row-btn-size, 34px);
-  height: var(--list-row-btn-size, 34px);
+  width: var(--list-row-btn-size, var(--app-icon-btn-md));
+  height: var(--list-row-btn-size, var(--app-icon-btn-md));
+  color: var(--app-icon-button-color) !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+}
+
+.col-action .el-button:hover {
+  color: var(--app-icon-button-hover-color) !important;
+  background: var(--app-icon-button-hover-bg) !important;
+  border-color: var(--app-button-border) !important;
 }
 
 .song-title {
@@ -234,4 +267,18 @@
 
 .empty-list :deep(.el-empty__description) {
   color: var(--el-text-color-secondary);
+}
+
+@media (hover: none) {
+  .col-action {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+@media (max-width: 960px) {
+  .list-row {
+    gap: 10px;
+    padding: 10px 8px;
+  }
 }

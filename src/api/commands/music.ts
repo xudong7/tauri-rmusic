@@ -1,4 +1,4 @@
-import type { PlaySongResult } from "@/types/model";
+import type { PlaybackSource, PlaySongResult, PlayStartResult } from "@/types/model";
 import { invokeCommand } from "../client";
 import type { HandleEventAction } from "../types";
 
@@ -17,6 +17,22 @@ export async function playNeteaseSong(args: {
   artist: string;
 }): Promise<PlaySongResult> {
   return await invokeCommand("play_netease_song", args);
+}
+
+export async function playTrack(source: PlaybackSource): Promise<PlayStartResult> {
+  return await invokeCommand("play_track", { source });
+}
+
+export async function getOnlineAudioCacheSize(): Promise<number> {
+  return await invokeCommand("get_online_audio_cache_size");
+}
+
+export async function getOnlineAudioCachePath(): Promise<string> {
+  return await invokeCommand("get_online_audio_cache_path");
+}
+
+export async function clearOnlineAudioCache(): Promise<void> {
+  return await invokeCommand("clear_online_audio_cache");
 }
 
 export async function downloadMusic(args: {
@@ -38,10 +54,25 @@ export interface PlaybackProgress {
   is_ended: boolean;
 }
 
+export interface PlaybackState extends PlaybackProgress {
+  is_paused: boolean;
+  has_track: boolean;
+  track_id: number;
+}
+
+export interface SeekResult {
+  success: boolean;
+  should_play_next: boolean;
+}
+
 export async function getProgress(): Promise<PlaybackProgress> {
   return await invokeCommand("get_progress");
 }
 
-export async function seekTo(positionMs: number): Promise<void> {
+export async function getPlaybackState(): Promise<PlaybackState> {
+  return await invokeCommand("get_playback_state");
+}
+
+export async function seekTo(positionMs: number): Promise<SeekResult> {
   return await invokeCommand("seek_to", { positionMs });
 }

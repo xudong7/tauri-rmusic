@@ -1,11 +1,51 @@
 use crate::music::MusicFile;
 use crate::netease;
 use crate::netease::get_song_url;
+use sha1::{Digest, Sha1};
 use std::fs::{self, create_dir_all, read_dir, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::time::UNIX_EPOCH;
 use tauri::AppHandle;
 use tauri::Manager;
+
+fn supported_audio_extension(path: &Path) -> Option<String> {
+    let extension = path.extension()?.to_str()?.to_lowercase();
+    ["mp3", "wav", "ogg", "flac"]
+        .contains(&extension.as_str())
+        .then_some(extension)
+}
+
+fn path_key(path: &Path) -> String {
+    let mut hasher = Sha1::new();
+    hasher.update(path.to_string_lossy().as_bytes());
+    format!("{:x}", hasher.finalize())
+}
+
+fn modified_ms(path: &Path) -> u64 {
+    path.metadata()
+        .and_then(|metadata| metadata.modified())
+        .ok()
+        .and_then(|modified| modified.duration_since(UNIX_EPOCH).ok())
+        .map(|duration| duration.as_millis() as u64)
+        .unwrap_or(0)
+}
+
+fn music_file_from_path(id: i32, absolute_path: &Path, relative_path: &Path) -> Option<MusicFile> {
+    let file_name = relative_path.to_str()?.to_string();
+    let extension = supported_audio_extension(absolute_path)?;
+    let search_text = file_name.to_lowercase();
+
+    Some(MusicFile {
+        id,
+        file_name: file_name.clone(),
+        key: path_key(absolute_path),
+        relative_path: file_name,
+        extension,
+        modified_ms: modified_ms(absolute_path),
+        search_text,
+    })
+}
 
 /// recursive scan the directory
 /// and add the files to the list
@@ -16,21 +56,26 @@ pub fn scan_directory(
     id: &mut i32,
 ) {
     if let Ok(entries) = read_dir(dir_path) {
-        for entry in entries.flatten() {
+        let mut entries: Vec<_> = entries.flatten().collect();
+        entries.sort_by_key(|entry| entry.path());
+
+        for entry in entries {
             let path = entry.path();
+            let is_hidden = path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.starts_with('.'));
+            if is_hidden {
+                continue;
+            }
 
             if path.is_dir() {
                 scan_directory(base_path, &path, files, id);
-            } else if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
-                if ["mp3", "wav", "ogg", "flac"].contains(&extension.to_lowercase().as_str()) {
-                    if let Ok(relative) = path.strip_prefix(base_path) {
-                        if let Some(rel_path_str) = relative.to_str() {
-                            files.push(MusicFile {
-                                id: *id,
-                                file_name: rel_path_str.to_string(),
-                            });
-                            *id += 1;
-                        }
+            } else if supported_audio_extension(&path).is_some() {
+                if let Ok(relative) = path.strip_prefix(base_path) {
+                    if let Some(file) = music_file_from_path(*id, &path, relative) {
+                        files.push(file);
+                        *id += 1;
                     }
                 }
             }
@@ -72,14 +117,16 @@ pub fn scan_files(
     let path_obj = std::path::Path::new(&scan_path);
     if path_obj.is_dir() {
         scan_directory(&base_path, &base_path, &mut music_files, &mut id_counter);
+        music_files.sort_by(|a, b| a.file_name.cmp(&b.file_name));
+        for (index, file) in music_files.iter_mut().enumerate() {
+            file.id = index as i32;
+        }
     } else {
-        if let Some(extension) = path_obj.extension().and_then(|ext| ext.to_str()) {
-            if ["mp3", "wav", "ogg", "flac"].contains(&extension.to_lowercase().as_str()) {
-                if let Some(file_name) = path_obj.file_name().and_then(|f| f.to_str()) {
-                    music_files.push(MusicFile {
-                        id: id_counter,
-                        file_name: file_name.to_string(),
-                    });
+        if supported_audio_extension(path_obj).is_some() {
+            if let Some(file_name) = path_obj.file_name() {
+                let relative = Path::new(file_name);
+                if let Some(file) = music_file_from_path(id_counter, path_obj, relative) {
+                    music_files.push(file);
                 }
             }
         }
@@ -167,7 +214,7 @@ pub async fn download_music(
         sanitize_filename(&artist),
         sanitize_filename(&song_name)
     );
-    let file_path = Path::new(&music_dir.to_str().unwrap()).join(&file_name);
+    let file_path = music_dir.join(&file_name);
 
     // check if the file exists
     if file_path.exists() {
@@ -267,6 +314,77 @@ pub async fn load_cover_and_lyric(
     }
 
     Ok((cover_content, lyrics_content))
+}
+
+fn local_media_base_dir(
+    app_handle: &AppHandle,
+    default_directory: Option<String>,
+) -> Result<PathBuf, String> {
+    if let Some(custom_dir) = default_directory {
+        Ok(PathBuf::from(custom_dir))
+    } else {
+        app_handle
+            .path()
+            .app_data_dir()
+            .map_err(|e| format!("无法获取应用目录: {}", e))
+    }
+}
+
+fn sidecar_stem(file_name: &str) -> String {
+    let path = Path::new(file_name);
+    let parent = path.parent().filter(|p| !p.as_os_str().is_empty());
+    let stem = path
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or(file_name);
+
+    if let Some(parent) = parent {
+        parent.join(stem).to_string_lossy().to_string()
+    } else {
+        stem.to_string()
+    }
+}
+
+/// load local cover path for direct asset protocol rendering
+#[tauri::command]
+pub fn load_local_cover_path(
+    app_handle: AppHandle,
+    file_name: String,
+    default_directory: Option<String>,
+) -> Result<Option<String>, String> {
+    let base_dir = local_media_base_dir(&app_handle, default_directory)?;
+    let stem = sidecar_stem(&file_name);
+
+    for ext in ["jpg", "jpeg", "png", "webp"] {
+        let path = base_dir.join("cover").join(format!("{}.{}", stem, ext));
+        if path.exists() {
+            return path
+                .to_str()
+                .map(|path| Some(path.to_string()))
+                .ok_or_else(|| "cover path trans error".to_string());
+        }
+    }
+
+    Ok(None)
+}
+
+/// load local lyric text without transferring cover bytes
+#[tauri::command]
+pub fn load_local_lyric(
+    app_handle: AppHandle,
+    file_name: String,
+    default_directory: Option<String>,
+) -> Result<String, String> {
+    let base_dir = local_media_base_dir(&app_handle, default_directory)?;
+    let lyrics_path = base_dir
+        .join("lyrics")
+        .join(format!("{}.lrc", sidecar_stem(&file_name)));
+
+    if !lyrics_path.exists() {
+        return Ok(String::new());
+    }
+
+    std::fs::read_to_string(&lyrics_path).map_err(|e| format!("读取歌词文件失败: {}", e))
 }
 
 /// clean file name

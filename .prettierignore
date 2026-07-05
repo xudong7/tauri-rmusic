@@ -1,6 +1,7 @@
 # 构建产物
 dist
 src-tauri/target
+src-tauri/gen
 
 # 依赖
 node_modules
@@ -8,6 +9,7 @@ pnpm-lock.yaml
 package-lock.json
 
 # 静态资源、锁、配置
+CLAUDE.md
 *.min.js
 *.min.css
 Cargo.lock

@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref, watch, onUnmounted, nextTick } from "vue";
+import { computed, ref, watch, onUnmounted, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { CaretRight, VideoPause, Download, Headset, Plus } from "@element-plus/icons-vue";
+import { CaretRight, VideoPause, Download, Plus } from "@element-plus/icons-vue";
 import type { ArtistInfo, SongInfo } from "@/types/model";
 import { formatDuration, formatArtists } from "@/utils/songUtils";
 import { usePlaylistStore } from "@/stores/playlistStore";
+import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
+import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -34,6 +36,10 @@ const hasMore = ref(false);
 const isLoading = ref(false);
 let observer: IntersectionObserver | null = null;
 
+const onlineSongsRef = computed(() => props.onlineSongs);
+const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight } =
+  useVirtualListWhenLong<SongInfo>({ source: onlineSongsRef });
+
 watch(
   [() => props.totalCount, () => props.onlineSongs.length],
   () => {
@@ -50,6 +56,7 @@ watch(
 );
 
 function setupScrollObserver() {
+  if (useVirtual.value) return;
   if (observer) return;
   const scrollbarEl = scrollbarRef.value?.$el;
   if (!scrollbarEl) return;
@@ -65,6 +72,18 @@ function setupScrollObserver() {
     { root: wrap, rootMargin: "100px 0px", threshold: 0 }
   );
   observer.observe(sentinelRef.value);
+}
+
+function requestLoadMore() {
+  if (!hasMore.value || isLoading.value) return;
+  emit("load-more");
+}
+
+function handleVirtualScroll(event: Event) {
+  const target = event.currentTarget as HTMLElement | null;
+  if (!target) return;
+  const distanceToBottom = target.scrollHeight - target.scrollTop - target.clientHeight;
+  if (distanceToBottom < 220) requestLoadMore();
 }
 
 watch(
@@ -114,6 +133,106 @@ function handleAddToPlaylist(command: string, row: SongInfo) {
       <el-empty :description="t('onlineMusic.empty')" />
     </div>
 
+    <div
+      v-else-if="useVirtual"
+      v-bind="containerProps"
+      class="list-scroll list-scroll-virtual"
+      @scroll.passive="handleVirtualScroll"
+    >
+      <div class="list-rows">
+        <div v-if="onlineArtists?.length" class="artist-strip">
+          <div class="artist-strip-scroll">
+            <div
+              v-for="a in onlineArtists"
+              :key="a.id"
+              class="artist-card"
+              @click="goArtist(a)"
+            >
+              <CoverImage
+                :src="a.pic_url"
+                alt=""
+                :size="54"
+                :radius="999"
+                variant="artist"
+                class="artist-avatar-cover"
+              />
+              <div class="artist-name" :title="a.name">{{ a.name }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div v-bind="wrapperProps">
+          <div
+            v-for="{ data: row } in virtualList"
+            :key="row.id"
+            class="list-row"
+            :class="{ 'is-current': isCurrentSong(row) }"
+            :style="{ height: rowHeight + 'px', minHeight: rowHeight + 'px' }"
+            @dblclick="emit('play', row)"
+          >
+            <div class="col-play">
+              <el-button
+                circle
+                size="small"
+                :type="isCurrentSong(row) ? 'primary' : 'default'"
+                :icon="isCurrentSong(row) && isPlaying ? VideoPause : CaretRight"
+                @click="emit('play', row)"
+              />
+            </div>
+            <div class="col-cover">
+              <CoverImage :src="row.pic_url" alt="" :size="44" :radius="6" />
+            </div>
+            <div class="col-main">
+              <div class="song-title" :class="{ 'is-playing': isCurrentSong(row) }">
+                {{ row.name }}
+              </div>
+              <div class="song-meta">
+                {{ formatArtists(row.artists) }}
+                <template v-if="row.album"> · {{ row.album }}</template>
+              </div>
+            </div>
+            <div class="col-duration">{{ formatDuration(row.duration) }}</div>
+            <div class="col-download">
+              <el-button
+                circle
+                size="small"
+                :icon="Download"
+                link
+                @click="emit('download', row)"
+              />
+            </div>
+            <div class="col-action">
+              <el-dropdown
+                trigger="click"
+                @command="(cmd: string) => handleAddToPlaylist(cmd, row)"
+              >
+                <el-button circle size="small" :icon="Plus" link />
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="new">{{
+                      t("playlist.newPlaylist")
+                    }}</el-dropdown-item>
+                    <el-dropdown-item
+                      v-for="pl in playlistStore.playlists"
+                      :key="pl.id"
+                      :command="pl.id"
+                    >
+                      {{ pl.name || t("playlist.unnamed") }}
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        v-if="totalCount > onlineSongs.length"
+        class="load-more-sentinel"
+        aria-hidden="true"
+      />
+    </div>
+
     <el-scrollbar ref="scrollbarRef" v-else class="list-scroll">
       <div class="list-rows">
         <div v-if="onlineArtists?.length" class="artist-strip">
@@ -124,10 +243,14 @@ function handleAddToPlaylist(command: string, row: SongInfo) {
               class="artist-card"
               @click="goArtist(a)"
             >
-              <img v-if="a.pic_url" :src="a.pic_url" class="artist-avatar" alt="" />
-              <div v-else class="artist-avatar placeholder">
-                <el-icon><Headset /></el-icon>
-              </div>
+              <CoverImage
+                :src="a.pic_url"
+                alt=""
+                :size="54"
+                :radius="999"
+                variant="artist"
+                class="artist-avatar-cover"
+              />
               <div class="artist-name" :title="a.name">{{ a.name }}</div>
             </div>
           </div>
@@ -150,10 +273,7 @@ function handleAddToPlaylist(command: string, row: SongInfo) {
             />
           </div>
           <div class="col-cover">
-            <img v-if="row.pic_url" :src="row.pic_url" class="cover-img" alt="" />
-            <div v-else class="cover-placeholder">
-              <el-icon><Headset /></el-icon>
-            </div>
+            <CoverImage :src="row.pic_url" alt="" :size="44" :radius="6" />
           </div>
           <div class="col-main">
             <div class="song-title" :class="{ 'is-playing': isCurrentSong(row) }">

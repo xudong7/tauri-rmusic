@@ -1,4 +1,8 @@
-import type { ArtistSongsResult, SearchMixResult } from "@/types/model";
+import type {
+  ArtistSongsResult,
+  OnlineServiceStatus,
+  SearchMixResult,
+} from "@/types/model";
 import { invokeCommand } from "../client";
 
 export async function searchOnlineMix(args: {
@@ -20,4 +24,12 @@ export async function getArtistTopSongs(args: {
 
 export async function getSongLyric(args: { id: string }): Promise<string> {
   return await invokeCommand("get_song_lyric", args);
+}
+
+export async function checkOnlineServiceStatus(): Promise<OnlineServiceStatus> {
+  return await invokeCommand("check_online_service_status");
+}
+
+export async function restartOnlineService(): Promise<void> {
+  return await invokeCommand("restart_online_service");
 }

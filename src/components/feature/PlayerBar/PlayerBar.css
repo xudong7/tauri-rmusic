@@ -1,7 +1,7 @@
 .player-bar {
   display: flex;
   align-items: center;
-  height: 64px;
+  height: var(--app-player-height, 64px);
   padding: 0 16px;
   background: var(--player-bg-color);
   backdrop-filter: blur(var(--app-glass-blur));
@@ -114,45 +114,53 @@ html.dark .player-bar {
 }
 
 .player-controls .control-btn {
-  background: none !important;
-  border: none !important;
-  color: var(--el-text-color-primary);
-  padding: 6px;
-  font-size: 18px;
-  opacity: 0.65;
+  width: var(--app-icon-btn-md);
+  height: var(--app-icon-btn-md);
+  padding: 0;
+  background: var(--app-icon-button-bg) !important;
+  border: 1px solid transparent !important;
+  color: var(--app-icon-button-color) !important;
+  font-size: 17px;
+  opacity: 1;
   transition:
-    opacity 0.25s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    background var(--app-control-transition),
+    border-color var(--app-control-transition),
+    color var(--app-control-transition),
+    transform var(--app-control-transition);
 }
 
 .player-controls .control-btn:hover {
-  opacity: 1;
-  transform: scale(1.06);
+  background: var(--app-icon-button-hover-bg) !important;
+  border-color: var(--app-button-border) !important;
+  color: var(--app-icon-button-hover-color) !important;
+  transform: translateY(-1px);
 }
 
 .player-controls .control-btn:disabled {
-  opacity: 0.3;
+  opacity: 0.34;
+  transform: none;
 }
 
 .player-controls .play-btn {
-  background: var(--el-color-primary) !important;
+  background: var(--app-play-button-bg) !important;
   border: none !important;
-  color: #fff !important;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  color: var(--app-play-button-color) !important;
+  width: var(--app-play-btn-sm);
+  height: var(--app-play-btn-sm);
+  border-radius: var(--app-radius-full);
   font-size: 13px;
   opacity: 1;
-  padding: 5px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  padding: 0;
+  box-shadow: var(--app-play-button-shadow);
   transition:
-    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    transform var(--app-control-transition),
+    box-shadow var(--app-control-transition),
+    background var(--app-control-transition);
 }
 
 .player-controls .play-btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  transform: translateY(-1px) scale(1.03);
+  box-shadow: var(--app-play-button-hover-shadow);
 }
 
 .player-progress {
@@ -178,42 +186,50 @@ html.dark .player-bar {
 
 .player-progress ::deep(.el-slider__runway) {
   height: 3px;
-  background-color: rgba(0, 0, 0, 0.06);
-  border-radius: 2px;
-  transition: height 0.2s ease;
-}
-
-html.dark .player-progress ::deep(.el-slider__runway) {
-  background-color: rgba(255, 255, 255, 0.12);
+  background: var(--app-slider-track-bg);
+  border-radius: var(--app-radius-full, 9999px);
+  transition:
+    height 0.2s ease,
+    background-color 0.2s ease;
 }
 
 .player-progress ::deep(.el-slider__bar) {
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    var(--el-color-primary),
-    var(--el-color-primary-light-3, var(--el-color-primary))
-  );
+  border-radius: var(--app-radius-full, 9999px);
+  background: var(--app-slider-fill-bg);
+}
+
+.player-progress ::deep(.el-slider__button-wrapper) {
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  transform: translate(-50%, -50%);
 }
 
 .player-progress ::deep(.el-slider__button) {
-  width: 8px;
-  height: 8px;
-  border: none;
-  background-color: var(--el-color-primary);
-  opacity: 0;
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.player-progress:hover ::deep(.el-slider__button) {
+  width: var(--app-slider-thumb-size);
+  height: var(--app-slider-thumb-size);
+  box-sizing: border-box;
+  border: 1px solid var(--app-slider-thumb-border);
+  background: var(--app-slider-thumb-bg);
+  box-shadow: var(--app-slider-thumb-shadow);
   opacity: 1;
-  transform: scale(1);
+  transition:
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.18s ease;
 }
 
 .player-progress:hover ::deep(.el-slider__runway) {
   height: 4px;
+}
+
+.player-progress:hover ::deep(.el-slider__button),
+.player-progress ::deep(.el-slider__button:hover),
+.player-progress ::deep(.el-slider__button.dragging) {
+  transform: scale(1.18);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.18),
+    0 0 0 2px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
 }
 
 /* 右侧：播放模式 + 内联音量条 */
@@ -228,18 +244,23 @@ html.dark .player-progress ::deep(.el-slider__runway) {
 }
 
 .play-mode-btn {
-  width: 28px;
-  height: 28px;
+  width: var(--app-icon-btn-sm);
+  height: var(--app-icon-btn-sm);
   padding: 0;
   border: 1px solid transparent !important;
-  background: transparent !important;
-  color: var(--el-text-color-secondary) !important;
-  transition: all 0.2s ease;
+  background: var(--app-icon-button-bg) !important;
+  color: var(--app-icon-button-color) !important;
+  transition:
+    background var(--app-control-transition),
+    border-color var(--app-control-transition),
+    color var(--app-control-transition),
+    transform var(--app-control-transition);
 }
 
 .play-mode-btn:hover {
-  border-color: var(--el-color-primary-light-5, var(--el-color-primary)) !important;
-  color: var(--el-color-primary) !important;
+  background: var(--app-icon-button-hover-bg) !important;
+  border-color: var(--app-button-border) !important;
+  color: var(--app-icon-button-hover-color) !important;
 }
 
 /* 内联音量条：扬声器图标 + 横向轨道，常驻播放条 */
@@ -280,21 +301,13 @@ html.dark .volume-speaker-icon {
 .volume-bar .volume-slider-h ::deep(.el-slider__runway) {
   height: 3px;
   border-radius: var(--app-radius-full, 9999px);
-  background: var(--el-border-color);
-}
-
-html.dark .volume-bar .volume-slider-h ::deep(.el-slider__runway) {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--app-slider-track-bg);
 }
 
 .volume-bar .volume-slider-h ::deep(.el-slider__bar) {
   height: 100%;
   border-radius: var(--app-radius-full, 9999px);
-  background: var(--el-text-color-secondary);
-}
-
-html.dark .volume-bar .volume-slider-h ::deep(.el-slider__bar) {
-  background: rgba(255, 255, 255, 0.6);
+  background: color-mix(in srgb, var(--el-text-color-secondary) 70%, transparent);
 }
 
 .volume-bar .volume-slider-h ::deep(.el-slider__button-wrapper) {
@@ -303,11 +316,11 @@ html.dark .volume-bar .volume-slider-h ::deep(.el-slider__bar) {
 }
 
 .volume-bar .volume-slider-h ::deep(.el-slider__button) {
-  width: 8px;
-  height: 8px;
-  border: none;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  width: var(--app-slider-thumb-size);
+  height: var(--app-slider-thumb-size);
+  border: 1px solid var(--app-slider-thumb-border);
+  background: var(--app-slider-thumb-bg);
+  box-shadow: var(--app-slider-thumb-shadow);
   opacity: 1;
   transition:
     transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
@@ -317,10 +330,45 @@ html.dark .volume-bar .volume-slider-h ::deep(.el-slider__bar) {
 .volume-bar .volume-slider-h ::deep(.el-slider:hover .el-slider__button),
 .volume-bar .volume-slider-h ::deep(.el-slider__button:hover) {
   transform: scale(1.15);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+  box-shadow:
+    var(--app-slider-thumb-shadow),
+    0 0 0 2px color-mix(in srgb, var(--el-text-color-secondary) 14%, transparent);
 }
 
 /* 响应式 */
+@media (max-width: 960px) {
+  .player-bar {
+    gap: 12px;
+    padding: 0 12px;
+  }
+
+  .player-left {
+    width: 180px;
+    min-width: 150px;
+  }
+
+  .player-right {
+    width: 160px;
+    min-width: 130px;
+  }
+
+  .player-center {
+    gap: 12px;
+  }
+
+  .player-controls {
+    gap: 8px;
+  }
+
+  .player-progress {
+    max-width: 320px;
+  }
+
+  .volume-bar {
+    max-width: 90px;
+  }
+}
+
 @media (max-width: 768px) {
   .player-left {
     width: 160px;

@@ -1,17 +1,16 @@
 /* 顶栏：毛玻璃，极浅投影 */
 .header-bar {
-  height: 56px;
+  height: var(--app-header-height, 56px);
   background: var(--header-bg-color);
   backdrop-filter: blur(var(--app-glass-blur));
   -webkit-backdrop-filter: blur(var(--app-glass-blur));
   border-bottom: 1px solid var(--app-header-border);
   box-shadow: var(--app-header-shadow, none);
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, auto) minmax(0, 1fr);
   align-items: center;
   padding: 0 var(--app-spacing);
   user-select: none;
-  -webkit-app-region: drag;
   transition:
     background 0.2s ease,
     border-color 0.2s ease,
@@ -24,10 +23,13 @@
   border-radius: 0;
 }
 
+.header-bar.is-mac-platform .header-left {
+  min-width: 78px;
+}
+
 /* 左侧占位，与右侧等宽，使搜索框处于整栏视觉中心 */
 .header-left {
   min-width: 0;
-  -webkit-app-region: drag;
 }
 
 .header-center {
@@ -36,15 +38,13 @@
   align-items: center;
   padding: 0 16px;
   min-width: 0;
-  -webkit-app-region: no-drag;
 }
 
 .search-section {
   width: 100%;
-  max-width: 320px;
+  max-width: var(--app-search-max-width, 320px);
   min-width: 180px;
   position: relative;
-  -webkit-app-region: no-drag;
 }
 
 .search-wrapper {
@@ -224,7 +224,66 @@ html.dark .search-history-chip:hover {
   justify-content: flex-end;
   align-items: center;
   gap: 12px;
-  -webkit-app-region: drag; /* 右侧空白可拖动；.window-controls 通过下方规则为 no-drag */
+}
+
+.service-status {
+  width: var(--app-icon-btn-md);
+  height: var(--app-icon-btn-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--app-radius-full);
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition:
+    background var(--app-control-transition),
+    border-color var(--app-control-transition),
+    transform var(--app-control-transition);
+}
+
+.service-status:hover {
+  background: var(--app-icon-button-hover-bg);
+  border-color: var(--app-button-border);
+  transform: translateY(-1px);
+}
+
+.service-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--el-color-warning);
+  box-shadow: 0 0 0 3px rgba(230, 162, 60, 0.16);
+}
+
+.service-status.is-available .service-status-dot {
+  background: var(--el-color-success);
+  box-shadow: 0 0 0 3px rgba(103, 194, 58, 0.14);
+}
+
+.service-status.is-unavailable .service-status-dot {
+  background: var(--el-color-danger);
+  box-shadow: 0 0 0 3px rgba(245, 108, 108, 0.14);
+}
+
+.service-status.is-checking .service-status-dot,
+.service-status.is-restarting .service-status-dot {
+  animation: service-status-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes service-status-pulse {
+  0%,
+  100% {
+    opacity: 0.52;
+    transform: scale(0.86);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .window-controls {
@@ -234,12 +293,12 @@ html.dark .search-history-chip:hover {
 }
 
 .header-button {
-  -webkit-app-region: no-drag;
-  border-radius: var(--app-radius-md);
+  border-radius: var(--app-radius-full);
   transition:
-    color 0.2s ease,
-    background 0.2s ease,
-    transform 0.2s ease;
+    color var(--app-control-transition),
+    background var(--app-control-transition),
+    border-color var(--app-control-transition),
+    transform var(--app-control-transition);
   position: relative;
   overflow: hidden;
 }
@@ -250,8 +309,8 @@ html.dark .search-history-chip:hover {
 
 .header-button.el-button {
   border: 1px solid transparent;
-  padding: 6px 12px;
-  height: 32px;
+  padding: 0 var(--app-button-padding-x);
+  height: var(--app-button-height);
   font-weight: 500;
 }
 
@@ -264,8 +323,8 @@ html.dark .search-history-chip:hover {
 }
 
 .window-button {
-  width: 32px;
-  height: 32px;
+  width: var(--app-icon-btn-md);
+  height: var(--app-icon-btn-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -273,19 +332,25 @@ html.dark .search-history-chip:hover {
   border-radius: var(--app-radius-full, 50%);
   position: relative;
   overflow: hidden;
-  color: var(--el-text-color-secondary);
+  color: var(--app-icon-button-color);
+  border: 1px solid transparent;
   transition:
-    color 0.2s ease,
-    background 0.2s ease;
+    color var(--app-control-transition),
+    background var(--app-control-transition),
+    border-color var(--app-control-transition),
+    transform var(--app-control-transition);
 }
 
 .window-button:hover {
-  color: var(--el-color-primary);
-  background: var(--hover-bg-color);
+  color: var(--app-icon-button-hover-color);
+  background: var(--app-icon-button-hover-bg);
+  border-color: var(--app-button-border);
+  transform: translateY(-1px);
 }
 
 .window-button:active {
-  background: var(--active-item-bg);
+  background: var(--app-button-active-bg);
+  transform: translateY(0);
 }
 
 .window-button .el-icon {
@@ -300,17 +365,6 @@ html.dark .search-history-chip:hover {
 .window-button.close:hover {
   color: #fff;
   background-color: #e54d4d;
-}
-
-button,
-a,
-input,
-.el-button,
-.el-input,
-.el-input__wrapper,
-.window-controls,
-.window-button {
-  -webkit-app-region: no-drag !important;
 }
 
 /* 搜索框：Pill 形状，图标在左，精致样式 */
@@ -386,11 +440,11 @@ html.dark .search-input:deep(.el-input__wrapper.is-focus) {
 /* 响应式布局调整 */
 @media (max-width: 768px) {
   .header-center {
-    padding: 0 16px;
+    padding: 0 12px;
   }
 
   .search-section {
-    max-width: 280px;
+    max-width: var(--app-search-max-width, 280px);
   }
 }
 

@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { reactive, ref, watch, computed } from "vue";
+import { ref, watch, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   CaretRight,
   VideoPause,
-  Headset,
   Upload,
   Plus,
   CircleCheck,
@@ -13,8 +12,9 @@ import type { MusicFile } from "@/types/model";
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { ElMessage } from "element-plus";
 import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
-import { loadLocalCover } from "@/utils/coverUtils";
+import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
 import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
+import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 
 const { t } = useI18n();
 const playlistStore = usePlaylistStore();
@@ -25,6 +25,27 @@ const selectedIds = ref<Set<number>>(new Set());
 const selectedFiles = computed(() =>
   props.musicFiles.filter((f) => selectedIds.value.has(f.id))
 );
+
+const displayInfoById = computed(() => {
+  const map = new Map<number, { title: string; artist: string }>();
+  for (const file of props.musicFiles) {
+    const displayName = getDisplayName(file.file_name);
+    map.set(file.id, {
+      title: extractSongTitle(displayName),
+      artist: extractArtistName(displayName) || t("common.unknownArtist"),
+    });
+  }
+  return map;
+});
+
+function getDisplayInfo(row: MusicFile) {
+  return (
+    displayInfoById.value.get(row.id) ?? {
+      title: getDisplayName(row.file_name),
+      artist: t("common.unknownArtist"),
+    }
+  );
+}
 
 function toggleSelectionMode() {
   selectionMode.value = !selectionMode.value;
@@ -121,44 +142,17 @@ function handleAddToPlaylist(command: string, row: MusicFile) {
   }
 }
 
-/**
- * 本地列表封面：按需加载 + 缓存 + 并发限制，避免大量 invoke 卡顿
- */
-const coverById = reactive<Record<number, string>>({});
-const coverQueue: MusicFile[] = [];
-let coverRunning = 0;
-const MAX_COVER_CONCURRENCY = 4;
-
-function scheduleCoverLoad(file: MusicFile) {
-  if (coverById[file.id] !== undefined) return;
-  coverQueue.push(file);
-  pumpCoverQueue();
-}
-
-function pumpCoverQueue() {
-  while (coverRunning < MAX_COVER_CONCURRENCY && coverQueue.length > 0) {
-    const file = coverQueue.shift()!;
-    if (coverById[file.id] !== undefined) continue;
-    coverRunning++;
-    (async () => {
-      try {
-        const url = await loadLocalCover(file.file_name, props.getDefaultDirectory);
-        coverById[file.id] = url || "";
-      } catch {
-        coverById[file.id] = "";
-      } finally {
-        coverRunning--;
-        pumpCoverQueue();
-      }
-    })();
-  }
-}
+const { getCover, scheduleMany: scheduleCoverLoadMany } = useLocalCoverCache<MusicFile>({
+  getKey: (file) => file.key ?? file.id,
+  getFileName: (file) => file.file_name,
+  getDefaultDirectory: props.getDefaultDirectory,
+});
 
 watch(
   () => props.musicFiles,
   (files) => {
     // 每次列表更新时为新条目加载封面；旧的 cache 保留
-    for (const f of files) scheduleCoverLoad(f);
+    scheduleCoverLoadMany(files);
   },
   { immediate: true }
 );
@@ -281,26 +275,13 @@ const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight } =
             />
           </div>
           <div class="col-cover">
-            <img
-              v-if="coverById[row.id]"
-              :src="coverById[row.id]"
-              class="cover-img"
-              alt=""
-            />
-            <div v-else class="cover-placeholder">
-              <el-icon><Headset /></el-icon>
-            </div>
+            <CoverImage :src="getCover(row)" alt="" :size="44" :radius="6" />
           </div>
           <div class="col-main">
             <div class="song-title" :class="{ 'is-playing': isCurrentMusic(row) }">
-              {{ extractSongTitle(getDisplayName(row.file_name)) }}
+              {{ getDisplayInfo(row).title }}
             </div>
-            <div class="song-artist">
-              {{
-                extractArtistName(getDisplayName(row.file_name)) ||
-                t("common.unknownArtist")
-              }}
-            </div>
+            <div class="song-artist">{{ getDisplayInfo(row).artist }}</div>
           </div>
           <div v-if="!selectionMode" class="col-action">
             <el-dropdown
@@ -360,26 +341,13 @@ const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight } =
             />
           </div>
           <div class="col-cover">
-            <img
-              v-if="coverById[row.id]"
-              :src="coverById[row.id]"
-              class="cover-img"
-              alt=""
-            />
-            <div v-else class="cover-placeholder">
-              <el-icon><Headset /></el-icon>
-            </div>
+            <CoverImage :src="getCover(row)" alt="" :size="44" :radius="6" />
           </div>
           <div class="col-main">
             <div class="song-title" :class="{ 'is-playing': isCurrentMusic(row) }">
-              {{ extractSongTitle(getDisplayName(row.file_name)) }}
+              {{ getDisplayInfo(row).title }}
             </div>
-            <div class="song-artist">
-              {{
-                extractArtistName(getDisplayName(row.file_name)) ||
-                t("common.unknownArtist")
-              }}
-            </div>
+            <div class="song-artist">{{ getDisplayInfo(row).artist }}</div>
           </div>
           <div v-if="!selectionMode" class="col-action">
             <el-dropdown

@@ -4,11 +4,43 @@ import { ElMessage } from "element-plus";
 import type { MusicFile, SongInfo } from "@/types/model";
 import { PlayMode, ViewMode } from "@/types/model";
 import { i18n } from "@/i18n";
-import { handleEvent, playNeteaseSong, getProgress, seekTo } from "@/api/commands/music";
+import {
+  handleEvent,
+  playNeteaseSong,
+  playTrack,
+  getPlaybackState,
+  seekTo,
+} from "@/api/commands/music";
+import { usePlaybackClock } from "@/composables/usePlaybackClock";
 import { useViewStore } from "./viewStore";
 import { useLocalMusicStore } from "./localMusicStore";
 import { useOnlineMusicStore } from "./onlineMusicStore";
 import { usePlaylistStore } from "./playlistStore";
+
+function normalizeIndex(index: number, length: number): number {
+  return ((index % length) + length) % length;
+}
+
+function getSequentialIndex(currentIndex: number, step: number, length: number): number {
+  return normalizeIndex(currentIndex + step, length);
+}
+
+function getRandomIndex(currentIndex: number, direction: number, length: number): number {
+  if (length <= 1) return currentIndex;
+  const offset = Math.floor(Math.random() * (length - 1)) + 1;
+  return normalizeIndex(currentIndex + offset * (direction > 0 ? 1 : -1), length);
+}
+
+function getNextIndex(options: {
+  currentIndex: number;
+  step: number;
+  length: number;
+  playMode: PlayMode;
+}): number {
+  const { currentIndex, step, length, playMode } = options;
+  if (playMode === PlayMode.RANDOM) return getRandomIndex(currentIndex, step, length);
+  return getSequentialIndex(currentIndex, step, length);
+}
 
 export const usePlayerStore = defineStore("player", () => {
   const viewStore = useViewStore();
@@ -24,19 +56,17 @@ export const usePlayerStore = defineStore("player", () => {
   const isLoadingSong = ref(false);
   const currentPlayTime = ref(0);
   const currentTrackDurationMs = ref(0);
+  const currentBackendTrackId = ref(0);
   /** 当前从播放列表播放时记录列表 id，用于上一曲/下一曲 */
   const currentPlaylistId = ref<string | null>(null);
-
-  let playStartTimestamp = 0;
-  let playTimeUpdateInterval: number | null = null;
 
   const hasCurrentTrack = computed(
     () => currentMusic.value !== null || currentOnlineSong.value !== null
   );
 
   const currentTrackDuration = computed(() => {
-    if (currentOnlineSong.value?.duration) return currentOnlineSong.value.duration;
     if (currentTrackDurationMs.value > 0) return currentTrackDurationMs.value;
+    if (currentOnlineSong.value?.duration) return currentOnlineSong.value.duration;
     return 0;
   });
 
@@ -69,38 +99,72 @@ export const usePlayerStore = defineStore("player", () => {
     return null;
   });
 
+  function clampPlayTime(positionMs: number): number {
+    const duration = currentTrackDuration.value;
+    const safePosition = Math.max(0, positionMs || 0);
+    return duration > 0 ? Math.min(safePosition, duration) : safePosition;
+  }
+
+  function resetProgressState() {
+    currentPlayTime.value = 0;
+    currentTrackDurationMs.value = 0;
+    currentBackendTrackId.value = 0;
+  }
+
+  function updateProgressFromBackend(progress: {
+    position_ms: number;
+    duration_ms: number;
+    is_ended?: boolean;
+    track_id?: number;
+  }) {
+    if (
+      progress.track_id !== undefined &&
+      currentBackendTrackId.value > 0 &&
+      progress.track_id !== currentBackendTrackId.value
+    ) {
+      return;
+    }
+    if (progress.duration_ms > 0) {
+      currentTrackDurationMs.value = progress.duration_ms;
+    }
+    currentPlayTime.value = clampPlayTime(progress.position_ms);
+  }
+
+  async function handlePlaybackEnded() {
+    if (!hasCurrentTrack.value || isLoadingSong.value) return;
+    isPlaying.value = false;
+    playbackClock.stop({ updatePosition: false });
+
+    if (playMode.value === PlayMode.REPEAT_ONE) {
+      await replayCurrentSong();
+    } else {
+      await playNextOrPreviousMusic(getPlayStep(1));
+    }
+  }
+
+  const playbackClock = usePlaybackClock({
+    getBackendState: getPlaybackState,
+    getCurrentPosition: () => currentPlayTime.value,
+    getIsPlaying: () => isPlaying.value,
+    getHasTrack: () => hasCurrentTrack.value,
+    getIsLoading: () => isLoadingSong.value,
+    setPosition: (positionMs) => {
+      currentPlayTime.value = clampPlayTime(positionMs);
+    },
+    setDuration: (durationMs) => {
+      if (durationMs > 0) currentTrackDurationMs.value = durationMs;
+    },
+    shouldAcceptState: (state) =>
+      currentBackendTrackId.value === 0 || state.track_id === currentBackendTrackId.value,
+    onEnded: handlePlaybackEnded,
+  });
+
   function startPlayTimeTracking() {
-    stopPlayTimeTracking();
-    const startOffset = currentPlayTime.value;
-    playStartTimestamp = Date.now() - startOffset;
-    playTimeUpdateInterval = window.setInterval(async () => {
-      if (isPlaying.value) {
-        const backendPos = await getProgress().catch(() => null);
-        if (backendPos) {
-          currentPlayTime.value = backendPos.position_ms;
-          if (backendPos.is_ended && backendPos.position_ms < backendPos.duration_ms) {
-            currentTrackDurationMs.value = backendPos.position_ms;
-          } else if (backendPos.duration_ms > 0) {
-            currentTrackDurationMs.value = backendPos.duration_ms;
-          }
-          playStartTimestamp = Date.now() - backendPos.position_ms;
-        } else {
-          currentPlayTime.value = Date.now() - playStartTimestamp;
-        }
-      } else {
-        currentPlayTime.value = Date.now() - playStartTimestamp;
-      }
-    }, 500);
+    playbackClock.start();
   }
 
   function stopPlayTimeTracking() {
-    if (playTimeUpdateInterval !== null) {
-      if (isPlaying.value && playStartTimestamp !== 0) {
-        currentPlayTime.value = Date.now() - playStartTimestamp;
-      }
-      clearInterval(playTimeUpdateInterval);
-      playTimeUpdateInterval = null;
-    }
+    playbackClock.stop();
   }
 
   async function playMusic(music: MusicFile, options?: { fromPlaylistId?: string }) {
@@ -110,20 +174,21 @@ export const usePlayerStore = defineStore("player", () => {
 
       isLoadingSong.value = true;
       isPlaying.value = false;
-      currentPlayTime.value = 0;
       stopPlayTimeTracking();
+      resetProgressState();
 
       currentMusic.value = music;
       currentOnlineSong.value = null;
 
       const fullPath = `${localStore.currentDirectory}/${music.file_name}`;
-      await handleEvent("play", { path: fullPath });
-
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      const playResult = await playTrack({ type: "local", path: fullPath });
+      currentBackendTrackId.value = playResult.track_id;
+      updateProgressFromBackend(playResult);
 
       isLoadingSong.value = false;
       isPlaying.value = true;
       startPlayTimeTracking();
+      await syncProgressFromBackend();
 
       if (options?.fromPlaylistId) currentPlaylistId.value = options.fromPlaylistId;
       ElMessage.success(i18n.global.t("messages.playing", { name: music.file_name }));
@@ -133,8 +198,8 @@ export const usePlayerStore = defineStore("player", () => {
       ElMessage.error(`${i18n.global.t("errors.playFailed")}: ${error}`);
       isLoadingSong.value = false;
       isPlaying.value = false;
-      currentPlayTime.value = 0;
       stopPlayTimeTracking();
+      resetProgressState();
     }
   }
 
@@ -160,8 +225,8 @@ export const usePlayerStore = defineStore("player", () => {
 
       isLoadingSong.value = true;
       isPlaying.value = false;
-      currentPlayTime.value = 0;
       stopPlayTimeTracking();
+      resetProgressState();
 
       currentOnlineSong.value = song;
       currentMusic.value = null;
@@ -173,13 +238,18 @@ export const usePlayerStore = defineStore("player", () => {
       });
 
       console.log("[播放控制] 获取到播放URL，准备播放");
-      await handleEvent("play", { path: playResult.url });
-
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const startResult = await playTrack({
+        type: "online",
+        url: playResult.url,
+        cache_key: song.id,
+      });
+      currentBackendTrackId.value = startResult.track_id;
+      updateProgressFromBackend(startResult);
 
       isLoadingSong.value = false;
       isPlaying.value = true;
       startPlayTimeTracking();
+      await syncProgressFromBackend();
 
       if (playResult.pic_url && currentOnlineSong.value) {
         currentOnlineSong.value.pic_url = playResult.pic_url;
@@ -197,8 +267,8 @@ export const usePlayerStore = defineStore("player", () => {
       ElMessage.error(`${i18n.global.t("errors.playFailedOnline")}: ${error}`);
       isLoadingSong.value = false;
       isPlaying.value = false;
-      currentPlayTime.value = 0;
       stopPlayTimeTracking();
+      resetProgressState();
     }
   }
 
@@ -272,16 +342,12 @@ export const usePlayerStore = defineStore("player", () => {
             }
           }
           if (currentIndex === -1) currentIndex = 0;
-          let nextIndex: number;
-          if (playMode.value === PlayMode.RANDOM && list.items.length > 1) {
-            const r = Math.floor(Math.random() * (list.items.length - 1)) + 1;
-            const effStep = r * (step > 0 ? 1 : -1);
-            nextIndex = (currentIndex + effStep) % list.items.length;
-            if (nextIndex < 0) nextIndex = list.items.length + nextIndex;
-          } else {
-            nextIndex = (currentIndex + step) % list.items.length;
-            if (nextIndex < 0) nextIndex = list.items.length + nextIndex;
-          }
+          const nextIndex = getNextIndex({
+            currentIndex,
+            step,
+            length: list.items.length,
+            playMode: playMode.value,
+          });
           await playFromPlaylist(currentPlaylistId.value, nextIndex);
           return;
         }
@@ -299,8 +365,11 @@ export const usePlayerStore = defineStore("player", () => {
         );
         if (currentIndex === -1) currentIndex = 0;
 
-        let nextIndex = (currentIndex + step) % localStore.musicFiles.length;
-        if (nextIndex < 0) nextIndex = localStore.musicFiles.length + nextIndex;
+        const nextIndex = getSequentialIndex(
+          currentIndex,
+          step,
+          localStore.musicFiles.length
+        );
 
         await playMusic(localStore.musicFiles[nextIndex]);
       } else {
@@ -314,8 +383,11 @@ export const usePlayerStore = defineStore("player", () => {
         );
         if (currentIndex === -1) currentIndex = 0;
 
-        let nextIndex = (currentIndex + step) % onlineStore.onlineSongs.length;
-        if (nextIndex < 0) nextIndex = onlineStore.onlineSongs.length + nextIndex;
+        const nextIndex = getSequentialIndex(
+          currentIndex,
+          step,
+          onlineStore.onlineSongs.length
+        );
 
         await playOnlineSong(onlineStore.onlineSongs[nextIndex]);
       }
@@ -368,7 +440,7 @@ export const usePlayerStore = defineStore("player", () => {
 
   function showImmersive() {
     if (currentOnlineSong.value || currentMusic.value) {
-      if (isPlaying.value && playTimeUpdateInterval === null) startPlayTimeTracking();
+      if (isPlaying.value) startPlayTimeTracking();
       viewStore.showImmersive();
     }
   }
@@ -390,9 +462,8 @@ export const usePlayerStore = defineStore("player", () => {
 
   async function syncProgressFromBackend() {
     try {
-      const progress = await getProgress();
-      currentPlayTime.value = progress.position_ms;
-      currentTrackDurationMs.value = progress.duration_ms;
+      const progress = await getPlaybackState();
+      updateProgressFromBackend(progress);
     } catch (error) {
       console.error("[播放控制] 获取进度失败:", error);
     }
@@ -406,11 +477,13 @@ export const usePlayerStore = defineStore("player", () => {
         return;
       }
       if (result.success) {
-        currentPlayTime.value = positionMs;
-        playStartTimestamp = Date.now() - positionMs;
+        playbackClock.setPosition(clampPlayTime(positionMs));
+      } else {
+        await syncProgressFromBackend();
       }
     } catch (error) {
       console.error("[播放控制] 跳转失败:", error);
+      await syncProgressFromBackend();
     }
   }
 

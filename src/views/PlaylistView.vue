@@ -130,10 +130,7 @@
               />
             </div>
             <div class="col-cover">
-              <img v-if="entry.coverUrl" :src="entry.coverUrl" class="cover-img" alt="" />
-              <div v-else class="cover-placeholder">
-                <el-icon><Headset /></el-icon>
-              </div>
+              <CoverImage :src="entry.coverUrl" alt="" :size="44" :radius="6" />
             </div>
             <div class="col-main">
               <div class="song-title" :class="{ 'is-playing': isCurrent(entry) }">
@@ -187,10 +184,7 @@
               />
             </div>
             <div class="col-cover">
-              <img v-if="entry.coverUrl" :src="entry.coverUrl" class="cover-img" alt="" />
-              <div v-else class="cover-placeholder">
-                <el-icon><Headset /></el-icon>
-              </div>
+              <CoverImage :src="entry.coverUrl" alt="" :size="44" :radius="6" />
             </div>
             <div class="col-main">
               <div class="song-title" :class="{ 'is-playing': isCurrent(entry) }">
@@ -218,24 +212,24 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
 import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
 import { useI18n } from "vue-i18n";
 import {
   CaretRight,
   VideoPause,
-  Headset,
   Minus,
   EditPen,
   CircleCheck,
 } from "@element-plus/icons-vue";
 import type { PlaylistItem, MusicFile, SongInfo } from "@/types/model";
 import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
-import { loadLocalCover } from "@/utils/coverUtils";
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useViewStore } from "@/stores/viewStore";
 import { ViewMode } from "@/types/model";
+import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 
 const { t } = useI18n();
 const route = useRoute();
@@ -330,6 +324,7 @@ interface ResolvedEntry {
   title: string;
   artist: string;
   coverUrl: string;
+  coverKey: string;
   item: PlaylistItem;
   musicFile: MusicFile | null;
   songInfo: SongInfo | null;
@@ -349,6 +344,7 @@ const resolvedItems = computed(() => {
         title: extractSongTitle(display) || display,
         artist: extractArtistName(display) || t("common.unknownArtist"),
         coverUrl: "", // 下面用 reactive 或单独加载
+        coverKey: file?.key ?? item.file_name,
         item,
         musicFile: file ?? null,
         songInfo: null,
@@ -360,6 +356,7 @@ const resolvedItems = computed(() => {
         title: s.name,
         artist: s.artists?.join(", ") ?? t("common.unknownArtist"),
         coverUrl: s.pic_url ?? "",
+        coverKey: s.id,
         item,
         musicFile: null,
         songInfo: s,
@@ -369,24 +366,19 @@ const resolvedItems = computed(() => {
   return result;
 });
 
-// 为本地项异步加载封面
-const coverByKey = ref<Record<string, string>>({});
+const { getCover, scheduleMany: scheduleLocalCoverLoadMany } =
+  useLocalCoverCache<ResolvedEntry>({
+    getKey: (entry) => entry.coverKey,
+    getFileName: (entry) => (entry.item.type === "local" ? entry.item.file_name : ""),
+    getDefaultDirectory: () => localStore.getDefaultDirectory(),
+  });
+
 watch(
   resolvedItems,
   (items) => {
-    items.forEach((entry) => {
-      if (
-        entry.item.type === "local" &&
-        entry.musicFile &&
-        !coverByKey.value[entry.key]
-      ) {
-        loadLocalCover(entry.item.file_name, () => localStore.getDefaultDirectory()).then(
-          (url) => {
-            coverByKey.value[entry.key] = url ?? "";
-          }
-        );
-      }
-    });
+    scheduleLocalCoverLoadMany(
+      items.filter((entry) => entry.item.type === "local" && entry.musicFile)
+    );
   },
   { immediate: true, deep: true }
 );
@@ -394,7 +386,7 @@ watch(
 const displayItems = computed(() =>
   resolvedItems.value.map((e) => ({
     ...e,
-    coverUrl: e.item.type === "online" ? e.coverUrl : (coverByKey.value[e.key] ?? ""),
+    coverUrl: e.item.type === "online" ? e.coverUrl : getCover(e),
   }))
 );
 
@@ -434,4 +426,4 @@ watch(editingName, (v) => {
 });
 </script>
 
-<link rel="stylesheet" href="./PlaylistView.css" />
+<style scoped src="./PlaylistView.css"></style>
