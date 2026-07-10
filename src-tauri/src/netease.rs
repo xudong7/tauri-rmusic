@@ -1,5 +1,6 @@
 use reqwest;
 use serde::{Deserialize, Serialize};
+use std::sync::OnceLock;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -64,20 +65,55 @@ pub struct OnlineServiceStatus {
 }
 
 const LOCAL_API_BASE: &str = "http://localhost:3000";
+const USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36";
+const HTTP_CONNECT_TIMEOUT: Duration = Duration::from_secs(8);
+const HTTP_RESPONSE_HEADERS_TIMEOUT: Duration = Duration::from_secs(15);
+const JSON_RESPONSE_BODY_TIMEOUT: Duration = Duration::from_secs(15);
+
+static DEFAULT_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+
+fn build_client() -> Result<reqwest::Client, String> {
+    reqwest::Client::builder()
+        .user_agent(USER_AGENT)
+        .connect_timeout(HTTP_CONNECT_TIMEOUT)
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client: {}", e))
+}
+
+fn build_cloudsearch_url(local_api: &str, keywords: &str, page: u32, pagesize: u32) -> String {
+    // NetEase API uses offset as "skip count", not page number.
+    let offset = page.saturating_sub(1) * pagesize;
+    let encoded_keywords = urlencoding::encode(keywords);
+    format!(
+        "{}/cloudsearch?keywords={}&limit={}&offset={}",
+        local_api, encoded_keywords, pagesize, offset
+    )
+}
 
 /// return client
 pub fn get_client() -> Result<reqwest::Client, String> {
-    let client = reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
-        .build()
-        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
-    Ok(client)
+    if let Some(client) = DEFAULT_CLIENT.get() {
+        return Ok(client.clone());
+    }
+
+    let client = build_client()?;
+    if DEFAULT_CLIENT.set(client).is_err() {
+        return DEFAULT_CLIENT
+            .get()
+            .cloned()
+            .ok_or_else(|| "Failed to initialize HTTP client".to_string());
+    }
+
+    DEFAULT_CLIENT
+        .get()
+        .cloned()
+        .ok_or_else(|| "Failed to initialize HTTP client".to_string())
 }
 
 #[tauri::command]
 pub async fn check_online_service_status() -> Result<OnlineServiceStatus, String> {
     let client = reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
+        .user_agent(USER_AGENT)
         .timeout(Duration::from_secs(2))
         .build()
         .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
@@ -117,10 +153,14 @@ pub async fn get_response(
     client: reqwest::Client,
     url: String,
 ) -> Result<reqwest::Response, String> {
-    let response = client
-        .get(&url)
-        .send()
+    let response = tokio::time::timeout(HTTP_RESPONSE_HEADERS_TIMEOUT, client.get(&url).send())
         .await
+        .map_err(|_| {
+            format!(
+                "API request timed out after {}s",
+                HTTP_RESPONSE_HEADERS_TIMEOUT.as_secs()
+            )
+        })?
         .map_err(|e| format!("API request error: {}", e))?;
     if response.status().is_client_error() || response.status().is_server_error() {
         return Err(format!("API request error: HTTP {}", response.status()));
@@ -130,9 +170,14 @@ pub async fn get_response(
 
 /// get response text
 async fn get_text(response: reqwest::Response) -> Result<String, String> {
-    let text = response
-        .text()
+    let text = tokio::time::timeout(JSON_RESPONSE_BODY_TIMEOUT, response.text())
         .await
+        .map_err(|_| {
+            format!(
+                "Read response timed out after {}s",
+                JSON_RESPONSE_BODY_TIMEOUT.as_secs()
+            )
+        })?
         .map_err(|e| format!("Read text error: {}", e))?;
     if text.is_empty() {
         return Err("Empty response".to_string());
@@ -175,14 +220,12 @@ pub async fn search_songs(
     let local_api = local_api.unwrap_or_else(|| LOCAL_API_BASE.to_string());
 
     // Use /cloudsearch so we can get album cover (al.picUrl) directly.
-    // Note: NetEase API uses offset as "skip count", not page number.
-    let offset = (search_request.page.saturating_sub(1)) * search_request.pagesize;
-    let url = format!(
-        "{}/cloudsearch?keywords={}&limit={}&offset={}",
-        local_api, search_request.keywords, search_request.pagesize, offset
+    let url = build_cloudsearch_url(
+        &local_api,
+        &search_request.keywords,
+        search_request.page,
+        search_request.pagesize,
     );
-
-    println!("search url: {}", url);
 
     let response_json: serde_json::Value = get_response_json(client, url).await?;
 
@@ -257,6 +300,27 @@ pub async fn search_songs(
     Ok(SearchResult { songs, total })
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cloudsearch_url_encodes_keywords_and_uses_offset() {
+        assert_eq!(
+            build_cloudsearch_url(LOCAL_API_BASE, "周杰伦 稻香", 3, 20),
+            "http://localhost:3000/cloudsearch?keywords=%E5%91%A8%E6%9D%B0%E4%BC%A6%20%E7%A8%BB%E9%A6%99&limit=20&offset=40"
+        );
+    }
+
+    #[test]
+    fn cloudsearch_url_saturates_first_page_offset() {
+        assert_eq!(
+            build_cloudsearch_url(LOCAL_API_BASE, "a/b", 0, 7),
+            "http://localhost:3000/cloudsearch?keywords=a%2Fb&limit=7&offset=0"
+        );
+    }
+}
+
 /// 综合在线搜索：返回“相关歌手 + 歌曲列表（可分页）”
 ///
 /// - 歌曲：走 /cloudsearch (type=1) 以获得 songCount 便于分页
@@ -282,9 +346,10 @@ pub async fn search_online_mix(
     );
     let artists_fut = async {
         // /search: offset 为偏移量
+        let encoded_kw = urlencoding::encode(&kw);
         let url = format!(
             "{}/search?keywords={}&type=1018&limit={}&offset=0",
-            LOCAL_API_BASE, kw, artist_limit
+            LOCAL_API_BASE, encoded_kw, artist_limit
         );
         let response_json: serde_json::Value = get_response_json(client.clone(), url).await?;
         let code = response_json
@@ -464,7 +529,6 @@ pub async fn get_song_url(id: String) -> Result<String, String> {
     // Check if the id is a hash (for Kugou API) or a numeric ID (for NetEase API)
     let url = format!("{}/song/url?id={}&level=exhigh", LOCAL_API_BASE, id);
 
-    println!("Getting song URL: {}", url);
     let response_json: serde_json::Value = get_response_json(client, url.clone()).await?;
 
     let code = response_json
@@ -539,10 +603,7 @@ pub async fn get_song_cover(_id: String, name: String, artist: String) -> Result
         return Err("Empty song id".to_string());
     }
 
-    println!(
-        "Getting cover image for song: {} by {}, id={}",
-        name, artist, id
-    );
+    let _ = (name, artist);
     let client = get_client()?;
     let url = format!("{}/song/detail?ids={}", LOCAL_API_BASE, id);
     let response_json: serde_json::Value = get_response_json(client, url).await?;
@@ -583,7 +644,6 @@ pub async fn get_song_lyric(id: String) -> Result<String, String> {
     // We can directly get the lyrics with the song ID
     let url = format!("{}/lyric?id={}", LOCAL_API_BASE, id);
 
-    println!("Fetching lyrics from: {}", url);
     let response_json: serde_json::Value = get_response_json(client, url).await?;
 
     // Check if the response contains the lrc field

@@ -54,7 +54,7 @@ async function importMusic() {
     try {
       const result = await importMusicCommand({
         files,
-        defaultDirectory: localStore.currentDirectory || null,
+        defaultDirectory: localStore.defaultDirectory,
       });
       loadingMessage.close();
       ElMessage({

@@ -1,11 +1,10 @@
 /**
  * 本地封面与歌词加载（供 PlayerBar、ImmersiveView、LyricView 复用）
  */
-import { loadCoverAndLyric } from "@/api/commands/file";
 import { loadLocalCoverPath } from "@/api/commands/file";
 import { convertFileSrc } from "@tauri-apps/api/core";
 
-/** 加载本地封面图 URL， lyric 由 LyricView 自行 load_cover_and_lyric 取第二项 */
+/** 加载本地封面图 URL；歌词由 LyricView 单独读取，避免封面经 IPC/base64 传输。 */
 export async function loadLocalCover(
   fileName: string,
   getDefaultDirectory: () => string | null
@@ -16,12 +15,7 @@ export async function loadLocalCover(
       defaultDirectory: getDefaultDirectory(),
     });
     if (path) return convertFileSrc(path);
-
-    const result = await loadCoverAndLyric({
-      fileName,
-      defaultDirectory: getDefaultDirectory(),
-    });
-    return Array.isArray(result) && result.length > 0 ? result[0] || "" : "";
+    return "";
   } catch (e) {
     console.error("加载本地封面失败:", e);
     return "";

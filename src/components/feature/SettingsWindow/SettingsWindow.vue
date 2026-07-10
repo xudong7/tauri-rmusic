@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   Brush,
@@ -41,18 +41,6 @@ function handleLocaleChange(val: LocaleKey) {
   setLocale(val);
   currentLocale.value = val;
 }
-
-watch(
-  () => themeStore.themeMode,
-  () => themeStore.applyTheme()
-);
-
-window.addEventListener("storage", (e) => {
-  if (e.key === "theme" && e.newValue && ["light", "dark", "warm"].includes(e.newValue)) {
-    if (themeStore.themeMode !== e.newValue)
-      themeStore.setThemeWithoutSave(e.newValue as ThemeMode);
-  }
-});
 
 const themeOptions: { value: ThemeMode; labelKey: string }[] = [
   { value: "light", labelKey: "common.light" },
@@ -140,10 +128,8 @@ const handleAutoStartChange = async (value: boolean) => {
   try {
     if (value) {
       await enable();
-      console.log("开机自启动已启用");
     } else {
       await disable();
-      console.log("开机自启动已禁用");
     }
   } catch (error) {
     console.error("设置开机自启动失败:", error);

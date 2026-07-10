@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onUnmounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   Close,
@@ -71,15 +71,19 @@ function handleSearch() {
   const kw = searchKeyword.value.trim();
   if (kw) searchHistoryStore.add(kw, props.viewMode);
   showHistoryDropdown.value = false;
-  emit("search", searchKeyword.value);
+  emit("search", kw);
 }
 
 function onSearchFocus() {
+  clearBlurTimer();
+  showHistoryDropdown.value = true;
+}
+
+function clearBlurTimer() {
   if (blurTimer) {
     clearTimeout(blurTimer);
     blurTimer = null;
   }
-  showHistoryDropdown.value = true;
 }
 
 function onSearchBlur() {
@@ -98,10 +102,7 @@ function onSearchWrapperClick(e: MouseEvent) {
   const target = e.target as HTMLElement;
   const dropdown = searchWrapperRef.value?.querySelector(".search-history-dropdown");
   if (dropdown?.contains(target)) return;
-  if (blurTimer) {
-    clearTimeout(blurTimer);
-    blurTimer = null;
-  }
+  clearBlurTimer();
   showHistoryDropdown.value = true;
 }
 
@@ -122,6 +123,8 @@ function clearHistory(e: Event) {
   searchHistoryStore.clear(props.viewMode);
   showHistoryDropdown.value = false;
 }
+
+onUnmounted(clearBlurTimer);
 </script>
 
 <template>

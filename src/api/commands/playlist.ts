@@ -2,7 +2,7 @@ import type { Playlist } from "@/types/model";
 import { invokeCommand } from "../client";
 
 export async function readPlaylists(): Promise<Playlist[]> {
-  const list = (await invokeCommand("read_playlists")) as Playlist[];
+  const list = await invokeCommand("read_playlists");
   return Array.isArray(list) ? list : [];
 }
 

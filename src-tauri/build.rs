@@ -38,10 +38,13 @@ fn extract_zip(zip_path: &Path, out_dir: &Path) -> Result<(), Box<dyn std::error
 
     for i in 0..archive.len() {
         let mut entry = archive.by_index(i)?;
-        let name = entry.name().to_string();
-        let outpath = out_dir.join(&name);
+        let Some(enclosed_name) = entry.enclosed_name() else {
+            eprintln!("cargo:warning=Skip unsafe zip entry path: {}", entry.name());
+            continue;
+        };
+        let outpath = out_dir.join(enclosed_name);
 
-        if name.ends_with('/') {
+        if entry.is_dir() {
             fs::create_dir_all(&outpath)?;
         } else {
             if let Some(p) = outpath.parent() {

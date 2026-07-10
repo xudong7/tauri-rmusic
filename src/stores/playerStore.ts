@@ -4,42 +4,30 @@ import { ElMessage } from "element-plus";
 import type { MusicFile, SongInfo } from "@/types/model";
 import { PlayMode, ViewMode } from "@/types/model";
 import { i18n } from "@/i18n";
+import { joinPathSegment } from "@/utils/pathUtils";
+import { getPlaybackStep, getSequentialIndex } from "@/utils/playbackQueue";
 import {
   handleEvent,
   playNeteaseSong,
   playTrack,
+  prefetchNeteaseSong,
   getPlaybackState,
   seekTo,
 } from "@/api/commands/music";
 import { usePlaybackClock } from "@/composables/usePlaybackClock";
+import { usePlaybackQueue, type PlayOnlineOptions } from "@/composables/usePlaybackQueue";
+import { usePlaybackVolume } from "@/composables/usePlaybackVolume";
 import { useViewStore } from "./viewStore";
 import { useLocalMusicStore } from "./localMusicStore";
 import { useOnlineMusicStore } from "./onlineMusicStore";
 import { usePlaylistStore } from "./playlistStore";
 
-function normalizeIndex(index: number, length: number): number {
-  return ((index % length) + length) % length;
+function debugPlaybackLog(message: string) {
+  if (import.meta.env.DEV) console.debug(message);
 }
 
-function getSequentialIndex(currentIndex: number, step: number, length: number): number {
-  return normalizeIndex(currentIndex + step, length);
-}
-
-function getRandomIndex(currentIndex: number, direction: number, length: number): number {
-  if (length <= 1) return currentIndex;
-  const offset = Math.floor(Math.random() * (length - 1)) + 1;
-  return normalizeIndex(currentIndex + offset * (direction > 0 ? 1 : -1), length);
-}
-
-function getNextIndex(options: {
-  currentIndex: number;
-  step: number;
-  length: number;
-  playMode: PlayMode;
-}): number {
-  const { currentIndex, step, length, playMode } = options;
-  if (playMode === PlayMode.RANDOM) return getRandomIndex(currentIndex, step, length);
-  return getSequentialIndex(currentIndex, step, length);
+function getLocalTrackKey(file: MusicFile): string {
+  return file.relative_path || file.file_name;
 }
 
 export const usePlayerStore = defineStore("player", () => {
@@ -60,9 +48,34 @@ export const usePlayerStore = defineStore("player", () => {
   /** 当前从播放列表播放时记录列表 id，用于上一曲/下一曲 */
   const currentPlaylistId = ref<string | null>(null);
 
+  const playbackVolume = usePlaybackVolume({
+    setBackendVolume: (nextVolume) => handleEvent("volume", { volume: nextVolume }),
+  });
+  const { volume, adjustVolume, syncVolumeToBackend } = playbackVolume;
+
+  const playbackQueue = usePlaybackQueue({
+    getPlayMode: () => playMode.value,
+    getViewMode: () => viewStore.viewMode,
+    getFallbackOnlineQueue: () => onlineStore.onlineSongs,
+    getCurrentPlaylistId: () => currentPlaylistId.value,
+    setCurrentPlaylistId: (id) => {
+      currentPlaylistId.value = id;
+    },
+    getPlaylist: playlistStore.getPlaylist,
+    prefetchOnlineSong: prefetchNeteaseSong,
+  });
+  const currentOnlineQueue = playbackQueue.currentOnlineQueue;
+
   const hasCurrentTrack = computed(
     () => currentMusic.value !== null || currentOnlineSong.value !== null
   );
+  const localMusicByFileName = computed(() => {
+    const map = new Map<string, MusicFile>();
+    for (const file of localStore.musicFiles) {
+      map.set(file.file_name, file);
+    }
+    return map;
+  });
 
   const currentTrackDuration = computed(() => {
     if (currentTrackDurationMs.value > 0) return currentTrackDurationMs.value;
@@ -71,25 +84,14 @@ export const usePlayerStore = defineStore("player", () => {
   });
 
   const currentTrackInfo = computed(() => {
-    if (viewStore.viewMode === ViewMode.LOCAL && currentMusic.value) {
-      return {
-        name: currentMusic.value.file_name,
-        artist: "",
-        picUrl: "",
-      };
-    }
-    if (
-      (viewStore.viewMode === ViewMode.ONLINE ||
-        viewStore.viewMode === ViewMode.PLAYLIST) &&
-      currentOnlineSong.value
-    ) {
+    if (currentOnlineSong.value) {
       return {
         name: currentOnlineSong.value.name,
         artist: currentOnlineSong.value.artists.join(", "),
         picUrl: currentOnlineSong.value.pic_url || "",
       };
     }
-    if (viewStore.viewMode === ViewMode.PLAYLIST && currentMusic.value) {
+    if (currentMusic.value) {
       return {
         name: currentMusic.value.file_name,
         artist: "",
@@ -170,7 +172,8 @@ export const usePlayerStore = defineStore("player", () => {
   async function playMusic(music: MusicFile, options?: { fromPlaylistId?: string }) {
     try {
       if (!options?.fromPlaylistId) currentPlaylistId.value = null;
-      console.log(`[播放控制] 开始播放本地音乐: ${music.file_name}`);
+      playbackQueue.clearOnlineQueue();
+      debugPlaybackLog(`[播放控制] 开始播放本地音乐: ${music.file_name}`);
 
       isLoadingSong.value = true;
       isPlaying.value = false;
@@ -180,7 +183,7 @@ export const usePlayerStore = defineStore("player", () => {
       currentMusic.value = music;
       currentOnlineSong.value = null;
 
-      const fullPath = `${localStore.currentDirectory}/${music.file_name}`;
+      const fullPath = joinPathSegment(localStore.currentDirectory, music.file_name);
       const playResult = await playTrack({ type: "local", path: fullPath });
       currentBackendTrackId.value = playResult.track_id;
       updateProgressFromBackend(playResult);
@@ -192,7 +195,7 @@ export const usePlayerStore = defineStore("player", () => {
 
       if (options?.fromPlaylistId) currentPlaylistId.value = options.fromPlaylistId;
       ElMessage.success(i18n.global.t("messages.playing", { name: music.file_name }));
-      console.log(`[播放控制] 本地音乐播放成功: ${music.file_name}`);
+      debugPlaybackLog(`[播放控制] 本地音乐播放成功: ${music.file_name}`);
     } catch (error) {
       console.error("[播放控制] 播放本地音乐失败:", error);
       ElMessage.error(`${i18n.global.t("errors.playFailed")}: ${error}`);
@@ -203,23 +206,25 @@ export const usePlayerStore = defineStore("player", () => {
     }
   }
 
-  async function playOnlineSong(song: SongInfo, options?: { fromPlaylistId?: string }) {
+  async function playOnlineSong(song: SongInfo, options?: PlayOnlineOptions) {
     try {
       if (
         currentOnlineSong.value?.id === song.id &&
         isPlaying.value &&
         !isLoadingSong.value
       ) {
-        console.log("[播放控制] 歌曲正在播放，忽略重复请求");
+        playbackQueue.applyOnlinePlaybackContext(options);
+        void playbackQueue.prefetchNextOnlineSong(song);
+        debugPlaybackLog("[播放控制] 歌曲正在播放，忽略重复请求");
         return;
       }
       if (isLoadingSong.value) {
-        console.log("[播放控制] 歌曲正在加载中，忽略重复请求");
+        debugPlaybackLog("[播放控制] 歌曲正在加载中，忽略重复请求");
         return;
       }
-      if (!options?.fromPlaylistId) currentPlaylistId.value = null;
+      playbackQueue.applyOnlinePlaybackContext(options);
 
-      console.log(
+      debugPlaybackLog(
         `[播放控制] 开始播放在线歌曲: ${song.name} - ${song.artists.join(", ")}`
       );
 
@@ -237,7 +242,7 @@ export const usePlayerStore = defineStore("player", () => {
         artist: song.artists.join(", "),
       });
 
-      console.log("[播放控制] 获取到播放URL，准备播放");
+      debugPlaybackLog("[播放控制] 获取到播放URL，准备播放");
       const startResult = await playTrack({
         type: "online",
         url: playResult.url,
@@ -261,7 +266,8 @@ export const usePlayerStore = defineStore("player", () => {
           name: `${song.name} - ${song.artists.join(", ")}`,
         })
       );
-      console.log(`[播放控制] 在线歌曲播放成功: ${song.name}`);
+      debugPlaybackLog(`[播放控制] 在线歌曲播放成功: ${song.name}`);
+      void playbackQueue.prefetchNextOnlineSong(song);
     } catch (error) {
       console.error("[播放控制] 播放在线歌曲失败:", error);
       ElMessage.error(`${i18n.global.t("errors.playFailedOnline")}: ${error}`);
@@ -277,7 +283,7 @@ export const usePlayerStore = defineStore("player", () => {
     if (!list || index < 0 || index >= list.items.length) return;
     const item = list.items[index];
     if (item.type === "local") {
-      const file = localStore.musicFiles.find((f) => f.file_name === item.file_name);
+      const file = localMusicByFileName.value.get(item.file_name);
       if (file) await playMusic(file, { fromPlaylistId: playlistId });
       else ElMessage.warning(i18n.global.t("messages.noLocalMusic"));
     } else {
@@ -288,15 +294,15 @@ export const usePlayerStore = defineStore("player", () => {
   async function togglePlay() {
     try {
       if (isLoadingSong.value) {
-        console.log("[播放控制] 歌曲正在加载中，忽略播放/暂停操作");
+        debugPlaybackLog("[播放控制] 歌曲正在加载中，忽略播放/暂停操作");
         return;
       }
       if (!hasCurrentTrack.value) {
-        console.log("[播放控制] 没有当前曲目，忽略播放/暂停操作");
+        debugPlaybackLog("[播放控制] 没有当前曲目，忽略播放/暂停操作");
         return;
       }
 
-      console.log(`[播放控制] ${isPlaying.value ? "暂停" : "恢复"}播放`);
+      debugPlaybackLog(`[播放控制] ${isPlaying.value ? "暂停" : "恢复"}播放`);
       if (isPlaying.value) {
         await handleEvent("pause", {});
         stopPlayTimeTracking();
@@ -312,19 +318,15 @@ export const usePlayerStore = defineStore("player", () => {
     }
   }
 
-  async function adjustVolume(volume: number) {
-    await handleEvent("volume", { volume });
-  }
-
   async function playNextOrPreviousMusic(step: number) {
     try {
       if (isLoadingSong.value) {
-        console.log("[播放控制] 歌曲正在加载中，忽略切换请求");
+        debugPlaybackLog("[播放控制] 歌曲正在加载中，忽略切换请求");
         return;
       }
 
       const direction = step > 0 ? "下" : "上";
-      console.log(`[播放控制] 准备播放${direction}一首歌曲`);
+      debugPlaybackLog(`[播放控制] 准备播放${direction}一首歌曲`);
 
       if (currentPlaylistId.value) {
         const list = playlistStore.getPlaylist(currentPlaylistId.value);
@@ -342,12 +344,7 @@ export const usePlayerStore = defineStore("player", () => {
             }
           }
           if (currentIndex === -1) currentIndex = 0;
-          const nextIndex = getNextIndex({
-            currentIndex,
-            step,
-            length: list.items.length,
-            playMode: playMode.value,
-          });
+          const nextIndex = getSequentialIndex(currentIndex, step, list.items.length);
           await playFromPlaylist(currentPlaylistId.value, nextIndex);
           return;
         }
@@ -361,7 +358,9 @@ export const usePlayerStore = defineStore("player", () => {
         }
 
         let currentIndex = localStore.musicFiles.findIndex(
-          (file) => file.id === currentMusic.value?.id
+          (file) =>
+            currentMusic.value !== null &&
+            getLocalTrackKey(file) === getLocalTrackKey(currentMusic.value)
         );
         if (currentIndex === -1) currentIndex = 0;
 
@@ -373,23 +372,20 @@ export const usePlayerStore = defineStore("player", () => {
 
         await playMusic(localStore.musicFiles[nextIndex]);
       } else {
-        if (onlineStore.onlineSongs.length === 0) {
+        const queue = playbackQueue.getActiveOnlineQueue();
+        if (queue.length === 0) {
           ElMessage.warning(i18n.global.t("messages.noOnlineMusic"));
           return;
         }
 
-        let currentIndex = onlineStore.onlineSongs.findIndex(
+        let currentIndex = queue.findIndex(
           (song) => song.id === currentOnlineSong.value?.id
         );
         if (currentIndex === -1) currentIndex = 0;
 
-        const nextIndex = getSequentialIndex(
-          currentIndex,
-          step,
-          onlineStore.onlineSongs.length
-        );
+        const nextIndex = getSequentialIndex(currentIndex, step, queue.length);
 
-        await playOnlineSong(onlineStore.onlineSongs[nextIndex]);
+        await playOnlineSong(queue[nextIndex], { queue });
       }
     } catch (error) {
       console.error(`[播放控制] 播放${step > 0 ? "下" : "上"}一首失败:`, error);
@@ -397,21 +393,22 @@ export const usePlayerStore = defineStore("player", () => {
     }
   }
 
-  function getRandomStep(): number {
-    if (playMode.value === PlayMode.RANDOM) {
-      const currentList =
-        viewStore.viewMode === ViewMode.LOCAL
-          ? localStore.musicFiles
-          : onlineStore.onlineSongs;
-      if (currentList.length <= 1) return 1;
-      return Math.floor(Math.random() * (currentList.length - 1)) + 1;
+  function getCurrentStepListLength(): number {
+    if (currentPlaylistId.value) {
+      const list = playlistStore.getPlaylist(currentPlaylistId.value);
+      return list?.items.length ?? 0;
     }
-    return 1;
+    return viewStore.viewMode === ViewMode.LOCAL
+      ? localStore.musicFiles.length
+      : playbackQueue.getActiveOnlineQueue().length;
   }
 
   function getPlayStep(direction: number): number {
-    if (playMode.value === PlayMode.RANDOM) return getRandomStep();
-    return Math.abs(direction);
+    return getPlaybackStep({
+      playMode: playMode.value,
+      length: getCurrentStepListLength(),
+      direction,
+    });
   }
 
   function togglePlayMode() {
@@ -432,9 +429,17 @@ export const usePlayerStore = defineStore("player", () => {
 
   async function replayCurrentSong() {
     if (currentMusic.value) {
-      await playMusic(currentMusic.value);
+      await playMusic(
+        currentMusic.value,
+        currentPlaylistId.value ? { fromPlaylistId: currentPlaylistId.value } : undefined
+      );
     } else if (currentOnlineSong.value) {
-      await playOnlineSong(currentOnlineSong.value);
+      await playOnlineSong(
+        currentOnlineSong.value,
+        currentPlaylistId.value
+          ? { fromPlaylistId: currentPlaylistId.value }
+          : { queue: currentOnlineQueue.value }
+      );
     }
   }
 
@@ -494,7 +499,9 @@ export const usePlayerStore = defineStore("player", () => {
     isPlaying,
     isLoadingSong,
     currentPlayTime,
+    volume,
     currentPlaylistId,
+    currentOnlineQueue,
 
     hasCurrentTrack,
     currentTrackDuration,
@@ -507,8 +514,8 @@ export const usePlayerStore = defineStore("player", () => {
     playFromPlaylist,
     togglePlay,
     adjustVolume,
+    syncVolumeToBackend,
     playNextOrPreviousMusic,
-    getRandomStep,
     getPlayStep,
     togglePlayMode,
     replayCurrentSong,

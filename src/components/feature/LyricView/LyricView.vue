@@ -52,6 +52,13 @@ const lyricScrollRef = ref<InstanceType<typeof ElScrollbar> | null>(null);
 const currentLyricTime = ref(0);
 let lyricUpdateInterval: number | null = null;
 let lyricLoadRequestId = 0;
+let lyricScrollRequestId = 0;
+
+const lyricSource = computed(() => {
+  if (props.currentSong) return { type: "online" as const, song: props.currentSong };
+  if (props.currentMusic) return { type: "local" as const, music: props.currentMusic };
+  return null;
+});
 
 // 组件挂载时，初始化播放时间
 onMounted(() => {
@@ -192,13 +199,14 @@ function updateCurrentLine() {
   // 如果索引变化了，更新并滚动
   if (newIndex !== currentIndex.value) {
     currentIndex.value = newIndex;
-    scrollToCurrentLine();
+    void scrollToCurrentLine(++lyricScrollRequestId);
   }
 }
 
 // 滚动到当前歌词行
-async function scrollToCurrentLine() {
+async function scrollToCurrentLine(requestId: number) {
   await nextTick();
+  if (requestId !== lyricScrollRequestId) return;
   if (lyricScrollRef.value && currentIndex.value >= 0) {
     const container = lyricScrollRef.value.$el;
     const activeItem = container.querySelector(".active-lyric");
@@ -214,54 +222,24 @@ async function scrollToCurrentLine() {
   }
 }
 
-// 监听当前歌曲变化
 watch(
-  () => props.currentSong,
-  async (newSong) => {
-    // 重置当前时间和索引
+  lyricSource,
+  async (source) => {
     currentLyricTime.value = 0;
     currentIndex.value = -1;
     lyricLoadRequestId++;
+    lyricScrollRequestId++;
 
-    if (newSong) {
-      await loadLyric(newSong);
+    if (!source) {
+      lyricData.value = [];
+    } else if (source.type === "online") {
+      await loadLyric(source.song);
     } else {
-      // 如果不是在线歌曲，尝试加载本地歌词
-      if (props.currentMusic) {
-        await loadLocalLyric(props.currentMusic);
-      } else {
-        lyricData.value = [];
-      }
+      await loadLocalLyric(source.music);
     }
 
-    // 如果正在播放，启动歌词滚动
     if (props.isPlaying) {
       startLyricUpdate();
-    }
-  },
-  { immediate: true }
-);
-
-// 监听本地歌曲变化
-watch(
-  () => props.currentMusic,
-  async (newMusic) => {
-    // 只有当没有在线歌曲时才处理本地歌曲
-    if (!props.currentSong) {
-      // 重置当前时间和索引
-      currentLyricTime.value = 0;
-      currentIndex.value = -1;
-      lyricLoadRequestId++;
-
-      if (newMusic) {
-        await loadLocalLyric(newMusic);
-      } else {
-        lyricData.value = [];
-      }
-      // 如果正在播放，启动歌词滚动
-      if (props.isPlaying) {
-        startLyricUpdate();
-      }
     }
   },
   { immediate: true }

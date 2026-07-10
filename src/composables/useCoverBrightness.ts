@@ -6,6 +6,8 @@ interface CoverBrightnessState {
   isAnalyzed: boolean;
 }
 
+const MAX_ANALYSIS_IMAGE_SIZE = 96;
+
 function getAdjustedBrightness(averageBrightness: number): number {
   if (averageBrightness < 0.3) return 1.12;
   if (averageBrightness < 0.6) return 1.02;
@@ -27,9 +29,10 @@ function calculateAverageBrightness(img: HTMLImageElement): number | null {
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
 
-  canvas.width = img.width;
-  canvas.height = img.height;
-  ctx.drawImage(img, 0, 0);
+  const scale = Math.min(1, MAX_ANALYSIS_IMAGE_SIZE / Math.max(img.width, img.height));
+  canvas.width = Math.max(1, Math.round(img.width * scale));
+  canvas.height = Math.max(1, Math.round(img.height * scale));
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imageData.data;

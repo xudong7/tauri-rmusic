@@ -100,23 +100,23 @@
       >
         <div v-bind="wrapperProps" class="list-rows">
           <div
-            v-for="{ data: entry, index } in virtualList"
+            v-for="{ data: entry } in virtualList"
             :key="entry.key"
             class="list-row"
             :class="{
               'is-current': isCurrent(entry) && !selectionMode,
-              'is-selected': isRowSelected(index),
+              'is-selected': isRowSelected(entry.sourceIndex),
             }"
             :style="{ height: rowHeight + 'px', minHeight: rowHeight + 'px' }"
-            @click="selectionMode ? toggleSelectRow(index) : undefined"
-            @dblclick="!selectionMode && playAt(index)"
+            @click="selectionMode ? toggleSelectRow(entry.sourceIndex) : undefined"
+            @dblclick="!selectionMode && playAt(entry.sourceIndex)"
           >
             <div class="col-play">
               <el-checkbox
                 v-if="selectionMode"
-                :model-value="isRowSelected(index)"
+                :model-value="isRowSelected(entry.sourceIndex)"
                 @click.stop
-                @change="toggleSelectRow(index)"
+                @change="toggleSelectRow(entry.sourceIndex)"
               />
               <el-button
                 v-else
@@ -126,7 +126,7 @@
                 :icon="
                   isCurrent(entry) && playerStore.isPlaying ? VideoPause : CaretRight
                 "
-                @click="playAt(index)"
+                @click="playAt(entry.sourceIndex)"
               />
             </div>
             <div class="col-cover">
@@ -145,7 +145,7 @@
                 :icon="Minus"
                 link
                 type="default"
-                @click.stop="removeAt(index)"
+                @click.stop="removeAt(entry.sourceIndex)"
               />
             </div>
           </div>
@@ -155,22 +155,22 @@
       <el-scrollbar v-else class="list-scroll">
         <div class="list-rows">
           <div
-            v-for="(entry, index) in displayItems"
+            v-for="entry in displayItems"
             :key="entry.key"
             class="list-row"
             :class="{
               'is-current': isCurrent(entry) && !selectionMode,
-              'is-selected': isRowSelected(index),
+              'is-selected': isRowSelected(entry.sourceIndex),
             }"
-            @click="selectionMode ? toggleSelectRow(index) : undefined"
-            @dblclick="!selectionMode && playAt(index)"
+            @click="selectionMode ? toggleSelectRow(entry.sourceIndex) : undefined"
+            @dblclick="!selectionMode && playAt(entry.sourceIndex)"
           >
             <div class="col-play">
               <el-checkbox
                 v-if="selectionMode"
-                :model-value="isRowSelected(index)"
+                :model-value="isRowSelected(entry.sourceIndex)"
                 @click.stop
-                @change="toggleSelectRow(index)"
+                @change="toggleSelectRow(entry.sourceIndex)"
               />
               <el-button
                 v-else
@@ -180,7 +180,7 @@
                 :icon="
                   isCurrent(entry) && playerStore.isPlaying ? VideoPause : CaretRight
                 "
-                @click="playAt(index)"
+                @click="playAt(entry.sourceIndex)"
               />
             </div>
             <div class="col-cover">
@@ -199,7 +199,7 @@
                 :icon="Minus"
                 link
                 type="default"
-                @click.stop="removeAt(index)"
+                @click.stop="removeAt(entry.sourceIndex)"
               />
             </div>
           </div>
@@ -295,6 +295,24 @@ const playlist = computed(() =>
 );
 
 const displayName = computed(() => playlist.value?.name ?? t("playlist.unnamed"));
+const localMusicByFileName = computed(() => {
+  const map = new Map<string, MusicFile>();
+  for (const file of localStore.musicFiles) {
+    map.set(file.file_name, file);
+  }
+  return map;
+});
+
+watch(
+  () => playlist.value?.items.length ?? 0,
+  (length) => {
+    if (!selectionMode.value || selectedIndices.value.size === 0) return;
+    const next = new Set(
+      Array.from(selectedIndices.value).filter((index) => index >= 0 && index < length)
+    );
+    if (next.size !== selectedIndices.value.size) selectedIndices.value = next;
+  }
+);
 
 watch(
   () => playlist.value?.name,
@@ -321,6 +339,7 @@ function confirmDelete() {
 
 interface ResolvedEntry {
   key: string;
+  sourceIndex: number;
   title: string;
   artist: string;
   coverUrl: string;
@@ -337,10 +356,11 @@ const resolvedItems = computed(() => {
   for (let i = 0; i < list.items.length; i++) {
     const item = list.items[i];
     if (item.type === "local") {
-      const file = localStore.musicFiles.find((f) => f.file_name === item.file_name);
+      const file = localMusicByFileName.value.get(item.file_name);
       const display = getDisplayName(item.file_name);
       result.push({
         key: `local_${i}_${item.file_name}`,
+        sourceIndex: i,
         title: extractSongTitle(display) || display,
         artist: extractArtistName(display) || t("common.unknownArtist"),
         coverUrl: "", // 下面用 reactive 或单独加载
@@ -353,6 +373,7 @@ const resolvedItems = computed(() => {
       const s = item.song;
       result.push({
         key: `online_${i}_${s.id}`,
+        sourceIndex: i,
         title: s.name,
         artist: s.artists?.join(", ") ?? t("common.unknownArtist"),
         coverUrl: s.pic_url ?? "",
@@ -373,16 +394,6 @@ const { getCover, scheduleMany: scheduleLocalCoverLoadMany } =
     getDefaultDirectory: () => localStore.getDefaultDirectory(),
   });
 
-watch(
-  resolvedItems,
-  (items) => {
-    scheduleLocalCoverLoadMany(
-      items.filter((entry) => entry.item.type === "local" && entry.musicFile)
-    );
-  },
-  { immediate: true, deep: true }
-);
-
 const displayItems = computed(() =>
   resolvedItems.value.map((e) => ({
     ...e,
@@ -392,6 +403,21 @@ const displayItems = computed(() =>
 
 const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight } =
   useVirtualListWhenLong<ResolvedEntry>({ source: displayItems });
+
+const visibleLocalCoverItems = computed(() => {
+  const items = useVirtual.value
+    ? virtualList.value.map(({ data }) => data)
+    : displayItems.value;
+  return items.filter((entry) => entry.item.type === "local" && entry.musicFile);
+});
+
+watch(
+  visibleLocalCoverItems,
+  (items) => {
+    scheduleLocalCoverLoadMany(items);
+  },
+  { immediate: true }
+);
 
 function isCurrent(entry: ResolvedEntry & { coverUrl?: string }) {
   if (entry.musicFile && playerStore.currentMusic)

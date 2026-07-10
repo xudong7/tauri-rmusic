@@ -50,10 +50,11 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
         ElMessage.info(i18n.global.t("messages.noSearchResult"));
       }
     } catch (error) {
+      if (requestId !== searchRequestId) return;
       console.error("在线搜索失败:", error);
       ElMessage.error(`${i18n.global.t("errors.searchFailed")}: ${error}`);
     } finally {
-      isSearchLoading.value = false;
+      if (requestId === searchRequestId) isSearchLoading.value = false;
     }
   }
 
@@ -70,6 +71,7 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
     isSearchLoading.value = false;
     searchKeyword.value = "";
     currentPage.value = 1;
+    searchRequestId++;
   }
 
   return {

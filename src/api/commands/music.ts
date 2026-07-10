@@ -23,6 +23,10 @@ export async function playTrack(source: PlaybackSource): Promise<PlayStartResult
   return await invokeCommand("play_track", { source });
 }
 
+export async function prefetchNeteaseSong(id: string): Promise<void> {
+  await invokeCommand("prefetch_netease_song", { id });
+}
+
 export async function getOnlineAudioCacheSize(): Promise<number> {
   return await invokeCommand("get_online_audio_cache_size");
 }

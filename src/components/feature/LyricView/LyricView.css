@@ -45,7 +45,7 @@
   padding: 4px 8px;
   opacity: 0.45;
   font-weight: 400;
-  letter-spacing: 0.2px;
+  letter-spacing: 0;
 }
 
 /* 当前播放的歌词行 */
@@ -54,7 +54,7 @@
   font-size: 17px;
   font-weight: 500;
   opacity: 1;
-  letter-spacing: 0.3px;
+  letter-spacing: 0;
 }
 
 /* 歌词占位符 */

@@ -1,11 +1,12 @@
 {
   "name": "rmusic",
   "private": true,
-  "version": "1.2.5",
+  "version": "1.2.8",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "typecheck": "vue-tsc --build --force",
     "preview": "vite preview",
     "tauri": "tauri",
     "format": "prettier --write .",
