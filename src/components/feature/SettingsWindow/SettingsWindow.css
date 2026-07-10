@@ -287,3 +287,51 @@ html.theme-warm .setting-row p {
     flex-basis: 110px;
   }
 }
+
+@media (max-width: 600px) {
+  .settings-content {
+    padding: 12px;
+  }
+
+  .settings-section {
+    padding: 12px;
+  }
+
+  .setting-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .setting-row > label,
+  .path-summary-label {
+    flex-basis: auto;
+  }
+
+  .setting-control,
+  .setting-actions {
+    width: 100%;
+    min-width: 0;
+    justify-content: flex-start;
+  }
+
+  .path-summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 26px;
+    align-items: center;
+    gap: 6px 8px;
+  }
+
+  .path-summary-label {
+    grid-column: 1 / -1;
+  }
+
+  .path-summary-value {
+    width: 100%;
+  }
+
+  .path-copy {
+    grid-column: 2;
+    grid-row: 2;
+  }
+}

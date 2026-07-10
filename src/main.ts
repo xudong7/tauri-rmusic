@@ -1,7 +1,38 @@
 import { createApp } from "vue";
 import { createPinia } from "pinia";
-import ElementPlus from "element-plus";
-import "element-plus/dist/index.css";
+import {
+  ElButton,
+  ElCheckbox,
+  ElDropdown,
+  ElDropdownItem,
+  ElDropdownMenu,
+  ElEmpty,
+  ElIcon,
+  ElInput,
+  ElOption,
+  ElPopconfirm,
+  ElScrollbar,
+  ElSelect,
+  ElSkeleton,
+  ElSlider,
+  ElSwitch,
+  ElTooltip,
+} from "element-plus";
+import "element-plus/es/components/button/style/css";
+import "element-plus/es/components/checkbox/style/css";
+import "element-plus/es/components/dropdown/style/css";
+import "element-plus/es/components/empty/style/css";
+import "element-plus/es/components/icon/style/css";
+import "element-plus/es/components/input/style/css";
+import "element-plus/es/components/message/style/css";
+import "element-plus/es/components/option/style/css";
+import "element-plus/es/components/popconfirm/style/css";
+import "element-plus/es/components/scrollbar/style/css";
+import "element-plus/es/components/select/style/css";
+import "element-plus/es/components/skeleton/style/css";
+import "element-plus/es/components/slider/style/css";
+import "element-plus/es/components/switch/style/css";
+import "element-plus/es/components/tooltip/style/css";
 // 导入全局主题样式
 import "./assets/styles/themes.css";
 import "./assets/styles/message.css";
@@ -14,6 +45,23 @@ const pinia = createPinia();
 
 app.use(pinia);
 app.use(i18n);
-app.use(ElementPlus);
+[
+  ElButton,
+  ElCheckbox,
+  ElDropdown,
+  ElDropdownItem,
+  ElDropdownMenu,
+  ElEmpty,
+  ElIcon,
+  ElInput,
+  ElOption,
+  ElPopconfirm,
+  ElScrollbar,
+  ElSelect,
+  ElSkeleton,
+  ElSlider,
+  ElSwitch,
+  ElTooltip,
+].forEach((component) => app.use(component));
 app.use(router);
 app.mount("#app");

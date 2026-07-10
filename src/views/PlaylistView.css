@@ -33,7 +33,7 @@
   padding-left: 12px;
   position: relative;
   flex-shrink: 0;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .list-title::before {
@@ -61,15 +61,37 @@
 }
 
 .header-action-btn {
-  padding: var(--list-header-btn-padding, 4px 8px);
-  background: var(--app-button-bg);
-  border-color: var(--app-button-border);
+  width: var(--app-icon-btn-md);
+  height: var(--app-icon-btn-md);
+  padding: 0;
+  border: 1px solid var(--app-button-border) !important;
+  border-radius: var(--app-radius-full) !important;
+  color: var(--app-icon-button-color) !important;
+  background: var(--app-button-bg) !important;
   box-shadow: var(--app-button-shadow);
+  transition:
+    color var(--app-control-transition),
+    background var(--app-control-transition),
+    border-color var(--app-control-transition),
+    box-shadow var(--app-control-transition),
+    transform var(--app-control-transition);
 }
 
 .header-action-btn:hover {
-  background: var(--app-button-hover-bg);
-  box-shadow: var(--app-button-hover-shadow);
+  color: var(--app-icon-button-hover-color) !important;
+  background: var(--app-icon-button-hover-bg) !important;
+  border-color: color-mix(
+    in srgb,
+    var(--el-color-primary) 28%,
+    var(--app-button-border)
+  ) !important;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  transform: translateY(-1px);
+}
+
+.header-action-btn:active {
+  background: var(--app-button-active-bg) !important;
+  transform: translateY(0);
 }
 
 :deep(.header-action-btn .el-icon) {
@@ -119,6 +141,10 @@
 .list-scroll-virtual {
   overflow: auto;
   overflow-x: hidden;
+}
+
+.list-scroll-virtual .list-row {
+  margin-bottom: 0;
 }
 
 .list-rows {
@@ -196,8 +222,10 @@
 
 :deep(.col-play .el-button:not(.el-button--primary):hover) {
   color: var(--app-icon-button-hover-color);
-  border-color: var(--app-button-border);
+  border-color: color-mix(in srgb, var(--el-color-primary) 24%, var(--app-button-border));
   background: var(--app-icon-button-hover-bg);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  transform: translateY(-1px) scale(1.02);
 }
 
 :deep(.col-play .el-button.el-button--primary) {
@@ -205,6 +233,11 @@
   border-color: transparent;
   color: var(--app-play-button-color);
   box-shadow: var(--app-play-button-shadow);
+}
+
+:deep(.col-play .el-button.el-button--primary:hover) {
+  box-shadow: var(--app-play-button-hover-shadow);
+  transform: translateY(-1px) scale(1.02);
 }
 
 :deep(.col-actions .el-button:hover) {
@@ -269,7 +302,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
 }
 
 .song-title.is-playing {

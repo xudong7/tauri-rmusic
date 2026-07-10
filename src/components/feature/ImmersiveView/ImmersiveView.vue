@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   VideoPlay,
@@ -48,7 +48,6 @@ const emit = defineEmits<{
   next: [];
   exit: [];
   seek: [positionMs: number];
-  "volume-change": [volume: number];
   "toggle-play-mode": [];
 }>();
 
@@ -56,12 +55,6 @@ const artistStore = useArtistStore();
 const onlineStore = useOnlineMusicStore();
 const localStore = useLocalMusicStore();
 const { isMacPlatform } = usePlatform();
-
-const volume = ref(50);
-
-watch(volume, () => {
-  emit("volume-change", volume.value);
-});
 
 const {
   sliderValue,
@@ -129,7 +122,7 @@ const backgroundStyle = computed(() => {
 
 // 背景滤镜样式
 const backgroundFilterStyle = computed(() => {
-  return `blur(42px) saturate(1.18) brightness(${imageAnalysisState.value.brightness})`;
+  return `blur(46px) saturate(1.36) contrast(1.04) brightness(${imageAnalysisState.value.brightness})`;
 });
 
 // 覆盖层透明度样式 - 使用更优雅的渐变，保留更多专辑封面细节
@@ -139,14 +132,14 @@ const overlayStyle = computed(() => {
   let solidOpacity: number;
 
   if (brightness >= 1.08) {
-    gradientOpacity = "0.32";
-    solidOpacity = 0.46;
+    gradientOpacity = "0.42";
+    solidOpacity = 0.58;
   } else if (brightness >= 0.98) {
-    gradientOpacity = "0.28";
-    solidOpacity = 0.4;
+    gradientOpacity = "0.38";
+    solidOpacity = 0.52;
   } else {
-    gradientOpacity = "0.22";
-    solidOpacity = 0.34;
+    gradientOpacity = "0.34";
+    solidOpacity = 0.46;
   }
   return {
     background: `linear-gradient(
@@ -246,15 +239,26 @@ const overlayStyle = computed(() => {
 
         <!-- 控制按钮 -->
         <div class="controls">
-          <el-button circle :icon="ArrowLeft" @click="emit('previous')" />
+          <el-button
+            circle
+            class="immersive-control-btn"
+            :icon="ArrowLeft"
+            @click="emit('previous')"
+          />
           <el-button
             circle
             size="large"
+            class="immersive-play-btn"
             :icon="isPlaying ? VideoPause : VideoPlay"
             @click="emit('toggle-play')"
             type="primary"
           />
-          <el-button circle :icon="ArrowRight" @click="emit('next')" />
+          <el-button
+            circle
+            class="immersive-control-btn"
+            :icon="ArrowRight"
+            @click="emit('next')"
+          />
         </div>
 
         <!-- 进度条 -->

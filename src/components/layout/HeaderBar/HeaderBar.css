@@ -434,10 +434,34 @@ html.dark .search-input:deep(.el-input__wrapper.is-focus) {
 
 .search-input:deep(.el-input__inner) {
   font-size: 14px;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
 }
 
 /* 响应式布局调整 */
+@media (max-width: 960px) {
+  .header-bar {
+    grid-template-columns: minmax(70px, 1fr) minmax(200px, 280px) minmax(120px, 1fr);
+    padding: 0 12px;
+  }
+
+  .header-center {
+    padding: 0 12px;
+  }
+
+  .search-section {
+    max-width: 280px;
+    min-width: 0;
+  }
+
+  .header-right {
+    gap: 8px;
+  }
+
+  .window-controls {
+    gap: 4px;
+  }
+}
+
 @media (max-width: 768px) {
   .header-center {
     padding: 0 12px;

@@ -20,6 +20,15 @@
   --immersive-cover-size: clamp(270px, min(32vw, 52vh), 380px);
   --immersive-lyrics-height: clamp(260px, 42vh, 390px);
   --immersive-titlebar-height: 44px;
+  --immersive-control-surface: rgba(10, 16, 20, 0.26);
+  --immersive-control-surface-hover: color-mix(
+    in srgb,
+    var(--el-color-primary) 26%,
+    rgba(12, 18, 23, 0.66)
+  );
+  --immersive-control-border: rgba(255, 255, 255, 0.13);
+  --immersive-control-text: rgba(255, 255, 255, 0.76);
+  --immersive-accent: color-mix(in srgb, var(--el-color-primary) 82%, #fff);
   user-select: none;
 }
 
@@ -33,7 +42,7 @@
   z-index: 0;
   background-size: cover;
   background-position: center;
-  opacity: 0.78;
+  opacity: 0.9;
   transform: scale(1.03);
   transition:
     background-image 0.6s ease,
@@ -258,12 +267,15 @@
   margin-top: 2px;
 }
 
-.controls .el-button {
-  border: 1px solid transparent !important;
+.controls .immersive-control-btn {
+  border: 1px solid var(--immersive-control-border) !important;
   height: var(--app-icon-btn-lg);
   width: var(--app-icon-btn-lg);
-  background: transparent !important;
-  color: rgba(255, 255, 255, 0.72) !important;
+  background: var(--immersive-control-surface) !important;
+  color: var(--immersive-control-text) !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(12px) saturate(1.12);
+  -webkit-backdrop-filter: blur(12px) saturate(1.12);
   transition:
     background var(--app-control-transition),
     border-color var(--app-control-transition),
@@ -271,29 +283,48 @@
     transform var(--app-control-transition);
 }
 
-.controls .el-button:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
-  border-color: rgba(255, 255, 255, 0.14) !important;
+.controls .immersive-control-btn:hover {
+  background: var(--immersive-control-surface-hover) !important;
+  border-color: color-mix(
+    in srgb,
+    var(--el-color-primary) 42%,
+    var(--immersive-control-border)
+  ) !important;
   color: #fff !important;
-  transform: translateY(-1px);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--el-color-primary) 16%, transparent);
+  transform: translateY(-1px) scale(1.02);
 }
 
 /* 播放/暂停按钮 */
-.controls .el-button--primary {
-  background-color: #fff !important;
-  border-color: #fff !important;
-  color: #000 !important;
+.controls .immersive-play-btn {
+  background: color-mix(
+    in srgb,
+    var(--el-color-primary) 76%,
+    rgba(18, 29, 35, 0.9)
+  ) !important;
+  border: 1px solid
+    color-mix(in srgb, var(--el-color-primary) 62%, rgba(255, 255, 255, 0.18)) !important;
+  color: #fff !important;
   height: var(--app-play-btn-lg) !important;
   width: var(--app-play-btn-lg) !important;
   font-size: 20px;
   box-shadow:
     0 12px 30px rgba(0, 0, 0, 0.2),
-    0 0 0 1px rgba(255, 255, 255, 0.42);
+    0 0 18px color-mix(in srgb, var(--el-color-primary) 28%, transparent);
+  transition:
+    background var(--app-control-transition),
+    border-color var(--app-control-transition),
+    box-shadow var(--app-control-transition),
+    transform var(--app-control-transition);
 }
 
-.controls .el-button--primary:hover {
-  background-color: rgba(255, 255, 255, 0.96) !important;
-  transform: translateY(-1px) scale(1.02);
+.controls .immersive-play-btn:hover {
+  background: color-mix(in srgb, var(--el-color-primary) 88%, #fff) !important;
+  border-color: color-mix(in srgb, var(--el-color-primary) 72%, #fff) !important;
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.24),
+    0 0 24px color-mix(in srgb, var(--el-color-primary) 38%, transparent);
+  transform: translateY(-1px) scale(1.035);
 }
 
 /* 进度条 */
@@ -319,7 +350,7 @@
 
 .immersive-progress .progress-slider ::deep(.el-slider__runway) {
   height: 3px;
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(255, 255, 255, 0.16);
   border-radius: var(--app-radius-full, 9999px);
   transition:
     height 0.2s ease,
@@ -328,7 +359,7 @@
 
 .immersive-progress .progress-slider ::deep(.el-slider__bar) {
   height: 100%;
-  background: #fff;
+  background: var(--immersive-accent);
   border-radius: var(--app-radius-full, 9999px);
 }
 
@@ -343,8 +374,8 @@
   width: var(--app-slider-thumb-size);
   height: var(--app-slider-thumb-size);
   box-sizing: border-box;
-  border: 1px solid rgba(255, 255, 255, 0.78);
-  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 48%, #fff);
+  background: var(--immersive-accent);
   box-shadow:
     0 1px 4px rgba(0, 0, 0, 0.24),
     0 0 0 1px rgba(255, 255, 255, 0.18);
@@ -356,7 +387,7 @@
 
 .immersive-progress .progress-slider:hover ::deep(.el-slider__runway) {
   height: 4px;
-  background-color: rgba(255, 255, 255, 0.24);
+  background-color: rgba(255, 255, 255, 0.22);
 }
 
 .immersive-progress .progress-slider:hover ::deep(.el-slider__button),
@@ -365,7 +396,7 @@
   transform: scale(1.18);
   box-shadow:
     0 2px 8px rgba(0, 0, 0, 0.28),
-    0 0 0 2px rgba(255, 255, 255, 0.2);
+    0 0 0 2px color-mix(in srgb, var(--el-color-primary) 28%, transparent);
 }
 
 /* 右侧区域：歌词 */
@@ -454,7 +485,7 @@
     gap: 10px;
   }
 
-  .controls .el-button--primary {
+  .controls .immersive-play-btn {
     height: 52px !important;
     width: 52px !important;
   }
