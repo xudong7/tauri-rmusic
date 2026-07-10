@@ -30,6 +30,10 @@ export default {
     alreadyInPlaylist: 'Already in "{name}"',
     downloadedAndAdded: 'Downloaded and added to "{name}"',
     removeSelected: "Remove selected from playlist",
+    playAll: "Play all",
+    trackCount: "{count} tracks",
+    browseLibrary: "Open library",
+    browseOnline: "Search online",
   },
   header: {
     switchToLight: "Switch to light mode",
