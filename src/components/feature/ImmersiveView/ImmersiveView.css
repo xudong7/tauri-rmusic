@@ -10,10 +10,7 @@
   flex-direction: column;
   overflow: hidden;
   color: #fff;
-  background:
-    radial-gradient(circle at 26% 24%, rgba(118, 153, 191, 0.24), transparent 34%),
-    radial-gradient(circle at 78% 22%, rgba(169, 119, 143, 0.16), transparent 30%),
-    linear-gradient(135deg, #071015 0%, #090b0f 46%, #120f13 100%);
+  background: #0b0d0f;
   --immersive-shell-padding-x: clamp(28px, 5vw, 88px);
   --immersive-shell-padding-bottom: clamp(24px, 5vh, 56px);
   --immersive-content-gap: clamp(40px, 7vw, 104px);
@@ -43,7 +40,8 @@
   background-size: cover;
   background-position: center;
   opacity: 0.9;
-  transform: scale(1.03);
+  filter: saturate(0.82) contrast(1.05);
+  transform: scale(1.06);
   transition:
     background-image 0.6s ease,
     opacity 0.3s ease;
@@ -56,12 +54,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.04) 0%,
-    rgba(0, 0, 0, 0.12) 48%,
-    rgba(0, 0, 0, 0.28) 100%
-  );
+  background: rgba(5, 7, 9, 0.16);
 }
 
 /* 遮罩层 */
@@ -197,7 +190,7 @@
   max-width: 100%;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.42);
   transition: transform 0.3s ease;
 }
 
@@ -238,11 +231,12 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin: 0 0 6px 0;
+  margin: 0 0 10px 0;
 }
 
 .song-artist {
   font-size: 14px;
+  line-height: 1.5;
   color: rgba(255, 255, 255, 0.6);
   white-space: nowrap;
   overflow: hidden;
@@ -271,9 +265,9 @@
   border: 1px solid var(--immersive-control-border) !important;
   height: var(--app-icon-btn-lg);
   width: var(--app-icon-btn-lg);
-  background: var(--immersive-control-surface) !important;
+  background: transparent !important;
   color: var(--immersive-control-text) !important;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
   backdrop-filter: blur(12px) saturate(1.12);
   -webkit-backdrop-filter: blur(12px) saturate(1.12);
   transition:
@@ -299,18 +293,16 @@
 .controls .immersive-play-btn {
   background: color-mix(
     in srgb,
-    var(--el-color-primary) 76%,
+    var(--el-color-primary) 68%,
     rgba(18, 29, 35, 0.9)
   ) !important;
   border: 1px solid
-    color-mix(in srgb, var(--el-color-primary) 62%, rgba(255, 255, 255, 0.18)) !important;
+    color-mix(in srgb, var(--el-color-primary) 48%, rgba(255, 255, 255, 0.18)) !important;
   color: #fff !important;
   height: var(--app-play-btn-lg) !important;
   width: var(--app-play-btn-lg) !important;
   font-size: 20px;
-  box-shadow:
-    0 12px 30px rgba(0, 0, 0, 0.2),
-    0 0 18px color-mix(in srgb, var(--el-color-primary) 28%, transparent);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
   transition:
     background var(--app-control-transition),
     border-color var(--app-control-transition),
@@ -319,12 +311,14 @@
 }
 
 .controls .immersive-play-btn:hover {
-  background: color-mix(in srgb, var(--el-color-primary) 88%, #fff) !important;
-  border-color: color-mix(in srgb, var(--el-color-primary) 72%, #fff) !important;
-  box-shadow:
-    0 16px 34px rgba(0, 0, 0, 0.24),
-    0 0 24px color-mix(in srgb, var(--el-color-primary) 38%, transparent);
-  transform: translateY(-1px) scale(1.035);
+  background: color-mix(in srgb, var(--el-color-primary) 80%, #10171b) !important;
+  border-color: color-mix(
+    in srgb,
+    var(--el-color-primary) 66%,
+    rgba(255, 255, 255, 0.2)
+  ) !important;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px) scale(1.02);
 }
 
 /* 进度条 */
@@ -340,7 +334,7 @@
 .immersive-progress .time-display {
   font-size: 11px;
   min-width: 36px;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.7);
   font-variant-numeric: tabular-nums;
 }
 
@@ -350,7 +344,7 @@
 
 .immersive-progress .progress-slider ::deep(.el-slider__runway) {
   height: 3px;
-  background-color: rgba(255, 255, 255, 0.16);
+  background-color: rgba(255, 255, 255, 0.3);
   border-radius: var(--app-radius-full, 9999px);
   transition:
     height 0.2s ease,
@@ -359,7 +353,7 @@
 
 .immersive-progress .progress-slider ::deep(.el-slider__bar) {
   height: 100%;
-  background: var(--immersive-accent);
+  background: color-mix(in srgb, var(--immersive-accent) 88%, #fff);
   border-radius: var(--app-radius-full, 9999px);
 }
 
@@ -387,7 +381,7 @@
 
 .immersive-progress .progress-slider:hover ::deep(.el-slider__runway) {
   height: 4px;
-  background-color: rgba(255, 255, 255, 0.22);
+  background-color: rgba(255, 255, 255, 0.4);
 }
 
 .immersive-progress .progress-slider:hover ::deep(.el-slider__button),
@@ -407,8 +401,8 @@
   justify-content: center;
   justify-self: start;
   min-width: 0;
-  width: min(100%, 430px);
-  max-width: 420px;
+  width: min(100%, 500px);
+  max-width: 500px;
   height: var(--immersive-lyrics-height);
   max-height: 100%;
 }

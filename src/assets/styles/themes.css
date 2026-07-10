@@ -30,14 +30,14 @@ html {
   --app-spacing-sm: 8px;
   --app-spacing-lg: 24px;
   --app-spacing-xl: 28px;
-  --app-content-padding: 28px;
+  --app-content-padding: 24px 28px 20px;
   --app-content-padding-compact: 16px;
 
   /* 主布局尺寸 */
   --app-header-height: 56px;
   --app-player-height: 64px;
-  --app-sidebar-width: 160px;
-  --app-sidebar-width-compact: 136px;
+  --app-sidebar-width: 184px;
+  --app-sidebar-width-compact: 156px;
   --app-search-max-width: 320px;
 
   /* 毛玻璃与阴影 */
@@ -46,6 +46,9 @@ html {
   --app-glass-border-dark: rgba(255, 255, 255, 0.08);
   --app-header-border: rgba(0, 0, 0, 0.05);
   --app-header-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --app-surface-border: rgba(24, 33, 42, 0.07);
+  --app-surface-shadow: 0 1px 2px rgba(15, 23, 42, 0.025);
+  --app-subtle-surface: rgba(255, 255, 255, 0.46);
 
   /* 主色 */
   --el-color-primary: #7a9bb5;
@@ -63,6 +66,8 @@ html {
   --list-header-btn-padding: 4px 8px;
   --list-header-icon-size: 16px;
   --list-row-btn-size: 34px;
+  --app-list-reading-width: 860px;
+  --app-online-list-width: 980px;
 
   /* 按钮与控件：macOS / Apple Music 风格 */
   --app-button-height: 32px;
@@ -180,6 +185,9 @@ html.dark {
   --sidebar-bg: var(--app-card-bg);
   --app-header-border: rgba(255, 255, 255, 0.06);
   --app-header-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  --app-surface-border: rgba(255, 255, 255, 0.07);
+  --app-surface-shadow: none;
+  --app-subtle-surface: rgba(255, 255, 255, 0.025);
   --hover-bg-color: rgba(255, 255, 255, 0.04);
   --active-item-bg: rgba(106, 158, 200, 0.1);
 

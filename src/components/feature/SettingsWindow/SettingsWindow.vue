@@ -9,6 +9,7 @@ import {
   InfoFilled,
   Delete,
   FolderOpened,
+  RefreshLeft,
 } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -98,6 +99,7 @@ const selectDownloadPath = async () => {
       directory: true,
       multiple: false,
       title: t("settings.selectDownloadLocation"),
+      defaultPath: downloadPath.value || undefined,
     });
 
     if (selected && typeof selected === "string") {
@@ -208,12 +210,7 @@ onMounted(async () => {
         <div class="setting-row">
           <label>{{ t("settings.autoStart") }}</label>
           <div class="setting-control">
-            <el-switch
-              v-model="autoStartEnabled"
-              :active-text="t('common.enable')"
-              :inactive-text="t('common.disable')"
-              @change="handleAutoStartChange"
-            />
+            <el-switch v-model="autoStartEnabled" @change="handleAutoStartChange" />
           </div>
         </div>
       </div>
@@ -225,12 +222,23 @@ onMounted(async () => {
         <div class="setting-row">
           <label>{{ t("settings.downloadLocation") }}</label>
           <div class="setting-actions">
-            <el-button @click="selectDownloadPath" :icon="FolderOpened" type="primary">
-              {{ t("common.browse") }}
-            </el-button>
-            <el-button @click="resetDownloadPath" type="default">
-              {{ t("common.reset") }}
-            </el-button>
+            <el-tooltip :content="t('common.browse')" placement="top">
+              <el-button
+                circle
+                type="primary"
+                :icon="FolderOpened"
+                class="settings-action-btn"
+                @click="selectDownloadPath"
+              />
+            </el-tooltip>
+            <el-tooltip :content="t('common.reset')" placement="top">
+              <el-button
+                circle
+                :icon="RefreshLeft"
+                class="settings-action-btn"
+                @click="resetDownloadPath"
+              />
+            </el-tooltip>
           </div>
         </div>
         <div class="path-summary">
@@ -253,13 +261,15 @@ onMounted(async () => {
           <label>{{ t("settings.onlineAudioCache") }}</label>
           <div class="setting-control cache-control">
             <span class="cache-size">{{ formatBytes(onlineCacheSize) }}</span>
-            <el-button
-              type="default"
-              :loading="clearingCache"
-              @click="handleClearOnlineCache"
-            >
-              {{ t("settings.clearCache") }}
-            </el-button>
+            <el-tooltip :content="t('settings.clearCache')" placement="top">
+              <el-button
+                circle
+                :icon="Delete"
+                :loading="clearingCache"
+                class="settings-action-btn settings-danger-action"
+                @click="handleClearOnlineCache"
+              />
+            </el-tooltip>
           </div>
         </div>
         <div class="path-summary">

@@ -132,21 +132,21 @@ const overlayStyle = computed(() => {
   let solidOpacity: number;
 
   if (brightness >= 1.08) {
-    gradientOpacity = "0.42";
-    solidOpacity = 0.58;
+    gradientOpacity = "0.24";
+    solidOpacity = 0.34;
   } else if (brightness >= 0.98) {
-    gradientOpacity = "0.38";
-    solidOpacity = 0.52;
+    gradientOpacity = "0.2";
+    solidOpacity = 0.3;
   } else {
-    gradientOpacity = "0.34";
-    solidOpacity = 0.46;
+    gradientOpacity = "0.18";
+    solidOpacity = 0.28;
   }
   return {
     background: `linear-gradient(
       135deg,
       rgba(0, 0, 0, ${gradientOpacity}) 0%,
       rgba(0, 0, 0, ${solidOpacity}) 58%,
-      rgba(0, 0, 0, ${Number(gradientOpacity) + 0.12}) 100%
+      rgba(0, 0, 0, ${Number(gradientOpacity) + 0.08}) 100%
     )`,
   };
 });

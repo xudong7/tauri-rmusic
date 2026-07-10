@@ -194,7 +194,6 @@ export const usePlayerStore = defineStore("player", () => {
       await syncProgressFromBackend();
 
       if (options?.fromPlaylistId) currentPlaylistId.value = options.fromPlaylistId;
-      ElMessage.success(i18n.global.t("messages.playing", { name: music.file_name }));
       debugPlaybackLog(`[播放控制] 本地音乐播放成功: ${music.file_name}`);
     } catch (error) {
       console.error("[播放控制] 播放本地音乐失败:", error);
@@ -261,11 +260,6 @@ export const usePlayerStore = defineStore("player", () => {
       }
       if (options?.fromPlaylistId) currentPlaylistId.value = options.fromPlaylistId;
 
-      ElMessage.success(
-        i18n.global.t("messages.playing", {
-          name: `${song.name} - ${song.artists.join(", ")}`,
-        })
-      );
       debugPlaybackLog(`[播放控制] 在线歌曲播放成功: ${song.name}`);
       void playbackQueue.prefetchNextOnlineSong(song);
     } catch (error) {

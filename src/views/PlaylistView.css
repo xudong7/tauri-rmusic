@@ -1,5 +1,6 @@
 .playlist-view {
   width: 100%;
+  max-width: 1060px;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -148,6 +149,7 @@
 }
 
 .list-rows {
+  max-width: var(--app-list-reading-width);
   padding: 0 4px 12px;
   min-width: 0;
 }
@@ -170,7 +172,7 @@
 
 .list-row:hover {
   background: var(--hover-bg-color);
-  box-shadow: inset 0 0 0 1px var(--el-border-color-lighter);
+  box-shadow: none;
 }
 
 .list-row.is-current {
@@ -224,8 +226,8 @@
   color: var(--app-icon-button-hover-color);
   border-color: color-mix(in srgb, var(--el-color-primary) 24%, var(--app-button-border));
   background: var(--app-icon-button-hover-bg);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-primary) 10%, transparent);
-  transform: translateY(-1px) scale(1.02);
+  box-shadow: none;
+  transform: none;
 }
 
 :deep(.col-play .el-button.el-button--primary) {
