@@ -1,5 +1,6 @@
 import type {
   ArtistSongsResult,
+  MusicFile,
   Playlist,
   PlaybackSource,
   PlayStartResult,
@@ -8,158 +9,92 @@ import type {
   SearchMixResult,
 } from "@/types/model";
 
-export type HandleEventAction = "play" | "pause" | "recovery" | "volume";
+export type HandleEventAction = "pause" | "recovery" | "volume";
 
-export type TauriCommand =
-  | "scan_files"
-  | "handle_event"
-  | "play_track"
-  | "get_online_audio_cache_size"
-  | "get_online_audio_cache_path"
-  | "clear_online_audio_cache"
-  | "check_online_service_status"
-  | "restart_online_service"
-  | "play_netease_song"
-  | "download_music"
-  | "search_online_mix"
-  | "get_artist_top_songs"
-  | "get_default_music_dir"
-  | "get_song_lyric"
-  | "load_cover_and_lyric"
-  | "load_local_cover_path"
-  | "load_local_lyric"
-  | "is_sink_empty"
-  | "get_playback_state"
-  | "import_music"
-  | "read_playlists"
-  | "write_playlists"
-  | "get_progress"
-  | "seek_to";
+interface PlaybackProgressResult {
+  position_ms: number;
+  duration_ms: number;
+  is_ended: boolean;
+}
 
-export type TauriCommandParams<C extends TauriCommand> = C extends "scan_files"
-  ? { path: string | null; defaultDirectory: string | null }
-  : C extends "handle_event"
-    ? { event: string }
-    : C extends "play_track"
-      ? { source: PlaybackSource }
-      : C extends "get_online_audio_cache_size"
-        ? void
-        : C extends "get_online_audio_cache_path"
-          ? void
-          : C extends "clear_online_audio_cache"
-            ? void
-            : C extends "check_online_service_status"
-              ? void
-              : C extends "restart_online_service"
-                ? void
-                : C extends "play_netease_song"
-                  ? { id: string; name: string; artist: string }
-                  : C extends "download_music"
-                    ? {
-                        songHash: string;
-                        songName: string;
-                        artist: string;
-                        defaultDirectory: string | null;
-                      }
-                    : C extends "search_online_mix"
-                      ? {
-                          keywords: string;
-                          page: number;
-                          pagesize: number;
-                          songLimit?: number;
-                          artistLimit?: number;
-                        }
-                      : C extends "get_artist_top_songs"
-                        ? { id: string; limit: number }
-                        : C extends "get_default_music_dir"
-                          ? void
-                          : C extends "get_song_lyric"
-                            ? { id: string }
-                            : C extends "load_cover_and_lyric"
-                              ? { fileName: string; defaultDirectory: string | null }
-                              : C extends "load_local_cover_path"
-                                ? { fileName: string; defaultDirectory: string | null }
-                                : C extends "load_local_lyric"
-                                  ? { fileName: string; defaultDirectory: string | null }
-                                  : C extends "is_sink_empty"
-                                    ? void
-                                    : C extends "get_playback_state"
-                                      ? void
-                                      : C extends "import_music"
-                                        ? {
-                                            files: string[];
-                                            defaultDirectory: string | null;
-                                          }
-                                        : C extends "read_playlists"
-                                          ? void
-                                          : C extends "write_playlists"
-                                            ? { playlists: Playlist[] }
-                                            : C extends "get_progress"
-                                              ? void
-                                              : C extends "seek_to"
-                                                ? { positionMs: number }
-                                                : never;
+interface PlaybackStateResult extends PlaybackProgressResult {
+  is_paused: boolean;
+  has_track: boolean;
+  track_id: number;
+}
 
-export type TauriCommandResult<C extends TauriCommand> = C extends "scan_files"
-  ? unknown
-  : C extends "handle_event"
-    ? unknown
-    : C extends "play_track"
-      ? PlayStartResult
-      : C extends "get_online_audio_cache_size"
-        ? number
-        : C extends "get_online_audio_cache_path"
-          ? string
-          : C extends "clear_online_audio_cache"
-            ? void
-            : C extends "check_online_service_status"
-              ? OnlineServiceStatus
-              : C extends "restart_online_service"
-                ? void
-                : C extends "play_netease_song"
-                  ? PlaySongResult
-                  : C extends "download_music"
-                    ? string
-                    : C extends "search_online_mix"
-                      ? SearchMixResult
-                      : C extends "get_artist_top_songs"
-                        ? ArtistSongsResult
-                        : C extends "get_default_music_dir"
-                          ? string
-                          : C extends "get_song_lyric"
-                            ? string
-                            : C extends "load_cover_and_lyric"
-                              ? [string, string]
-                              : C extends "load_local_cover_path"
-                                ? string | null
-                                : C extends "load_local_lyric"
-                                  ? string
-                                  : C extends "is_sink_empty"
-                                    ? boolean
-                                    : C extends "get_playback_state"
-                                      ? {
-                                          position_ms: number;
-                                          duration_ms: number;
-                                          is_ended: boolean;
-                                          is_paused: boolean;
-                                          has_track: boolean;
-                                          track_id: number;
-                                        }
-                                      : C extends "import_music"
-                                        ? string
-                                        : C extends "read_playlists"
-                                          ? Playlist[]
-                                          : C extends "write_playlists"
-                                            ? void
-                                            : C extends "get_progress"
-                                              ? {
-                                                  position_ms: number;
-                                                  duration_ms: number;
-                                                  is_ended: boolean;
-                                                }
-                                              : C extends "seek_to"
-                                                ? {
-                                                    success: boolean;
-                                                    should_play_next: boolean;
-                                                  }
-                                                : unknown;
+interface SeekResult {
+  success: boolean;
+  should_play_next: boolean;
+}
+
+export interface TauriCommandParamsMap {
+  quit_app: void;
+  scan_files: { path: string | null; defaultDirectory: string | null };
+  handle_event: { event: string };
+  play_track: { source: PlaybackSource };
+  prefetch_netease_song: { id: string };
+  get_online_audio_cache_size: void;
+  get_online_audio_cache_path: void;
+  clear_online_audio_cache: void;
+  check_online_service_status: void;
+  restart_online_service: void;
+  play_netease_song: { id: string; name: string; artist: string };
+  download_music: {
+    songHash: string;
+    songName: string;
+    artist: string;
+    defaultDirectory: string | null;
+  };
+  search_online_mix: {
+    keywords: string;
+    page: number;
+    pagesize: number;
+    songLimit?: number;
+    artistLimit?: number;
+  };
+  get_artist_top_songs: { id: string; limit: number };
+  get_default_music_dir: void;
+  get_song_lyric: { id: string };
+  load_local_cover_path: { fileName: string; defaultDirectory: string | null };
+  load_local_lyric: { fileName: string; defaultDirectory: string | null };
+  is_sink_empty: void;
+  get_playback_state: void;
+  import_music: { files: string[]; defaultDirectory: string | null };
+  read_playlists: void;
+  write_playlists: { playlists: Playlist[] };
+  get_progress: void;
+  seek_to: { positionMs: number };
+}
+
+export interface TauriCommandResultMap {
+  quit_app: void;
+  scan_files: MusicFile[];
+  handle_event: void;
+  play_track: PlayStartResult;
+  prefetch_netease_song: void;
+  get_online_audio_cache_size: number;
+  get_online_audio_cache_path: string;
+  clear_online_audio_cache: void;
+  check_online_service_status: OnlineServiceStatus;
+  restart_online_service: void;
+  play_netease_song: PlaySongResult;
+  download_music: string;
+  search_online_mix: SearchMixResult;
+  get_artist_top_songs: ArtistSongsResult;
+  get_default_music_dir: string;
+  get_song_lyric: string;
+  load_local_cover_path: string | null;
+  load_local_lyric: string;
+  is_sink_empty: boolean;
+  get_playback_state: PlaybackStateResult;
+  import_music: string;
+  read_playlists: Playlist[];
+  write_playlists: void;
+  get_progress: PlaybackProgressResult;
+  seek_to: SeekResult;
+}
+
+export type TauriCommand = keyof TauriCommandParamsMap & keyof TauriCommandResultMap;
+export type TauriCommandParams<C extends TauriCommand> = TauriCommandParamsMap[C];
+export type TauriCommandResult<C extends TauriCommand> = TauriCommandResultMap[C];

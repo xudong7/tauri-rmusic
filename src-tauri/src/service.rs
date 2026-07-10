@@ -42,11 +42,12 @@ fn spawn_service(
         .sidecar(service_name)
         .map_err(|e| format!("Failed to get sidecar command for {}: {}", service_name, e))?;
 
-    let (mut rx, mut child) = app_sidecar_command
+    let (mut rx, child) = app_sidecar_command
         .spawn()
         .map_err(|e| format!("Failed to spawn sidecar {}: {}", service_name, e))?;
 
     tauri::async_runtime::spawn(async move {
+        let _child = child;
         // 读取诸如 stdout 之类的事件
         while let Some(event) = rx.recv().await {
             if let CommandEvent::Stdout(line) = event {
@@ -54,10 +55,6 @@ fn spawn_service(
                     if let Err(e) = window.emit("message", Some(format!("{:?}", line))) {
                         eprintln!("Failed to emit event: {}", e);
                     }
-                }
-                // 写入 stdin
-                if let Err(e) = child.write("message from Rust\n".as_bytes()) {
-                    eprintln!("Failed to write to stdin: {}", e);
                 }
             }
         }
@@ -87,12 +84,11 @@ pub fn shutdown_service(service_name: &str) -> Result<(), String> {
         let process_name = format!("{}.exe", service_name);
 
         // 使用 taskkill 强制终止进程
-        match Command::new("taskkill")
+        if let Err(e) = Command::new("taskkill")
             .args(&["/F", "/IM", &process_name])
             .output()
         {
-            Ok(_) => println!("Successfully terminated {} process", service_name),
-            Err(e) => eprintln!("Failed to terminate {} process: {}", service_name, e),
+            eprintln!("Failed to terminate {} process: {}", service_name, e);
         }
     }
 
@@ -101,9 +97,8 @@ pub fn shutdown_service(service_name: &str) -> Result<(), String> {
         use std::process::Command;
 
         // 对于类 Unix 系统，使用 killall 或 pkill
-        match Command::new("pkill").arg("-f").arg(service_name).output() {
-            Ok(_) => println!("Successfully terminated {} process", service_name),
-            Err(e) => eprintln!("Failed to terminate {} process: {}", service_name, e),
+        if let Err(e) = Command::new("pkill").arg("-f").arg(service_name).output() {
+            eprintln!("Failed to terminate {} process: {}", service_name, e);
         }
     }
 

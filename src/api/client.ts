@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, type InvokeArgs } from "@tauri-apps/api/core";
 import type { TauriCommand, TauriCommandParams, TauriCommandResult } from "./types.ts";
 
 export class TauriCommandError extends Error {
@@ -38,7 +38,8 @@ export async function invokeCommand<C extends TauriCommand>(
   params?: TauriCommandParams<C>
 ): Promise<TauriCommandResult<C>> {
   try {
-    return (await invoke(command, params as any)) as TauriCommandResult<C>;
+    const invokeArgs = params === undefined ? undefined : (params as InvokeArgs);
+    return await invoke<TauriCommandResult<C>>(command, invokeArgs);
   } catch (e) {
     throw new TauriCommandError(String(command), e);
   }

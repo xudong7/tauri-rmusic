@@ -3728,9 +3728,8 @@ dependencies = [
 
 [[package]]
 name = "rmusic"
-version = "1.2.4"
+version = "1.2.6"
 dependencies = [
- "base64 0.21.7",
  "hmac",
  "rand 0.8.5",
  "reqwest 0.11.27",

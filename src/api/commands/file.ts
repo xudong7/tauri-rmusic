@@ -5,8 +5,7 @@ export async function scanFiles(args: {
   path: string | null;
   defaultDirectory: string | null;
 }): Promise<MusicFile[]> {
-  // Rust 侧返回结构与 MusicFile[] 一致
-  return (await invokeCommand("scan_files", args)) as unknown as MusicFile[];
+  return await invokeCommand("scan_files", args);
 }
 
 export async function getDefaultMusicDir(): Promise<string> {
@@ -18,13 +17,6 @@ export async function importMusic(args: {
   defaultDirectory: string | null;
 }): Promise<string> {
   return await invokeCommand("import_music", args);
-}
-
-export async function loadCoverAndLyric(args: {
-  fileName: string;
-  defaultDirectory: string | null;
-}): Promise<[string, string]> {
-  return await invokeCommand("load_cover_and_lyric", args);
 }
 
 export async function loadLocalCoverPath(args: {

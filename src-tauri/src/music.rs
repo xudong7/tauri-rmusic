@@ -2,10 +2,10 @@ use rodio::{Decoder, OutputStream, Sink, Source};
 use serde::{Deserialize, Serialize};
 use sha1::{Digest, Sha1};
 use std::fs::{self, File};
-use std::io::{BufReader, Cursor};
+use std::io::{BufReader, ErrorKind};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Manager};
 use tokio::io::AsyncWriteExt;
 use tokio::sync::broadcast::Sender;
@@ -15,6 +15,7 @@ use crate::netease;
 
 const MAX_ONLINE_AUDIO_CACHE_BYTES: u64 = 1024 * 1024 * 1024;
 const MAX_ONLINE_AUDIO_CACHE_FILES: usize = 200;
+const STREAM_IDLE_TIMEOUT: Duration = Duration::from_secs(30);
 
 #[derive(Serialize, Debug)]
 pub struct PlaybackProgress {
@@ -76,11 +77,9 @@ pub struct MusicFile {
 
 #[derive(Debug, Clone)]
 pub enum MusicState {
-    Play(String),
     Recovery,
     Pause,
     Volume(f32),
-    Quit,
 }
 
 impl Music {
@@ -94,7 +93,6 @@ impl Music {
         ));
         let sink_clone = Arc::clone(&sink);
         let duration_clone = Arc::new(Mutex::new(0u64));
-        let duration_for_spawn = Arc::clone(&duration_clone);
         let track_id = Arc::new(Mutex::new(0u64));
 
         // spawn a thread to handle the music events
@@ -102,48 +100,6 @@ impl Music {
             // receive events from the channel
             while let Ok(event) = event_receiver.recv().await {
                 match event {
-                    MusicState::Play(path) => {
-                        {
-                            let sink = sink_clone.lock().await;
-                            sink.clear();
-                        }
-                        let duration_for_state = Arc::clone(&duration_for_spawn);
-                        if path.starts_with("http://") || path.starts_with("https://") {
-                            let sink_for_http = Arc::clone(&sink_clone);
-                            let path_clone = path.clone();
-
-                            match online_play(&path_clone, sink_for_http, duration_for_state).await
-                            {
-                                Ok(_) => println!("Begin play online song: {}", path_clone),
-                                Err(e) => eprintln!("Play online song error: {}", e),
-                            }
-                        } else {
-                            match File::open(&path) {
-                                Ok(file) => {
-                                    let file = BufReader::new(file);
-                                    match Decoder::new(file) {
-                                        Ok(source) => {
-                                            let total_dur = source.total_duration();
-                                            let dur_ms = total_dur
-                                                .map(|d: Duration| d.as_millis() as u64)
-                                                .unwrap_or(0);
-                                            {
-                                                let mut dur = duration_for_state.lock().await;
-                                                *dur = dur_ms;
-                                            }
-                                            let sink = sink_clone.lock().await;
-                                            sink.append(source);
-                                            if sink.is_paused() {
-                                                sink.play();
-                                            }
-                                        }
-                                        Err(e) => eprintln!("Error: {}", e),
-                                    }
-                                }
-                                Err(e) => eprintln!("Open file error: {} - {}", path, e),
-                            }
-                        }
-                    }
                     MusicState::Recovery => {
                         let sink = sink_clone.lock().await;
                         sink.play();
@@ -159,10 +115,6 @@ impl Music {
                         let normalized = (volume / 100.0).clamp(0.0, 1.0);
                         let curved = normalized * normalized;
                         sink.set_volume(curved * 2.0);
-                    }
-                    MusicState::Quit => {
-                        let sink = sink_clone.lock().await;
-                        sink.stop();
                     }
                 }
             }
@@ -234,6 +186,23 @@ fn online_cache_path(
     Ok(cache_dir.join(format!("{}.audio", digest)))
 }
 
+fn unique_temp_path_for(target_path: &Path) -> PathBuf {
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or(0);
+    let file_name = target_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("cache");
+    target_path.with_file_name(format!(
+        "{}.{}.{}.tmp",
+        file_name,
+        std::process::id(),
+        unique
+    ))
+}
+
 fn online_cache_entries(app_handle: &AppHandle) -> Result<Vec<(PathBuf, u64, u64)>, String> {
     let cache_dir = online_cache_dir(app_handle)?;
     let mut entries = Vec::new();
@@ -258,6 +227,13 @@ fn online_cache_entries(app_handle: &AppHandle) -> Result<Vec<(PathBuf, u64, u64
     }
 
     Ok(entries)
+}
+
+fn is_clearable_online_cache_artifact(path: &Path) -> bool {
+    matches!(
+        path.extension().and_then(|ext| ext.to_str()),
+        Some("audio") | Some("tmp")
+    )
 }
 
 fn prune_online_audio_cache(app_handle: &AppHandle) -> Result<(), String> {
@@ -289,37 +265,52 @@ async fn cached_online_file(
     }
 
     let client = netease::get_client()?;
-    let mut response = client
-        .get(url)
-        .send()
-        .await
-        .map_err(|e| format!("request error: {}", e))?;
+    let mut response = netease::get_response(client, url.to_string()).await?;
 
-    if !response.status().is_success() {
-        return Err(format!("response status fail: {}", response.status()));
-    }
-
-    let tmp_path = cache_path.with_extension("audio.tmp");
-    let mut file = tokio::fs::File::create(&tmp_path)
-        .await
-        .map_err(|e| format!("create online cache file error: {}", e))?;
-    while let Some(chunk) = response
-        .chunk()
-        .await
-        .map_err(|e| format!("read response data error: {}", e))?
-    {
-        file.write_all(&chunk)
+    let tmp_path = unique_temp_path_for(&cache_path);
+    let result: Result<(), String> = async {
+        let mut file = tokio::fs::File::create(&tmp_path)
             .await
-            .map_err(|e| format!("write online cache error: {}", e))?;
-    }
-    file.flush()
-        .await
-        .map_err(|e| format!("flush online cache error: {}", e))?;
-    drop(file);
+            .map_err(|e| format!("create online cache file error: {}", e))?;
+        while let Some(chunk) = tokio::time::timeout(STREAM_IDLE_TIMEOUT, response.chunk())
+            .await
+            .map_err(|_| {
+                format!(
+                    "online audio download stalled for {}s",
+                    STREAM_IDLE_TIMEOUT.as_secs()
+                )
+            })?
+            .map_err(|e| format!("read response data error: {}", e))?
+        {
+            file.write_all(&chunk)
+                .await
+                .map_err(|e| format!("write online cache error: {}", e))?;
+        }
+        file.flush()
+            .await
+            .map_err(|e| format!("flush online cache error: {}", e))?;
+        drop(file);
 
-    tokio::fs::rename(&tmp_path, &cache_path)
-        .await
-        .map_err(|e| format!("commit online cache error: {}", e))?;
+        match tokio::fs::hard_link(&tmp_path, &cache_path).await {
+            Ok(()) => {
+                tokio::fs::remove_file(&tmp_path)
+                    .await
+                    .map_err(|e| format!("remove online cache temp file: {}", e))?;
+            }
+            Err(error) if error.kind() == ErrorKind::AlreadyExists => {
+                let _ = tokio::fs::remove_file(&tmp_path).await;
+            }
+            Err(error) => return Err(format!("commit online cache error: {}", error)),
+        }
+        Ok(())
+    }
+    .await;
+
+    if result.is_err() {
+        let _ = tokio::fs::remove_file(&tmp_path).await;
+    }
+    result?;
+
     prune_online_audio_cache(app_handle)?;
     Ok(cache_path)
 }
@@ -346,58 +337,10 @@ pub fn clear_online_audio_cache(app_handle: AppHandle) -> Result<(), String> {
     for entry in fs::read_dir(cache_dir).map_err(|e| format!("read online cache dir: {}", e))? {
         let entry = entry.map_err(|e| format!("read online cache entry: {}", e))?;
         let path = entry.path();
-        if path.extension().and_then(|ext| ext.to_str()) == Some("audio") {
+        if is_clearable_online_cache_artifact(&path) {
             let _ = fs::remove_file(path);
         }
     }
-    Ok(())
-}
-
-async fn online_play(
-    url: &str,
-    sink: Arc<Mutex<Sink>>,
-    duration: Arc<Mutex<u64>>,
-) -> Result<(), String> {
-    let client = netease::get_client()?;
-    let response = client
-        .get(url)
-        .send()
-        .await
-        .map_err(|e| format!("request error: {}", e))?;
-
-    if !response.status().is_success() {
-        return Err(format!("response status fail: {}", response.status()));
-    }
-
-    let bytes = response
-        .bytes()
-        .await
-        .map_err(|e| format!("read response data error: {}", e))?;
-
-    let cursor = Cursor::new(bytes);
-
-    let source = match Decoder::new(cursor) {
-        Ok(s) => s,
-        Err(e) => {
-            return Err(format!("decode online song error: {}", e));
-        }
-    };
-
-    let total_dur = source.total_duration();
-    let dur_ms = total_dur
-        .map(|d: Duration| d.as_millis() as u64)
-        .unwrap_or(0);
-    {
-        let mut dur = duration.lock().await;
-        *dur = dur_ms;
-    }
-
-    let sink_lock = sink.lock().await;
-    sink_lock.append(source);
-    if sink_lock.is_paused() {
-        sink_lock.play();
-    }
-
     Ok(())
 }
 
@@ -432,6 +375,17 @@ pub async fn play_track(
         has_track: true,
         track_id: next_track_id,
     })
+}
+
+#[tauri::command]
+pub async fn prefetch_netease_song(app_handle: AppHandle, id: String) -> Result<(), String> {
+    if id.trim().is_empty() {
+        return Err("Empty song id".to_string());
+    }
+
+    let url = netease::get_song_url(id.clone()).await?;
+    cached_online_file(&app_handle, &url, &id).await?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -498,4 +452,34 @@ pub async fn seek_to(
         success: true,
         should_play_next: false,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unique_temp_path_stays_next_to_target_and_changes_name() {
+        let target = Path::new("/tmp/rmusic-cache/track.audio");
+        let tmp = unique_temp_path_for(target);
+
+        assert_eq!(tmp.parent(), target.parent());
+        assert_ne!(tmp, target);
+        assert!(tmp
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| name.starts_with("track.audio.") && name.ends_with(".tmp")));
+    }
+
+    #[test]
+    fn clearable_online_cache_artifacts_include_committed_and_temp_files() {
+        assert!(is_clearable_online_cache_artifact(Path::new(
+            "abc123.audio"
+        )));
+        assert!(is_clearable_online_cache_artifact(Path::new(
+            "abc123.audio.42.99.tmp"
+        )));
+        assert!(!is_clearable_online_cache_artifact(Path::new("notes.txt")));
+        assert!(!is_clearable_online_cache_artifact(Path::new("tmp")));
+    }
 }

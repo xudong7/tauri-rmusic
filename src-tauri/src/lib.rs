@@ -1,10 +1,11 @@
 use file::{
-    download_music, get_default_music_dir, import_music, load_cover_and_lyric,
-    load_local_cover_path, load_local_lyric, scan_files,
+    download_music, get_default_music_dir, import_music, load_local_cover_path, load_local_lyric,
+    scan_files,
 };
 use music::{
     clear_online_audio_cache, get_online_audio_cache_path, get_online_audio_cache_size,
-    get_playback_state, get_progress, play_track, seek_to, Music, MusicState,
+    get_playback_state, get_progress, play_track, prefetch_netease_song, seek_to, Music,
+    MusicState,
 };
 use netease::{
     check_online_service_status, get_artist_top_songs, get_song_cover, get_song_lyric,
@@ -12,14 +13,14 @@ use netease::{
 };
 use playlist::{read_playlists, write_playlists};
 use rodio::Sink;
-use service::{restart_online_service, setup_service};
+use service::{restart_online_service, setup_service, sidecar_name_for_current_platform};
 use std::sync::Arc;
 use tauri::Manager;
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_window_state::{StateFlags, WindowExt};
 use tokio::sync::broadcast::Sender;
 use tokio::sync::Mutex;
-use tray::setup_tray;
+use tray::{quit_app as quit_app_handle, setup_tray};
 
 mod file;
 mod music;
@@ -28,8 +29,7 @@ mod playlist;
 mod service;
 mod tray;
 
-/// handle the music events
-/// play, pause, recovery, volume, quit
+/// handle playback control events that do not start a new track.
 #[tauri::command]
 fn handle_event(sender: tauri::State<Sender<MusicState>>, event: String) -> Result<(), String> {
     let event: serde_json::Value =
@@ -39,12 +39,6 @@ fn handle_event(sender: tauri::State<Sender<MusicState>>, event: String) -> Resu
         .ok_or_else(|| "Missing music event action".to_string())?;
 
     let music_state = match action {
-        "play" => {
-            let path = event["path"]
-                .as_str()
-                .ok_or_else(|| "Missing play path".to_string())?;
-            MusicState::Play(path.to_owned())
-        }
         "recovery" => MusicState::Recovery,
         "pause" => MusicState::Pause,
         "volume" => {
@@ -53,7 +47,6 @@ fn handle_event(sender: tauri::State<Sender<MusicState>>, event: String) -> Resu
                 .ok_or_else(|| "Missing volume".to_string())?;
             MusicState::Volume(volume as f32)
         }
-        "quit" => MusicState::Quit,
         _ => return Err(format!("Unknown music event action: {}", action)),
     };
 
@@ -69,6 +62,11 @@ async fn is_sink_empty(sink: tauri::State<'_, Arc<Mutex<Sink>>>) -> Result<bool,
     let sink_clone = Arc::clone(&sink);
     let sink = sink_clone.lock().await;
     Ok(sink.empty())
+}
+
+#[tauri::command]
+fn quit_app(app_handle: tauri::AppHandle) {
+    quit_app_handle(&app_handle);
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -117,21 +115,7 @@ pub fn run() {
                 })
                 .expect("failed to get main window");
 
-            // Sidecar 按平台：Linux 用 app_linux，Windows 用 app_win，macOS 用 app_mac
-            let sidecar_name = {
-                #[cfg(target_os = "linux")]
-                {
-                    "app_linux"
-                }
-                #[cfg(target_os = "windows")]
-                {
-                    "app_win"
-                }
-                #[cfg(target_os = "macos")]
-                {
-                    "app_mac"
-                }
-            };
+            let sidecar_name = sidecar_name_for_current_platform();
             if let Err(e) = setup_service(app, sidecar_name, window.clone()) {
                 eprintln!("Skip sidecar {} (binary not bundled): {}", sidecar_name, e);
             }
@@ -139,11 +123,13 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            quit_app,
             is_sink_empty,
             handle_event,
             get_playback_state,
             get_progress,
             play_track,
+            prefetch_netease_song,
             get_online_audio_cache_size,
             get_online_audio_cache_path,
             clear_online_audio_cache,
@@ -160,7 +146,6 @@ pub fn run() {
             get_default_music_dir,
             download_music,
             get_song_lyric,
-            load_cover_and_lyric,
             load_local_cover_path,
             load_local_lyric,
             get_song_cover,

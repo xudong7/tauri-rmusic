@@ -3,11 +3,14 @@ use crate::netease;
 use crate::netease::get_song_url;
 use sha1::{Digest, Sha1};
 use std::fs::{self, create_dir_all, read_dir, File};
-use std::io::Write;
+use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
-use std::time::UNIX_EPOCH;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::AppHandle;
 use tauri::Manager;
+use tokio::io::AsyncWriteExt;
+
+const STREAM_IDLE_TIMEOUT: Duration = Duration::from_secs(30);
 
 fn supported_audio_extension(path: &Path) -> Option<String> {
     let extension = path.extension()?.to_str()?.to_lowercase();
@@ -47,6 +50,162 @@ fn music_file_from_path(id: i32, absolute_path: &Path, relative_path: &Path) -> 
     })
 }
 
+fn unique_temp_path_for(target_path: &Path) -> PathBuf {
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or(0);
+    let file_name = target_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("download");
+
+    target_path.with_file_name(format!(
+        "{}.{}.{}.tmp",
+        file_name,
+        std::process::id(),
+        unique
+    ))
+}
+
+async fn write_response_to_file(
+    mut response: reqwest::Response,
+    target_path: &Path,
+) -> Result<(), String> {
+    let tmp_path = unique_temp_path_for(target_path);
+
+    let result: Result<(), String> = async {
+        let mut file = tokio::fs::File::create(&tmp_path)
+            .await
+            .map_err(|e| format!("create temp file error: {}", e))?;
+        while let Some(chunk) = tokio::time::timeout(STREAM_IDLE_TIMEOUT, response.chunk())
+            .await
+            .map_err(|_| format!("download stalled for {}s", STREAM_IDLE_TIMEOUT.as_secs()))?
+            .map_err(|e| format!("read bytes data error: {}", e))?
+        {
+            file.write_all(&chunk)
+                .await
+                .map_err(|e| format!("write error: {}", e))?;
+        }
+        file.flush()
+            .await
+            .map_err(|e| format!("flush error: {}", e))?;
+        drop(file);
+
+        tokio::fs::hard_link(&tmp_path, target_path)
+            .await
+            .map_err(|e| {
+                if e.kind() == ErrorKind::AlreadyExists {
+                    format!("file already exists: {}", target_path.display())
+                } else {
+                    format!("commit file error: {}", e)
+                }
+            })?;
+        tokio::fs::remove_file(&tmp_path)
+            .await
+            .map_err(|e| format!("remove temp file error: {}", e))?;
+        Ok(())
+    }
+    .await;
+
+    if result.is_err() {
+        let _ = tokio::fs::remove_file(&tmp_path).await;
+    }
+
+    result
+}
+
+fn available_import_path(target_path: &Path) -> PathBuf {
+    if !target_path.exists() {
+        return target_path.to_path_buf();
+    }
+
+    let parent = target_path.parent().unwrap_or_else(|| Path::new(""));
+    let stem = target_path
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+        .unwrap_or("imported");
+    let extension = target_path
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .unwrap_or("");
+
+    for counter in 1.. {
+        let file_name = if extension.is_empty() {
+            format!("{}_{}", stem, counter)
+        } else {
+            format!("{}_{}.{}", stem, counter, extension)
+        };
+        let candidate = parent.join(file_name);
+        if !candidate.exists() {
+            return candidate;
+        }
+    }
+
+    unreachable!("unbounded counter should eventually find an available import path")
+}
+
+fn commit_temp_file(tmp_path: &Path, target_path: &Path) -> Result<(), String> {
+    #[cfg(windows)]
+    if target_path.exists() {
+        fs::remove_file(target_path).map_err(|e| format!("replace file: {}", e))?;
+    }
+
+    fs::rename(tmp_path, target_path).map_err(|e| format!("commit file error: {}", e))
+}
+
+fn commit_new_temp_file(tmp_path: &Path, target_path: &Path) -> Result<(), String> {
+    fs::hard_link(tmp_path, target_path).map_err(|e| {
+        if e.kind() == ErrorKind::AlreadyExists {
+            format!("file already exists: {}", target_path.display())
+        } else {
+            format!("commit file error: {}", e)
+        }
+    })?;
+    fs::remove_file(tmp_path).map_err(|e| format!("remove temp file error: {}", e))
+}
+
+fn write_bytes_to_file(bytes: &[u8], target_path: &Path) -> Result<(), String> {
+    let tmp_path = unique_temp_path_for(target_path);
+
+    let result: Result<(), String> = (|| {
+        let mut file =
+            File::create(&tmp_path).map_err(|e| format!("create temp file error: {}", e))?;
+        file.write_all(bytes)
+            .map_err(|e| format!("write file error: {}", e))?;
+        file.flush()
+            .map_err(|e| format!("flush file error: {}", e))?;
+        file.sync_all()
+            .map_err(|e| format!("sync file error: {}", e))?;
+        drop(file);
+        commit_temp_file(&tmp_path, target_path)
+    })();
+
+    if result.is_err() {
+        let _ = fs::remove_file(&tmp_path);
+    }
+
+    result
+}
+
+fn copy_file_to_path(source_path: &Path, target_path: &Path) -> Result<(), String> {
+    let tmp_path = unique_temp_path_for(target_path);
+
+    let result: Result<(), String> = (|| {
+        fs::copy(source_path, &tmp_path)
+            .map_err(|e| format!("copy file to temp error {}: {}", source_path.display(), e))?;
+
+        commit_new_temp_file(&tmp_path, target_path)?;
+        Ok(())
+    })();
+
+    if result.is_err() {
+        let _ = fs::remove_file(&tmp_path);
+    }
+
+    result
+}
+
 /// recursive scan the directory
 /// and add the files to the list
 pub fn scan_directory(
@@ -61,6 +220,12 @@ pub fn scan_directory(
 
         for entry in entries {
             let path = entry.path();
+            let Ok(file_type) = entry.file_type() else {
+                continue;
+            };
+            if file_type.is_symlink() {
+                continue;
+            }
             let is_hidden = path
                 .file_name()
                 .and_then(|name| name.to_str())
@@ -69,9 +234,9 @@ pub fn scan_directory(
                 continue;
             }
 
-            if path.is_dir() {
+            if file_type.is_dir() {
                 scan_directory(base_path, &path, files, id);
-            } else if supported_audio_extension(&path).is_some() {
+            } else if file_type.is_file() && supported_audio_extension(&path).is_some() {
                 if let Ok(relative) = path.strip_prefix(base_path) {
                     if let Some(file) = music_file_from_path(*id, &path, relative) {
                         files.push(file);
@@ -172,12 +337,6 @@ pub async fn download_music(
     // 下载歌曲文件
     let response = netease::get_response(client.clone(), song_url).await?;
 
-    // get bytes data
-    let bytes = response
-        .bytes()
-        .await
-        .map_err(|e| format!("read bytes data error: {}", e))?;
-
     // Determine the base directory to use
     let base_dir = if let Some(custom_dir) = default_directory {
         // Use the custom directory as base, create subdirectories within it
@@ -220,10 +379,8 @@ pub async fn download_music(
     if file_path.exists() {
         return Err(format!("file already exists: {}", file_path.display()));
     }
-    let mut file = File::create(&file_path).map_err(|e| format!("create file error: {}", e))?;
-
-    file.write_all(&bytes)
-        .map_err(|e| format!("write error: {}", e))?; // 下载封面图片
+    write_response_to_file(response, &file_path).await?;
+    // 下载封面图片
     let base_filename = file_name.replace(".mp3", "");
 
     use crate::netease::get_song_cover;
@@ -233,18 +390,18 @@ pub async fn download_music(
     if let Ok(cover_url) = cover_url_result {
         if !cover_url.is_empty() {
             // 2. 下载封面图片
-            match client.get(&cover_url).send().await {
+            match netease::get_response(client.clone(), cover_url).await {
                 Ok(pic_response) => {
-                    if pic_response.status().is_success() {
-                        if let Ok(pic_bytes) = pic_response.bytes().await {
-                            let cover_path = cover_dir.join(format!("{}.jpg", base_filename));
-                            if let Ok(mut cover_file) = File::create(&cover_path) {
-                                let _ = cover_file.write_all(&pic_bytes);
-                            }
+                    if let Ok(Ok(pic_bytes)) =
+                        tokio::time::timeout(STREAM_IDLE_TIMEOUT, pic_response.bytes()).await
+                    {
+                        let cover_path = cover_dir.join(format!("{}.jpg", base_filename));
+                        if let Err(e) = write_bytes_to_file(&pic_bytes, &cover_path) {
+                            eprintln!("写入封面失败: {}", e);
                         }
                     }
                 }
-                Err(e) => println!("下载封面失败: {}", e),
+                Err(e) => eprintln!("下载封面失败: {}", e),
             }
         }
     }
@@ -255,65 +412,15 @@ pub async fn download_music(
         Ok(lyric_content) => {
             if !lyric_content.is_empty() {
                 let lyric_path = lyrics_dir.join(format!("{}.lrc", base_filename));
-                if let Ok(mut lyric_file) = File::create(&lyric_path) {
-                    let _ = lyric_file.write_all(lyric_content.as_bytes());
+                if let Err(e) = write_bytes_to_file(lyric_content.as_bytes(), &lyric_path) {
+                    eprintln!("写入歌词失败: {}", e);
                 }
             }
         }
-        Err(e) => println!("下载歌词失败: {}", e),
+        Err(e) => eprintln!("下载歌词失败: {}", e),
     }
 
     Ok(file_name)
-}
-
-/// load cover image and lyrics of certain song
-#[tauri::command]
-pub async fn load_cover_and_lyric(
-    app_handle: AppHandle,
-    file_name: String,
-    default_directory: Option<String>,
-) -> Result<(String, String), String> {
-    // Determine the base directory to use
-    let base_dir = if let Some(custom_dir) = default_directory {
-        // Use the custom directory as base, look for subdirectories within it
-        std::path::PathBuf::from(custom_dir)
-    } else {
-        // Fall back to app data directory
-        app_handle
-            .path()
-            .app_data_dir()
-            .map_err(|e| format!("无法获取应用目录: {}", e))?
-    };
-
-    // 构建封面和歌词文件路径 - 从base_dir的子目录中查找
-    let cover_path = base_dir
-        .join("cover")
-        .join(format!("{}.jpg", file_name.replace(".mp3", "")));
-    let lyrics_path = base_dir
-        .join("lyrics")
-        .join(format!("{}.lrc", file_name.replace(".mp3", "")));
-
-    // 初始化返回值
-    let mut cover_content = String::new();
-    let mut lyrics_content = String::new();
-
-    // 读取封面图片（如果存在）
-    if cover_path.exists() {
-        // 封面是二进制文件，需要转为base64
-        let cover_bytes =
-            std::fs::read(&cover_path).map_err(|e| format!("读取封面文件失败: {}", e))?;
-        use base64::engine::general_purpose::STANDARD;
-        use base64::Engine;
-        cover_content = format!("data:image/jpeg;base64,{}", STANDARD.encode(&cover_bytes));
-    }
-
-    // 读取歌词文件（如果存在）
-    if lyrics_path.exists() {
-        lyrics_content = std::fs::read_to_string(&lyrics_path)
-            .map_err(|e| format!("读取歌词文件失败: {}", e))?;
-    }
-
-    Ok((cover_content, lyrics_content))
 }
 
 fn local_media_base_dir(
@@ -397,6 +504,10 @@ fn sanitize_filename(name: &str) -> String {
         .collect()
 }
 
+fn music_dir_from_library_root(root_dir: &Path) -> PathBuf {
+    root_dir.join("music")
+}
+
 /// import music files from a directory into the default music directory
 #[tauri::command]
 pub fn import_music(
@@ -404,8 +515,8 @@ pub fn import_music(
     files: Vec<String>,
     default_directory: Option<String>,
 ) -> Result<String, String> {
-    // 获取目标目录
-    let music_dir = if let Some(custom_dir) = default_directory {
+    // 获取库根目录；音乐文件统一导入到 root/music，与下载/扫描路径保持一致。
+    let base_dir = if let Some(custom_dir) = default_directory {
         PathBuf::from(custom_dir)
     } else {
         app_handle
@@ -413,6 +524,8 @@ pub fn import_music(
             .app_data_dir()
             .map_err(|e| format!("无法获取应用目录: {}", e))?
     };
+    let music_dir = music_dir_from_library_root(&base_dir);
+    create_dir_all(&music_dir).map_err(|e| format!("create music dir error: {}", e))?;
 
     let mut imported_count = 0;
     let mut failed_files = Vec::new();
@@ -422,8 +535,8 @@ pub fn import_music(
         let source_path = PathBuf::from(&file_path);
 
         // 检查文件是否存在
-        if !source_path.exists() {
-            failed_files.push(format!("文件不存在: {}", file_path));
+        if !source_path.is_file() {
+            failed_files.push(format!("文件不存在或不是普通文件: {}", file_path));
             continue;
         }
 
@@ -441,46 +554,14 @@ pub fn import_music(
         // 获取文件名
         if let Some(file_name) = source_path.file_name() {
             let target_path = music_dir.join(file_name);
+            let target_path = available_import_path(&target_path);
 
-            // 检查目标文件是否已存在
-            if target_path.exists() {
-                // 如果文件已存在，生成新的文件名
-                let mut counter = 1;
-                let mut new_target_path = target_path.clone();
-
-                while new_target_path.exists() {
-                    if let Some(stem) = source_path.file_stem() {
-                        if let Some(ext) = source_path.extension() {
-                            let new_name = format!(
-                                "{}_{}.{}",
-                                stem.to_string_lossy(),
-                                counter,
-                                ext.to_string_lossy()
-                            );
-                            new_target_path = music_dir.join(new_name);
-                            counter += 1;
-                        }
-                    }
+            match copy_file_to_path(&source_path, &target_path) {
+                Ok(_) => {
+                    imported_count += 1;
                 }
-
-                // 复制文件到新路径
-                match fs::copy(&source_path, &new_target_path) {
-                    Ok(_) => {
-                        imported_count += 1;
-                    }
-                    Err(e) => {
-                        failed_files.push(format!("复制文件失败 {}: {}", file_path, e));
-                    }
-                }
-            } else {
-                // 直接复制文件
-                match fs::copy(&source_path, &target_path) {
-                    Ok(_) => {
-                        imported_count += 1;
-                    }
-                    Err(e) => {
-                        failed_files.push(format!("复制文件失败 {}: {}", file_path, e));
-                    }
+                Err(e) => {
+                    failed_files.push(format!("复制文件失败 {}: {}", file_path, e));
                 }
             }
         } else {
@@ -499,4 +580,253 @@ pub fn import_music(
     }
 
     Ok(result_message)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn unique_test_dir(prefix: &str) -> PathBuf {
+        let unique = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "rmusic-{}-{}-{}",
+            prefix,
+            std::process::id(),
+            unique
+        ));
+        create_dir_all(&root).unwrap();
+        root
+    }
+
+    #[test]
+    fn sanitize_filename_replaces_filesystem_reserved_chars() {
+        assert_eq!(
+            sanitize_filename(r#"a\b/c:d*e?f"g<h>i|j"#),
+            "a_b_c_d_e_f_g_h_i_j"
+        );
+    }
+
+    #[test]
+    fn unique_temp_path_stays_next_to_download_target() {
+        let target = Path::new("/tmp/rmusic-library/music/Artist - Song.mp3");
+        let tmp = unique_temp_path_for(target);
+
+        assert_eq!(tmp.parent(), target.parent());
+        assert_ne!(tmp, target);
+        assert!(tmp
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| name.starts_with("Artist - Song.mp3.") && name.ends_with(".tmp")));
+    }
+
+    #[test]
+    fn available_import_path_appends_counter_when_target_exists() {
+        let unique = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "rmusic-import-name-test-{}-{}",
+            std::process::id(),
+            unique
+        ));
+        create_dir_all(&root).unwrap();
+        fs::write(root.join("song.mp3"), b"audio").unwrap();
+        fs::write(root.join("song_1.mp3"), b"audio").unwrap();
+
+        assert_eq!(
+            available_import_path(&root.join("song.mp3")),
+            root.join("song_2.mp3")
+        );
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn copy_file_to_path_commits_without_temp_artifact() {
+        let unique = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "rmusic-import-copy-test-{}-{}",
+            std::process::id(),
+            unique
+        ));
+        create_dir_all(&root).unwrap();
+        let source = root.join("source.mp3");
+        let target = root.join("target.mp3");
+        fs::write(&source, b"audio").unwrap();
+
+        copy_file_to_path(&source, &target).unwrap();
+
+        assert_eq!(fs::read(&target).unwrap(), b"audio");
+        assert!(fs::read_dir(&root).unwrap().flatten().all(|entry| entry
+            .path()
+            .extension()
+            .and_then(|ext| ext.to_str())
+            != Some("tmp")));
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn commit_new_temp_file_never_replaces_an_existing_target() {
+        let root = unique_test_dir("commit-new-file");
+        let tmp_path = root.join("song.tmp");
+        let target_path = root.join("song.mp3");
+        fs::write(&tmp_path, b"new audio").unwrap();
+        fs::write(&target_path, b"existing audio").unwrap();
+
+        assert!(commit_new_temp_file(&tmp_path, &target_path).is_err());
+        assert_eq!(fs::read(&target_path).unwrap(), b"existing audio");
+        assert!(tmp_path.exists());
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn write_bytes_to_file_replaces_target_without_temp_artifact() {
+        let unique = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "rmusic-sidecar-write-test-{}-{}",
+            std::process::id(),
+            unique
+        ));
+        create_dir_all(&root).unwrap();
+        let target = root.join("cover.jpg");
+        fs::write(&target, b"old").unwrap();
+
+        write_bytes_to_file(b"new-cover", &target).unwrap();
+
+        assert_eq!(fs::read(&target).unwrap(), b"new-cover");
+        assert!(fs::read_dir(&root).unwrap().flatten().all(|entry| entry
+            .path()
+            .extension()
+            .and_then(|ext| ext.to_str())
+            != Some("tmp")));
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn supported_audio_extension_is_case_insensitive() {
+        assert_eq!(
+            supported_audio_extension(Path::new("song.MP3")),
+            Some("mp3".into())
+        );
+        assert_eq!(
+            supported_audio_extension(Path::new("album/track.FlAc")),
+            Some("flac".into())
+        );
+        assert_eq!(supported_audio_extension(Path::new("cover.jpg")), None);
+    }
+
+    #[test]
+    fn scan_directory_skips_hidden_and_unsupported_files() {
+        let unique = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "rmusic-scan-test-{}-{}",
+            std::process::id(),
+            unique
+        ));
+        let album_dir = root.join("Album");
+        let hidden_dir = root.join(".hidden");
+        create_dir_all(&album_dir).unwrap();
+        create_dir_all(&hidden_dir).unwrap();
+        fs::write(album_dir.join("a.FLAC"), b"audio").unwrap();
+        fs::write(root.join("b.mp3"), b"audio").unwrap();
+        fs::write(root.join("notes.txt"), b"text").unwrap();
+        fs::write(hidden_dir.join("hidden.mp3"), b"audio").unwrap();
+
+        let mut files = Vec::new();
+        let mut id = 0;
+        scan_directory(&root, &root, &mut files, &mut id);
+
+        let names: Vec<_> = files.iter().map(|file| file.file_name.clone()).collect();
+        assert_eq!(
+            names,
+            vec![
+                Path::new("Album")
+                    .join("a.FLAC")
+                    .to_string_lossy()
+                    .to_string(),
+                "b.mp3".to_string(),
+            ]
+        );
+        assert_eq!(files[0].extension, "flac");
+        assert_eq!(files[1].extension, "mp3");
+        assert_eq!(id, 2);
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn scan_directory_skips_symlink_directories() {
+        use std::os::unix::fs::symlink;
+
+        let unique = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "rmusic-symlink-scan-test-{}-{}",
+            std::process::id(),
+            unique
+        ));
+        let real_dir = root.join("real");
+        create_dir_all(&real_dir).unwrap();
+        fs::write(real_dir.join("song.mp3"), b"audio").unwrap();
+        symlink(&root, root.join("loop")).unwrap();
+
+        let mut files = Vec::new();
+        let mut id = 0;
+        scan_directory(&root, &root, &mut files, &mut id);
+
+        let names: Vec<_> = files.iter().map(|file| file.file_name.clone()).collect();
+        assert_eq!(
+            names,
+            vec![Path::new("real")
+                .join("song.mp3")
+                .to_string_lossy()
+                .to_string()]
+        );
+        assert_eq!(id, 1);
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn sidecar_stem_removes_extension_for_plain_file_name() {
+        assert_eq!(sidecar_stem("Artist - Song.mp3"), "Artist - Song");
+    }
+
+    #[test]
+    fn sidecar_stem_preserves_relative_parent_directory() {
+        assert_eq!(
+            sidecar_stem("Album/Artist - Song.flac"),
+            Path::new("Album")
+                .join("Artist - Song")
+                .to_string_lossy()
+                .to_string()
+        );
+    }
+
+    #[test]
+    fn music_dir_from_library_root_appends_music_subdirectory() {
+        assert_eq!(
+            music_dir_from_library_root(Path::new("/tmp/rmusic-library")),
+            Path::new("/tmp/rmusic-library").join("music")
+        );
+    }
 }

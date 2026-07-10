@@ -1,13 +1,24 @@
 use tauri::menu::MenuBuilder;
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::App;
 use tauri::Emitter;
 use tauri::Manager;
+use tauri::{App, AppHandle};
 use tauri_plugin_window_state::{AppHandleExt, StateFlags};
 use tokio::sync::broadcast::Sender;
 
 use crate::music::MusicState;
 use crate::service;
+
+pub fn quit_app(app: &AppHandle) {
+    if let Err(e) = app.save_window_state(StateFlags::all()) {
+        eprintln!("Failed to save window state: {}", e);
+    }
+    let sidecar_name = service::sidecar_name_for_current_platform();
+    if let Err(e) = service::shutdown_service(sidecar_name) {
+        eprintln!("Failed to shutdown sidecar {}: {}", sidecar_name, e);
+    }
+    app.exit(0);
+}
 
 /// set up the tray
 pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
@@ -73,14 +84,14 @@ pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
             "quit" => {
-                if let Err(e) = app.save_window_state(StateFlags::all()) {
-                    eprintln!("Failed to save window state: {}", e);
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.set_focus();
                 }
-                let sidecar_name = service::sidecar_name_for_current_platform();
-                if let Err(e) = service::shutdown_service(sidecar_name) {
-                    eprintln!("Failed to shutdown sidecar {}: {}", sidecar_name, e);
+                if let Err(e) = app.emit("tray-quit", ()) {
+                    eprintln!("Failed to emit tray quit event: {}", e);
+                    quit_app(app);
                 }
-                app.exit(0);
             }
             _ => {}
         });
