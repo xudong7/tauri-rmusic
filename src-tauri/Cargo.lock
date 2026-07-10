@@ -3728,7 +3728,7 @@ dependencies = [
 
 [[package]]
 name = "rmusic"
-version = "1.2.6"
+version = "1.2.7"
 dependencies = [
  "hmac",
  "rand 0.8.5",

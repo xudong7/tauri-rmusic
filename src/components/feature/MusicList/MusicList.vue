@@ -20,17 +20,21 @@ const { t } = useI18n();
 const playlistStore = usePlaylistStore();
 
 const selectionMode = ref(false);
-const selectedIds = ref<Set<number>>(new Set());
+const selectedKeys = ref<Set<string>>(new Set());
+
+function getFileKey(file: MusicFile): string {
+  return file.relative_path || file.file_name;
+}
 
 const selectedFiles = computed(() =>
-  props.musicFiles.filter((f) => selectedIds.value.has(f.id))
+  props.musicFiles.filter((file) => selectedKeys.value.has(getFileKey(file)))
 );
 
-const displayInfoById = computed(() => {
-  const map = new Map<number, { title: string; artist: string }>();
+const displayInfoByKey = computed(() => {
+  const map = new Map<string, { title: string; artist: string }>();
   for (const file of props.musicFiles) {
     const displayName = getDisplayName(file.file_name);
-    map.set(file.id, {
+    map.set(getFileKey(file), {
       title: extractSongTitle(displayName),
       artist: extractArtistName(displayName) || t("common.unknownArtist"),
     });
@@ -40,7 +44,7 @@ const displayInfoById = computed(() => {
 
 function getDisplayInfo(row: MusicFile) {
   return (
-    displayInfoById.value.get(row.id) ?? {
+    displayInfoByKey.value.get(getFileKey(row)) ?? {
       title: getDisplayName(row.file_name),
       artist: t("common.unknownArtist"),
     }
@@ -49,27 +53,28 @@ function getDisplayInfo(row: MusicFile) {
 
 function toggleSelectionMode() {
   selectionMode.value = !selectionMode.value;
-  if (!selectionMode.value) selectedIds.value.clear();
+  if (!selectionMode.value) selectedKeys.value.clear();
 }
 
 function toggleSelectRow(row: MusicFile) {
   if (!selectionMode.value) return;
-  const next = new Set(selectedIds.value);
-  if (next.has(row.id)) next.delete(row.id);
-  else next.add(row.id);
-  selectedIds.value = next;
+  const key = getFileKey(row);
+  const next = new Set(selectedKeys.value);
+  if (next.has(key)) next.delete(key);
+  else next.add(key);
+  selectedKeys.value = next;
 }
 
 function isRowSelected(row: MusicFile) {
-  return selectedIds.value.has(row.id);
+  return selectedKeys.value.has(getFileKey(row));
 }
 
 function selectAll() {
-  selectedIds.value = new Set(props.musicFiles.map((f) => f.id));
+  selectedKeys.value = new Set(props.musicFiles.map(getFileKey));
 }
 
 function deselectAll() {
-  selectedIds.value = new Set();
+  selectedKeys.value = new Set();
 }
 
 function handleBatchAddToPlaylist(command: string) {
@@ -98,7 +103,7 @@ function handleBatchAddToPlaylist(command: string) {
       ElMessage.info(t("playlist.alreadyInPlaylist", { name }));
     }
   }
-  selectedIds.value = new Set();
+  selectedKeys.value = new Set();
   selectionMode.value = false;
 }
 
@@ -118,7 +123,20 @@ const props = withDefaults(
 
 const emit = defineEmits(["play", "import"]);
 
-const isCurrentMusic = (m: MusicFile) => props.currentMusic?.id === m.id;
+watch(
+  () => props.musicFiles,
+  (files) => {
+    if (!selectionMode.value || selectedKeys.value.size === 0) return;
+    const availableKeys = new Set(files.map(getFileKey));
+    const next = new Set(
+      Array.from(selectedKeys.value).filter((key) => availableKeys.has(key))
+    );
+    if (next.size !== selectedKeys.value.size) selectedKeys.value = next;
+  }
+);
+
+const isCurrentMusic = (music: MusicFile) =>
+  props.currentMusic !== null && getFileKey(props.currentMusic) === getFileKey(music);
 
 function handleRowDblClick(row: MusicFile) {
   emit("play", row);
@@ -148,18 +166,22 @@ const { getCover, scheduleMany: scheduleCoverLoadMany } = useLocalCoverCache<Mus
   getDefaultDirectory: props.getDefaultDirectory,
 });
 
+const musicFilesRef = computed(() => props.musicFiles);
+const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight } =
+  useVirtualListWhenLong<MusicFile>({ source: musicFilesRef });
+
+const visibleCoverItems = computed(() =>
+  useVirtual.value ? virtualList.value.map(({ data }) => data) : props.musicFiles
+);
+
 watch(
-  () => props.musicFiles,
+  visibleCoverItems,
   (files) => {
-    // 每次列表更新时为新条目加载封面；旧的 cache 保留
+    // 虚拟滚动时只加载可见区域封面；普通列表保留一次性加载。
     scheduleCoverLoadMany(files);
   },
   { immediate: true }
 );
-
-const musicFilesRef = computed(() => props.musicFiles);
-const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight } =
-  useVirtualListWhenLong<MusicFile>({ source: musicFilesRef });
 </script>
 
 <template>
@@ -180,13 +202,13 @@ const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight } =
             }}</el-button>
           </span>
           <el-dropdown
-            v-if="selectedIds.size > 0"
+            v-if="selectedKeys.size > 0"
             trigger="click"
             @command="handleBatchAddToPlaylist"
           >
             <el-button type="primary" size="small" class="batch-add-btn">
               <el-icon class="batch-add-icon"><Plus /></el-icon>
-              {{ t("musicList.addSelectedToPlaylist") }} ({{ selectedIds.size }})
+              {{ t("musicList.addSelectedToPlaylist") }} ({{ selectedKeys.size }})
             </el-button>
             <template #dropdown>
               <el-dropdown-menu>
@@ -246,7 +268,7 @@ const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight } =
       <div v-bind="wrapperProps" class="list-rows">
         <div
           v-for="{ data: row, index } in virtualList"
-          :key="row.id"
+          :key="getFileKey(row)"
           class="list-row"
           :class="{
             'is-current': isCurrentMusic(row) && !selectionMode,
@@ -314,7 +336,7 @@ const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight } =
       <div class="list-rows">
         <div
           v-for="row in musicFiles"
-          :key="row.id"
+          :key="getFileKey(row)"
           class="list-row"
           :class="{
             'is-current': isCurrentMusic(row) && !selectionMode,

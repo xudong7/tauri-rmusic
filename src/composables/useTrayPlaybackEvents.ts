@@ -5,6 +5,7 @@ export function useTrayPlaybackEvents(options: {
   onNext: () => void;
   onPlay: () => void;
   onPause: () => void;
+  onQuit: () => void;
 }) {
   const unlisteners: UnlistenFn[] = [];
 
@@ -15,6 +16,7 @@ export function useTrayPlaybackEvents(options: {
       unlisteners.push(await listen("tray-next", options.onNext));
       unlisteners.push(await listen("tray-play", options.onPlay));
       unlisteners.push(await listen("tray-pause", options.onPause));
+      unlisteners.push(await listen("tray-quit", options.onQuit));
     } catch (error) {
       stop();
       throw error;

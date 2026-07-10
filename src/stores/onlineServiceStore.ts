@@ -47,9 +47,10 @@ export const useOnlineServiceStore = defineStore("onlineService", () => {
     state.value = "restarting";
     message.value = "";
     statusCode.value = null;
+    let shouldRefreshStatus = false;
     try {
       await restartOnlineService();
-      await checkNow();
+      shouldRefreshStatus = true;
     } catch (error) {
       state.value = "unavailable";
       message.value = error instanceof Error ? error.message : String(error);
@@ -57,7 +58,7 @@ export const useOnlineServiceStore = defineStore("onlineService", () => {
       lastCheckedAt.value = Date.now();
     } finally {
       isRestarting.value = false;
-      if (state.value === "restarting") await checkNow();
+      if (shouldRefreshStatus) await checkNow();
     }
   }
 

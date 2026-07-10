@@ -15,30 +15,62 @@ let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
 export const usePlaylistStore = defineStore("playlist", () => {
   const playlists = ref<Playlist[]>([]);
+  const hasLoadedPlaylists = ref(false);
+  let skipNextSave = false;
+  let hasPendingSave = false;
+  let savePromise: Promise<void> | null = null;
 
   /** 从 Rust 后端加载播放列表（应用启动时调用） */
   async function loadPlaylists() {
     try {
       const list = await readPlaylists();
+      skipNextSave = true;
       playlists.value = Array.isArray(list) ? list : [];
+      hasLoadedPlaylists.value = true;
     } catch (e) {
       console.error("[playlist] load failed:", e);
       ElMessage.error(`${i18n.global.t("errors.unknownError")}: ${e}`);
+      hasLoadedPlaylists.value = true;
     }
   }
 
   /** 写入后端（防抖） */
   function scheduleSave() {
+    if (!hasLoadedPlaylists.value) return;
+    if (skipNextSave) {
+      skipNextSave = false;
+      return;
+    }
+    hasPendingSave = true;
     if (saveTimeout) clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(async () => {
+    saveTimeout = setTimeout(() => {
+      void flushSave();
+    }, PLAYLIST_SAVE_DEBOUNCE_MS);
+  }
+
+  async function flushSave() {
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
       saveTimeout = null;
+    }
+    if (!hasLoadedPlaylists.value) return;
+    if (savePromise) await savePromise;
+    if (!hasPendingSave) return;
+
+    hasPendingSave = false;
+    const currentSave = (async () => {
       try {
         await writePlaylists(playlists.value);
       } catch (e) {
+        hasPendingSave = true;
         console.error("[playlist] save failed:", e);
         ElMessage.error(`${i18n.global.t("errors.unknownError")}: ${e}`);
       }
-    }, PLAYLIST_SAVE_DEBOUNCE_MS);
+    })();
+
+    savePromise = currentSave;
+    await currentSave;
+    if (savePromise === currentSave) savePromise = null;
   }
 
   watch(playlists, () => scheduleSave(), { deep: true });
@@ -104,6 +136,7 @@ export const usePlaylistStore = defineStore("playlist", () => {
   return {
     playlists,
     loadPlaylists,
+    flushSave,
     createPlaylist,
     deletePlaylist,
     renamePlaylist,

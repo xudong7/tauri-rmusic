@@ -12,8 +12,10 @@ export const useArtistStore = defineStore("artist", () => {
   const isArtistLoading = ref(false);
   const artistPage = ref(1);
   const artistPageSize = ref(50);
+  let artistRequestId = 0;
 
   async function loadArtistSongs(artistId: string, page = 1) {
+    const requestId = ++artistRequestId;
     try {
       if (page === 1) {
         artistSongs.value = [];
@@ -25,6 +27,8 @@ export const useArtistStore = defineStore("artist", () => {
         id: artistId,
         limit: artistPageSize.value,
       });
+
+      if (requestId !== artistRequestId) return;
 
       if (res.artist) {
         const prev = currentArtist.value;
@@ -43,10 +47,11 @@ export const useArtistStore = defineStore("artist", () => {
       artistSongsTotal.value = res.total ?? res.songs?.length ?? 0;
       artistPage.value = page;
     } catch (error) {
+      if (requestId !== artistRequestId) return;
       console.error("加载歌手歌曲失败:", error);
       ElMessage.error(`${i18n.global.t("errors.searchFailed")}: ${error}`);
     } finally {
-      isArtistLoading.value = false;
+      if (requestId === artistRequestId) isArtistLoading.value = false;
     }
   }
 

@@ -5,14 +5,25 @@ import { STORAGE_KEY_DEFAULT_DIRECTORY } from "@/constants";
 import type { MusicFile } from "@/types/model";
 import { i18n } from "@/i18n";
 import { getDefaultMusicDir, scanFiles } from "@/api/commands/file";
+import { joinPathSegment } from "@/utils/pathUtils";
 
 export const useLocalMusicStore = defineStore("localMusic", () => {
   const musicFiles = ref<MusicFile[]>([]);
   const searchKeyword = ref("");
   const currentDirectory = ref("");
-  const currentMusic = ref<MusicFile | null>(null);
 
   const defaultDirectory = ref<string | null>(null);
+  const isInitialized = ref(false);
+  let initializePromise: Promise<void> | null = null;
+  let latestLoadRequestId = 0;
+
+  function getLibraryRootFromMusicDir(musicDir: string): string {
+    return musicDir.replace(/[\/\\]music$/, "");
+  }
+
+  function getMusicDirFromLibraryRoot(root: string): string {
+    return joinPathSegment(root, "music");
+  }
 
   const filteredMusicFiles = computed(() => {
     if (!searchKeyword.value.trim()) return musicFiles.value;
@@ -23,13 +34,17 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
   });
 
   async function loadMusicFiles(path?: string) {
+    const requestId = ++latestLoadRequestId;
     try {
       if (path) currentDirectory.value = path;
-      musicFiles.value = await scanFiles({
+      const files = await scanFiles({
         path: path || null,
         defaultDirectory: defaultDirectory.value,
       });
+      if (requestId !== latestLoadRequestId) return;
+      musicFiles.value = files;
     } catch (error) {
+      if (requestId !== latestLoadRequestId) return;
       console.error("加载音乐文件失败:", error);
       ElMessage.error(`${i18n.global.t("errors.loadMusicFailed")}: ${error}`);
     }
@@ -55,7 +70,9 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
   async function setDefaultDirectory(path: string) {
     try {
       defaultDirectory.value = path;
+      currentDirectory.value = getMusicDirFromLibraryRoot(path);
       localStorage.setItem(STORAGE_KEY_DEFAULT_DIRECTORY, path);
+      await loadMusicFiles(currentDirectory.value);
       ElMessage.success(i18n.global.t("messages.setDirSuccess"));
     } catch (error) {
       console.error("设置默认目录失败:", error);
@@ -71,7 +88,9 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
     try {
       const systemDefaultDir = await getDefaultMusicDir();
       if (systemDefaultDir) {
-        defaultDirectory.value = systemDefaultDir;
+        const parentDir = getLibraryRootFromMusicDir(systemDefaultDir);
+        defaultDirectory.value = parentDir;
+        currentDirectory.value = systemDefaultDir;
         localStorage.removeItem(STORAGE_KEY_DEFAULT_DIRECTORY);
         await loadMusicFiles(systemDefaultDir);
         ElMessage.success(i18n.global.t("messages.resetDirSuccess"));
@@ -83,24 +102,34 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
   }
 
   async function initializeLocalLibrary() {
-    try {
-      const savedDefaultDir = localStorage.getItem(STORAGE_KEY_DEFAULT_DIRECTORY);
-      if (savedDefaultDir) {
-        defaultDirectory.value = savedDefaultDir;
-        currentDirectory.value = `${savedDefaultDir}/music`;
-        await loadMusicFiles();
-      } else {
-        const defaultDir = await getDefaultMusicDir();
-        if (defaultDir) {
-          const parentDir = defaultDir.replace(/[\/\\]music$/, "");
-          defaultDirectory.value = parentDir;
-          currentDirectory.value = defaultDir;
+    if (isInitialized.value) return;
+    if (initializePromise) return initializePromise;
+
+    initializePromise = (async () => {
+      try {
+        const savedDefaultDir = localStorage.getItem(STORAGE_KEY_DEFAULT_DIRECTORY);
+        if (savedDefaultDir) {
+          defaultDirectory.value = savedDefaultDir;
+          currentDirectory.value = getMusicDirFromLibraryRoot(savedDefaultDir);
           await loadMusicFiles();
+        } else {
+          const defaultDir = await getDefaultMusicDir();
+          if (defaultDir) {
+            const parentDir = getLibraryRootFromMusicDir(defaultDir);
+            defaultDirectory.value = parentDir;
+            currentDirectory.value = defaultDir;
+            await loadMusicFiles();
+          }
         }
+        isInitialized.value = true;
+      } catch (error) {
+        console.error("加载默认目录失败:", error);
+      } finally {
+        initializePromise = null;
       }
-    } catch (error) {
-      console.error("加载默认目录失败:", error);
-    }
+    })();
+
+    return initializePromise;
   }
 
   return {
@@ -108,8 +137,8 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
     filteredMusicFiles,
     searchKeyword,
     currentDirectory,
-    currentMusic,
     defaultDirectory,
+    isInitialized,
     loadMusicFiles,
     refreshCurrentDirectory,
     searchLocalMusic,

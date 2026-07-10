@@ -35,6 +35,7 @@ const sentinelRef = ref<HTMLElement | null>(null);
 const hasMore = ref(false);
 const isLoading = ref(false);
 let observer: IntersectionObserver | null = null;
+let observedSentinel: HTMLElement | null = null;
 
 const onlineSongsRef = computed(() => props.onlineSongs);
 const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight } =
@@ -55,13 +56,34 @@ watch(
   { immediate: true }
 );
 
+function teardownScrollObserver() {
+  if (observer) {
+    if (observedSentinel) observer.unobserve(observedSentinel);
+    observer.disconnect();
+  }
+  observer = null;
+  observedSentinel = null;
+}
+
 function setupScrollObserver() {
-  if (useVirtual.value) return;
-  if (observer) return;
+  if (useVirtual.value) {
+    teardownScrollObserver();
+    return;
+  }
   const scrollbarEl = scrollbarRef.value?.$el;
-  if (!scrollbarEl) return;
+  if (!scrollbarEl) {
+    teardownScrollObserver();
+    return;
+  }
   const wrap = scrollbarEl.querySelector(".el-scrollbar__wrap") as HTMLElement | null;
-  if (!wrap || !sentinelRef.value) return;
+  const sentinel = sentinelRef.value;
+  if (!wrap || !sentinel) {
+    teardownScrollObserver();
+    return;
+  }
+  if (observer && observedSentinel === sentinel) return;
+
+  teardownScrollObserver();
 
   observer = new IntersectionObserver(
     (entries) => {
@@ -71,7 +93,8 @@ function setupScrollObserver() {
     },
     { root: wrap, rootMargin: "100px 0px", threshold: 0 }
   );
-  observer.observe(sentinelRef.value);
+  observer.observe(sentinel);
+  observedSentinel = sentinel;
 }
 
 function requestLoadMore() {
@@ -87,20 +110,24 @@ function handleVirtualScroll(event: Event) {
 }
 
 watch(
-  [() => props.loading, () => props.onlineSongs.length],
+  [
+    () => props.loading,
+    () => props.onlineSongs.length,
+    () => props.totalCount,
+    useVirtual,
+  ],
   () => {
-    if (props.loading || props.onlineSongs.length === 0) return;
+    if (useVirtual.value || props.loading || props.onlineSongs.length === 0) {
+      teardownScrollObserver();
+      return;
+    }
     nextTick(setupScrollObserver);
   },
   { immediate: true }
 );
 
 onUnmounted(() => {
-  if (observer && sentinelRef.value) {
-    observer.unobserve(sentinelRef.value);
-    observer.disconnect();
-  }
-  observer = null;
+  teardownScrollObserver();
 });
 
 const isCurrentSong = (s: SongInfo) => props.currentSong?.id === s.id;

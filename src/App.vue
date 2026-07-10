@@ -20,6 +20,7 @@ import { useOnlineMusicStore } from "./stores/onlineMusicStore";
 import { useOnlineServiceStore } from "./stores/onlineServiceStore";
 import { usePlayerStore } from "./stores/playerStore";
 import { usePlaylistStore } from "./stores/playlistStore";
+import { quitApp } from "./api/commands/system";
 
 const { locale } = useI18n();
 const elementLocale = computed(() => (locale.value === "zh" ? zhCn : en));
@@ -31,13 +32,14 @@ const onlineStore = useOnlineMusicStore();
 const onlineServiceStore = useOnlineServiceStore();
 const playerStore = usePlayerStore();
 const playlistStore = usePlaylistStore();
+let isQuitting = false;
 
 const windowSizeConstraints = useWindowSizeConstraints({
   minWidth: 900,
   minHeight: 640,
 });
 const keyboardShortcuts = useAppKeyboardShortcuts({
-  onPrevious: () => playerStore.playNextOrPreviousMusic(-playerStore.getPlayStep(-1)),
+  onPrevious: () => playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1)),
   onTogglePlay: () => playerStore.togglePlay(),
   onNext: () => playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1)),
 });
@@ -45,15 +47,43 @@ const themeSync = useStorageThemeSync({
   setThemeWithoutSave: themeStore.setThemeWithoutSave,
 });
 const trayEvents = useTrayPlaybackEvents({
-  onPrevious: () => playerStore.playNextOrPreviousMusic(-playerStore.getPlayStep(-1)),
+  onPrevious: () => playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1)),
   onNext: () => playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1)),
   onPlay: () => playerStore.syncPlaybackStateFromTray(true),
   onPause: () => playerStore.syncPlaybackStateFromTray(false),
+  onQuit: () => {
+    void quitAfterFlush();
+  },
 });
 
 function handleSearch(keyword: string) {
-  if (viewStore.viewMode === ViewMode.LOCAL) localStore.searchLocalMusic(keyword);
-  else onlineStore.searchOnlineMusic(keyword);
+  const kw = keyword.trim();
+  if (viewStore.viewMode === ViewMode.LOCAL) {
+    localStore.searchLocalMusic(kw);
+    return;
+  }
+
+  if (kw) {
+    void onlineStore.searchOnlineMusic(kw);
+  } else {
+    onlineStore.resetResults();
+  }
+}
+
+function flushPlaylistSave() {
+  void playlistStore.flushSave();
+}
+
+async function quitAfterFlush() {
+  if (isQuitting) return;
+  isQuitting = true;
+  try {
+    await playlistStore.flushSave();
+  } catch (error) {
+    console.error("Flush playlist before quit failed:", error);
+  } finally {
+    await quitApp();
+  }
 }
 
 onMounted(async () => {
@@ -62,9 +92,12 @@ onMounted(async () => {
     await localStore.initializeLocalLibrary();
     await playlistStore.loadPlaylists();
     themeStore.initializeTheme();
+    await playerStore.syncVolumeToBackend();
     keyboardShortcuts.start();
     themeSync.start();
     onlineServiceStore.start();
+    window.addEventListener("beforeunload", flushPlaylistSave);
+    window.addEventListener("pagehide", flushPlaylistSave);
     await trayEvents.start();
   } catch (e) {
     console.error("App init error:", e);
@@ -77,6 +110,9 @@ onUnmounted(() => {
   onlineServiceStore.stop();
   trayEvents.stop();
   playerStore.stopPlayTimeTracking();
+  window.removeEventListener("beforeunload", flushPlaylistSave);
+  window.removeEventListener("pagehide", flushPlaylistSave);
+  flushPlaylistSave();
 });
 </script>
 
@@ -103,11 +139,12 @@ onUnmounted(() => {
         :currentOnlineSong="playerStore.currentOnlineSong"
         :isPlaying="playerStore.isPlaying"
         :playMode="playerStore.playMode"
+        :volume="playerStore.volume"
         :currentPlayTime="playerStore.currentPlayTime"
         :currentTrackDuration="playerStore.currentTrackDuration"
         @toggle-play="playerStore.togglePlay"
         @volume-change="playerStore.adjustVolume"
-        @previous="playerStore.playNextOrPreviousMusic(-playerStore.getPlayStep(-1))"
+        @previous="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1))"
         @next="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1))"
         @toggle-play-mode="playerStore.togglePlayMode"
         @show-immersive="playerStore.showImmersive"
@@ -124,10 +161,9 @@ onUnmounted(() => {
         :playMode="playerStore.playMode"
         @toggle-play="playerStore.togglePlay"
         @next="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1))"
-        @previous="playerStore.playNextOrPreviousMusic(-playerStore.getPlayStep(-1))"
+        @previous="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1))"
         @exit="playerStore.exitImmersive"
         @seek="playerStore.seekToPosition"
-        @volume-change="playerStore.adjustVolume"
         @toggle-play-mode="playerStore.togglePlayMode"
       />
     </div>

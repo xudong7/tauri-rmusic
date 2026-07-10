@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   VideoPlay,
@@ -27,6 +27,7 @@ const props = defineProps<{
   currentOnlineSong: SongInfo | null;
   isPlaying: boolean;
   playMode: PlayMode;
+  volume: number;
   currentPlayTime: number;
   currentTrackDuration: number;
 }>();
@@ -41,10 +42,23 @@ const emit = defineEmits([
   "seek",
 ]);
 
-const volume = ref(50);
 const artistStore = useArtistStore();
 const onlineStore = useOnlineMusicStore();
 const localStore = useLocalMusicStore();
+const volumeSliderValue = ref(props.volume);
+
+watch(
+  () => props.volume,
+  (value) => {
+    if (value !== volumeSliderValue.value) volumeSliderValue.value = value;
+  }
+);
+
+function handleVolumeChange(value: number | number[]) {
+  const nextValue = Array.isArray(value) ? (value[0] ?? 0) : value;
+  volumeSliderValue.value = nextValue;
+  emit("volume-change", nextValue);
+}
 
 const currentSongName = computed(() => {
   void locale.value;
@@ -102,11 +116,6 @@ const playModeTooltip = computed(() => {
   }
 });
 
-// 处理音量变化
-function handleVolumeChange() {
-  emit("volume-change", volume.value);
-}
-
 // 进入沉浸模式
 function enterImmersiveMode() {
   // 只要有当前歌曲（在线或本地）就可以进入沉浸模式
@@ -114,11 +123,6 @@ function enterImmersiveMode() {
     emit("show-immersive");
   }
 }
-
-// 监听音量变化
-watch(volume, () => {
-  handleVolumeChange();
-});
 
 const {
   sliderValue,
@@ -258,12 +262,13 @@ const {
           </svg>
         </span>
         <el-slider
-          v-model="volume"
+          v-model="volumeSliderValue"
           :max="100"
           :min="0"
           :step="1"
           :show-tooltip="false"
           class="volume-slider volume-slider-h"
+          @change="handleVolumeChange"
         />
       </div>
     </div>
