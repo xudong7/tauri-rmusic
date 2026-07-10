@@ -21,6 +21,7 @@ export function useOnlinePlaylistActions() {
         artist: song.artists.join(", "),
         defaultDirectory: localStore.defaultDirectory,
       });
+      await localStore.refreshCurrentDirectory();
       ElMessage.success(t("download.done", { fileName }));
     } catch (error) {
       console.error("下载歌曲失败:", error);

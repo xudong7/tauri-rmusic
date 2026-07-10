@@ -1,5 +1,6 @@
 .music-list-container {
   width: 100%;
+  max-width: 1060px;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -132,6 +133,7 @@
 }
 
 .list-rows {
+  max-width: var(--app-list-reading-width);
   padding: 0 4px 12px;
 }
 
@@ -153,7 +155,7 @@
 
 .list-row:hover {
   background: var(--hover-bg-color);
-  box-shadow: inset 0 0 0 1px var(--el-border-color-lighter);
+  box-shadow: none;
 }
 
 .list-row.is-current {
@@ -199,8 +201,8 @@
     var(--app-button-border)
   ) !important;
   background: var(--app-icon-button-hover-bg) !important;
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-primary) 10%, transparent);
-  transform: translateY(-1px) scale(1.02);
+  box-shadow: none;
+  transform: none;
 }
 
 .col-play .el-button.el-button--primary:hover {

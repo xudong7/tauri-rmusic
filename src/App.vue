@@ -191,6 +191,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: row;
   overflow: hidden;
+  background: var(--app-page-bg, var(--el-bg-color));
 }
 
 .main-content {
@@ -199,6 +200,13 @@ onUnmounted(() => {
   overflow: hidden;
   padding: var(--app-content-padding, var(--app-spacing-xl, 28px));
   box-sizing: border-box;
+  background: var(--app-subtle-surface);
+}
+
+@media (max-width: 960px) {
+  .main-content {
+    padding: var(--app-content-padding-compact);
+  }
 }
 
 .dark-theme {

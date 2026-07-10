@@ -5,14 +5,14 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.7);
   transition: all 0.3s ease;
   padding: 0;
   align-items: flex-start;
 }
 
 .is-playing {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.74);
 }
 
 /* 歌词加载/空状态 */
@@ -43,16 +43,17 @@
   line-height: 1.6;
   transition: all 0.4s ease;
   padding: 4px 8px;
-  opacity: 0.45;
+  opacity: 0.66;
   font-weight: 400;
   letter-spacing: 0;
+  overflow-wrap: anywhere;
 }
 
 /* 当前播放的歌词行 */
 .active-lyric {
   color: #fff;
   font-size: 17px;
-  font-weight: 500;
+  font-weight: 600;
   opacity: 1;
   letter-spacing: 0;
 }
@@ -76,6 +77,10 @@
 .lyric-container :deep(.el-scrollbar__bar) {
   opacity: 0.1;
   width: 3px;
+}
+
+.lyric-container :deep(.el-scrollbar__bar.is-horizontal) {
+  display: none;
 }
 
 .lyric-container:hover :deep(.el-scrollbar__bar) {

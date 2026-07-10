@@ -6,7 +6,12 @@
     <template v-else>
       <div class="list-header">
         <div class="header-left">
-          <h2 class="list-title">{{ displayName }}</h2>
+          <div class="playlist-heading">
+            <h2 class="list-title">{{ displayName }}</h2>
+            <span class="playlist-meta">{{
+              t("playlist.trackCount", { count: playlist.items.length })
+            }}</span>
+          </div>
           <el-tooltip v-if="!editingName" :content="t('playlist.rename')" placement="top">
             <el-button
               link
@@ -53,6 +58,17 @@
             </el-button>
           </template>
           <template v-else>
+            <el-tooltip :content="t('playlist.playAll')" placement="bottom">
+              <el-button
+                circle
+                size="small"
+                :icon="VideoPlay"
+                type="primary"
+                class="header-action-btn playlist-play-all"
+                :disabled="!hasPlayableItems"
+                @click="playAll"
+              />
+            </el-tooltip>
             <el-tooltip :content="t('musicList.multiSelect')" placement="bottom">
               <el-button
                 link
@@ -75,9 +91,9 @@
                 <el-button
                   link
                   size="small"
-                  :icon="Minus"
+                  :icon="Delete"
                   type="default"
-                  class="header-action-btn"
+                  class="header-action-btn playlist-delete-action"
                   :title="t('playlist.delete')"
                   :aria-label="t('playlist.delete')"
                   @click.stop
@@ -88,8 +104,16 @@
         </div>
       </div>
 
-      <div v-if="resolvedItems.length === 0" class="empty-list">
+      <div v-if="resolvedItems.length === 0" class="empty-list playlist-empty-state">
         <el-empty :description="t('playlist.empty')" />
+        <div class="playlist-empty-actions">
+          <el-button :icon="Folder" @click="router.push('/')">
+            {{ t("playlist.browseLibrary") }}
+          </el-button>
+          <el-button type="primary" :icon="Search" @click="router.push('/online')">
+            {{ t("playlist.browseOnline") }}
+          </el-button>
+        </div>
       </div>
 
       <!-- 虚拟滚动：歌单条目较多时只渲染可视区域 -->
@@ -218,9 +242,13 @@ import { useI18n } from "vue-i18n";
 import {
   CaretRight,
   VideoPause,
+  VideoPlay,
   Minus,
+  Delete,
   EditPen,
   CircleCheck,
+  Folder,
+  Search,
 } from "@element-plus/icons-vue";
 import type { PlaylistItem, MusicFile, SongInfo } from "@/types/model";
 import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
@@ -401,6 +429,12 @@ const displayItems = computed(() =>
   }))
 );
 
+const hasPlayableItems = computed(() =>
+  resolvedItems.value.some(
+    (entry) => entry.item.type === "online" || entry.musicFile !== null
+  )
+);
+
 const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight } =
   useVirtualListWhenLong<ResolvedEntry>({ source: displayItems });
 
@@ -431,6 +465,13 @@ function playAt(index: number) {
   const list = playlist.value;
   if (!list) return;
   playerStore.playFromPlaylist(list.id, index);
+}
+
+function playAll() {
+  const entry = resolvedItems.value.find(
+    (item) => item.item.type === "online" || item.musicFile !== null
+  );
+  if (entry) playAt(entry.sourceIndex);
 }
 
 function removeAt(index: number) {

@@ -42,7 +42,7 @@ const { isMaximized, minimize, toggleMaximize, close } = useWindowControls({
 const { startWindowDrag } = useWindowDrag();
 const maximizeIcon = computed(() => (isMaximized.value ? ScaleToOriginal : FullScreen));
 const historyList = computed(() => searchHistoryStore.getHistory(props.viewMode));
-const showOnlineServiceStatus = computed(() => props.viewMode === ViewMode.ONLINE);
+const showOnlineServiceStatus = true;
 const onlineServiceStatusTitle = computed(() => {
   if (onlineServiceStore.state === "checking") return t("onlineService.checking");
   if (onlineServiceStore.state === "restarting") return t("onlineService.restarting");

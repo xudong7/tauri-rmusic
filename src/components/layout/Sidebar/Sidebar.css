@@ -11,48 +11,43 @@
   user-select: none;
   position: relative;
   z-index: 1;
-  box-shadow: 2px 0 16px rgba(0, 0, 0, 0.03);
+  box-shadow: none;
 }
 
-/* 亮色下让侧边栏略深于主内容，形成层次 */
 :root:not(.dark):not(.theme-warm) .sidebar {
-  background: linear-gradient(180deg, #fafbfc 0%, #f4f5f7 100%);
+  background: #f8f9fa;
 }
 
 .theme-warm .sidebar {
-  background: linear-gradient(180deg, #fffbf9 0%, #f6f2ee 100%);
+  background: #f8f4f1;
 }
 
 /* ---------- 导航区域 ---------- */
 .sidebar-nav {
-  padding: 14px 8px 16px;
+  padding: 16px 10px 18px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .nav-item {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
+  gap: 11px;
+  min-height: 40px;
+  padding: 0 11px;
   border-radius: var(--app-radius-md);
   cursor: pointer;
   color: var(--sidebar-text, var(--el-text-color-regular));
   transition:
     color 0.2s ease,
-    background 0.2s ease,
-    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    background 0.2s ease;
 }
 
 .nav-item:hover {
   color: var(--sidebar-text-active, var(--el-text-color-primary));
   background: var(--sidebar-hover-bg, var(--hover-bg-color));
-}
-
-.nav-item:active {
-  transform: scale(0.99);
 }
 
 .nav-item.is-active {
@@ -62,11 +57,11 @@
     --sidebar-active-bg,
     var(--active-item-bg, rgba(var(--el-color-primary-rgb), 0.06))
   );
-  transform: none;
+  box-shadow: inset 2px 0 0 var(--el-color-primary);
 }
 
 .nav-icon {
-  font-size: 18px;
+  font-size: 17px;
   flex-shrink: 0;
   opacity: 0.92;
 }
@@ -76,7 +71,7 @@
 }
 
 .nav-label {
-  font-size: 13px;
+  font-size: 13.5px;
   letter-spacing: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -86,34 +81,31 @@
 
 /* ---------- 播放列表区块 ---------- */
 .playlist-section {
-  margin-top: 10px;
-  padding: 10px 8px 12px;
-  padding-left: 8px;
-  padding-right: 8px;
+  margin-top: 14px;
+  padding: 12px 0 0;
   border-top: 1px solid var(--sidebar-border-color, var(--el-border-color-lighter));
-  border-radius: 0 0 var(--app-radius-md) 0;
-  background: rgba(0, 0, 0, 0.02);
+  border-radius: 0;
+  background: transparent;
 }
 
 html.dark .playlist-section,
 .dark-theme .playlist-section {
-  background: rgba(255, 255, 255, 0.03);
+  background: transparent;
 }
 
 .theme-warm .playlist-section {
-  background: rgba(61, 56, 50, 0.04);
+  background: transparent;
 }
 
 .playlist-section-title {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 8px 5px;
-  min-height: 26px;
-  font-size: 10px;
+  gap: 6px;
+  padding: 2px 10px 7px;
+  min-height: 28px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0;
-  text-transform: uppercase;
   color: var(--el-text-color-secondary);
   opacity: 0.9;
   cursor: pointer;
@@ -127,7 +119,7 @@ html.dark .playlist-section,
 .playlist-section-title:hover {
   color: var(--el-text-color-primary);
   opacity: 1;
-  background: var(--sidebar-hover-bg, var(--hover-bg-color));
+  background: transparent;
 }
 
 .playlist-section-title .chevron {
@@ -141,8 +133,7 @@ html.dark .playlist-section,
 }
 
 .playlist-section-title .title-icon {
-  font-size: 12px;
-  opacity: 0.85;
+  display: none;
   flex-shrink: 0;
 }
 
@@ -152,11 +143,11 @@ html.dark .playlist-section,
 }
 
 .playlist-section-add {
-  font-size: 12px;
+  font-size: 14px;
   color: inherit;
   opacity: 0.8;
   cursor: pointer;
-  padding: 2px;
+  padding: 4px;
   margin: -2px -2px -2px 0;
   border-radius: 4px;
   transition:
@@ -175,9 +166,8 @@ html.dark .playlist-section,
 
 .playlist-section-body {
   overflow: hidden;
-  margin-top: 4px;
-  padding-left: 4px;
-  padding-right: 4px;
+  margin-top: 2px;
+  padding: 0;
 }
 
 /* 展开/收起过渡 */
@@ -195,7 +185,8 @@ html.dark .playlist-section,
 }
 
 .nav-item-playlist {
-  padding: 8px 10px 8px 28px;
+  min-height: 34px;
+  padding: 0 10px 0 60px;
   border-radius: var(--app-radius-md);
   margin-bottom: 1px;
 }
@@ -220,6 +211,7 @@ html.dark .playlist-section,
 
 .nav-item-playlist.is-active {
   background: var(--sidebar-active-bg, var(--active-item-bg));
+  box-shadow: none;
 }
 
 .nav-item-playlist.is-active .nav-label {

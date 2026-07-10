@@ -27,18 +27,18 @@ html.theme-warm {
 
 /* ---------- 基础容器：毛玻璃、位置、圆角 ---------- */
 .el-message {
-  --el-message-bg-color: #ffffff; /* 浅色：不透明白，避免半透明+blur 在左缘漏色 */
-  --el-message-border-color: rgba(0, 0, 0, 0.1); /* 浅色：略加深左边线，左缘更清晰 */
-  --el-message-padding: 12px 16px;
-  --el-message-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  top: 72px !important; /* 顶栏 56px + 16px，在搜索框下方 */
-  /* 在整个应用窗口内水平居中 */
+  --el-message-bg-color: #ffffff;
+  --el-message-border-color: var(--app-surface-border);
+  --el-message-padding: 8px 12px;
+  --el-message-box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+  top: calc(var(--app-header-height) + 44px) !important;
   left: 50% !important;
   transform: translateX(-50%) !important;
   padding: var(--el-message-padding) !important;
   background: var(--el-message-bg-color) !important;
   border: 1px solid var(--el-message-border-color) !important;
-  border-radius: var(--app-radius-lg, 12px) !important;
+  min-height: 38px;
+  border-radius: var(--app-radius-md, 8px) !important;
   box-shadow: var(--el-message-box-shadow) !important;
   /* 浅色：不用 backdrop-filter，避免模糊在左缘造成漏色感；深色在下方单独开启 */
   backdrop-filter: none;
@@ -120,16 +120,22 @@ html.theme-warm .el-message {
 
 /* ---------- 内容与动画微调：较长文案省略 ---------- */
 .el-message__content {
-  font-size: 14px;
-  line-height: 1.4;
-  max-width: min(360px, calc(100vw - var(--sidebar-width, 200px) - 48px));
+  max-width: min(320px, calc(100vw - var(--sidebar-width, 200px) - 48px));
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.el-message__icon {
+  margin-right: 8px;
+  font-size: 16px;
+}
+
 .el-message-fade-enter-from,
 .el-message-fade-leave-to {
   opacity: 0;
-  transform: translate(-50%, -8px) !important; /* 从上方小幅滑入，更自然 */
+  transform: translate(-50%, -6px) !important;
 }

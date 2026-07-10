@@ -5,11 +5,11 @@
   backdrop-filter: blur(var(--app-glass-blur));
   -webkit-backdrop-filter: blur(var(--app-glass-blur));
   border-bottom: 1px solid var(--app-header-border);
-  box-shadow: var(--app-header-shadow, none);
+  box-shadow: none;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(220px, auto) minmax(0, 1fr);
   align-items: center;
-  padding: 0 var(--app-spacing);
+  padding: 0 18px;
   user-select: none;
   transition:
     background 0.2s ease,
@@ -373,10 +373,10 @@ html.dark .search-history-chip:hover {
 }
 
 .search-input:deep(.el-input__wrapper) {
-  border-radius: var(--app-radius-full, 9999px);
-  padding: 0 16px 0 40px;
+  border-radius: var(--app-radius-md);
+  padding: 0 14px 0 38px;
   border: 1px solid var(--el-border-color-lighter);
-  background: var(--el-fill-color-blank);
+  background: color-mix(in srgb, var(--el-fill-color-blank) 72%, transparent);
   box-shadow: none;
   transition:
     border-color 0.2s ease,

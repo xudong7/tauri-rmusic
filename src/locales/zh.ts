@@ -30,6 +30,10 @@ export default {
     alreadyInPlaylist: "该歌曲已在「{name}」中",
     downloadedAndAdded: "已下载并已添加到「{name}」",
     removeSelected: "从播放列表移除选中",
+    playAll: "播放全部",
+    trackCount: "{count} 首歌曲",
+    browseLibrary: "前往曲库",
+    browseOnline: "在线搜索",
   },
   header: {
     switchToLight: "切换到亮色模式",
