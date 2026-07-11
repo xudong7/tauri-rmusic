@@ -243,7 +243,7 @@ watch(
               size="small"
               :icon="CircleCheck"
               type="primary"
-              class="header-action-btn"
+              class="header-action-btn app-icon-button"
               @click="toggleSelectionMode"
             />
           </el-tooltip>
@@ -257,7 +257,7 @@ watch(
               size="small"
               :icon="Upload"
               type="primary"
-              class="header-action-btn"
+              class="header-action-btn app-icon-button"
               @click="emit('import')"
             />
           </el-tooltip>

@@ -17,42 +17,6 @@
   border-color: transparent;
 }
 
-/* 与 Playlist 标题栏图标统一（使用 themes 变量） */
-.header-action-btn {
-  width: var(--app-icon-btn-md);
-  height: var(--app-icon-btn-md);
-  padding: 0;
-  flex-shrink: 0;
-  border: 1px solid var(--app-button-border) !important;
-  border-radius: var(--app-radius-full) !important;
-  color: var(--app-icon-button-color) !important;
-  background: var(--app-button-bg) !important;
-  box-shadow: var(--app-button-shadow);
-  transition:
-    color var(--app-control-transition),
-    background var(--app-control-transition),
-    border-color var(--app-control-transition),
-    box-shadow var(--app-control-transition),
-    transform var(--app-control-transition);
-}
-
-.header-action-btn:hover {
-  color: var(--app-icon-button-hover-color) !important;
-  background: var(--app-icon-button-hover-bg) !important;
-  border-color: color-mix(
-    in srgb,
-    var(--el-color-primary) 28%,
-    var(--app-button-border)
-  ) !important;
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-  transform: translateY(-1px);
-}
-
-.header-action-btn:active {
-  background: var(--app-button-active-bg) !important;
-  transform: translateY(0);
-}
-
 .header-action-btn .el-icon {
   font-size: var(--list-header-icon-size, 16px);
 }

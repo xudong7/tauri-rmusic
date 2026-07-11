@@ -229,7 +229,7 @@ onMounted(async () => {
                 circle
                 type="primary"
                 :icon="FolderOpened"
-                class="settings-action-btn"
+                class="settings-action-btn app-icon-button app-icon-button--primary"
                 @click="selectDownloadPath"
               />
             </el-tooltip>
@@ -237,7 +237,7 @@ onMounted(async () => {
               <el-button
                 circle
                 :icon="RefreshLeft"
-                class="settings-action-btn"
+                class="settings-action-btn app-icon-button"
                 @click="resetDownloadPath"
               />
             </el-tooltip>
@@ -268,7 +268,7 @@ onMounted(async () => {
                 circle
                 :icon="Delete"
                 :loading="clearingCache"
-                class="settings-action-btn settings-danger-action"
+                class="settings-action-btn settings-danger-action app-icon-button app-icon-button--danger"
                 @click="handleClearOnlineCache"
               />
             </el-tooltip>

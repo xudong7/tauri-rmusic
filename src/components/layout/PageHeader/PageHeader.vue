@@ -8,6 +8,7 @@ defineProps<{
 <template>
   <header class="page-header">
     <div class="page-header__main">
+      <slot name="before-title" />
       <div class="page-header__title-group">
         <h1 class="page-header__title">{{ title }}</h1>
         <span v-if="subtitle" class="page-header__subtitle">{{ subtitle }}</span>

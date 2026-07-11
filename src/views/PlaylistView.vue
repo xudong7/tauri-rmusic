@@ -15,7 +15,7 @@
               size="small"
               :icon="EditPen"
               type="primary"
-              class="header-action-btn"
+              class="header-action-btn app-icon-button"
               @click="editingName = true"
             />
           </el-tooltip>
@@ -61,7 +61,7 @@
                 size="small"
                 :icon="VideoPlay"
                 type="primary"
-                class="header-action-btn playlist-play-all"
+                class="header-action-btn playlist-play-all app-icon-button app-icon-button--primary"
                 :disabled="!hasPlayableItems"
                 @click="playAll"
               />
@@ -72,7 +72,7 @@
                 size="small"
                 :icon="CircleCheck"
                 type="primary"
-                class="header-action-btn"
+                class="header-action-btn app-icon-button"
                 @click="toggleSelectionMode"
               />
             </el-tooltip>
@@ -90,7 +90,7 @@
                   size="small"
                   :icon="Delete"
                   type="default"
-                  class="header-action-btn playlist-delete-action"
+                  class="header-action-btn playlist-delete-action app-icon-button app-icon-button--danger"
                   :title="t('playlist.delete')"
                   :aria-label="t('playlist.delete')"
                   @click.stop

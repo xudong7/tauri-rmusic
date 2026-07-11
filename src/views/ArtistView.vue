@@ -1,20 +1,22 @@
 <template>
   <div class="artist-view">
-    <div class="artist-header" v-if="artistStore.currentArtist">
-      <img
-        v-if="artistStore.currentArtist.pic_url"
-        :src="artistStore.currentArtist.pic_url"
-        class="artist-avatar"
-        alt=""
-      />
-      <div v-else class="artist-avatar placeholder"></div>
-      <div class="artist-name" :title="artistStore.currentArtist.name">
-        {{ artistStore.currentArtist.name }}
-      </div>
-      <el-button class="back-to-search" text :icon="ArrowLeft" @click="goBackToSearch">
-        {{ t("artist.backToSearch") }}
-      </el-button>
-    </div>
+    <PageHeader v-if="artistStore.currentArtist" :title="artistStore.currentArtist.name">
+      <template #before-title>
+        <CoverImage
+          :src="artistStore.currentArtist.pic_url"
+          alt=""
+          :size="40"
+          :radius="999"
+          variant="artist"
+          class="artist-avatar"
+        />
+      </template>
+      <template #actions>
+        <el-button class="back-to-search" text :icon="ArrowLeft" @click="goBackToSearch">
+          {{ t("artist.backToSearch") }}
+        </el-button>
+      </template>
+    </PageHeader>
 
     <OnlineMusicList
       :onlineSongs="artistStore.artistSongs"
@@ -44,6 +46,8 @@ import OnlineMusicList from "@/components/feature/OnlineMusicList/OnlineMusicLis
 import { ViewMode } from "@/types/model";
 import { useOnlinePlaylistActions } from "@/composables/useOnlinePlaylistActions";
 import type { SongInfo } from "@/types/model";
+import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
+import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 
 const { t } = useI18n();
 const route = useRoute();
@@ -99,14 +103,6 @@ watch(() => route.fullPath, load, { immediate: true });
   flex-direction: column;
 }
 
-.artist-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 8px 16px;
-  flex-shrink: 0;
-}
-
 .back-to-search {
   flex-shrink: 0;
   margin-left: auto;
@@ -118,26 +114,7 @@ watch(() => route.fullPath, load, { immediate: true });
 }
 
 .artist-avatar {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  object-fit: cover;
-  background: var(--el-fill-color);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.artist-avatar.placeholder {
-  border: 1px solid var(--el-border-color-lighter);
-}
-
-.artist-name {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  letter-spacing: 0;
+  flex-shrink: 0;
+  box-shadow: var(--app-button-shadow);
 }
 </style>

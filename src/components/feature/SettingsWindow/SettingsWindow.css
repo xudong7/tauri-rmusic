@@ -146,23 +146,6 @@
   line-height: 1.6;
 }
 
-.settings-action-btn.el-button {
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  box-shadow: none;
-}
-
-.settings-danger-action.el-button:not(:disabled) {
-  color: var(--el-color-danger);
-}
-
-.settings-danger-action.el-button:not(:disabled):hover {
-  color: #fff;
-  background: var(--el-color-danger);
-  border-color: var(--el-color-danger);
-}
-
 @media (max-width: 960px) {
   .settings-content {
     padding-bottom: 16px;

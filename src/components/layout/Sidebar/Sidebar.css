@@ -14,16 +14,10 @@
   box-shadow: none;
 }
 
-:root:not(.dark):not(.theme-warm) .sidebar {
-  background: #f8f9fa;
-}
-
-.theme-warm .sidebar {
-  background: #f8f4f1;
-}
-
 /* ---------- 导航区域 ---------- */
 .sidebar-nav {
+  flex: 1;
+  min-height: 0;
   padding: 16px 10px 18px;
   display: flex;
   flex-direction: column;
@@ -81,6 +75,10 @@
 
 /* ---------- 播放列表区块 ---------- */
 .playlist-section {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   margin-top: 14px;
   padding: 12px 0 0;
   border-top: 1px solid var(--sidebar-border-color, var(--el-border-color-lighter));
@@ -165,9 +163,14 @@ html.dark .playlist-section,
 }
 
 .playlist-section-body {
-  overflow: hidden;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
   margin-top: 2px;
-  padding: 0;
+  padding: 0 2px 6px 0;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--el-text-color-secondary) 24%, transparent)
+    transparent;
 }
 
 /* 展开/收起过渡 */
