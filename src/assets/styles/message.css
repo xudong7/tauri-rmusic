@@ -1,6 +1,6 @@
 /* message.css - ElMessage 提示美化
  * 参考：Apple Music / Spotify 的克制、中性风格，与顶栏毛玻璃统一
- * 不采用大块鲜色，用左侧色条 + 中性背景区分类型
+ * 使用中性背景和语义图标区分类型
  */
 
 /* ---------- 提示令牌 ---------- */
@@ -31,7 +31,6 @@ html.theme-warm {
   --el-message-border-color: var(--app-surface-border);
   --el-message-padding: 8px 12px;
   --el-message-box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
-  top: calc(var(--app-header-height) + 44px) !important;
   left: 50% !important;
   transform: translateX(-50%) !important;
   padding: var(--el-message-padding) !important;
