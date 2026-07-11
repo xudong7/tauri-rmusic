@@ -1,11 +1,5 @@
 .playlist-view {
-  width: 100%;
-  max-width: var(--app-page-max-width);
-  height: 100%;
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
-  min-width: 0;
 }
 
 .name-input {

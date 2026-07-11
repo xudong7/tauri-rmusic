@@ -1,5 +1,5 @@
 <template>
-  <div class="artist-view">
+  <PageLayout class="artist-view" max-width="wide">
     <PageHeader v-if="artistStore.currentArtist" :title="artistStore.currentArtist.name">
       <template #before-title>
         <CoverImage
@@ -31,7 +31,7 @@
       @load-more="artistStore.loadMoreArtistSongs"
       @add-to-playlist="addOnlineSongToPlaylist"
     />
-  </div>
+  </PageLayout>
 </template>
 
 <script setup lang="ts">
@@ -47,6 +47,7 @@ import { ViewMode } from "@/types/model";
 import { useOnlinePlaylistActions } from "@/composables/useOnlinePlaylistActions";
 import type { SongInfo } from "@/types/model";
 import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
+import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 
 const { t } = useI18n();
@@ -97,10 +98,7 @@ watch(() => route.fullPath, load, { immediate: true });
 
 <style scoped>
 .artist-view {
-  height: 100%;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 
 .back-to-search {

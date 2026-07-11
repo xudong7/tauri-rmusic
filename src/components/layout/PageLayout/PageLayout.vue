@@ -24,6 +24,7 @@ withDefaults(
 .app-page {
   width: 100%;
   height: 100%;
+  margin-inline: auto;
   min-width: 0;
   min-height: 0;
   display: flex;
