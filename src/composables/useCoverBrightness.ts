@@ -9,9 +9,9 @@ interface CoverBrightnessState {
 const MAX_ANALYSIS_IMAGE_SIZE = 96;
 
 function getAdjustedBrightness(averageBrightness: number): number {
-  if (averageBrightness < 0.3) return 1.12;
-  if (averageBrightness < 0.6) return 1.02;
-  return 0.92;
+  if (averageBrightness < 0.3) return 1.28;
+  if (averageBrightness < 0.6) return 1.1;
+  return 0.96;
 }
 
 async function loadImage(url: string): Promise<HTMLImageElement> {

@@ -244,6 +244,12 @@ html.dark .search-history-chip:hover {
     transform var(--app-control-transition);
 }
 
+.service-status:focus-visible,
+.window-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--el-color-primary) 38%, transparent);
+  outline-offset: 2px;
+}
+
 .service-status:hover {
   background: var(--app-icon-button-hover-bg);
   border-color: var(--app-button-border);

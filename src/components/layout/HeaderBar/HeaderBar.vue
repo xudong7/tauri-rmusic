@@ -212,7 +212,7 @@ onUnmounted(clearBlurTimer);
       >
         <button
           type="button"
-          class="service-status"
+          class="service-status app-header-icon-button"
           :class="`is-${onlineServiceStore.state}`"
           :aria-label="onlineServiceStatusTitle"
           @click.stop="handleOnlineServiceStatusClick"

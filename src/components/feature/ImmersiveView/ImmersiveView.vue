@@ -125,21 +125,36 @@ const backgroundFilterStyle = computed(() => {
   return `blur(46px) saturate(1.36) contrast(1.04) brightness(${imageAnalysisState.value.brightness})`;
 });
 
+const usesDarkForeground = computed(
+  () => imageAnalysisState.value.isAnalyzed && imageAnalysisState.value.brightness <= 0.98
+);
+
 // 覆盖层透明度样式 - 使用更优雅的渐变，保留更多专辑封面细节
 const overlayStyle = computed(() => {
+  if (usesDarkForeground.value) {
+    return {
+      background: `linear-gradient(
+        135deg,
+        rgba(248, 250, 252, 0.18) 0%,
+        rgba(239, 243, 246, 0.24) 58%,
+        rgba(248, 250, 252, 0.16) 100%
+      )`,
+    };
+  }
+
   const brightness = imageAnalysisState.value.brightness;
   let gradientOpacity: string;
   let solidOpacity: number;
 
   if (brightness >= 1.08) {
-    gradientOpacity = "0.24";
-    solidOpacity = 0.34;
-  } else if (brightness >= 0.98) {
-    gradientOpacity = "0.2";
-    solidOpacity = 0.3;
-  } else {
     gradientOpacity = "0.18";
-    solidOpacity = 0.28;
+    solidOpacity = 0.26;
+  } else if (brightness >= 0.98) {
+    gradientOpacity = "0.17";
+    solidOpacity = 0.25;
+  } else {
+    gradientOpacity = "0.16";
+    solidOpacity = 0.24;
   }
   return {
     background: `linear-gradient(
@@ -153,7 +168,13 @@ const overlayStyle = computed(() => {
 </script>
 
 <template>
-  <div class="immersive-view" :class="{ 'is-mac-platform': isMacPlatform }">
+  <div
+    class="immersive-view"
+    :class="{
+      'is-mac-platform': isMacPlatform,
+      'uses-dark-foreground': usesDarkForeground,
+    }"
+  >
     <div
       v-if="currentCoverUrl"
       class="background-cover"

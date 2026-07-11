@@ -33,6 +33,14 @@ html {
   --app-content-padding: 24px 28px 20px;
   --app-content-padding-compact: 16px;
 
+  /* 页面骨架 */
+  --app-page-max-width: 1060px;
+  --app-page-wide-max-width: 1180px;
+  --app-page-header-height: 44px;
+  --app-page-header-gap: 16px;
+  --app-page-title-size: 18px;
+  --app-page-title-accent-height: 12px;
+
   /* 主布局尺寸 */
   --app-header-height: 56px;
   --app-player-height: 64px;
@@ -66,6 +74,10 @@ html {
   --list-header-btn-padding: 4px 8px;
   --list-header-icon-size: 16px;
   --list-row-btn-size: 34px;
+  --app-track-row-height: 64px;
+  --app-track-row-gap: 12px;
+  --app-track-row-padding-x: 10px;
+  --app-track-row-padding-y: 8px;
   --app-list-reading-width: 860px;
   --app-online-list-width: 980px;
 
@@ -323,6 +335,67 @@ html.theme-warm {
   --app-play-button-hover-shadow: 0 10px 24px rgba(91, 78, 62, 0.24);
   --app-slider-track-bg: rgba(61, 56, 50, 0.1);
   --app-slider-thumb-border: rgba(138, 128, 112, 0.32);
+}
+
+/* ---------- 共享图标按钮 ---------- */
+.app-icon-button.el-button {
+  width: var(--app-icon-btn-md);
+  height: var(--app-icon-btn-md);
+  min-width: var(--app-icon-btn-md);
+  padding: 0;
+  border: 1px solid var(--app-button-border);
+  border-radius: var(--app-radius-full);
+  color: var(--app-icon-button-color);
+  background: var(--app-button-bg);
+  box-shadow: var(--app-button-shadow);
+  transition:
+    color var(--app-control-transition),
+    background var(--app-control-transition),
+    border-color var(--app-control-transition),
+    box-shadow var(--app-control-transition),
+    transform var(--app-control-transition);
+}
+
+.app-icon-button.el-button:not(:disabled):hover,
+.app-icon-button.el-button:not(:disabled):focus-visible {
+  color: var(--app-icon-button-hover-color);
+  background: var(--app-icon-button-hover-bg);
+  border-color: color-mix(in srgb, var(--el-color-primary) 28%, var(--app-button-border));
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  transform: translateY(-1px);
+}
+
+.app-icon-button.el-button:not(:disabled):active {
+  background: var(--app-button-active-bg);
+  box-shadow: var(--app-button-shadow);
+  transform: translateY(0);
+}
+
+.app-icon-button--primary.el-button {
+  color: var(--app-play-button-color);
+  background: var(--app-play-button-bg);
+  border-color: transparent;
+  box-shadow: var(--app-play-button-shadow);
+}
+
+.app-icon-button--primary.el-button:not(:disabled):hover,
+.app-icon-button--primary.el-button:not(:disabled):focus-visible {
+  color: var(--app-play-button-color);
+  background: var(--el-color-primary-hover);
+  border-color: transparent;
+  box-shadow: var(--app-play-button-hover-shadow);
+}
+
+.app-icon-button--danger.el-button:not(:disabled) {
+  color: var(--el-color-danger);
+}
+
+.app-icon-button--danger.el-button:not(:disabled):hover,
+.app-icon-button--danger.el-button:not(:disabled):focus-visible {
+  color: #fff;
+  background: var(--el-color-danger);
+  border-color: var(--el-color-danger);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-danger) 18%, transparent);
 }
 
 @media (max-width: 960px) {

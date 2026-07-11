@@ -24,6 +24,10 @@ import { quitApp } from "./api/commands/system";
 
 const { locale } = useI18n();
 const elementLocale = computed(() => (locale.value === "zh" ? zhCn : en));
+const elementMessageConfig = {
+  offset: 72,
+  max: 3,
+};
 
 const themeStore = useThemeStore();
 const viewStore = useViewStore();
@@ -117,7 +121,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <el-config-provider :locale="elementLocale">
+  <el-config-provider :locale="elementLocale" :message="elementMessageConfig">
     <div
       class="music-app"
       :class="{ 'dark-theme': themeStore.isDarkMode }"

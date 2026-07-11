@@ -22,6 +22,8 @@ import {
   getOnlineAudioCachePath,
   getOnlineAudioCacheSize,
 } from "@/api/commands/music";
+import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
+import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
 
 const { t } = useI18n();
 const themeStore = useThemeStore();
@@ -161,8 +163,8 @@ onMounted(async () => {
 
 <template>
   <div class="settings-window">
-    <div class="settings-content">
-      <h2 class="settings-page-title">{{ t("settings.title") }}</h2>
+    <PageLayout class="settings-content" scroll>
+      <PageHeader :title="t('settings.title')" />
       <div class="settings-section">
         <h3 class="section-title">
           <el-icon><Brush /></el-icon> {{ t("settings.appearance") }}
@@ -227,7 +229,7 @@ onMounted(async () => {
                 circle
                 type="primary"
                 :icon="FolderOpened"
-                class="settings-action-btn"
+                class="settings-action-btn app-icon-button app-icon-button--primary"
                 @click="selectDownloadPath"
               />
             </el-tooltip>
@@ -235,7 +237,7 @@ onMounted(async () => {
               <el-button
                 circle
                 :icon="RefreshLeft"
-                class="settings-action-btn"
+                class="settings-action-btn app-icon-button"
                 @click="resetDownloadPath"
               />
             </el-tooltip>
@@ -266,7 +268,7 @@ onMounted(async () => {
                 circle
                 :icon="Delete"
                 :loading="clearingCache"
-                class="settings-action-btn settings-danger-action"
+                class="settings-action-btn settings-danger-action app-icon-button app-icon-button--danger"
                 @click="handleClearOnlineCache"
               />
             </el-tooltip>
@@ -294,7 +296,7 @@ onMounted(async () => {
           <p class="about-desc">{{ t("settings.aboutDesc") }}</p>
         </div>
       </div>
-    </div>
+    </PageLayout>
   </div>
 </template>
 

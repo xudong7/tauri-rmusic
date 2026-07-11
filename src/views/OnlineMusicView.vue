@@ -1,5 +1,5 @@
 <template>
-  <div class="online-music-view">
+  <PageLayout class="online-music-view" max-width="wide">
     <OnlineMusicList
       :onlineSongs="onlineStore.onlineSongs"
       :onlineArtists="onlineStore.onlineArtists"
@@ -12,7 +12,7 @@
       @load-more="onlineStore.loadMoreResults"
       @add-to-playlist="addOnlineSongToPlaylist"
     />
-  </div>
+  </PageLayout>
 </template>
 
 <script setup lang="ts">
@@ -21,6 +21,7 @@ import { useOnlineMusicStore } from "@/stores/onlineMusicStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useViewStore } from "@/stores/viewStore";
 import OnlineMusicList from "@/components/feature/OnlineMusicList/OnlineMusicList.vue";
+import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
 import { ViewMode } from "@/types/model";
 import { useOnlinePlaylistActions } from "@/composables/useOnlinePlaylistActions";
 import type { SongInfo } from "@/types/model";
@@ -43,7 +44,6 @@ onMounted(() => {
 
 <style scoped>
 .online-music-view {
-  height: 100%;
   overflow: hidden;
 }
 </style>

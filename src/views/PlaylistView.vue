@@ -1,24 +1,21 @@
 <template>
-  <div class="playlist-view">
+  <PageLayout class="playlist-view">
     <div v-if="!playlist" class="playlist-empty">
       <el-empty :description="t('playlist.notFound')" />
     </div>
     <template v-else>
-      <div class="list-header">
-        <div class="header-left">
-          <div class="playlist-heading">
-            <h2 class="list-title">{{ displayName }}</h2>
-            <span class="playlist-meta">{{
-              t("playlist.trackCount", { count: playlist.items.length })
-            }}</span>
-          </div>
+      <PageHeader
+        :title="displayName"
+        :subtitle="t('playlist.trackCount', { count: playlist.items.length })"
+      >
+        <template #after-title>
           <el-tooltip v-if="!editingName" :content="t('playlist.rename')" placement="top">
             <el-button
               link
               size="small"
               :icon="EditPen"
               type="primary"
-              class="header-action-btn"
+              class="header-action-btn app-icon-button"
               @click="editingName = true"
             />
           </el-tooltip>
@@ -33,8 +30,8 @@
             @blur="submitRename"
             @keydown.enter="submitRename"
           />
-        </div>
-        <div class="header-actions">
+        </template>
+        <template #actions>
           <template v-if="selectionMode">
             <span class="select-actions">
               <el-button link size="small" @click="selectAll">{{
@@ -64,7 +61,7 @@
                 size="small"
                 :icon="VideoPlay"
                 type="primary"
-                class="header-action-btn playlist-play-all"
+                class="header-action-btn playlist-play-all app-icon-button app-icon-button--primary"
                 :disabled="!hasPlayableItems"
                 @click="playAll"
               />
@@ -75,7 +72,7 @@
                 size="small"
                 :icon="CircleCheck"
                 type="primary"
-                class="header-action-btn"
+                class="header-action-btn app-icon-button"
                 @click="toggleSelectionMode"
               />
             </el-tooltip>
@@ -93,7 +90,7 @@
                   size="small"
                   :icon="Delete"
                   type="default"
-                  class="header-action-btn playlist-delete-action"
+                  class="header-action-btn playlist-delete-action app-icon-button app-icon-button--danger"
                   :title="t('playlist.delete')"
                   :aria-label="t('playlist.delete')"
                   @click.stop
@@ -101,8 +98,8 @@
               </template>
             </el-popconfirm>
           </template>
-        </div>
-      </div>
+        </template>
+      </PageHeader>
 
       <div v-if="resolvedItems.length === 0" class="empty-list playlist-empty-state">
         <el-empty :description="t('playlist.empty')" />
@@ -116,132 +113,37 @@
         </div>
       </div>
 
-      <!-- 虚拟滚动：歌单条目较多时只渲染可视区域 -->
-      <div
-        v-else-if="useVirtual"
-        v-bind="containerProps"
-        class="list-scroll list-scroll-virtual"
+      <TrackList
+        v-else
+        :items="trackRows"
+        :selection-mode="selectionMode"
+        :selected-keys="selectedRowKeys"
+        width="reading"
+        @activate="playAt($event.sourceIndex)"
+        @toggle-select="toggleSelectRow($event.sourceIndex)"
+        @visible-items="scheduleVisibleLocalCovers"
       >
-        <div v-bind="wrapperProps" class="list-rows">
-          <div
-            v-for="{ data: entry } in virtualList"
-            :key="entry.key"
-            class="list-row"
-            :class="{
-              'is-current': isCurrent(entry) && !selectionMode,
-              'is-selected': isRowSelected(entry.sourceIndex),
-            }"
-            :style="{ height: rowHeight + 'px', minHeight: rowHeight + 'px' }"
-            @click="selectionMode ? toggleSelectRow(entry.sourceIndex) : undefined"
-            @dblclick="!selectionMode && playAt(entry.sourceIndex)"
-          >
-            <div class="col-play">
-              <el-checkbox
-                v-if="selectionMode"
-                :model-value="isRowSelected(entry.sourceIndex)"
-                @click.stop
-                @change="toggleSelectRow(entry.sourceIndex)"
-              />
-              <el-button
-                v-else
-                circle
-                size="small"
-                :type="isCurrent(entry) ? 'primary' : 'default'"
-                :icon="
-                  isCurrent(entry) && playerStore.isPlaying ? VideoPause : CaretRight
-                "
-                @click="playAt(entry.sourceIndex)"
-              />
-            </div>
-            <div class="col-cover">
-              <CoverImage :src="entry.coverUrl" alt="" :size="44" :radius="6" />
-            </div>
-            <div class="col-main">
-              <div class="song-title" :class="{ 'is-playing': isCurrent(entry) }">
-                {{ entry.title }}
-              </div>
-              <div class="song-artist">{{ entry.artist }}</div>
-            </div>
-            <div v-if="!selectionMode" class="col-actions">
-              <el-button
-                circle
-                size="small"
-                :icon="Minus"
-                link
-                type="default"
-                @click.stop="removeAt(entry.sourceIndex)"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <el-scrollbar v-else class="list-scroll">
-        <div class="list-rows">
-          <div
-            v-for="entry in displayItems"
-            :key="entry.key"
-            class="list-row"
-            :class="{
-              'is-current': isCurrent(entry) && !selectionMode,
-              'is-selected': isRowSelected(entry.sourceIndex),
-            }"
-            @click="selectionMode ? toggleSelectRow(entry.sourceIndex) : undefined"
-            @dblclick="!selectionMode && playAt(entry.sourceIndex)"
-          >
-            <div class="col-play">
-              <el-checkbox
-                v-if="selectionMode"
-                :model-value="isRowSelected(entry.sourceIndex)"
-                @click.stop
-                @change="toggleSelectRow(entry.sourceIndex)"
-              />
-              <el-button
-                v-else
-                circle
-                size="small"
-                :type="isCurrent(entry) ? 'primary' : 'default'"
-                :icon="
-                  isCurrent(entry) && playerStore.isPlaying ? VideoPause : CaretRight
-                "
-                @click="playAt(entry.sourceIndex)"
-              />
-            </div>
-            <div class="col-cover">
-              <CoverImage :src="entry.coverUrl" alt="" :size="44" :radius="6" />
-            </div>
-            <div class="col-main">
-              <div class="song-title" :class="{ 'is-playing': isCurrent(entry) }">
-                {{ entry.title }}
-              </div>
-              <div class="song-artist">{{ entry.artist }}</div>
-            </div>
-            <div v-if="!selectionMode" class="col-actions">
-              <el-button
-                circle
-                size="small"
-                :icon="Minus"
-                link
-                type="default"
-                @click.stop="removeAt(entry.sourceIndex)"
-              />
-            </div>
-          </div>
-        </div>
-      </el-scrollbar>
+        <template #actions="{ item }">
+          <el-button
+            circle
+            size="small"
+            :icon="Minus"
+            link
+            type="default"
+            @click.stop="removeAt(item.sourceIndex)"
+          />
+        </template>
+      </TrackList>
     </template>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
-import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
 import { useI18n } from "vue-i18n";
 import {
-  CaretRight,
-  VideoPause,
   VideoPlay,
   Minus,
   Delete,
@@ -257,7 +159,10 @@ import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useViewStore } from "@/stores/viewStore";
 import { ViewMode } from "@/types/model";
-import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
+import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
+import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
+import TrackList from "@/components/feature/TrackList/TrackList.vue";
+import type { TrackRowModel } from "@/components/feature/TrackList/types";
 
 const { t } = useI18n();
 const route = useRoute();
@@ -287,10 +192,6 @@ function toggleSelectRow(index: number) {
   if (next.has(index)) next.delete(index);
   else next.add(index);
   selectedIndices.value = next;
-}
-
-function isRowSelected(index: number) {
-  return selectedIndices.value.has(index);
 }
 
 function selectAll() {
@@ -391,7 +292,7 @@ const resolvedItems = computed(() => {
         sourceIndex: i,
         title: extractSongTitle(display) || display,
         artist: extractArtistName(display) || t("common.unknownArtist"),
-        coverUrl: "", // 下面用 reactive 或单独加载
+        coverUrl: "",
         coverKey: file?.key ?? item.file_name,
         item,
         musicFile: file ?? null,
@@ -422,43 +323,52 @@ const { getCover, scheduleMany: scheduleLocalCoverLoadMany } =
     getDefaultDirectory: () => localStore.getDefaultDirectory(),
   });
 
-const displayItems = computed(() =>
-  resolvedItems.value.map((e) => ({
-    ...e,
-    coverUrl: e.item.type === "online" ? e.coverUrl : getCover(e),
-  }))
-);
-
 const hasPlayableItems = computed(() =>
   resolvedItems.value.some(
     (entry) => entry.item.type === "online" || entry.musicFile !== null
   )
 );
 
-const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight } =
-  useVirtualListWhenLong<ResolvedEntry>({ source: displayItems });
-
-const visibleLocalCoverItems = computed(() => {
-  const items = useVirtual.value
-    ? virtualList.value.map(({ data }) => data)
-    : displayItems.value;
-  return items.filter((entry) => entry.item.type === "local" && entry.musicFile);
-});
-
-watch(
-  visibleLocalCoverItems,
-  (items) => {
-    scheduleLocalCoverLoadMany(items);
-  },
-  { immediate: true }
-);
-
-function isCurrent(entry: ResolvedEntry & { coverUrl?: string }) {
+function isCurrent(entry: ResolvedEntry) {
   if (entry.musicFile && playerStore.currentMusic)
     return playerStore.currentMusic.file_name === entry.musicFile.file_name;
   if (entry.songInfo && playerStore.currentOnlineSong)
     return playerStore.currentOnlineSong.id === entry.songInfo.id;
   return false;
+}
+
+function toTrackRow(entry: ResolvedEntry): TrackRowModel {
+  return {
+    key: entry.key,
+    title: entry.title,
+    artist: entry.artist,
+    coverUrl: entry.item.type === "online" ? entry.coverUrl : () => getCover(entry),
+    source: "playlist",
+    sourceIndex: entry.sourceIndex,
+    isCurrent: isCurrent(entry),
+    isPlaying: playerStore.isPlaying,
+    disabled: entry.item.type === "local" && entry.musicFile === null,
+  };
+}
+
+const trackRows = computed(() => resolvedItems.value.map(toTrackRow));
+const selectedRowKeys = computed(
+  () =>
+    new Set(
+      trackRows.value
+        .filter((item) => selectedIndices.value.has(item.sourceIndex))
+        .map((item) => item.key)
+    )
+);
+
+function scheduleVisibleLocalCovers(items: TrackRowModel[]) {
+  scheduleLocalCoverLoadMany(
+    items
+      .map((item) => resolvedItems.value[item.sourceIndex])
+      .filter((entry): entry is ResolvedEntry =>
+        Boolean(entry?.item.type === "local" && entry.musicFile)
+      )
+  );
 }
 
 function playAt(index: number) {

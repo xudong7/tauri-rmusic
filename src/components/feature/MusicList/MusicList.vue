@@ -1,20 +1,16 @@
 <script setup lang="ts">
 import { ref, watch, computed } from "vue";
 import { useI18n } from "vue-i18n";
-import {
-  CaretRight,
-  VideoPause,
-  Upload,
-  Plus,
-  CircleCheck,
-} from "@element-plus/icons-vue";
+import { Upload, Plus, CircleCheck } from "@element-plus/icons-vue";
 import type { MusicFile } from "@/types/model";
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { ElMessage } from "element-plus";
 import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
 import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
-import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
-import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
+import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
+import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
+import TrackList from "@/components/feature/TrackList/TrackList.vue";
+import type { TrackRowModel } from "@/components/feature/TrackList/types";
 
 const { t } = useI18n();
 const playlistStore = usePlaylistStore();
@@ -63,10 +59,6 @@ function toggleSelectRow(row: MusicFile) {
   if (next.has(key)) next.delete(key);
   else next.add(key);
   selectedKeys.value = next;
-}
-
-function isRowSelected(row: MusicFile) {
-  return selectedKeys.value.has(getFileKey(row));
 }
 
 function selectAll() {
@@ -138,8 +130,18 @@ watch(
 const isCurrentMusic = (music: MusicFile) =>
   props.currentMusic !== null && getFileKey(props.currentMusic) === getFileKey(music);
 
-function handleRowDblClick(row: MusicFile) {
-  emit("play", row);
+function toTrackRow(music: MusicFile, sourceIndex: number): TrackRowModel {
+  const display = getDisplayInfo(music);
+  return {
+    key: getFileKey(music),
+    title: display.title,
+    artist: display.artist,
+    coverUrl: () => getCover(music),
+    source: "local",
+    sourceIndex,
+    isCurrent: isCurrentMusic(music),
+    isPlaying: props.isPlaying,
+  };
 }
 
 function handleAddToPlaylist(command: string, row: MusicFile) {
@@ -166,29 +168,21 @@ const { getCover, scheduleMany: scheduleCoverLoadMany } = useLocalCoverCache<Mus
   getDefaultDirectory: props.getDefaultDirectory,
 });
 
-const musicFilesRef = computed(() => props.musicFiles);
-const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight } =
-  useVirtualListWhenLong<MusicFile>({ source: musicFilesRef });
+const trackRows = computed(() => props.musicFiles.map(toTrackRow));
 
-const visibleCoverItems = computed(() =>
-  useVirtual.value ? virtualList.value.map(({ data }) => data) : props.musicFiles
-);
-
-watch(
-  visibleCoverItems,
-  (files) => {
-    // 虚拟滚动时只加载可见区域封面；普通列表保留一次性加载。
-    scheduleCoverLoadMany(files);
-  },
-  { immediate: true }
-);
+function scheduleVisibleCovers(items: TrackRowModel[]) {
+  scheduleCoverLoadMany(
+    items
+      .map((item) => props.musicFiles[item.sourceIndex])
+      .filter((file): file is MusicFile => Boolean(file))
+  );
+}
 </script>
 
 <template>
-  <div class="music-list-container">
-    <div class="list-header">
-      <h2 class="list-title">{{ t("musicList.title") }}</h2>
-      <div class="header-actions">
+  <PageLayout class="music-list-container">
+    <PageHeader :title="t('musicList.title')">
+      <template #actions>
         <template v-if="selectionMode">
           <span class="select-actions">
             <el-button link size="small" @click="selectAll">{{
@@ -233,7 +227,7 @@ watch(
               size="small"
               :icon="CircleCheck"
               type="primary"
-              class="header-action-btn"
+              class="header-action-btn app-icon-button"
               @click="toggleSelectionMode"
             />
           </el-tooltip>
@@ -247,156 +241,52 @@ watch(
               size="small"
               :icon="Upload"
               type="primary"
-              class="header-action-btn"
+              class="header-action-btn app-icon-button"
               @click="emit('import')"
             />
           </el-tooltip>
         </template>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
-    <div v-if="musicFiles.length === 0" class="empty-list">
-      <el-empty :description="t('musicList.empty')" />
-    </div>
-
-    <!-- 虚拟滚动：仅渲染可视区域，适合大量曲目 -->
-    <div
-      v-else-if="useVirtual"
-      v-bind="containerProps"
-      class="list-scroll list-scroll-virtual"
+    <TrackList
+      :items="trackRows"
+      :selection-mode="selectionMode"
+      :selected-keys="selectedKeys"
+      width="reading"
+      @activate="emit('play', musicFiles[$event.sourceIndex])"
+      @toggle-select="toggleSelectRow(musicFiles[$event.sourceIndex])"
+      @visible-items="scheduleVisibleCovers"
     >
-      <div v-bind="wrapperProps" class="list-rows">
-        <div
-          v-for="{ data: row, index } in virtualList"
-          :key="getFileKey(row)"
-          class="list-row"
-          :class="{
-            'is-current': isCurrentMusic(row) && !selectionMode,
-            'is-selected': isRowSelected(row),
-          }"
-          :title="row.file_name"
-          :data-index="index"
-          :style="{ height: rowHeight + 'px', minHeight: rowHeight + 'px' }"
-          @click="selectionMode ? toggleSelectRow(row) : undefined"
-          @dblclick="!selectionMode && handleRowDblClick(row)"
+      <template #empty>
+        <el-empty :description="t('musicList.empty')" />
+      </template>
+      <template #actions="{ item }">
+        <el-dropdown
+          trigger="click"
+          @command="
+            (cmd: string) => handleAddToPlaylist(cmd, musicFiles[item.sourceIndex])
+          "
         >
-          <div class="col-play">
-            <el-checkbox
-              v-if="selectionMode"
-              :model-value="isRowSelected(row)"
-              @click.stop
-              @change="toggleSelectRow(row)"
-            />
-            <el-button
-              v-else
-              circle
-              size="small"
-              :type="isCurrentMusic(row) ? 'primary' : 'default'"
-              :icon="isCurrentMusic(row) && isPlaying ? VideoPause : CaretRight"
-              @click="emit('play', row)"
-            />
-          </div>
-          <div class="col-cover">
-            <CoverImage :src="getCover(row)" alt="" :size="44" :radius="6" />
-          </div>
-          <div class="col-main">
-            <div class="song-title" :class="{ 'is-playing': isCurrentMusic(row) }">
-              {{ getDisplayInfo(row).title }}
-            </div>
-            <div class="song-artist">{{ getDisplayInfo(row).artist }}</div>
-          </div>
-          <div v-if="!selectionMode" class="col-action">
-            <el-dropdown
-              trigger="click"
-              @command="(cmd: string) => handleAddToPlaylist(cmd, row)"
-            >
-              <el-button circle size="small" :icon="Plus" link @click.stop />
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="new">{{
-                    t("playlist.newPlaylist")
-                  }}</el-dropdown-item>
-                  <el-dropdown-item
-                    v-for="pl in playlistStore.playlists"
-                    :key="pl.id"
-                    :command="pl.id"
-                  >
-                    {{ pl.name || t("playlist.unnamed") }}
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 普通列表：曲目较少时使用，保留 el-scrollbar 样式 -->
-    <el-scrollbar v-else class="list-scroll">
-      <div class="list-rows">
-        <div
-          v-for="row in musicFiles"
-          :key="getFileKey(row)"
-          class="list-row"
-          :class="{
-            'is-current': isCurrentMusic(row) && !selectionMode,
-            'is-selected': isRowSelected(row),
-          }"
-          :title="row.file_name"
-          @click="selectionMode ? toggleSelectRow(row) : undefined"
-          @dblclick="!selectionMode && handleRowDblClick(row)"
-        >
-          <div class="col-play">
-            <el-checkbox
-              v-if="selectionMode"
-              :model-value="isRowSelected(row)"
-              @click.stop
-              @change="toggleSelectRow(row)"
-            />
-            <el-button
-              v-else
-              circle
-              size="small"
-              :type="isCurrentMusic(row) ? 'primary' : 'default'"
-              :icon="isCurrentMusic(row) && isPlaying ? VideoPause : CaretRight"
-              @click="emit('play', row)"
-            />
-          </div>
-          <div class="col-cover">
-            <CoverImage :src="getCover(row)" alt="" :size="44" :radius="6" />
-          </div>
-          <div class="col-main">
-            <div class="song-title" :class="{ 'is-playing': isCurrentMusic(row) }">
-              {{ getDisplayInfo(row).title }}
-            </div>
-            <div class="song-artist">{{ getDisplayInfo(row).artist }}</div>
-          </div>
-          <div v-if="!selectionMode" class="col-action">
-            <el-dropdown
-              trigger="click"
-              @command="(cmd: string) => handleAddToPlaylist(cmd, row)"
-            >
-              <el-button circle size="small" :icon="Plus" link @click.stop />
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="new">{{
-                    t("playlist.newPlaylist")
-                  }}</el-dropdown-item>
-                  <el-dropdown-item
-                    v-for="pl in playlistStore.playlists"
-                    :key="pl.id"
-                    :command="pl.id"
-                  >
-                    {{ pl.name || t("playlist.unnamed") }}
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </div>
-        </div>
-      </div>
-    </el-scrollbar>
-  </div>
+          <el-button circle size="small" :icon="Plus" link />
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="new">{{
+                t("playlist.newPlaylist")
+              }}</el-dropdown-item>
+              <el-dropdown-item
+                v-for="pl in playlistStore.playlists"
+                :key="pl.id"
+                :command="pl.id"
+              >
+                {{ pl.name || t("playlist.unnamed") }}
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </template>
+    </TrackList>
+  </PageLayout>
 </template>
 
 <style scoped src="./MusicList.css" />
