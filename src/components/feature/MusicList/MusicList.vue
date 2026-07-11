@@ -15,6 +15,8 @@ import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/son
 import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
 import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
+import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
+import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
 
 const { t } = useI18n();
 const playlistStore = usePlaylistStore();
@@ -185,10 +187,9 @@ watch(
 </script>
 
 <template>
-  <div class="music-list-container">
-    <div class="list-header">
-      <h2 class="list-title">{{ t("musicList.title") }}</h2>
-      <div class="header-actions">
+  <PageLayout class="music-list-container">
+    <PageHeader :title="t('musicList.title')">
+      <template #actions>
         <template v-if="selectionMode">
           <span class="select-actions">
             <el-button link size="small" @click="selectAll">{{
@@ -252,8 +253,8 @@ watch(
             />
           </el-tooltip>
         </template>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <div v-if="musicFiles.length === 0" class="empty-list">
       <el-empty :description="t('musicList.empty')" />
@@ -396,7 +397,7 @@ watch(
         </div>
       </div>
     </el-scrollbar>
-  </div>
+  </PageLayout>
 </template>
 
 <style scoped src="./MusicList.css" />

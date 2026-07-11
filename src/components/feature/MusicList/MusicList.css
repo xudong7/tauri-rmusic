@@ -1,46 +1,14 @@
 .music-list-container {
-  width: 100%;
-  max-width: 1060px;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
 }
 
-.list-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--app-spacing);
-  min-height: 44px;
-  flex-shrink: 0;
-}
-
-.list-title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  padding-left: 12px;
-  position: relative;
-  flex-shrink: 0;
-  letter-spacing: 0;
-}
-
-.list-header .header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.list-header .select-actions {
+.select-actions {
   display: inline-flex;
   align-items: center;
   gap: 2px;
 }
 
-.list-header .select-actions .el-button {
+.select-actions .el-button {
   height: var(--app-icon-btn-sm);
   padding: 0 10px;
   font-size: 13px;
@@ -50,7 +18,7 @@
 }
 
 /* 与 Playlist 标题栏图标统一（使用 themes 变量） */
-.list-header .header-action-btn {
+.header-action-btn {
   width: var(--app-icon-btn-md);
   height: var(--app-icon-btn-md);
   padding: 0;
@@ -68,7 +36,7 @@
     transform var(--app-control-transition);
 }
 
-.list-header .header-action-btn:hover {
+.header-action-btn:hover {
   color: var(--app-icon-button-hover-color) !important;
   background: var(--app-icon-button-hover-bg) !important;
   border-color: color-mix(
@@ -80,41 +48,29 @@
   transform: translateY(-1px);
 }
 
-.list-header .header-action-btn:active {
+.header-action-btn:active {
   background: var(--app-button-active-bg) !important;
   transform: translateY(0);
 }
 
-.list-header .header-action-btn .el-icon {
+.header-action-btn .el-icon {
   font-size: var(--list-header-icon-size, 16px);
 }
 
-.list-header .batch-add-btn {
+.batch-add-btn {
   margin-left: 8px;
   padding-left: 10px;
   padding-right: 12px;
   box-shadow: var(--app-play-button-shadow);
 }
 
-.list-header .batch-add-btn .batch-add-icon {
+.batch-add-btn .batch-add-icon {
   margin-right: 4px;
   font-size: 14px;
 }
 
 .list-row.is-selected {
   background: var(--active-item-bg, rgba(var(--el-color-primary-rgb), 0.08));
-}
-
-.list-title::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 55%;
-  background: var(--el-color-primary);
-  border-radius: 2px;
 }
 
 .list-scroll {

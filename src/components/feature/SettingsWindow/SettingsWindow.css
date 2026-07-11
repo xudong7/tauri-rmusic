@@ -7,38 +7,7 @@
 }
 
 .settings-content {
-  flex: 1;
-  min-height: 0;
-  max-width: 1060px;
   padding: 0 0 24px;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-.settings-page-title {
-  display: flex;
-  align-items: center;
-  min-height: 44px;
-  position: relative;
-  margin: 0 0 26px;
-  padding-left: 12px;
-  font-size: 18px;
-  font-weight: 600;
-  box-sizing: border-box;
-  line-height: 1.25;
-  color: var(--el-text-color-primary);
-}
-
-.settings-page-title::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 3px;
-  height: 12px;
-  border-radius: 2px;
-  background: var(--el-color-primary);
-  transform: translateY(-50%);
 }
 
 .settings-section {

@@ -1,17 +1,14 @@
 <template>
-  <div class="playlist-view">
+  <PageLayout class="playlist-view">
     <div v-if="!playlist" class="playlist-empty">
       <el-empty :description="t('playlist.notFound')" />
     </div>
     <template v-else>
-      <div class="list-header">
-        <div class="header-left">
-          <div class="playlist-heading">
-            <h2 class="list-title">{{ displayName }}</h2>
-            <span class="playlist-meta">{{
-              t("playlist.trackCount", { count: playlist.items.length })
-            }}</span>
-          </div>
+      <PageHeader
+        :title="displayName"
+        :subtitle="t('playlist.trackCount', { count: playlist.items.length })"
+      >
+        <template #after-title>
           <el-tooltip v-if="!editingName" :content="t('playlist.rename')" placement="top">
             <el-button
               link
@@ -33,8 +30,8 @@
             @blur="submitRename"
             @keydown.enter="submitRename"
           />
-        </div>
-        <div class="header-actions">
+        </template>
+        <template #actions>
           <template v-if="selectionMode">
             <span class="select-actions">
               <el-button link size="small" @click="selectAll">{{
@@ -101,8 +98,8 @@
               </template>
             </el-popconfirm>
           </template>
-        </div>
-      </div>
+        </template>
+      </PageHeader>
 
       <div v-if="resolvedItems.length === 0" class="empty-list playlist-empty-state">
         <el-empty :description="t('playlist.empty')" />
@@ -230,7 +227,7 @@
         </div>
       </el-scrollbar>
     </template>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup lang="ts">
@@ -258,6 +255,8 @@ import { usePlayerStore } from "@/stores/playerStore";
 import { useViewStore } from "@/stores/viewStore";
 import { ViewMode } from "@/types/model";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
+import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
+import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
 
 const { t } = useI18n();
 const route = useRoute();

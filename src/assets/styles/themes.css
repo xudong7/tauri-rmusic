@@ -33,6 +33,14 @@ html {
   --app-content-padding: 24px 28px 20px;
   --app-content-padding-compact: 16px;
 
+  /* 页面骨架 */
+  --app-page-max-width: 1060px;
+  --app-page-wide-max-width: 1180px;
+  --app-page-header-height: 44px;
+  --app-page-header-gap: 16px;
+  --app-page-title-size: 18px;
+  --app-page-title-accent-height: 12px;
+
   /* 主布局尺寸 */
   --app-header-height: 56px;
   --app-player-height: 64px;

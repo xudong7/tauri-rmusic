@@ -22,6 +22,8 @@ import {
   getOnlineAudioCachePath,
   getOnlineAudioCacheSize,
 } from "@/api/commands/music";
+import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
+import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
 
 const { t } = useI18n();
 const themeStore = useThemeStore();
@@ -161,8 +163,8 @@ onMounted(async () => {
 
 <template>
   <div class="settings-window">
-    <div class="settings-content">
-      <h2 class="settings-page-title">{{ t("settings.title") }}</h2>
+    <PageLayout class="settings-content" scroll>
+      <PageHeader :title="t('settings.title')" />
       <div class="settings-section">
         <h3 class="section-title">
           <el-icon><Brush /></el-icon> {{ t("settings.appearance") }}
@@ -294,7 +296,7 @@ onMounted(async () => {
           <p class="about-desc">{{ t("settings.aboutDesc") }}</p>
         </div>
       </div>
-    </div>
+    </PageLayout>
   </div>
 </template>
 
