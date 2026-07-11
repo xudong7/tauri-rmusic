@@ -1,4 +1,5 @@
 export type TrackSource = "local" | "online" | "playlist";
+export type TrackCoverSource = string | (() => string);
 
 export interface TrackRowModel {
   key: string;
@@ -6,7 +7,7 @@ export interface TrackRowModel {
   artist: string;
   album?: string;
   durationLabel?: string;
-  coverUrl: string;
+  coverUrl: TrackCoverSource;
   source: TrackSource;
   sourceIndex: number;
   isCurrent: boolean;

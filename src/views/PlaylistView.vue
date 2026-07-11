@@ -292,7 +292,7 @@ const resolvedItems = computed(() => {
         sourceIndex: i,
         title: extractSongTitle(display) || display,
         artist: extractArtistName(display) || t("common.unknownArtist"),
-        coverUrl: "", // 下面用 reactive 或单独加载
+        coverUrl: "",
         coverKey: file?.key ?? item.file_name,
         item,
         musicFile: file ?? null,
@@ -323,20 +323,13 @@ const { getCover, scheduleMany: scheduleLocalCoverLoadMany } =
     getDefaultDirectory: () => localStore.getDefaultDirectory(),
   });
 
-const displayItems = computed(() =>
-  resolvedItems.value.map((e) => ({
-    ...e,
-    coverUrl: e.item.type === "online" ? e.coverUrl : getCover(e),
-  }))
-);
-
 const hasPlayableItems = computed(() =>
   resolvedItems.value.some(
     (entry) => entry.item.type === "online" || entry.musicFile !== null
   )
 );
 
-function isCurrent(entry: ResolvedEntry & { coverUrl?: string }) {
+function isCurrent(entry: ResolvedEntry) {
   if (entry.musicFile && playerStore.currentMusic)
     return playerStore.currentMusic.file_name === entry.musicFile.file_name;
   if (entry.songInfo && playerStore.currentOnlineSong)
@@ -349,7 +342,7 @@ function toTrackRow(entry: ResolvedEntry): TrackRowModel {
     key: entry.key,
     title: entry.title,
     artist: entry.artist,
-    coverUrl: entry.coverUrl,
+    coverUrl: entry.item.type === "online" ? entry.coverUrl : () => getCover(entry),
     source: "playlist",
     sourceIndex: entry.sourceIndex,
     isCurrent: isCurrent(entry),
@@ -358,7 +351,7 @@ function toTrackRow(entry: ResolvedEntry): TrackRowModel {
   };
 }
 
-const trackRows = computed(() => displayItems.value.map(toTrackRow));
+const trackRows = computed(() => resolvedItems.value.map(toTrackRow));
 const selectedRowKeys = computed(
   () =>
     new Set(
@@ -371,7 +364,7 @@ const selectedRowKeys = computed(
 function scheduleVisibleLocalCovers(items: TrackRowModel[]) {
   scheduleLocalCoverLoadMany(
     items
-      .map((item) => displayItems.value[item.sourceIndex])
+      .map((item) => resolvedItems.value[item.sourceIndex])
       .filter((entry): entry is ResolvedEntry =>
         Boolean(entry?.item.type === "local" && entry.musicFile)
       )

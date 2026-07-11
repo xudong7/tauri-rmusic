@@ -136,7 +136,7 @@ function toTrackRow(music: MusicFile, sourceIndex: number): TrackRowModel {
     key: getFileKey(music),
     title: display.title,
     artist: display.artist,
-    coverUrl: getCover(music),
+    coverUrl: () => getCover(music),
     source: "local",
     sourceIndex,
     isCurrent: isCurrentMusic(music),

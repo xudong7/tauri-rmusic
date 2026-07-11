@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { CaretRight, VideoPause } from "@element-plus/icons-vue";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import type { TrackRowModel } from "./types";
@@ -21,6 +22,10 @@ const emit = defineEmits<{
   activate: [item: TrackRowModel];
   toggleSelect: [item: TrackRowModel];
 }>();
+
+const resolvedCoverUrl = computed(() =>
+  typeof props.item.coverUrl === "function" ? props.item.coverUrl() : props.item.coverUrl
+);
 
 function handleRowClick() {
   if (props.selectionMode) emit("toggleSelect", props.item);
@@ -67,7 +72,7 @@ function handleActivate() {
     </div>
 
     <div class="track-row__cover">
-      <CoverImage :src="item.coverUrl" alt="" :size="44" :radius="6" />
+      <CoverImage :src="resolvedCoverUrl" alt="" :size="44" :radius="6" />
     </div>
 
     <div class="track-row__main">
