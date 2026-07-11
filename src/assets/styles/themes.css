@@ -74,6 +74,10 @@ html {
   --list-header-btn-padding: 4px 8px;
   --list-header-icon-size: 16px;
   --list-row-btn-size: 34px;
+  --app-track-row-height: 64px;
+  --app-track-row-gap: 12px;
+  --app-track-row-padding-x: 10px;
+  --app-track-row-padding-y: 8px;
   --app-list-reading-width: 860px;
   --app-online-list-width: 980px;
 

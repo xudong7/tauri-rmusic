@@ -1,22 +1,17 @@
 <script setup lang="ts">
 import { ref, watch, computed } from "vue";
 import { useI18n } from "vue-i18n";
-import {
-  CaretRight,
-  VideoPause,
-  Upload,
-  Plus,
-  CircleCheck,
-} from "@element-plus/icons-vue";
+import { Upload, Plus, CircleCheck } from "@element-plus/icons-vue";
 import type { MusicFile } from "@/types/model";
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { ElMessage } from "element-plus";
 import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
 import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
 import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
-import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
 import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
+import TrackRow from "@/components/feature/TrackList/TrackRow.vue";
+import type { TrackRowModel } from "@/components/feature/TrackList/types";
 
 const { t } = useI18n();
 const playlistStore = usePlaylistStore();
@@ -139,6 +134,20 @@ watch(
 
 const isCurrentMusic = (music: MusicFile) =>
   props.currentMusic !== null && getFileKey(props.currentMusic) === getFileKey(music);
+
+function toTrackRow(music: MusicFile, sourceIndex: number): TrackRowModel {
+  const display = getDisplayInfo(music);
+  return {
+    key: getFileKey(music),
+    title: display.title,
+    artist: display.artist,
+    coverUrl: getCover(music),
+    source: "local",
+    sourceIndex,
+    isCurrent: isCurrentMusic(music),
+    isPlaying: props.isPlaying,
+  };
+}
 
 function handleRowDblClick(row: MusicFile) {
   emit("play", row);
@@ -267,46 +276,17 @@ watch(
       class="list-scroll list-scroll-virtual"
     >
       <div v-bind="wrapperProps" class="list-rows">
-        <div
+        <TrackRow
           v-for="{ data: row, index } in virtualList"
           :key="getFileKey(row)"
-          class="list-row"
-          :class="{
-            'is-current': isCurrentMusic(row) && !selectionMode,
-            'is-selected': isRowSelected(row),
-          }"
-          :title="row.file_name"
-          :data-index="index"
-          :style="{ height: rowHeight + 'px', minHeight: rowHeight + 'px' }"
-          @click="selectionMode ? toggleSelectRow(row) : undefined"
-          @dblclick="!selectionMode && handleRowDblClick(row)"
+          :item="toTrackRow(row, index)"
+          :selection-mode="selectionMode"
+          :selected="isRowSelected(row)"
+          :row-height="rowHeight"
+          @activate="handleRowDblClick(row)"
+          @toggle-select="toggleSelectRow(row)"
         >
-          <div class="col-play">
-            <el-checkbox
-              v-if="selectionMode"
-              :model-value="isRowSelected(row)"
-              @click.stop
-              @change="toggleSelectRow(row)"
-            />
-            <el-button
-              v-else
-              circle
-              size="small"
-              :type="isCurrentMusic(row) ? 'primary' : 'default'"
-              :icon="isCurrentMusic(row) && isPlaying ? VideoPause : CaretRight"
-              @click="emit('play', row)"
-            />
-          </div>
-          <div class="col-cover">
-            <CoverImage :src="getCover(row)" alt="" :size="44" :radius="6" />
-          </div>
-          <div class="col-main">
-            <div class="song-title" :class="{ 'is-playing': isCurrentMusic(row) }">
-              {{ getDisplayInfo(row).title }}
-            </div>
-            <div class="song-artist">{{ getDisplayInfo(row).artist }}</div>
-          </div>
-          <div v-if="!selectionMode" class="col-action">
+          <template #actions>
             <el-dropdown
               trigger="click"
               @command="(cmd: string) => handleAddToPlaylist(cmd, row)"
@@ -327,52 +307,24 @@ watch(
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
-          </div>
-        </div>
+          </template>
+        </TrackRow>
       </div>
     </div>
 
     <!-- 普通列表：曲目较少时使用，保留 el-scrollbar 样式 -->
     <el-scrollbar v-else class="list-scroll">
       <div class="list-rows">
-        <div
-          v-for="row in musicFiles"
+        <TrackRow
+          v-for="(row, index) in musicFiles"
           :key="getFileKey(row)"
-          class="list-row"
-          :class="{
-            'is-current': isCurrentMusic(row) && !selectionMode,
-            'is-selected': isRowSelected(row),
-          }"
-          :title="row.file_name"
-          @click="selectionMode ? toggleSelectRow(row) : undefined"
-          @dblclick="!selectionMode && handleRowDblClick(row)"
+          :item="toTrackRow(row, index)"
+          :selection-mode="selectionMode"
+          :selected="isRowSelected(row)"
+          @activate="handleRowDblClick(row)"
+          @toggle-select="toggleSelectRow(row)"
         >
-          <div class="col-play">
-            <el-checkbox
-              v-if="selectionMode"
-              :model-value="isRowSelected(row)"
-              @click.stop
-              @change="toggleSelectRow(row)"
-            />
-            <el-button
-              v-else
-              circle
-              size="small"
-              :type="isCurrentMusic(row) ? 'primary' : 'default'"
-              :icon="isCurrentMusic(row) && isPlaying ? VideoPause : CaretRight"
-              @click="emit('play', row)"
-            />
-          </div>
-          <div class="col-cover">
-            <CoverImage :src="getCover(row)" alt="" :size="44" :radius="6" />
-          </div>
-          <div class="col-main">
-            <div class="song-title" :class="{ 'is-playing': isCurrentMusic(row) }">
-              {{ getDisplayInfo(row).title }}
-            </div>
-            <div class="song-artist">{{ getDisplayInfo(row).artist }}</div>
-          </div>
-          <div v-if="!selectionMode" class="col-action">
+          <template #actions>
             <el-dropdown
               trigger="click"
               @command="(cmd: string) => handleAddToPlaylist(cmd, row)"
@@ -393,8 +345,8 @@ watch(
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
-          </div>
-        </div>
+          </template>
+        </TrackRow>
       </div>
     </el-scrollbar>
   </PageLayout>

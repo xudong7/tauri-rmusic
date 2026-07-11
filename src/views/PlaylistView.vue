@@ -120,46 +120,17 @@
         class="list-scroll list-scroll-virtual"
       >
         <div v-bind="wrapperProps" class="list-rows">
-          <div
+          <TrackRow
             v-for="{ data: entry } in virtualList"
             :key="entry.key"
-            class="list-row"
-            :class="{
-              'is-current': isCurrent(entry) && !selectionMode,
-              'is-selected': isRowSelected(entry.sourceIndex),
-            }"
-            :style="{ height: rowHeight + 'px', minHeight: rowHeight + 'px' }"
-            @click="selectionMode ? toggleSelectRow(entry.sourceIndex) : undefined"
-            @dblclick="!selectionMode && playAt(entry.sourceIndex)"
+            :item="toTrackRow(entry)"
+            :selection-mode="selectionMode"
+            :selected="isRowSelected(entry.sourceIndex)"
+            :row-height="rowHeight"
+            @activate="playAt(entry.sourceIndex)"
+            @toggle-select="toggleSelectRow(entry.sourceIndex)"
           >
-            <div class="col-play">
-              <el-checkbox
-                v-if="selectionMode"
-                :model-value="isRowSelected(entry.sourceIndex)"
-                @click.stop
-                @change="toggleSelectRow(entry.sourceIndex)"
-              />
-              <el-button
-                v-else
-                circle
-                size="small"
-                :type="isCurrent(entry) ? 'primary' : 'default'"
-                :icon="
-                  isCurrent(entry) && playerStore.isPlaying ? VideoPause : CaretRight
-                "
-                @click="playAt(entry.sourceIndex)"
-              />
-            </div>
-            <div class="col-cover">
-              <CoverImage :src="entry.coverUrl" alt="" :size="44" :radius="6" />
-            </div>
-            <div class="col-main">
-              <div class="song-title" :class="{ 'is-playing': isCurrent(entry) }">
-                {{ entry.title }}
-              </div>
-              <div class="song-artist">{{ entry.artist }}</div>
-            </div>
-            <div v-if="!selectionMode" class="col-actions">
+            <template #actions>
               <el-button
                 circle
                 size="small"
@@ -168,52 +139,23 @@
                 type="default"
                 @click.stop="removeAt(entry.sourceIndex)"
               />
-            </div>
-          </div>
+            </template>
+          </TrackRow>
         </div>
       </div>
 
       <el-scrollbar v-else class="list-scroll">
         <div class="list-rows">
-          <div
+          <TrackRow
             v-for="entry in displayItems"
             :key="entry.key"
-            class="list-row"
-            :class="{
-              'is-current': isCurrent(entry) && !selectionMode,
-              'is-selected': isRowSelected(entry.sourceIndex),
-            }"
-            @click="selectionMode ? toggleSelectRow(entry.sourceIndex) : undefined"
-            @dblclick="!selectionMode && playAt(entry.sourceIndex)"
+            :item="toTrackRow(entry)"
+            :selection-mode="selectionMode"
+            :selected="isRowSelected(entry.sourceIndex)"
+            @activate="playAt(entry.sourceIndex)"
+            @toggle-select="toggleSelectRow(entry.sourceIndex)"
           >
-            <div class="col-play">
-              <el-checkbox
-                v-if="selectionMode"
-                :model-value="isRowSelected(entry.sourceIndex)"
-                @click.stop
-                @change="toggleSelectRow(entry.sourceIndex)"
-              />
-              <el-button
-                v-else
-                circle
-                size="small"
-                :type="isCurrent(entry) ? 'primary' : 'default'"
-                :icon="
-                  isCurrent(entry) && playerStore.isPlaying ? VideoPause : CaretRight
-                "
-                @click="playAt(entry.sourceIndex)"
-              />
-            </div>
-            <div class="col-cover">
-              <CoverImage :src="entry.coverUrl" alt="" :size="44" :radius="6" />
-            </div>
-            <div class="col-main">
-              <div class="song-title" :class="{ 'is-playing': isCurrent(entry) }">
-                {{ entry.title }}
-              </div>
-              <div class="song-artist">{{ entry.artist }}</div>
-            </div>
-            <div v-if="!selectionMode" class="col-actions">
+            <template #actions>
               <el-button
                 circle
                 size="small"
@@ -222,8 +164,8 @@
                 type="default"
                 @click.stop="removeAt(entry.sourceIndex)"
               />
-            </div>
-          </div>
+            </template>
+          </TrackRow>
         </div>
       </el-scrollbar>
     </template>
@@ -237,8 +179,6 @@ import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
 import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
 import { useI18n } from "vue-i18n";
 import {
-  CaretRight,
-  VideoPause,
   VideoPlay,
   Minus,
   Delete,
@@ -254,9 +194,10 @@ import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useViewStore } from "@/stores/viewStore";
 import { ViewMode } from "@/types/model";
-import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
 import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
+import TrackRow from "@/components/feature/TrackList/TrackRow.vue";
+import type { TrackRowModel } from "@/components/feature/TrackList/types";
 
 const { t } = useI18n();
 const route = useRoute();
@@ -458,6 +399,20 @@ function isCurrent(entry: ResolvedEntry & { coverUrl?: string }) {
   if (entry.songInfo && playerStore.currentOnlineSong)
     return playerStore.currentOnlineSong.id === entry.songInfo.id;
   return false;
+}
+
+function toTrackRow(entry: ResolvedEntry): TrackRowModel {
+  return {
+    key: entry.key,
+    title: entry.title,
+    artist: entry.artist,
+    coverUrl: entry.coverUrl,
+    source: "playlist",
+    sourceIndex: entry.sourceIndex,
+    isCurrent: isCurrent(entry),
+    isPlaying: playerStore.isPlaying,
+    disabled: entry.item.type === "local" && entry.musicFile === null,
+  };
 }
 
 function playAt(index: number) {

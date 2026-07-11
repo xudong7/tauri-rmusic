@@ -2,12 +2,15 @@
 import { computed, ref, watch, onUnmounted, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { CaretRight, VideoPause, Download, Plus } from "@element-plus/icons-vue";
+import { Download, Plus } from "@element-plus/icons-vue";
 import type { ArtistInfo, SongInfo } from "@/types/model";
 import { formatDuration, formatArtists } from "@/utils/songUtils";
 import { usePlaylistStore } from "@/stores/playlistStore";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
+import TrackRow from "@/components/feature/TrackList/TrackRow.vue";
+import type { TrackRowModel } from "@/components/feature/TrackList/types";
+import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -132,6 +135,21 @@ onUnmounted(() => {
 
 const isCurrentSong = (s: SongInfo) => props.currentSong?.id === s.id;
 
+function toTrackRow(song: SongInfo, sourceIndex: number): TrackRowModel {
+  return {
+    key: song.id,
+    title: song.name,
+    artist: formatArtists(song.artists),
+    album: song.album || undefined,
+    durationLabel: formatDuration(song.duration),
+    coverUrl: song.pic_url,
+    source: "online",
+    sourceIndex,
+    isCurrent: isCurrentSong(song),
+    isPlaying: props.isPlaying,
+  };
+}
+
 function goArtist(a: ArtistInfo) {
   router.push({
     name: "Artist",
@@ -147,9 +165,7 @@ function handleAddToPlaylist(command: string, row: SongInfo) {
 
 <template>
   <div class="online-music-list-container">
-    <div v-if="showTitle" class="list-header">
-      <h2 class="list-title">{{ t("onlineMusic.title") }}</h2>
-    </div>
+    <PageHeader v-if="showTitle" :title="t('onlineMusic.title')" />
 
     <!-- 仅初次加载时显示骨架屏，加载更多时保持列表不切换，避免滚动回顶 -->
     <div v-if="loading && onlineSongs.length === 0" class="loading-container">
@@ -189,37 +205,14 @@ function handleAddToPlaylist(command: string, row: SongInfo) {
         </div>
 
         <div v-bind="wrapperProps">
-          <div
-            v-for="{ data: row } in virtualList"
+          <TrackRow
+            v-for="{ data: row, index } in virtualList"
             :key="row.id"
-            class="list-row"
-            :class="{ 'is-current': isCurrentSong(row) }"
-            :style="{ height: rowHeight + 'px', minHeight: rowHeight + 'px' }"
-            @dblclick="emit('play', row)"
+            :item="toTrackRow(row, index)"
+            :row-height="rowHeight"
+            @activate="emit('play', row)"
           >
-            <div class="col-play">
-              <el-button
-                circle
-                size="small"
-                :type="isCurrentSong(row) ? 'primary' : 'default'"
-                :icon="isCurrentSong(row) && isPlaying ? VideoPause : CaretRight"
-                @click="emit('play', row)"
-              />
-            </div>
-            <div class="col-cover">
-              <CoverImage :src="row.pic_url" alt="" :size="44" :radius="6" />
-            </div>
-            <div class="col-main">
-              <div class="song-title" :class="{ 'is-playing': isCurrentSong(row) }">
-                {{ row.name }}
-              </div>
-              <div class="song-meta">
-                {{ formatArtists(row.artists) }}
-                <template v-if="row.album"> · {{ row.album }}</template>
-              </div>
-            </div>
-            <div class="col-duration">{{ formatDuration(row.duration) }}</div>
-            <div class="col-download">
+            <template #actions>
               <el-button
                 circle
                 size="small"
@@ -227,8 +220,6 @@ function handleAddToPlaylist(command: string, row: SongInfo) {
                 link
                 @click="emit('download', row)"
               />
-            </div>
-            <div class="col-action">
               <el-dropdown
                 trigger="click"
                 @command="(cmd: string) => handleAddToPlaylist(cmd, row)"
@@ -249,8 +240,8 @@ function handleAddToPlaylist(command: string, row: SongInfo) {
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
-            </div>
-          </div>
+            </template>
+          </TrackRow>
         </div>
       </div>
       <div
@@ -283,36 +274,13 @@ function handleAddToPlaylist(command: string, row: SongInfo) {
           </div>
         </div>
 
-        <div
-          v-for="row in onlineSongs"
+        <TrackRow
+          v-for="(row, index) in onlineSongs"
           :key="row.id"
-          class="list-row"
-          :class="{ 'is-current': isCurrentSong(row) }"
-          @dblclick="emit('play', row)"
+          :item="toTrackRow(row, index)"
+          @activate="emit('play', row)"
         >
-          <div class="col-play">
-            <el-button
-              circle
-              size="small"
-              :type="isCurrentSong(row) ? 'primary' : 'default'"
-              :icon="isCurrentSong(row) && isPlaying ? VideoPause : CaretRight"
-              @click="emit('play', row)"
-            />
-          </div>
-          <div class="col-cover">
-            <CoverImage :src="row.pic_url" alt="" :size="44" :radius="6" />
-          </div>
-          <div class="col-main">
-            <div class="song-title" :class="{ 'is-playing': isCurrentSong(row) }">
-              {{ row.name }}
-            </div>
-            <div class="song-meta">
-              {{ formatArtists(row.artists) }}
-              <template v-if="row.album"> · {{ row.album }}</template>
-            </div>
-          </div>
-          <div class="col-duration">{{ formatDuration(row.duration) }}</div>
-          <div class="col-download">
+          <template #actions>
             <el-button
               circle
               size="small"
@@ -320,8 +288,6 @@ function handleAddToPlaylist(command: string, row: SongInfo) {
               link
               @click="emit('download', row)"
             />
-          </div>
-          <div class="col-action">
             <el-dropdown
               trigger="click"
               @command="(cmd: string) => handleAddToPlaylist(cmd, row)"
@@ -342,8 +308,8 @@ function handleAddToPlaylist(command: string, row: SongInfo) {
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
-          </div>
-        </div>
+          </template>
+        </TrackRow>
       </div>
       <!-- 懒加载哨兵：滚动到此区域可见时自动加载更多 -->
       <div
