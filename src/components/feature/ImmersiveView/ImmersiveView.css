@@ -36,12 +36,12 @@
 
 .immersive-view.uses-dark-foreground {
   --immersive-control-surface: rgba(245, 248, 250, 0.22);
-  --immersive-control-border: rgba(18, 31, 40, 0.16);
-  --immersive-control-text: rgba(18, 31, 40, 0.72);
+  --immersive-control-border: rgba(18, 31, 40, 0.22);
+  --immersive-control-text: rgba(18, 31, 40, 0.76);
   --immersive-text-primary: rgba(16, 27, 35, 0.9);
   --immersive-text-secondary: rgba(18, 31, 40, 0.62);
-  --immersive-text-muted: rgba(18, 31, 40, 0.68);
-  --immersive-progress-track: rgba(18, 31, 40, 0.2);
+  --immersive-text-muted: rgba(18, 31, 40, 0.72);
+  --immersive-progress-track: rgba(18, 31, 40, 0.28);
   --immersive-top-control: rgba(18, 31, 40, 0.58);
 }
 

@@ -27,7 +27,6 @@ const elementLocale = computed(() => (locale.value === "zh" ? zhCn : en));
 const elementMessageConfig = {
   offset: 72,
   max: 3,
-  grouping: true,
 };
 
 const themeStore = useThemeStore();

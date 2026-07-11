@@ -31,8 +31,6 @@ html.theme-warm {
   --el-message-border-color: var(--app-surface-border);
   --el-message-padding: 8px 12px;
   --el-message-box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
-  left: 50% !important;
-  transform: translateX(-50%) !important;
   padding: var(--el-message-padding) !important;
   background: var(--el-message-bg-color) !important;
   border: 1px solid var(--el-message-border-color) !important;
@@ -131,10 +129,4 @@ html.theme-warm .el-message {
 .el-message__icon {
   margin-right: 8px;
   font-size: 16px;
-}
-
-.el-message-fade-enter-from,
-.el-message-fade-leave-to {
-  opacity: 0;
-  transform: translate(-50%, -6px) !important;
 }
