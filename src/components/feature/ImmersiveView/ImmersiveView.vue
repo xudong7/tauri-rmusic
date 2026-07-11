@@ -125,8 +125,23 @@ const backgroundFilterStyle = computed(() => {
   return `blur(46px) saturate(1.36) contrast(1.04) brightness(${imageAnalysisState.value.brightness})`;
 });
 
+const usesDarkForeground = computed(
+  () => imageAnalysisState.value.isAnalyzed && imageAnalysisState.value.brightness <= 0.98
+);
+
 // 覆盖层透明度样式 - 使用更优雅的渐变，保留更多专辑封面细节
 const overlayStyle = computed(() => {
+  if (usesDarkForeground.value) {
+    return {
+      background: `linear-gradient(
+        135deg,
+        rgba(248, 250, 252, 0.18) 0%,
+        rgba(239, 243, 246, 0.24) 58%,
+        rgba(248, 250, 252, 0.16) 100%
+      )`,
+    };
+  }
+
   const brightness = imageAnalysisState.value.brightness;
   let gradientOpacity: string;
   let solidOpacity: number;
@@ -153,7 +168,13 @@ const overlayStyle = computed(() => {
 </script>
 
 <template>
-  <div class="immersive-view" :class="{ 'is-mac-platform': isMacPlatform }">
+  <div
+    class="immersive-view"
+    :class="{
+      'is-mac-platform': isMacPlatform,
+      'uses-dark-foreground': usesDarkForeground,
+    }"
+  >
     <div
       v-if="currentCoverUrl"
       class="background-cover"

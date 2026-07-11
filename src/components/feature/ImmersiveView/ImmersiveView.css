@@ -26,7 +26,23 @@
   --immersive-control-border: rgba(255, 255, 255, 0.13);
   --immersive-control-text: rgba(255, 255, 255, 0.76);
   --immersive-accent: color-mix(in srgb, var(--el-color-primary) 82%, #fff);
+  --immersive-text-primary: #fff;
+  --immersive-text-secondary: rgba(255, 255, 255, 0.6);
+  --immersive-text-muted: rgba(255, 255, 255, 0.7);
+  --immersive-progress-track: rgba(255, 255, 255, 0.3);
+  --immersive-top-control: rgba(255, 255, 255, 0.58);
   user-select: none;
+}
+
+.immersive-view.uses-dark-foreground {
+  --immersive-control-surface: rgba(245, 248, 250, 0.22);
+  --immersive-control-border: rgba(18, 31, 40, 0.16);
+  --immersive-control-text: rgba(18, 31, 40, 0.72);
+  --immersive-text-primary: rgba(16, 27, 35, 0.9);
+  --immersive-text-secondary: rgba(18, 31, 40, 0.62);
+  --immersive-text-muted: rgba(18, 31, 40, 0.68);
+  --immersive-progress-track: rgba(18, 31, 40, 0.2);
+  --immersive-top-control: rgba(18, 31, 40, 0.58);
 }
 
 /* 动态背景 */
@@ -103,7 +119,7 @@
   pointer-events: auto;
   background: transparent !important;
   border: 1px solid transparent !important;
-  color: rgba(255, 255, 255, 0.58) !important;
+  color: var(--immersive-top-control) !important;
   width: 28px;
   height: 28px;
   border-radius: 9999px !important;
@@ -116,9 +132,9 @@
 }
 
 .back-btn:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
-  color: rgba(255, 255, 255, 0.92) !important;
+  background: var(--immersive-control-surface) !important;
+  border-color: var(--immersive-control-border) !important;
+  color: var(--immersive-text-primary) !important;
   transform: none;
 }
 
@@ -228,7 +244,7 @@
 .song-title {
   font-size: 20px;
   font-weight: 600;
-  color: #fff;
+  color: var(--immersive-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -239,7 +255,7 @@
 .song-artist {
   font-size: 14px;
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--immersive-text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -286,7 +302,7 @@
     var(--el-color-primary) 42%,
     var(--immersive-control-border)
   ) !important;
-  color: #fff !important;
+  color: var(--immersive-text-primary) !important;
   box-shadow: 0 8px 22px color-mix(in srgb, var(--el-color-primary) 16%, transparent);
   transform: translateY(-1px) scale(1.02);
 }
@@ -336,7 +352,7 @@
 .immersive-progress .time-display {
   font-size: 11px;
   min-width: 36px;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--immersive-text-muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -346,7 +362,7 @@
 
 .immersive-progress .progress-slider ::deep(.el-slider__runway) {
   height: 3px;
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: var(--immersive-progress-track);
   border-radius: var(--app-radius-full, 9999px);
   transition:
     height 0.2s ease,
@@ -383,7 +399,7 @@
 
 .immersive-progress .progress-slider:hover ::deep(.el-slider__runway) {
   height: 4px;
-  background-color: rgba(255, 255, 255, 0.4);
+  background-color: color-mix(in srgb, var(--immersive-text-primary) 30%, transparent);
 }
 
 .immersive-progress .progress-slider:hover ::deep(.el-slider__button),
