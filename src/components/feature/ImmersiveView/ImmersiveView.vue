@@ -132,14 +132,14 @@ const overlayStyle = computed(() => {
   let solidOpacity: number;
 
   if (brightness >= 1.08) {
-    gradientOpacity = "0.24";
-    solidOpacity = 0.34;
-  } else if (brightness >= 0.98) {
-    gradientOpacity = "0.2";
-    solidOpacity = 0.3;
-  } else {
     gradientOpacity = "0.18";
-    solidOpacity = 0.28;
+    solidOpacity = 0.26;
+  } else if (brightness >= 0.98) {
+    gradientOpacity = "0.17";
+    solidOpacity = 0.25;
+  } else {
+    gradientOpacity = "0.16";
+    solidOpacity = 0.24;
   }
   return {
     background: `linear-gradient(

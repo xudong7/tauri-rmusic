@@ -39,7 +39,7 @@
   z-index: 0;
   background-size: cover;
   background-position: center;
-  opacity: 0.9;
+  opacity: 1;
   filter: saturate(0.82) contrast(1.05);
   transform: scale(1.06);
   transition:
@@ -54,7 +54,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(5, 7, 9, 0.16);
+  background: rgba(5, 7, 9, 0.08);
 }
 
 /* 遮罩层 */
@@ -222,6 +222,7 @@
   width: 100%;
   max-width: var(--immersive-cover-size);
   min-width: 0;
+  padding-top: 2px;
 }
 
 .song-title {
@@ -231,12 +232,13 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin: 0 0 10px 0;
+  line-height: 1.3;
+  margin: 0 0 12px;
 }
 
 .song-artist {
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.6;
   color: rgba(255, 255, 255, 0.6);
   white-space: nowrap;
   overflow: hidden;

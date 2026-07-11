@@ -73,18 +73,9 @@
   padding: 0;
 }
 
-/* 滚动条 */
+/* 歌词保持可滚动，但不显示滚动条，避免干扰沉浸画面。 */
 .lyric-container :deep(.el-scrollbar__bar) {
-  opacity: 0.1;
-  width: 3px;
-}
-
-.lyric-container :deep(.el-scrollbar__bar.is-horizontal) {
   display: none;
-}
-
-.lyric-container:hover :deep(.el-scrollbar__bar) {
-  opacity: 0.2;
 }
 
 .lyric-container :deep(.el-scrollbar__wrap) {
