@@ -32,31 +32,3 @@
   margin-right: 4px;
   font-size: 14px;
 }
-
-.list-scroll {
-  flex: 1;
-  min-height: 0;
-}
-
-/* 虚拟滚动容器：使用原生滚动，需占满剩余高度 */
-.list-scroll-virtual {
-  overflow: auto;
-  overflow-x: hidden;
-}
-
-.list-rows {
-  max-width: var(--app-list-reading-width);
-  padding: 0 4px 12px;
-}
-
-.empty-list {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  min-height: 200px;
-}
-
-.empty-list :deep(.el-empty__description) {
-  color: var(--el-text-color-secondary);
-}

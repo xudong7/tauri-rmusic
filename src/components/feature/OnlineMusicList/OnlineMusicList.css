@@ -7,21 +7,6 @@
   overflow: hidden;
 }
 
-.list-scroll {
-  flex: 1;
-  min-height: 0;
-}
-
-.list-scroll-virtual {
-  overflow: auto;
-  overflow-x: hidden;
-}
-
-.list-rows {
-  max-width: var(--app-online-list-width);
-  padding: 0 4px 12px;
-}
-
 .artist-strip {
   margin: 6px 8px 12px;
   padding: 12px 10px 8px;
@@ -89,27 +74,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 500;
-}
-
-.loading-container,
-.empty-list {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  min-height: 200px;
-}
-
-.empty-list :deep(.el-empty__description) {
-  color: var(--el-text-color-secondary);
-}
-
-/* 懒加载哨兵：不可见，仅用于 Intersection Observer 检测触底 */
-.load-more-sentinel {
-  height: 1px;
-  width: 100%;
-  pointer-events: none;
-  visibility: hidden;
 }
 
 @media (max-width: 960px) {

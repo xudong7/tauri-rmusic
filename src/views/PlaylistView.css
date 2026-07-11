@@ -71,22 +71,6 @@
   gap: 8px;
 }
 
-.list-scroll {
-  flex: 1;
-  min-height: 0;
-}
-
-.list-scroll-virtual {
-  overflow: auto;
-  overflow-x: hidden;
-}
-
-.list-rows {
-  max-width: var(--app-list-reading-width);
-  padding: 0 4px 12px;
-  min-width: 0;
-}
-
 @media (max-width: 960px) {
   .name-input {
     width: min(180px, 100%);

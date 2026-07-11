@@ -113,61 +113,27 @@
         </div>
       </div>
 
-      <!-- 虚拟滚动：歌单条目较多时只渲染可视区域 -->
-      <div
-        v-else-if="useVirtual"
-        v-bind="containerProps"
-        class="list-scroll list-scroll-virtual"
+      <TrackList
+        v-else
+        :items="trackRows"
+        :selection-mode="selectionMode"
+        :selected-keys="selectedRowKeys"
+        width="reading"
+        @activate="playAt($event.sourceIndex)"
+        @toggle-select="toggleSelectRow($event.sourceIndex)"
+        @visible-items="scheduleVisibleLocalCovers"
       >
-        <div v-bind="wrapperProps" class="list-rows">
-          <TrackRow
-            v-for="{ data: entry } in virtualList"
-            :key="entry.key"
-            :item="toTrackRow(entry)"
-            :selection-mode="selectionMode"
-            :selected="isRowSelected(entry.sourceIndex)"
-            :row-height="rowHeight"
-            @activate="playAt(entry.sourceIndex)"
-            @toggle-select="toggleSelectRow(entry.sourceIndex)"
-          >
-            <template #actions>
-              <el-button
-                circle
-                size="small"
-                :icon="Minus"
-                link
-                type="default"
-                @click.stop="removeAt(entry.sourceIndex)"
-              />
-            </template>
-          </TrackRow>
-        </div>
-      </div>
-
-      <el-scrollbar v-else class="list-scroll">
-        <div class="list-rows">
-          <TrackRow
-            v-for="entry in displayItems"
-            :key="entry.key"
-            :item="toTrackRow(entry)"
-            :selection-mode="selectionMode"
-            :selected="isRowSelected(entry.sourceIndex)"
-            @activate="playAt(entry.sourceIndex)"
-            @toggle-select="toggleSelectRow(entry.sourceIndex)"
-          >
-            <template #actions>
-              <el-button
-                circle
-                size="small"
-                :icon="Minus"
-                link
-                type="default"
-                @click.stop="removeAt(entry.sourceIndex)"
-              />
-            </template>
-          </TrackRow>
-        </div>
-      </el-scrollbar>
+        <template #actions="{ item }">
+          <el-button
+            circle
+            size="small"
+            :icon="Minus"
+            link
+            type="default"
+            @click.stop="removeAt(item.sourceIndex)"
+          />
+        </template>
+      </TrackList>
     </template>
   </PageLayout>
 </template>
@@ -176,7 +142,6 @@
 import { ref, computed, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
-import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
 import { useI18n } from "vue-i18n";
 import {
   VideoPlay,
@@ -196,7 +161,7 @@ import { useViewStore } from "@/stores/viewStore";
 import { ViewMode } from "@/types/model";
 import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
 import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
-import TrackRow from "@/components/feature/TrackList/TrackRow.vue";
+import TrackList from "@/components/feature/TrackList/TrackList.vue";
 import type { TrackRowModel } from "@/components/feature/TrackList/types";
 
 const { t } = useI18n();
@@ -227,10 +192,6 @@ function toggleSelectRow(index: number) {
   if (next.has(index)) next.delete(index);
   else next.add(index);
   selectedIndices.value = next;
-}
-
-function isRowSelected(index: number) {
-  return selectedIndices.value.has(index);
 }
 
 function selectAll() {
@@ -375,24 +336,6 @@ const hasPlayableItems = computed(() =>
   )
 );
 
-const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight } =
-  useVirtualListWhenLong<ResolvedEntry>({ source: displayItems });
-
-const visibleLocalCoverItems = computed(() => {
-  const items = useVirtual.value
-    ? virtualList.value.map(({ data }) => data)
-    : displayItems.value;
-  return items.filter((entry) => entry.item.type === "local" && entry.musicFile);
-});
-
-watch(
-  visibleLocalCoverItems,
-  (items) => {
-    scheduleLocalCoverLoadMany(items);
-  },
-  { immediate: true }
-);
-
 function isCurrent(entry: ResolvedEntry & { coverUrl?: string }) {
   if (entry.musicFile && playerStore.currentMusic)
     return playerStore.currentMusic.file_name === entry.musicFile.file_name;
@@ -413,6 +356,26 @@ function toTrackRow(entry: ResolvedEntry): TrackRowModel {
     isPlaying: playerStore.isPlaying,
     disabled: entry.item.type === "local" && entry.musicFile === null,
   };
+}
+
+const trackRows = computed(() => displayItems.value.map(toTrackRow));
+const selectedRowKeys = computed(
+  () =>
+    new Set(
+      trackRows.value
+        .filter((item) => selectedIndices.value.has(item.sourceIndex))
+        .map((item) => item.key)
+    )
+);
+
+function scheduleVisibleLocalCovers(items: TrackRowModel[]) {
+  scheduleLocalCoverLoadMany(
+    items
+      .map((item) => displayItems.value[item.sourceIndex])
+      .filter((entry): entry is ResolvedEntry =>
+        Boolean(entry?.item.type === "local" && entry.musicFile)
+      )
+  );
 }
 
 function playAt(index: number) {
