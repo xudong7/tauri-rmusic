@@ -30,7 +30,7 @@ html {
   --app-spacing-sm: 8px;
   --app-spacing-lg: 24px;
   --app-spacing-xl: 28px;
-  --app-content-padding: 24px 28px 20px;
+  --app-content-padding: 14px 28px 20px;
   --app-content-padding-compact: 16px;
 
   /* 页面骨架 */
@@ -78,8 +78,8 @@ html {
   --app-track-row-gap: 12px;
   --app-track-row-padding-x: 10px;
   --app-track-row-padding-y: 8px;
-  --app-list-reading-width: 100%;
-  --app-online-list-width: 100%;
+  --app-list-reading-width: 860px;
+  --app-online-list-width: 980px;
 
   /* 按钮与控件：macOS / Apple Music 风格 */
   --app-button-height: 32px;
@@ -398,7 +398,7 @@ html.theme-warm {
   box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-danger) 18%, transparent);
 }
 
-@media (max-width: 960px) {
+@media (max-width: 840px) {
   :root {
     --app-content-padding: var(--app-content-padding-compact);
     --app-sidebar-width: var(--app-sidebar-width-compact);

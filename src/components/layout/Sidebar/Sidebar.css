@@ -226,7 +226,7 @@ html.dark .playlist-section,
   display: none;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 840px) {
   .sidebar-nav {
     padding: 12px 6px 14px;
   }

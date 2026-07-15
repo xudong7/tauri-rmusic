@@ -237,7 +237,7 @@ onUnmounted(() => {
   background: var(--app-subtle-surface);
 }
 
-@media (max-width: 960px) {
+@media (max-width: 840px) {
   .main-content {
     padding: var(--app-content-padding-compact);
   }

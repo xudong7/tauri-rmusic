@@ -292,7 +292,7 @@ function handleActivate() {
   }
 }
 
-@media (max-width: 960px) {
+@media (max-width: 840px) {
   .track-row {
     gap: 10px;
     padding-right: 8px;

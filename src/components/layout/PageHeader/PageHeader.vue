@@ -88,7 +88,7 @@ defineProps<{
   gap: 8px;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 840px) {
   .page-header {
     gap: 10px;
   }

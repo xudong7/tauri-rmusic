@@ -146,7 +146,7 @@
   line-height: 1.6;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 840px) {
   .settings-content {
     padding-bottom: 16px;
   }
