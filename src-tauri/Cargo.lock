@@ -3738,6 +3738,7 @@ dependencies = [
  "serde_json",
  "sha1",
  "sha2",
+ "symphonia",
  "tauri",
  "tauri-build",
  "tauri-plugin-autostart",

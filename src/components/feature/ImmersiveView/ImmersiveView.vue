@@ -21,10 +21,10 @@ import { usePlaybackProgressSlider } from "@/composables/usePlaybackProgressSlid
 import { usePlatform } from "@/composables/usePlatform";
 import { useWindowDrag } from "@/composables/useWindowDrag";
 import {
-  getDisplayName,
   extractArtistName,
   extractSongTitle,
   formatArtists,
+  getLocalMusicDisplayInfo,
 } from "@/utils/songUtils";
 import { useWindowControls } from "@/composables/useWindowControls";
 import { useArtistStore } from "@/stores/artistStore";
@@ -87,16 +87,14 @@ const { brightness: imageAnalysisState } = useCoverBrightness(currentCoverUrl);
 const songTitle = computed(() => {
   void locale.value;
   if (props.currentSong) return extractSongTitle(props.currentSong.name);
-  if (props.currentMusic)
-    return extractSongTitle(getDisplayName(props.currentMusic.file_name));
+  if (props.currentMusic) return getLocalMusicDisplayInfo(props.currentMusic).title;
   return t("common.unknownSong");
 });
 
 const currentArtistName = computed(() => {
   if (props.currentSong?.artists?.length) return formatArtists(props.currentSong.artists);
   if (props.currentSong) return extractArtistName(props.currentSong.name);
-  if (props.currentMusic)
-    return extractArtistName(getDisplayName(props.currentMusic.file_name));
+  if (props.currentMusic) return getLocalMusicDisplayInfo(props.currentMusic).artist;
   return "";
 });
 

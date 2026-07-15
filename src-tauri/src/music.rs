@@ -84,6 +84,10 @@ pub struct MusicFile {
     pub extension: String,
     pub modified_ms: u64,
     pub search_text: String,
+    pub title: Option<String>,
+    pub artist: Option<String>,
+    pub album: Option<String>,
+    pub duration_ms: u64,
 }
 
 #[derive(Debug, Clone)]

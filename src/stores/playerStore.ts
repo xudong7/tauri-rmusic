@@ -6,6 +6,7 @@ import type { MusicFile, SongInfo } from "@/types/model";
 import { PlayMode, ViewMode } from "@/types/model";
 import { i18n } from "@/i18n";
 import { joinPathSegment } from "@/utils/pathUtils";
+import { getLocalMusicDisplayInfo } from "@/utils/songUtils";
 import { getPlaybackStep, getSequentialIndex } from "@/utils/playbackQueue";
 import {
   handleEvent,
@@ -119,9 +120,10 @@ export const usePlayerStore = defineStore("player", () => {
       };
     }
     if (currentMusic.value) {
+      const display = getLocalMusicDisplayInfo(currentMusic.value);
       return {
-        name: currentMusic.value.file_name,
-        artist: "",
+        name: display.title,
+        artist: display.artist,
         picUrl: "",
       };
     }

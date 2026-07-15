@@ -7,6 +7,10 @@ export interface MusicFile {
   extension?: string;
   modified_ms?: number;
   search_text?: string;
+  title?: string | null;
+  artist?: string | null;
+  album?: string | null;
+  duration_ms?: number;
 }
 
 // 在线音乐信息模型

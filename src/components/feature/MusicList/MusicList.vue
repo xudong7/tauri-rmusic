@@ -5,7 +5,7 @@ import { Upload, Plus, CircleCheck } from "@element-plus/icons-vue";
 import type { MusicFile } from "@/types/model";
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { ElMessage } from "element-plus";
-import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
+import { formatDuration, getLocalMusicDisplayInfo } from "@/utils/songUtils";
 import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
 import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
 import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
@@ -27,13 +27,9 @@ const selectedFiles = computed(() =>
 );
 
 const displayInfoByKey = computed(() => {
-  const map = new Map<string, { title: string; artist: string }>();
+  const map = new Map<string, { title: string; artist: string; album?: string }>();
   for (const file of props.musicFiles) {
-    const displayName = getDisplayName(file.file_name);
-    map.set(getFileKey(file), {
-      title: extractSongTitle(displayName),
-      artist: extractArtistName(displayName) || t("common.unknownArtist"),
-    });
+    map.set(getFileKey(file), getLocalMusicDisplayInfo(file, t("common.unknownArtist")));
   }
   return map;
 });
@@ -41,7 +37,7 @@ const displayInfoByKey = computed(() => {
 function getDisplayInfo(row: MusicFile) {
   return (
     displayInfoByKey.value.get(getFileKey(row)) ?? {
-      title: getDisplayName(row.file_name),
+      title: row.file_name,
       artist: t("common.unknownArtist"),
     }
   );
@@ -138,6 +134,11 @@ function toTrackRow(music: MusicFile, sourceIndex: number): TrackRowModel {
     key: getFileKey(music),
     title: display.title,
     artist: display.artist,
+    album: display.album,
+    durationLabel:
+      music.duration_ms && music.duration_ms > 0
+        ? formatDuration(music.duration_ms)
+        : undefined,
     coverUrl: () => getCover(music),
     source: "local",
     sourceIndex,
