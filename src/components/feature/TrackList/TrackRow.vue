@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onBeforeUnmount } from "vue";
 import { CaretRight, VideoPause } from "@element-plus/icons-vue";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import type { TrackRowModel } from "./types";
@@ -20,19 +20,44 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   activate: [item: TrackRowModel];
+  intent: [item: TrackRowModel];
   toggleSelect: [item: TrackRowModel];
 }>();
+
+let intentTimer: number | null = null;
 
 const resolvedCoverUrl = computed(() =>
   typeof props.item.coverUrl === "function" ? props.item.coverUrl() : props.item.coverUrl
 );
 
 function handleRowClick() {
-  if (props.selectionMode) emit("toggleSelect", props.item);
+  cancelIntent();
+  if (props.selectionMode) {
+    emit("toggleSelect", props.item);
+    return;
+  }
+  handleActivate();
 }
 
+function scheduleIntent() {
+  if (props.selectionMode || props.item.disabled || intentTimer !== null) return;
+  intentTimer = window.setTimeout(() => {
+    intentTimer = null;
+    emit("intent", props.item);
+  }, 180);
+}
+
+function cancelIntent() {
+  if (intentTimer === null) return;
+  clearTimeout(intentTimer);
+  intentTimer = null;
+}
+
+onBeforeUnmount(cancelIntent);
+
 function handleActivate() {
-  if (!props.selectionMode && !props.item.disabled) emit("activate", props.item);
+  if (props.selectionMode || props.item.disabled) return;
+  emit("activate", props.item);
 }
 </script>
 
@@ -48,8 +73,16 @@ function handleActivate() {
       rowHeight ? { height: `${rowHeight}px`, minHeight: `${rowHeight}px` } : undefined
     "
     :title="`${item.title} — ${item.artist}`"
+    :tabindex="item.disabled ? -1 : 0"
+    role="button"
+    :aria-current="item.isCurrent ? 'true' : undefined"
+    :aria-disabled="item.disabled || undefined"
     @click="handleRowClick"
-    @dblclick="handleActivate"
+    @keydown.enter.space.prevent="handleRowClick"
+    @pointerenter="scheduleIntent"
+    @pointerleave="cancelIntent"
+    @focus="scheduleIntent"
+    @blur="cancelIntent"
   >
     <div class="track-row__play">
       <el-checkbox
@@ -67,7 +100,10 @@ function handleActivate() {
         :icon="item.isCurrent && item.isPlaying ? VideoPause : CaretRight"
         :disabled="item.disabled"
         :aria-label="item.title"
-        @click.stop="handleActivate"
+        @click.stop="
+          cancelIntent();
+          handleActivate();
+        "
       />
     </div>
 
@@ -109,6 +145,7 @@ function handleActivate() {
   transition:
     background var(--app-control-transition),
     color var(--app-control-transition);
+  outline: none;
 }
 
 .track-row:hover {
@@ -118,6 +155,15 @@ function handleActivate() {
 .track-row.is-current,
 .track-row.is-selected {
   background: var(--active-item-bg);
+}
+
+.track-row.is-current {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--el-color-primary) 14%, transparent);
+}
+
+.track-row:focus-visible {
+  background: var(--hover-bg-color);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--el-color-primary) 52%, transparent);
 }
 
 .track-row.is-current::before {
@@ -246,7 +292,7 @@ function handleActivate() {
   }
 }
 
-@media (max-width: 960px) {
+@media (max-width: 840px) {
   .track-row {
     gap: 10px;
     padding-right: 8px;

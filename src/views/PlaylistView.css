@@ -65,7 +65,7 @@
   gap: 8px;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 840px) {
   .name-input {
     width: min(180px, 100%);
   }

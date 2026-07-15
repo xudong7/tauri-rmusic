@@ -1,16 +1,31 @@
 use crate::music::MusicFile;
 use crate::netease;
 use crate::netease::get_song_url;
+use rodio::{Decoder, Source};
+use serde::{Deserialize, Serialize};
 use sha1::{Digest, Sha1};
+use std::collections::HashMap;
 use std::fs::{self, create_dir_all, read_dir, File};
-use std::io::{ErrorKind, Write};
+use std::io::{BufReader, ErrorKind, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use symphonia::core::formats::FormatOptions;
+use symphonia::core::io::MediaSourceStream;
+use symphonia::core::meta::{MetadataOptions, MetadataRevision, StandardTagKey};
+use symphonia::core::probe::Hint;
 use tauri::AppHandle;
 use tauri::Manager;
 use tokio::io::AsyncWriteExt;
 
 const STREAM_IDLE_TIMEOUT: Duration = Duration::from_secs(30);
+const LIBRARY_INDEX_VERSION: u32 = 2;
+
+#[derive(Serialize, Deserialize)]
+struct LibraryIndex {
+    version: u32,
+    root: String,
+    files: Vec<MusicFile>,
+}
 
 fn supported_audio_extension(path: &Path) -> Option<String> {
     let extension = path.extension()?.to_str()?.to_lowercase();
@@ -25,6 +40,60 @@ fn path_key(path: &Path) -> String {
     format!("{:x}", hasher.finalize())
 }
 
+fn resolve_scan_path(
+    path: Option<String>,
+    default_directory: Option<String>,
+    app_handle: &AppHandle,
+) -> Result<PathBuf, String> {
+    if let Some(custom_path) = path {
+        return Ok(PathBuf::from(custom_path));
+    }
+    if let Some(default_dir) = default_directory {
+        return Ok(Path::new(&default_dir).join("music"));
+    }
+    get_default_music_dir(app_handle.clone()).map(PathBuf::from)
+}
+
+fn library_index_path(app_handle: &AppHandle, scan_path: &Path) -> Result<PathBuf, String> {
+    let dir = app_handle
+        .path()
+        .app_cache_dir()
+        .map_err(|e| format!("unable to get app cache dir: {}", e))?
+        .join("library-index");
+    Ok(dir.join(format!("{}.json", path_key(scan_path))))
+}
+
+fn read_library_index(index_path: &Path, scan_path: &Path) -> Vec<MusicFile> {
+    let Ok(bytes) = fs::read(index_path) else {
+        return Vec::new();
+    };
+    let Ok(index) = serde_json::from_slice::<LibraryIndex>(&bytes) else {
+        return Vec::new();
+    };
+    if index.version != LIBRARY_INDEX_VERSION || index.root != scan_path.to_string_lossy() {
+        return Vec::new();
+    }
+    index.files
+}
+
+fn write_library_index(
+    index_path: &Path,
+    scan_path: &Path,
+    files: &[MusicFile],
+) -> Result<(), String> {
+    if let Some(parent) = index_path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("create library index dir: {}", e))?;
+    }
+    let index = LibraryIndex {
+        version: LIBRARY_INDEX_VERSION,
+        root: scan_path.to_string_lossy().to_string(),
+        files: files.to_vec(),
+    };
+    let bytes =
+        serde_json::to_vec(&index).map_err(|e| format!("serialize library index: {}", e))?;
+    write_bytes_to_file(&bytes, index_path)
+}
+
 fn modified_ms(path: &Path) -> u64 {
     path.metadata()
         .and_then(|metadata| metadata.modified())
@@ -32,6 +101,154 @@ fn modified_ms(path: &Path) -> u64 {
         .and_then(|modified| modified.duration_since(UNIX_EPOCH).ok())
         .map(|duration| duration.as_millis() as u64)
         .unwrap_or(0)
+}
+
+#[derive(Default)]
+struct AudioMetadata {
+    title: Option<String>,
+    artist: Option<String>,
+    album: Option<String>,
+    duration_ms: u64,
+}
+
+fn normalized_tag_value(value: impl ToString) -> Option<String> {
+    let value = value.to_string();
+    let trimmed = value.trim();
+    (!trimmed.is_empty()).then(|| trimmed.to_string())
+}
+
+fn collect_metadata_revision(revision: &MetadataRevision, metadata: &mut AudioMetadata) {
+    for tag in revision.tags() {
+        let value = normalized_tag_value(&tag.value);
+        match tag.std_key {
+            Some(StandardTagKey::TrackTitle) if metadata.title.is_none() => {
+                metadata.title = value;
+            }
+            Some(StandardTagKey::Artist) if metadata.artist.is_none() => {
+                metadata.artist = value;
+            }
+            Some(StandardTagKey::AlbumArtist) if metadata.artist.is_none() => {
+                metadata.artist = value;
+            }
+            Some(StandardTagKey::Album) if metadata.album.is_none() => {
+                metadata.album = value;
+            }
+            _ => {}
+        }
+    }
+}
+
+fn read_mp3_metadata(path: &Path) -> Option<AudioMetadata> {
+    let source = File::open(path).ok()?;
+    let media_source = MediaSourceStream::new(Box::new(source), Default::default());
+    let mut hint = Hint::new();
+    hint.with_extension("mp3");
+
+    let mut probed = symphonia::default::get_probe()
+        .format(
+            &hint,
+            media_source,
+            &FormatOptions::default(),
+            &MetadataOptions::default(),
+        )
+        .ok()?;
+    let mut metadata = AudioMetadata::default();
+
+    if let Some(mut probed_metadata) = probed.metadata.get() {
+        if let Some(revision) = probed_metadata.skip_to_latest() {
+            collect_metadata_revision(revision, &mut metadata);
+        }
+    }
+
+    if let Some(track) = probed
+        .format
+        .default_track()
+        .or_else(|| probed.format.tracks().first())
+    {
+        if let (Some(time_base), Some(frame_count)) =
+            (track.codec_params.time_base, track.codec_params.n_frames)
+        {
+            let time = time_base.calc_time(frame_count);
+            metadata.duration_ms = time
+                .seconds
+                .saturating_mul(1_000)
+                .saturating_add((time.frac * 1_000.0).round() as u64);
+        }
+    }
+
+    if let Some(revision) = probed.format.metadata().skip_to_latest() {
+        collect_metadata_revision(revision, &mut metadata);
+    }
+
+    Some(metadata)
+}
+
+fn read_duration_ms(path: &Path) -> u64 {
+    File::open(path)
+        .ok()
+        .and_then(|file| Decoder::new(BufReader::new(file)).ok())
+        .and_then(|decoder| decoder.total_duration())
+        .map(|duration| duration.as_millis() as u64)
+        .unwrap_or(0)
+}
+
+fn read_audio_metadata(path: &Path, extension: &str) -> AudioMetadata {
+    let mut metadata = if extension == "mp3" {
+        read_mp3_metadata(path).unwrap_or_default()
+    } else {
+        AudioMetadata::default()
+    };
+
+    if metadata.duration_ms == 0 {
+        metadata.duration_ms = read_duration_ms(path);
+    }
+    metadata
+}
+
+fn rebuild_search_text(file: &mut MusicFile) {
+    file.search_text = [
+        Some(file.file_name.as_str()),
+        file.title.as_deref(),
+        file.artist.as_deref(),
+        file.album.as_deref(),
+    ]
+    .into_iter()
+    .flatten()
+    .collect::<Vec<_>>()
+    .join(" ")
+    .to_lowercase();
+}
+
+fn enrich_music_files(scan_path: &Path, files: &mut [MusicFile], cached_files: &[MusicFile]) {
+    let cached_by_path: HashMap<&str, &MusicFile> = cached_files
+        .iter()
+        .map(|file| (file.relative_path.as_str(), file))
+        .collect();
+
+    for file in files {
+        if let Some(cached) = cached_by_path.get(file.relative_path.as_str()) {
+            if cached.modified_ms == file.modified_ms {
+                file.title.clone_from(&cached.title);
+                file.artist.clone_from(&cached.artist);
+                file.album.clone_from(&cached.album);
+                file.duration_ms = cached.duration_ms;
+                file.search_text.clone_from(&cached.search_text);
+                continue;
+            }
+        }
+
+        let absolute_path = if scan_path.is_file() {
+            scan_path.to_path_buf()
+        } else {
+            scan_path.join(&file.relative_path)
+        };
+        let metadata = read_audio_metadata(&absolute_path, &file.extension);
+        file.title = metadata.title;
+        file.artist = metadata.artist;
+        file.album = metadata.album;
+        file.duration_ms = metadata.duration_ms;
+        rebuild_search_text(file);
+    }
 }
 
 fn music_file_from_path(id: i32, absolute_path: &Path, relative_path: &Path) -> Option<MusicFile> {
@@ -47,6 +264,10 @@ fn music_file_from_path(id: i32, absolute_path: &Path, relative_path: &Path) -> 
         extension,
         modified_ms: modified_ms(absolute_path),
         search_text,
+        title: None,
+        artist: None,
+        album: None,
+        duration_ms: 0,
     })
 }
 
@@ -251,53 +472,60 @@ pub fn scan_directory(
 /// need to scan the files and abstract the certain file types
 /// filter -> mp3, wav, ogg, flac
 /// if path include a dir, the dir also need to be scanned
-#[tauri::command]
-pub fn scan_files(
-    path: Option<String>,
-    default_directory: Option<String>,
-    app_handle: AppHandle,
-) -> Vec<MusicFile> {
+fn scan_files_sync(scan_path: &Path) -> Vec<MusicFile> {
     let mut music_files = Vec::new();
     let mut id_counter = 0;
 
-    // Determine which path to use
-    let scan_path = if let Some(custom_path) = path {
-        // If a specific path is provided, use it directly (for manual folder selection)
-        custom_path
-    } else if let Some(default_dir) = default_directory {
-        // If default_directory is provided, scan the music subfolder within it
-        std::path::Path::new(&default_dir)
-            .join("music")
-            .to_string_lossy()
-            .to_string()
-    } else {
-        // Fall back to the default music directory
-        match get_default_music_dir(app_handle) {
-            Ok(default_path) => default_path,
-            Err(_) => return music_files, // Return empty if we can't get default path
-        }
-    };
-
-    let base_path = std::path::Path::new(&scan_path).to_path_buf();
-    let path_obj = std::path::Path::new(&scan_path);
-    if path_obj.is_dir() {
-        scan_directory(&base_path, &base_path, &mut music_files, &mut id_counter);
+    if scan_path.is_dir() {
+        scan_directory(scan_path, scan_path, &mut music_files, &mut id_counter);
         music_files.sort_by(|a, b| a.file_name.cmp(&b.file_name));
         for (index, file) in music_files.iter_mut().enumerate() {
             file.id = index as i32;
         }
-    } else {
-        if supported_audio_extension(path_obj).is_some() {
-            if let Some(file_name) = path_obj.file_name() {
-                let relative = Path::new(file_name);
-                if let Some(file) = music_file_from_path(id_counter, path_obj, relative) {
-                    music_files.push(file);
-                }
+    } else if supported_audio_extension(scan_path).is_some() {
+        if let Some(file_name) = scan_path.file_name() {
+            let relative = Path::new(file_name);
+            if let Some(file) = music_file_from_path(id_counter, scan_path, relative) {
+                music_files.push(file);
             }
         }
     }
 
     music_files
+}
+
+#[tauri::command]
+pub async fn load_cached_music_files(
+    path: Option<String>,
+    default_directory: Option<String>,
+    app_handle: AppHandle,
+) -> Result<Vec<MusicFile>, String> {
+    let scan_path = resolve_scan_path(path, default_directory, &app_handle)?;
+    let index_path = library_index_path(&app_handle, &scan_path)?;
+    tokio::task::spawn_blocking(move || read_library_index(&index_path, &scan_path))
+        .await
+        .map_err(|e| format!("load library index task failed: {}", e))
+}
+
+#[tauri::command]
+pub async fn scan_files(
+    path: Option<String>,
+    default_directory: Option<String>,
+    app_handle: AppHandle,
+) -> Result<Vec<MusicFile>, String> {
+    let scan_path = resolve_scan_path(path, default_directory, &app_handle)?;
+    let index_path = library_index_path(&app_handle, &scan_path)?;
+    tokio::task::spawn_blocking(move || {
+        let cached_files = read_library_index(&index_path, &scan_path);
+        let mut files = scan_files_sync(&scan_path);
+        enrich_music_files(&scan_path, &mut files, &cached_files);
+        if let Err(error) = write_library_index(&index_path, &scan_path, &files) {
+            eprintln!("write library index failed: {}", error);
+        }
+        files
+    })
+    .await
+    .map_err(|e| format!("scan library task failed: {}", e))
 }
 
 /// get default music directory
@@ -465,6 +693,10 @@ pub fn load_local_cover_path(
     for ext in ["jpg", "jpeg", "png", "webp"] {
         let path = base_dir.join("cover").join(format!("{}.{}", stem, ext));
         if path.exists() {
+            app_handle
+                .asset_protocol_scope()
+                .allow_file(&path)
+                .map_err(|e| format!("allow cover asset path error: {}", e))?;
             return path
                 .to_str()
                 .map(|path| Some(path.to_string()))

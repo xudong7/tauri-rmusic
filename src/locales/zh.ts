@@ -46,6 +46,7 @@ export default {
   search: {
     placeholderLocal: "搜索本地歌曲...",
     placeholderOnline: "搜索在线歌曲...",
+    placeholderPlaylist: "搜索当前播放列表...",
     historyTitle: "搜索历史",
     clearHistory: "清除历史",
     removeItem: "删除该条",

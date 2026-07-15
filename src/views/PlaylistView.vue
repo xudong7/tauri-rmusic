@@ -120,9 +120,14 @@
         :selected-keys="selectedRowKeys"
         width="reading"
         @activate="playAt($event.sourceIndex)"
+        @intent="prefetchTrack($event.sourceIndex)"
+        @toggle-current="playerStore.togglePlay"
         @toggle-select="toggleSelectRow($event.sourceIndex)"
         @visible-items="scheduleVisibleLocalCovers"
       >
+        <template #empty>
+          <el-empty :description="t('messages.noSearchResult')" />
+        </template>
         <template #actions="{ item }">
           <el-button
             circle
@@ -153,7 +158,7 @@ import {
   Search,
 } from "@element-plus/icons-vue";
 import type { PlaylistItem, MusicFile, SongInfo } from "@/types/model";
-import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
+import { formatDuration, getLocalMusicDisplayInfo } from "@/utils/songUtils";
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { usePlayerStore } from "@/stores/playerStore";
@@ -197,7 +202,7 @@ function toggleSelectRow(index: number) {
 function selectAll() {
   if (!playlist.value) return;
   selectedIndices.value = new Set(
-    Array.from({ length: playlist.value.items.length }, (_, i) => i)
+    filteredResolvedItems.value.map((item) => item.sourceIndex)
   );
 }
 
@@ -271,6 +276,8 @@ interface ResolvedEntry {
   sourceIndex: number;
   title: string;
   artist: string;
+  album?: string;
+  durationLabel?: string;
   coverUrl: string;
   coverKey: string;
   item: PlaylistItem;
@@ -286,12 +293,20 @@ const resolvedItems = computed(() => {
     const item = list.items[i];
     if (item.type === "local") {
       const file = localMusicByFileName.value.get(item.file_name);
-      const display = getDisplayName(item.file_name);
+      const display = getLocalMusicDisplayInfo(
+        file ?? { id: -1, file_name: item.file_name },
+        t("common.unknownArtist")
+      );
       result.push({
         key: `local_${i}_${item.file_name}`,
         sourceIndex: i,
-        title: extractSongTitle(display) || display,
-        artist: extractArtistName(display) || t("common.unknownArtist"),
+        title: display.title,
+        artist: display.artist,
+        album: display.album,
+        durationLabel:
+          file?.duration_ms && file.duration_ms > 0
+            ? formatDuration(file.duration_ms)
+            : undefined,
         coverUrl: "",
         coverKey: file?.key ?? item.file_name,
         item,
@@ -305,6 +320,8 @@ const resolvedItems = computed(() => {
         sourceIndex: i,
         title: s.name,
         artist: s.artists?.join(", ") ?? t("common.unknownArtist"),
+        album: s.album || undefined,
+        durationLabel: s.duration > 0 ? formatDuration(s.duration) : undefined,
         coverUrl: s.pic_url ?? "",
         coverKey: s.id,
         item,
@@ -314,6 +331,16 @@ const resolvedItems = computed(() => {
     }
   }
   return result;
+});
+
+const filteredResolvedItems = computed(() => {
+  const keyword = viewStore.playlistSearchKeyword.trim().toLocaleLowerCase();
+  if (!keyword) return resolvedItems.value;
+  return resolvedItems.value.filter((entry) =>
+    `${entry.title} ${entry.artist} ${entry.album ?? ""}`
+      .toLocaleLowerCase()
+      .includes(keyword)
+  );
 });
 
 const { getCover, scheduleMany: scheduleLocalCoverLoadMany } =
@@ -342,6 +369,8 @@ function toTrackRow(entry: ResolvedEntry): TrackRowModel {
     key: entry.key,
     title: entry.title,
     artist: entry.artist,
+    album: entry.album,
+    durationLabel: entry.durationLabel,
     coverUrl: entry.item.type === "online" ? entry.coverUrl : () => getCover(entry),
     source: "playlist",
     sourceIndex: entry.sourceIndex,
@@ -351,7 +380,7 @@ function toTrackRow(entry: ResolvedEntry): TrackRowModel {
   };
 }
 
-const trackRows = computed(() => resolvedItems.value.map(toTrackRow));
+const trackRows = computed(() => filteredResolvedItems.value.map(toTrackRow));
 const selectedRowKeys = computed(
   () =>
     new Set(
@@ -375,6 +404,11 @@ function playAt(index: number) {
   const list = playlist.value;
   if (!list) return;
   playerStore.playFromPlaylist(list.id, index);
+}
+
+function prefetchTrack(index: number) {
+  const song = resolvedItems.value[index]?.songInfo;
+  if (song) void playerStore.prefetchOnlineSong(song);
 }
 
 function playAll() {

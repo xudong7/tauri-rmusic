@@ -5,6 +5,7 @@ import { ViewMode } from "@/types/model";
 export const useViewStore = defineStore("view", () => {
   const viewMode = ref<ViewMode>(ViewMode.LOCAL);
   const showImmersiveMode = ref(false);
+  const playlistSearchKeyword = ref("");
   /** 在线模块内最后访问路径（搜索页 /online 或歌手页 /artist/:id），用于从本地/设置返回时恢复 */
   const lastOnlinePath = ref("/online");
 
@@ -24,13 +25,19 @@ export const useViewStore = defineStore("view", () => {
     showImmersiveMode.value = false;
   }
 
+  function setPlaylistSearchKeyword(keyword: string) {
+    playlistSearchKeyword.value = keyword.trim();
+  }
+
   return {
     viewMode,
     showImmersiveMode,
+    playlistSearchKeyword,
     lastOnlinePath,
     setViewMode,
     setLastOnlinePath,
     showImmersive,
     exitImmersive,
+    setPlaylistSearchKeyword,
   };
 });

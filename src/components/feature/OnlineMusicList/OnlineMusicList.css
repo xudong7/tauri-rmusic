@@ -8,8 +8,11 @@
 }
 
 .artist-strip {
+  width: calc(100% - 16px);
+  max-width: calc(var(--app-online-list-width) - 16px);
   margin: 6px 8px 12px;
   padding: 12px 10px 8px;
+  box-sizing: border-box;
   border-radius: var(--app-radius-md);
   background: var(--el-fill-color-light);
 }
@@ -76,7 +79,7 @@
   font-weight: 500;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 840px) {
   .artist-strip {
     margin-left: 4px;
     margin-right: 4px;

@@ -2,6 +2,8 @@
  * 歌曲/文件名解析与格式化工具（高内聚、可复用）
  */
 
+import type { MusicFile } from "@/types/model";
+
 /** 从路径取文件名（含扩展名） */
 export function getFileName(path: string): string {
   if (!path) return "";
@@ -26,6 +28,16 @@ export function extractSongTitle(fullName: string): string {
   if (!fullName) return "";
   const match = fullName.match(/\s*-\s*(.+)$/);
   return match ? match[1].trim() : fullName;
+}
+
+/** 优先使用音频元数据，缺失时回退到文件名解析 */
+export function getLocalMusicDisplayInfo(file: MusicFile, unknownArtist = "") {
+  const displayName = getDisplayName(file.file_name);
+  return {
+    title: file.title?.trim() || extractSongTitle(displayName) || displayName,
+    artist: file.artist?.trim() || extractArtistName(displayName) || unknownArtist,
+    album: file.album?.trim() || undefined,
+  };
 }
 
 /** 格式化艺术家列表 */

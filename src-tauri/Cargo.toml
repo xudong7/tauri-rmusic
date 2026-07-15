@@ -1,6 +1,6 @@
 [package]
 name = "rmusic"
-version = "1.3.0"
+version = "1.3.1"
 description = "A modern, lightweight cross-platform desktop music player built with Tauri 2 and Vue 3. Play local audio files and stream online music through third-party API proxies."
 authors = ["xudong7"]
 edition = "2021"
@@ -26,7 +26,15 @@ serde_json = "1"
 tauri-plugin-dialog = "2"
 tauri-plugin-shell = "2"
 rodio = "0.20.1"
-tokio = { version = "1.44.2", features = ["full", "rt-multi-thread"] }
+symphonia = { version = "0.5.4", default-features = false, features = ["mp3"] }
+tokio = { version = "1.44.2", features = [
+  "fs",
+  "io-util",
+  "macros",
+  "rt-multi-thread",
+  "sync",
+  "time",
+] }
 reqwest = { version = "0.11", features = ["json"] }
 urlencoding = "2.1.2"
 rand = "0.8.5"
@@ -38,3 +46,9 @@ sha1 = "0.10.5"
 tauri-plugin-autostart = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-window-state = "2"
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+panic = "abort"
+strip = true

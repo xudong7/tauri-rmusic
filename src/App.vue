@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, computed } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import zhCn from "element-plus/es/locale/lang/zh-cn";
 import en from "element-plus/es/locale/lang/en";
@@ -8,7 +9,7 @@ import HeaderBar from "./components/layout/HeaderBar/HeaderBar.vue";
 import Sidebar from "./components/layout/Sidebar/Sidebar.vue";
 import PlayerBar from "./components/feature/PlayerBar/PlayerBar.vue";
 import ImmersiveView from "./components/feature/ImmersiveView/ImmersiveView.vue";
-import { ViewMode } from "./types/model";
+import type { SearchScope } from "./types/model";
 import { useAppKeyboardShortcuts } from "./composables/useAppKeyboardShortcuts";
 import { useStorageThemeSync } from "./composables/useStorageThemeSync";
 import { useTrayPlaybackEvents } from "./composables/useTrayPlaybackEvents";
@@ -36,7 +37,17 @@ const onlineStore = useOnlineMusicStore();
 const onlineServiceStore = useOnlineServiceStore();
 const playerStore = usePlayerStore();
 const playlistStore = usePlaylistStore();
+const route = useRoute();
+const router = useRouter();
 let isQuitting = false;
+let onlineServiceStartTimer: number | null = null;
+
+const searchScope = computed<SearchScope | null>(() => {
+  if (route.name === "LocalMusic") return "local";
+  if (route.name === "OnlineMusic" || route.name === "Artist") return "online";
+  if (route.name === "Playlist" || route.name === "PlaylistNew") return "playlist";
+  return null;
+});
 
 const windowSizeConstraints = useWindowSizeConstraints({
   minWidth: 900,
@@ -60,15 +71,24 @@ const trayEvents = useTrayPlaybackEvents({
   },
 });
 
-function handleSearch(keyword: string) {
+async function handleSearch(keyword: string, scope: SearchScope) {
   const kw = keyword.trim();
-  if (viewStore.viewMode === ViewMode.LOCAL) {
+  if (scope === "local") {
     localStore.searchLocalMusic(kw);
     return;
   }
 
+  if (scope === "playlist") {
+    viewStore.setPlaylistSearchKeyword(kw);
+    return;
+  }
+
+  if (route.name !== "OnlineMusic") {
+    await router.push({ name: "OnlineMusic" });
+  }
+
   if (kw) {
-    void onlineStore.searchOnlineMusic(kw);
+    await onlineStore.searchOnlineMusic(kw);
   } else {
     onlineStore.resetResults();
   }
@@ -90,30 +110,44 @@ async function quitAfterFlush() {
   }
 }
 
-onMounted(async () => {
-  try {
-    await windowSizeConstraints.apply();
-    await localStore.initializeLocalLibrary();
-    await playlistStore.loadPlaylists();
-    themeStore.initializeTheme();
-    await playerStore.syncVolumeToBackend();
-    keyboardShortcuts.start();
-    themeSync.start();
+function runInitTask(name: string, task: () => Promise<unknown>) {
+  return task().catch((error) => {
+    console.error(`[app:init] ${name} failed:`, error);
+  });
+}
+
+onMounted(() => {
+  keyboardShortcuts.start();
+  themeSync.start();
+  window.addEventListener("beforeunload", flushPlaylistSave);
+  window.addEventListener("pagehide", flushPlaylistSave);
+
+  void Promise.all([
+    runInitTask("window constraints", () => windowSizeConstraints.apply()),
+    runInitTask("local library", () => localStore.initializeLocalLibrary()),
+    runInitTask("playlists", () => playlistStore.loadPlaylists()),
+    runInitTask("playback volume", () => playerStore.syncVolumeToBackend()),
+    runInitTask("playback events", () => playerStore.startPlaybackEventListening()),
+    runInitTask("tray events", () => trayEvents.start()),
+  ]);
+
+  onlineServiceStartTimer = window.setTimeout(() => {
+    onlineServiceStartTimer = null;
     onlineServiceStore.start();
-    window.addEventListener("beforeunload", flushPlaylistSave);
-    window.addEventListener("pagehide", flushPlaylistSave);
-    await trayEvents.start();
-  } catch (e) {
-    console.error("App init error:", e);
-  }
+  }, 250);
 });
 
 onUnmounted(() => {
   keyboardShortcuts.stop();
   themeSync.stop();
+  if (onlineServiceStartTimer !== null) {
+    clearTimeout(onlineServiceStartTimer);
+    onlineServiceStartTimer = null;
+  }
   onlineServiceStore.stop();
   trayEvents.stop();
   playerStore.stopPlayTimeTracking();
+  playerStore.stopPlaybackEventListening();
   window.removeEventListener("beforeunload", flushPlaylistSave);
   window.removeEventListener("pagehide", flushPlaylistSave);
   flushPlaylistSave();
@@ -122,13 +156,9 @@ onUnmounted(() => {
 
 <template>
   <el-config-provider :locale="elementLocale" :message="elementMessageConfig">
-    <div
-      class="music-app"
-      :class="{ 'dark-theme': themeStore.isDarkMode }"
-      @contextmenu.prevent
-    >
+    <div class="music-app" :class="{ 'dark-theme': themeStore.isDarkMode }">
       <HeaderBar
-        :viewMode="viewStore.viewMode"
+        :searchScope="searchScope"
         :isDarkMode="themeStore.isDarkMode"
         @search="handleSearch"
       />
@@ -207,7 +237,7 @@ onUnmounted(() => {
   background: var(--app-subtle-surface);
 }
 
-@media (max-width: 960px) {
+@media (max-width: 840px) {
   .main-content {
     padding: var(--app-content-padding-compact);
   }

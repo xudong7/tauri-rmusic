@@ -31,6 +31,7 @@ interface SeekResult {
 export interface TauriCommandParamsMap {
   quit_app: void;
   scan_files: { path: string | null; defaultDirectory: string | null };
+  load_cached_music_files: { path: string | null; defaultDirectory: string | null };
   handle_event: { event: string };
   play_track: { source: PlaybackSource };
   prefetch_netease_song: { id: string };
@@ -39,7 +40,7 @@ export interface TauriCommandParamsMap {
   clear_online_audio_cache: void;
   check_online_service_status: void;
   restart_online_service: void;
-  play_netease_song: { id: string; name: string; artist: string };
+  play_netease_song: { id: string; name: string; artist: string; picUrl?: string };
   download_music: {
     songHash: string;
     songName: string;
@@ -70,6 +71,7 @@ export interface TauriCommandParamsMap {
 export interface TauriCommandResultMap {
   quit_app: void;
   scan_files: MusicFile[];
+  load_cached_music_files: MusicFile[];
   handle_event: void;
   play_track: PlayStartResult;
   prefetch_netease_song: void;

@@ -7,6 +7,10 @@ export interface MusicFile {
   extension?: string;
   modified_ms?: number;
   search_text?: string;
+  title?: string | null;
+  artist?: string | null;
+  album?: string | null;
+  duration_ms?: number;
 }
 
 // 在线音乐信息模型
@@ -100,6 +104,8 @@ export enum ViewMode {
   ONLINE = "online", // 在线音乐模式
   PLAYLIST = "playlist", // 播放列表模式
 }
+
+export type SearchScope = "local" | "online" | "playlist";
 
 // 播放列表单项（本地或在线）
 export type PlaylistItem =

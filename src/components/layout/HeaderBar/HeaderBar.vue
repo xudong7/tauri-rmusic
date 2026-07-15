@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from "vue";
+import { computed, onUnmounted, reactive, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   Close,
@@ -10,7 +10,7 @@ import {
   ScaleToOriginal,
   Search,
 } from "@element-plus/icons-vue";
-import { ViewMode } from "@/types/model";
+import { ViewMode, type SearchScope } from "@/types/model";
 import { useWindowControls } from "@/composables/useWindowControls";
 import { useWindowDrag } from "@/composables/useWindowDrag";
 import { useSearchHistoryStore } from "@/stores/searchHistoryStore";
@@ -22,13 +22,25 @@ const searchHistoryStore = useSearchHistoryStore();
 const onlineServiceStore = useOnlineServiceStore();
 
 const props = defineProps<{
-  viewMode: ViewMode;
+  searchScope: SearchScope | null;
   isDarkMode: boolean;
 }>();
 
-const emit = defineEmits(["search"]);
+const emit = defineEmits<{
+  search: [keyword: string, scope: SearchScope];
+}>();
 
-const searchKeyword = ref("");
+const searchKeywords = reactive<Record<SearchScope, string>>({
+  local: "",
+  online: "",
+  playlist: "",
+});
+const searchKeyword = computed({
+  get: () => (props.searchScope ? searchKeywords[props.searchScope] : ""),
+  set: (value: string) => {
+    if (props.searchScope) searchKeywords[props.searchScope] = value;
+  },
+});
 const showHistoryDropdown = ref(false);
 const searchWrapperRef = ref<HTMLElement | null>(null);
 /** 失焦后延迟关闭历史面板，避免点击历史项时误关 */
@@ -41,8 +53,20 @@ const { isMaximized, minimize, toggleMaximize, close } = useWindowControls({
 });
 const { startWindowDrag } = useWindowDrag();
 const maximizeIcon = computed(() => (isMaximized.value ? ScaleToOriginal : FullScreen));
-const historyList = computed(() => searchHistoryStore.getHistory(props.viewMode));
-const showOnlineServiceStatus = true;
+const supportsSearchHistory = computed(
+  () => props.searchScope === "local" || props.searchScope === "online"
+);
+const historyMode = computed(() =>
+  props.searchScope === "local" ? ViewMode.LOCAL : ViewMode.ONLINE
+);
+const historyList = computed(() =>
+  supportsSearchHistory.value ? searchHistoryStore.getHistory(historyMode.value) : []
+);
+const searchPlaceholder = computed(() => {
+  if (props.searchScope === "local") return t("search.placeholderLocal");
+  if (props.searchScope === "playlist") return t("search.placeholderPlaylist");
+  return t("search.placeholderOnline");
+});
 const onlineServiceStatusTitle = computed(() => {
   if (onlineServiceStore.state === "checking") return t("onlineService.checking");
   if (onlineServiceStore.state === "restarting") return t("onlineService.restarting");
@@ -61,22 +85,23 @@ function handleOnlineServiceStatusClick() {
 }
 
 watch(
-  () => props.viewMode,
+  () => props.searchScope,
   () => {
     showHistoryDropdown.value = false;
   }
 );
 
 function handleSearch() {
+  if (!props.searchScope) return;
   const kw = searchKeyword.value.trim();
-  if (kw) searchHistoryStore.add(kw, props.viewMode);
+  if (kw && supportsSearchHistory.value) searchHistoryStore.add(kw, historyMode.value);
   showHistoryDropdown.value = false;
-  emit("search", kw);
+  emit("search", kw, props.searchScope);
 }
 
 function onSearchFocus() {
   clearBlurTimer();
-  showHistoryDropdown.value = true;
+  showHistoryDropdown.value = supportsSearchHistory.value;
 }
 
 function clearBlurTimer() {
@@ -102,25 +127,27 @@ function onSearchWrapperClick(e: MouseEvent) {
   const target = e.target as HTMLElement;
   const dropdown = searchWrapperRef.value?.querySelector(".search-history-dropdown");
   if (dropdown?.contains(target)) return;
+  if (!supportsSearchHistory.value) return;
   clearBlurTimer();
   showHistoryDropdown.value = true;
 }
 
 function selectHistory(item: string) {
+  if (!props.searchScope) return;
   searchKeyword.value = item;
-  searchHistoryStore.add(item, props.viewMode);
+  searchHistoryStore.add(item, historyMode.value);
   showHistoryDropdown.value = false;
-  emit("search", item);
+  emit("search", item, props.searchScope);
 }
 
 function removeHistoryItem(item: string, e: Event) {
   e.stopPropagation();
-  searchHistoryStore.remove(item, props.viewMode);
+  searchHistoryStore.remove(item, historyMode.value);
 }
 
 function clearHistory(e: Event) {
   e.stopPropagation();
-  searchHistoryStore.clear(props.viewMode);
+  searchHistoryStore.clear(historyMode.value);
   showHistoryDropdown.value = false;
 }
 
@@ -140,14 +167,15 @@ onUnmounted(clearBlurTimer);
     <div class="header-left" />
     <div class="header-center">
       <div class="search-section">
-        <div ref="searchWrapperRef" class="search-wrapper" @click="onSearchWrapperClick">
+        <div
+          v-if="searchScope"
+          ref="searchWrapperRef"
+          class="search-wrapper"
+          @click="onSearchWrapperClick"
+        >
           <el-input
             v-model="searchKeyword"
-            :placeholder="
-              viewMode === ViewMode.LOCAL
-                ? t('search.placeholderLocal')
-                : t('search.placeholderOnline')
-            "
+            :placeholder="searchPlaceholder"
             class="search-input search-pill"
             @keyup.enter="handleSearch"
             @focus="onSearchFocus"
@@ -159,7 +187,7 @@ onUnmounted(clearBlurTimer);
           </el-input>
           <Transition name="history-dropdown">
             <div
-              v-show="showHistoryDropdown"
+              v-show="showHistoryDropdown && supportsSearchHistory"
               class="search-history-dropdown"
               @mousedown.prevent
             >
@@ -205,7 +233,7 @@ onUnmounted(clearBlurTimer);
 
     <div class="header-right">
       <el-tooltip
-        v-if="showOnlineServiceStatus"
+        v-if="searchScope === 'online'"
         :content="onlineServiceStatusTitle"
         placement="bottom"
         effect="light"

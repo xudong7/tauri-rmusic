@@ -1,6 +1,6 @@
 use file::{
-    download_music, get_default_music_dir, import_music, load_local_cover_path, load_local_lyric,
-    scan_files,
+    download_music, get_default_music_dir, import_music, load_cached_music_files,
+    load_local_cover_path, load_local_lyric, scan_files,
 };
 use music::{
     clear_online_audio_cache, get_online_audio_cache_path, get_online_audio_cache_size,
@@ -13,7 +13,9 @@ use netease::{
 };
 use playlist::{read_playlists, write_playlists};
 use rodio::Sink;
-use service::{restart_online_service, setup_service, sidecar_name_for_current_platform};
+use service::{
+    restart_online_service, setup_service, sidecar_name_for_current_platform, OnlineServiceProcess,
+};
 use std::sync::Arc;
 use tauri::Manager;
 use tauri_plugin_autostart::MacosLauncher;
@@ -87,6 +89,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_window_state::Builder::new().build())
+        .manage(OnlineServiceProcess::default())
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             let window = app
                 .get_webview_window("main")
@@ -135,6 +138,7 @@ pub fn run() {
             clear_online_audio_cache,
             seek_to,
             scan_files,
+            load_cached_music_files,
             check_online_service_status,
             restart_online_service,
             search_songs,

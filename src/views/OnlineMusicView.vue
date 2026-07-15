@@ -8,6 +8,8 @@
       :loading="onlineStore.isSearchLoading"
       :totalCount="onlineStore.onlineSongsTotal"
       @play="playOnlineSongFromSearch"
+      @prefetch="playerStore.prefetchOnlineSong"
+      @toggle-current="playerStore.togglePlay"
       @download="downloadOnlineSong"
       @load-more="onlineStore.loadMoreResults"
       @add-to-playlist="addOnlineSongToPlaylist"

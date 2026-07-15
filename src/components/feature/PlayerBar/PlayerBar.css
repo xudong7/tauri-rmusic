@@ -1,6 +1,6 @@
 .player-bar {
   display: grid;
-  grid-template-columns: minmax(150px, 200px) minmax(0, 1fr) minmax(140px, 200px);
+  grid-template-columns: minmax(150px, 168px) minmax(0, 1fr) minmax(140px, 180px);
   align-items: center;
   height: var(--app-player-height, 64px);
   padding: 0 16px;
@@ -334,7 +334,7 @@ html.dark .volume-speaker-icon {
 }
 
 /* 响应式 */
-@media (max-width: 960px) {
+@media (max-width: 840px) {
   .player-bar {
     grid-template-columns: minmax(132px, 168px) minmax(0, 1fr) minmax(112px, 136px);
     gap: 12px;
@@ -359,7 +359,7 @@ html.dark .volume-speaker-icon {
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 780px) {
   .player-bar {
     grid-template-columns: minmax(112px, 138px) minmax(0, 1fr) minmax(104px, 120px);
     gap: 10px;

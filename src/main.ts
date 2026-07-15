@@ -39,11 +39,13 @@ import "./assets/styles/message.css";
 import App from "./App.vue";
 import router from "./router";
 import { i18n } from "./i18n";
+import { useThemeStore } from "./stores/themeStore";
 
 const app = createApp(App);
 const pinia = createPinia();
 
 app.use(pinia);
+useThemeStore(pinia).initializeTheme();
 app.use(i18n);
 [
   ElButton,

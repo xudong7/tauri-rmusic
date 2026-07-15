@@ -5,7 +5,8 @@ import { checkOnlineServiceStatus, restartOnlineService } from "@/api/commands/n
 
 type ServiceState = "checking" | "restarting" | "available" | "unavailable";
 
-const CHECK_INTERVAL_MS = 10_000;
+const AVAILABLE_CHECK_INTERVAL_MS = 60_000;
+const UNAVAILABLE_RETRY_DELAYS_MS = [2_000, 5_000, 10_000, 30_000];
 
 export const useOnlineServiceStore = defineStore("onlineService", () => {
   const state = ref<ServiceState>("checking");
@@ -15,6 +16,8 @@ export const useOnlineServiceStore = defineStore("onlineService", () => {
   const isChecking = ref(false);
   const isRestarting = ref(false);
   let timer: number | null = null;
+  let started = false;
+  let failureStreak = 0;
 
   const isAvailable = computed(() => state.value === "available");
 
@@ -23,10 +26,33 @@ export const useOnlineServiceStore = defineStore("onlineService", () => {
     message.value = status.message;
     statusCode.value = status.status_code;
     lastCheckedAt.value = Date.now();
+    failureStreak = status.available ? 0 : failureStreak + 1;
+  }
+
+  function clearTimer() {
+    if (timer !== null) {
+      clearTimeout(timer);
+      timer = null;
+    }
+  }
+
+  function scheduleNextCheck() {
+    clearTimer();
+    if (!started || document.visibilityState === "hidden") return;
+    const delay = isAvailable.value
+      ? AVAILABLE_CHECK_INTERVAL_MS
+      : UNAVAILABLE_RETRY_DELAYS_MS[
+          Math.min(Math.max(0, failureStreak - 1), UNAVAILABLE_RETRY_DELAYS_MS.length - 1)
+        ];
+    timer = window.setTimeout(() => {
+      timer = null;
+      void checkNow();
+    }, delay);
   }
 
   async function checkNow() {
     if (isChecking.value || isRestarting.value) return;
+    clearTimer();
     isChecking.value = true;
     if (!lastCheckedAt.value) state.value = "checking";
     try {
@@ -36,8 +62,10 @@ export const useOnlineServiceStore = defineStore("onlineService", () => {
       message.value = error instanceof Error ? error.message : String(error);
       statusCode.value = null;
       lastCheckedAt.value = Date.now();
+      failureStreak++;
     } finally {
       isChecking.value = false;
+      scheduleNextCheck();
     }
   }
 
@@ -59,22 +87,29 @@ export const useOnlineServiceStore = defineStore("onlineService", () => {
     } finally {
       isRestarting.value = false;
       if (shouldRefreshStatus) await checkNow();
+      else scheduleNextCheck();
+    }
+  }
+
+  function handleVisibilityChange() {
+    if (document.visibilityState === "hidden") {
+      clearTimer();
+    } else {
+      void checkNow();
     }
   }
 
   function start() {
-    if (timer !== null) return;
+    if (started) return;
+    started = true;
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     void checkNow();
-    timer = window.setInterval(() => {
-      void checkNow();
-    }, CHECK_INTERVAL_MS);
   }
 
   function stop() {
-    if (timer !== null) {
-      clearInterval(timer);
-      timer = null;
-    }
+    started = false;
+    clearTimer();
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
   }
 
   return {

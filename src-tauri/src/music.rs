@@ -1,12 +1,13 @@
 use rodio::{Decoder, OutputStream, Sink, Source};
 use serde::{Deserialize, Serialize};
 use sha1::{Digest, Sha1};
+use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{BufReader, ErrorKind};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex as StdMutex, OnceLock, Weak};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::io::AsyncWriteExt;
 use tokio::sync::broadcast::Sender;
 use tokio::sync::{broadcast, Mutex};
@@ -16,6 +17,9 @@ use crate::netease;
 const MAX_ONLINE_AUDIO_CACHE_BYTES: u64 = 1024 * 1024 * 1024;
 const MAX_ONLINE_AUDIO_CACHE_FILES: usize = 200;
 const STREAM_IDLE_TIMEOUT: Duration = Duration::from_secs(30);
+const PLAYBACK_END_POLL_INTERVAL: Duration = Duration::from_millis(250);
+static CACHE_DOWNLOAD_LOCKS: OnceLock<StdMutex<HashMap<PathBuf, Weak<Mutex<()>>>>> =
+    OnceLock::new();
 
 #[derive(Serialize, Debug)]
 pub struct PlaybackProgress {
@@ -43,6 +47,13 @@ pub struct PlayStartResult {
     pub track_id: u64,
 }
 
+#[derive(Clone, Serialize, Debug)]
+struct PlaybackEndedEvent {
+    position_ms: u64,
+    duration_ms: u64,
+    track_id: u64,
+}
+
 #[derive(Deserialize, Debug)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum PlaybackSource {
@@ -64,7 +75,7 @@ pub struct PlaybackDurationState(pub Arc<Mutex<u64>>);
 #[derive(Clone)]
 pub struct PlaybackTrackIdState(pub Arc<Mutex<u64>>);
 
-#[derive(Serialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct MusicFile {
     pub id: i32,
     pub file_name: String,
@@ -73,6 +84,10 @@ pub struct MusicFile {
     pub extension: String,
     pub modified_ms: u64,
     pub search_text: String,
+    pub title: Option<String>,
+    pub artist: Option<String>,
+    pub album: Option<String>,
+    pub duration_ms: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -142,12 +157,12 @@ fn decode_file(path: &Path) -> Result<(Decoder<BufReader<File>>, u64), String> {
     Ok((source, duration_ms))
 }
 
-async fn append_file_to_sink(
-    path: &Path,
+async fn replace_sink_source(
+    source: Decoder<BufReader<File>>,
+    duration_ms: u64,
     sink: Arc<Mutex<Sink>>,
     duration: Arc<Mutex<u64>>,
-) -> Result<(), String> {
-    let (source, duration_ms) = decode_file(path)?;
+) {
     {
         let mut dur = duration.lock().await;
         *dur = duration_ms;
@@ -158,7 +173,43 @@ async fn append_file_to_sink(
     if sink_lock.is_paused() {
         sink_lock.play();
     }
-    Ok(())
+}
+
+fn start_playback_end_monitor(
+    app_handle: AppHandle,
+    sink: Arc<Mutex<Sink>>,
+    duration: Arc<Mutex<u64>>,
+    current_track_id: Arc<Mutex<u64>>,
+    expected_track_id: u64,
+) {
+    tauri::async_runtime::spawn(async move {
+        loop {
+            tokio::time::sleep(PLAYBACK_END_POLL_INTERVAL).await;
+
+            if *current_track_id.lock().await != expected_track_id {
+                return;
+            }
+
+            let (is_empty, position_ms) = {
+                let sink = sink.lock().await;
+                (sink.empty(), sink.get_pos().as_millis() as u64)
+            };
+            if !is_empty || position_ms == 0 {
+                continue;
+            }
+
+            let duration_ms = *duration.lock().await;
+            let _ = app_handle.emit(
+                "playback-ended",
+                PlaybackEndedEvent {
+                    position_ms,
+                    duration_ms,
+                    track_id: expected_track_id,
+                },
+            );
+            return;
+        }
+    });
 }
 
 fn online_cache_dir(app_handle: &AppHandle) -> Result<PathBuf, String> {
@@ -171,19 +222,21 @@ fn online_cache_dir(app_handle: &AppHandle) -> Result<PathBuf, String> {
     Ok(cache_dir)
 }
 
-fn online_cache_path(
-    app_handle: &AppHandle,
-    cache_key: &str,
-    url: &str,
-) -> Result<PathBuf, String> {
+fn online_cache_path(app_handle: &AppHandle, cache_key: &str) -> Result<PathBuf, String> {
     let cache_dir = online_cache_dir(app_handle)?;
     let mut hasher = Sha1::new();
+    hasher.update(b"v2:");
     hasher.update(cache_key.as_bytes());
-    hasher.update(b":");
-    hasher.update(url.as_bytes());
     let digest = format!("{:x}", hasher.finalize());
 
     Ok(cache_dir.join(format!("{}.audio", digest)))
+}
+
+pub(crate) fn is_online_audio_cached(app_handle: &AppHandle, cache_key: &str) -> bool {
+    online_cache_path(app_handle, cache_key)
+        .ok()
+        .and_then(|path| fs::metadata(path).ok())
+        .is_some_and(|metadata| metadata.len() > 0)
 }
 
 fn unique_temp_path_for(target_path: &Path) -> PathBuf {
@@ -201,6 +254,22 @@ fn unique_temp_path_for(target_path: &Path) -> PathBuf {
         std::process::id(),
         unique
     ))
+}
+
+fn online_download_lock(cache_path: &Path) -> Result<Arc<Mutex<()>>, String> {
+    let locks = CACHE_DOWNLOAD_LOCKS.get_or_init(|| StdMutex::new(HashMap::new()));
+    let mut locks = locks
+        .lock()
+        .map_err(|_| "online cache download lock poisoned".to_string())?;
+    locks.retain(|_, lock| lock.upgrade().is_some());
+
+    if let Some(lock) = locks.get(cache_path).and_then(Weak::upgrade) {
+        return Ok(lock);
+    }
+
+    let lock = Arc::new(Mutex::new(()));
+    locks.insert(cache_path.to_path_buf(), Arc::downgrade(&lock));
+    Ok(lock)
 }
 
 fn online_cache_entries(app_handle: &AppHandle) -> Result<Vec<(PathBuf, u64, u64)>, String> {
@@ -259,7 +328,13 @@ async fn cached_online_file(
     url: &str,
     cache_key: &str,
 ) -> Result<PathBuf, String> {
-    let cache_path = online_cache_path(app_handle, cache_key, url)?;
+    let cache_path = online_cache_path(app_handle, cache_key)?;
+    if cache_path.exists() {
+        return Ok(cache_path);
+    }
+
+    let download_lock = online_download_lock(&cache_path)?;
+    let _download_guard = download_lock.lock().await;
     if cache_path.exists() {
         return Ok(cache_path);
     }
@@ -355,18 +430,37 @@ pub async fn play_track(
     let source_path = match source {
         PlaybackSource::Local { path } => PathBuf::from(path),
         PlaybackSource::Online { url, cache_key } => {
-            cached_online_file(&app_handle, &url, &cache_key).await?
+            let resolved_url = if url.trim().is_empty() {
+                netease::get_song_url(cache_key.clone()).await?
+            } else {
+                url
+            };
+            cached_online_file(&app_handle, &resolved_url, &cache_key).await?
         }
     };
 
-    append_file_to_sink(&source_path, Arc::clone(&sink), Arc::clone(&duration.0)).await?;
-
+    let (decoded_source, decoded_duration_ms) = decode_file(&source_path)?;
     let next_track_id = {
         let mut id = track_id.0.lock().await;
         *id = id.saturating_add(1);
         *id
     };
+
+    replace_sink_source(
+        decoded_source,
+        decoded_duration_ms,
+        Arc::clone(&sink),
+        Arc::clone(&duration.0),
+    )
+    .await;
     let duration_ms = *duration.0.lock().await;
+    start_playback_end_monitor(
+        app_handle,
+        Arc::clone(&sink),
+        Arc::clone(&duration.0),
+        Arc::clone(&track_id.0),
+        next_track_id,
+    );
 
     Ok(PlayStartResult {
         position_ms: 0,
@@ -381,6 +475,9 @@ pub async fn play_track(
 pub async fn prefetch_netease_song(app_handle: AppHandle, id: String) -> Result<(), String> {
     if id.trim().is_empty() {
         return Err("Empty song id".to_string());
+    }
+    if is_online_audio_cached(&app_handle, &id) {
+        return Ok(());
     }
 
     let url = netease::get_song_url(id.clone()).await?;

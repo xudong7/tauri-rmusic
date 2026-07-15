@@ -11,7 +11,7 @@ import {
   RefreshRight,
 } from "@element-plus/icons-vue";
 import { PlayMode, type MusicFile, type SongInfo } from "@/types/model";
-import { getDisplayName, extractArtistName, extractSongTitle } from "@/utils/songUtils";
+import { getLocalMusicDisplayInfo } from "@/utils/songUtils";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import { useArtistNavigation } from "@/composables/useArtistNavigation";
 import { useCoverLoader } from "@/composables/useCoverLoader";
@@ -64,19 +64,18 @@ const currentSongName = computed(() => {
   void locale.value;
   if (props.currentOnlineSong) return props.currentOnlineSong.name;
   return props.currentMusic
-    ? getDisplayName(props.currentMusic.file_name)
+    ? getLocalMusicDisplayInfo(props.currentMusic).title
     : t("playerBar.noSong");
 });
 
-const songTitle = computed(() => extractSongTitle(currentSongName.value));
+const songTitle = computed(() => currentSongName.value);
 
 const currentArtistDisplay = computed(() => {
   void locale.value;
   if (props.currentOnlineSong?.artists?.length)
     return props.currentOnlineSong.artists.join(", ");
   if (props.currentMusic) {
-    const a = extractArtistName(getDisplayName(props.currentMusic.file_name));
-    return a || t("common.unknownArtist");
+    return getLocalMusicDisplayInfo(props.currentMusic, t("common.unknownArtist")).artist;
   }
   return "";
 });

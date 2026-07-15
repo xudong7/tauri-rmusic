@@ -2,6 +2,7 @@ import { ref } from "vue";
 import { PlayMode, ViewMode, type Playlist, type SongInfo } from "@/types/model";
 
 const MAX_PREFETCHED_ONLINE_SONG_IDS = 300;
+const MAX_CONCURRENT_ONLINE_PREFETCHES = 2;
 
 export interface PlayOnlineOptions {
   fromPlaylistId?: string;
@@ -82,21 +83,26 @@ export function usePlaybackQueue(options: {
   async function prefetchNextOnlineSong(song: SongInfo) {
     const nextSong = getNextOnlineSongForPrefetch(song);
     if (!nextSong) return;
+    await prefetchOnlineSong(nextSong.id);
+  }
+
+  async function prefetchOnlineSong(id: string) {
     if (
-      prefetchedOnlineSongIds.has(nextSong.id) ||
-      prefetchingOnlineSongIds.has(nextSong.id)
+      prefetchedOnlineSongIds.has(id) ||
+      prefetchingOnlineSongIds.has(id) ||
+      prefetchingOnlineSongIds.size >= MAX_CONCURRENT_ONLINE_PREFETCHES
     ) {
       return;
     }
 
-    prefetchingOnlineSongIds.add(nextSong.id);
+    prefetchingOnlineSongIds.add(id);
     try {
-      await options.prefetchOnlineSong(nextSong.id);
-      rememberPrefetchedOnlineSong(nextSong.id);
+      await options.prefetchOnlineSong(id);
+      rememberPrefetchedOnlineSong(id);
     } catch (error) {
-      console.warn("[播放控制] 预取下一首在线歌曲失败:", error);
+      console.warn("[播放控制] 预取在线歌曲失败:", error);
     } finally {
-      prefetchingOnlineSongIds.delete(nextSong.id);
+      prefetchingOnlineSongIds.delete(id);
     }
   }
 
@@ -106,6 +112,7 @@ export function usePlaybackQueue(options: {
     applyOnlinePlaybackContext,
     getActiveOnlineQueue,
     getNextOnlineSongForPrefetch,
+    prefetchOnlineSong,
     prefetchNextOnlineSong,
   };
 }
