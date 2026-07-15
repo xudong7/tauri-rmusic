@@ -112,18 +112,19 @@ pub fn get_client() -> Result<reqwest::Client, String> {
 
 #[tauri::command]
 pub async fn check_online_service_status() -> Result<OnlineServiceStatus, String> {
-    let client = reqwest::Client::builder()
-        .user_agent(USER_AGENT)
-        .timeout(Duration::from_secs(2))
-        .build()
-        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
+    let client = get_client()?;
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_millis())
         .unwrap_or(0);
     let url = format!("{}/login/status?timestamp={}", LOCAL_API_BASE, timestamp);
 
-    match client.get(&url).send().await {
+    match client
+        .get(&url)
+        .timeout(Duration::from_secs(2))
+        .send()
+        .await
+    {
         Ok(response) => {
             let status = response.status();
             if status.is_success() {
@@ -577,10 +578,20 @@ pub async fn play_netease_song(
     id: String,
     name: String,
     artist: String,
+    pic_url: Option<String>,
 ) -> Result<PlaySongResult, String> {
-    let pic_url = get_song_cover(id.clone(), name.clone(), artist.clone()).await?;
-    // 获取歌曲URL
-    let url = get_song_url(id.clone()).await?;
+    let cover_id = id.clone();
+    let cover_name = name.clone();
+    let cover_artist = artist.clone();
+    let cover_future = async move {
+        match pic_url.filter(|url| !url.trim().is_empty()) {
+            Some(url) => Ok(url),
+            None => get_song_cover(cover_id, cover_name, cover_artist).await,
+        }
+    };
+    let (url_result, cover_result) = tokio::join!(get_song_url(id.clone()), cover_future);
+    let url = url_result?;
+    let pic_url = cover_result.unwrap_or_default();
     // 组装结果
     let result = PlaySongResult {
         url,

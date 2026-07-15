@@ -29,11 +29,17 @@ A modern, lightweight cross-platform desktop music player built with Tauri 2 and
 
 ## Screenshots
 
-![Light Mode](screenshots/image-1.png) ![Dark Mode](screenshots/image-2.png)
+|               Local Library               |               Online Search               |
+| :---------------------------------------: | :---------------------------------------: |
+| ![Local Library](screenshots/image-1.png) | ![Online Search](screenshots/image-2.png) |
 
-![Warm Mode](screenshots/image-3.png) ![Online Search](screenshots/image-4.png)
+|               Artist Details               |               Playlist               |
+| :----------------------------------------: | :----------------------------------: |
+| ![Artist Details](screenshots/image-3.png) | ![Playlist](screenshots/image-4.png) |
 
-![Settings](screenshots/image-5.png) ![Immersive Mode](screenshots/image-6.png)
+|               Settings               |               Immersive Mode               |
+| :----------------------------------: | :----------------------------------------: |
+| ![Settings](screenshots/image-5.png) | ![Immersive Mode](screenshots/image-6.png) |
 
 ---
 
@@ -45,7 +51,7 @@ A modern, lightweight cross-platform desktop music player built with Tauri 2 and
 | **Performance**      | Rust + Tauri for minimal footprint and fast startup                             |
 | **Local playback**   | Scan folders; play MP3, WAV, OGG, FLAC                                          |
 | **Online streaming** | Search and play via NetEase API (requires local proxy)                          |
-| **UI**               | Vue 3 + Element Plus; light/dark and time-based auto theme                      |
+| **UI**               | Vue 3 + Element Plus; light, dark, and warm themes                              |
 | **Playback**         | Volume, progress, repeat, shuffle; lyrics and immersive full-screen mode        |
 | **Convenience**      | System tray, keyboard shortcuts (space, arrows), download with cover and lyrics |
 | **Settings**         | Theme, download path, library scan, cache management                            |

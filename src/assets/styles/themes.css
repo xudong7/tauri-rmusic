@@ -78,8 +78,8 @@ html {
   --app-track-row-gap: 12px;
   --app-track-row-padding-x: 10px;
   --app-track-row-padding-y: 8px;
-  --app-list-reading-width: 860px;
-  --app-online-list-width: 980px;
+  --app-list-reading-width: 100%;
+  --app-online-list-width: 100%;
 
   /* 按钮与控件：macOS / Apple Music 风格 */
   --app-button-height: 32px;
@@ -131,7 +131,7 @@ html {
   --player-bg-color: var(--player-glass-bg);
   --sidebar-bg: var(--app-card-bg);
   --hover-bg-color: rgba(90, 138, 181, 0.04);
-  --active-item-bg: rgba(90, 138, 181, 0.08);
+  --active-item-bg: rgba(90, 138, 181, 0.1);
 
   /* 按钮相关变量（hover 用略深色，与主色协调） */
   --primary-button-bg: var(--el-color-primary);
@@ -288,10 +288,10 @@ html.theme-warm {
 
   /* 侧栏：与主区同色系 */
   --sidebar-bg: #ede7e2;
-  --sidebar-border-color: rgba(61, 56, 50, 0.08);
+  --sidebar-border-color: rgba(61, 56, 50, 0.12);
 
-  --hover-bg-color: rgba(125, 110, 92, 0.04);
-  --active-item-bg: rgba(125, 110, 92, 0.08);
+  --hover-bg-color: rgba(125, 110, 92, 0.07);
+  --active-item-bg: rgba(125, 110, 92, 0.13);
 
   /* 按钮：主色暖灰褐，默认按钮 hover 同色系 */
   --primary-button-bg: #8a8070;
@@ -641,4 +641,22 @@ html.theme-warm ::-webkit-scrollbar-thumb {
 
 html.theme-warm ::-webkit-scrollbar-thumb:hover {
   background: rgba(61, 56, 50, 0.36);
+}
+
+button:focus-visible,
+[role="button"]:focus-visible,
+a:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--el-color-primary) 72%, transparent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

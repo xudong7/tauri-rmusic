@@ -120,9 +120,13 @@
         :selected-keys="selectedRowKeys"
         width="reading"
         @activate="playAt($event.sourceIndex)"
+        @toggle-current="playerStore.togglePlay"
         @toggle-select="toggleSelectRow($event.sourceIndex)"
         @visible-items="scheduleVisibleLocalCovers"
       >
+        <template #empty>
+          <el-empty :description="t('messages.noSearchResult')" />
+        </template>
         <template #actions="{ item }">
           <el-button
             circle
@@ -197,7 +201,7 @@ function toggleSelectRow(index: number) {
 function selectAll() {
   if (!playlist.value) return;
   selectedIndices.value = new Set(
-    Array.from({ length: playlist.value.items.length }, (_, i) => i)
+    filteredResolvedItems.value.map((item) => item.sourceIndex)
   );
 }
 
@@ -316,6 +320,14 @@ const resolvedItems = computed(() => {
   return result;
 });
 
+const filteredResolvedItems = computed(() => {
+  const keyword = viewStore.playlistSearchKeyword.trim().toLocaleLowerCase();
+  if (!keyword) return resolvedItems.value;
+  return resolvedItems.value.filter((entry) =>
+    `${entry.title} ${entry.artist}`.toLocaleLowerCase().includes(keyword)
+  );
+});
+
 const { getCover, scheduleMany: scheduleLocalCoverLoadMany } =
   useLocalCoverCache<ResolvedEntry>({
     getKey: (entry) => entry.coverKey,
@@ -351,7 +363,7 @@ function toTrackRow(entry: ResolvedEntry): TrackRowModel {
   };
 }
 
-const trackRows = computed(() => resolvedItems.value.map(toTrackRow));
+const trackRows = computed(() => filteredResolvedItems.value.map(toTrackRow));
 const selectedRowKeys = computed(
   () =>
     new Set(

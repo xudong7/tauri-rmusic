@@ -1,10 +1,11 @@
 use rodio::{Decoder, OutputStream, Sink, Source};
 use serde::{Deserialize, Serialize};
 use sha1::{Digest, Sha1};
+use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{BufReader, ErrorKind};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex as StdMutex, OnceLock, Weak};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Manager};
 use tokio::io::AsyncWriteExt;
@@ -16,6 +17,8 @@ use crate::netease;
 const MAX_ONLINE_AUDIO_CACHE_BYTES: u64 = 1024 * 1024 * 1024;
 const MAX_ONLINE_AUDIO_CACHE_FILES: usize = 200;
 const STREAM_IDLE_TIMEOUT: Duration = Duration::from_secs(30);
+static CACHE_DOWNLOAD_LOCKS: OnceLock<StdMutex<HashMap<PathBuf, Weak<Mutex<()>>>>> =
+    OnceLock::new();
 
 #[derive(Serialize, Debug)]
 pub struct PlaybackProgress {
@@ -64,7 +67,7 @@ pub struct PlaybackDurationState(pub Arc<Mutex<u64>>);
 #[derive(Clone)]
 pub struct PlaybackTrackIdState(pub Arc<Mutex<u64>>);
 
-#[derive(Serialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct MusicFile {
     pub id: i32,
     pub file_name: String,
@@ -171,16 +174,11 @@ fn online_cache_dir(app_handle: &AppHandle) -> Result<PathBuf, String> {
     Ok(cache_dir)
 }
 
-fn online_cache_path(
-    app_handle: &AppHandle,
-    cache_key: &str,
-    url: &str,
-) -> Result<PathBuf, String> {
+fn online_cache_path(app_handle: &AppHandle, cache_key: &str) -> Result<PathBuf, String> {
     let cache_dir = online_cache_dir(app_handle)?;
     let mut hasher = Sha1::new();
+    hasher.update(b"v2:");
     hasher.update(cache_key.as_bytes());
-    hasher.update(b":");
-    hasher.update(url.as_bytes());
     let digest = format!("{:x}", hasher.finalize());
 
     Ok(cache_dir.join(format!("{}.audio", digest)))
@@ -201,6 +199,22 @@ fn unique_temp_path_for(target_path: &Path) -> PathBuf {
         std::process::id(),
         unique
     ))
+}
+
+fn online_download_lock(cache_path: &Path) -> Result<Arc<Mutex<()>>, String> {
+    let locks = CACHE_DOWNLOAD_LOCKS.get_or_init(|| StdMutex::new(HashMap::new()));
+    let mut locks = locks
+        .lock()
+        .map_err(|_| "online cache download lock poisoned".to_string())?;
+    locks.retain(|_, lock| lock.upgrade().is_some());
+
+    if let Some(lock) = locks.get(cache_path).and_then(Weak::upgrade) {
+        return Ok(lock);
+    }
+
+    let lock = Arc::new(Mutex::new(()));
+    locks.insert(cache_path.to_path_buf(), Arc::downgrade(&lock));
+    Ok(lock)
 }
 
 fn online_cache_entries(app_handle: &AppHandle) -> Result<Vec<(PathBuf, u64, u64)>, String> {
@@ -259,7 +273,13 @@ async fn cached_online_file(
     url: &str,
     cache_key: &str,
 ) -> Result<PathBuf, String> {
-    let cache_path = online_cache_path(app_handle, cache_key, url)?;
+    let cache_path = online_cache_path(app_handle, cache_key)?;
+    if cache_path.exists() {
+        return Ok(cache_path);
+    }
+
+    let download_lock = online_download_lock(&cache_path)?;
+    let _download_guard = download_lock.lock().await;
     if cache_path.exists() {
         return Ok(cache_path);
     }

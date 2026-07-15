@@ -13,9 +13,10 @@ pub fn quit_app(app: &AppHandle) {
     if let Err(e) = app.save_window_state(StateFlags::all()) {
         eprintln!("Failed to save window state: {}", e);
     }
-    let sidecar_name = service::sidecar_name_for_current_platform();
-    if let Err(e) = service::shutdown_service(sidecar_name) {
-        eprintln!("Failed to shutdown sidecar {}: {}", sidecar_name, e);
+    if let Some(process) = app.try_state::<service::OnlineServiceProcess>() {
+        if let Err(e) = service::shutdown_service(process.inner()) {
+            eprintln!("Failed to shutdown sidecar: {}", e);
+        }
     }
     app.exit(0);
 }

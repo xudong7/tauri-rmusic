@@ -4,9 +4,11 @@
       :musicFiles="localStore.filteredMusicFiles"
       :currentMusic="playerStore.currentMusic"
       :isPlaying="playerStore.isPlaying"
+      :loading="localStore.isLoading"
       :getDefaultDirectory="localStore.getDefaultDirectory"
       :showImportButton="true"
       @play="playerStore.playMusic"
+      @toggle-current="playerStore.togglePlay"
       @import="importMusic"
     />
   </div>

@@ -1,6 +1,7 @@
 use crate::music::MusicFile;
 use crate::netease;
 use crate::netease::get_song_url;
+use serde::{Deserialize, Serialize};
 use sha1::{Digest, Sha1};
 use std::fs::{self, create_dir_all, read_dir, File};
 use std::io::{ErrorKind, Write};
@@ -11,6 +12,14 @@ use tauri::Manager;
 use tokio::io::AsyncWriteExt;
 
 const STREAM_IDLE_TIMEOUT: Duration = Duration::from_secs(30);
+const LIBRARY_INDEX_VERSION: u32 = 1;
+
+#[derive(Serialize, Deserialize)]
+struct LibraryIndex {
+    version: u32,
+    root: String,
+    files: Vec<MusicFile>,
+}
 
 fn supported_audio_extension(path: &Path) -> Option<String> {
     let extension = path.extension()?.to_str()?.to_lowercase();
@@ -23,6 +32,60 @@ fn path_key(path: &Path) -> String {
     let mut hasher = Sha1::new();
     hasher.update(path.to_string_lossy().as_bytes());
     format!("{:x}", hasher.finalize())
+}
+
+fn resolve_scan_path(
+    path: Option<String>,
+    default_directory: Option<String>,
+    app_handle: &AppHandle,
+) -> Result<PathBuf, String> {
+    if let Some(custom_path) = path {
+        return Ok(PathBuf::from(custom_path));
+    }
+    if let Some(default_dir) = default_directory {
+        return Ok(Path::new(&default_dir).join("music"));
+    }
+    get_default_music_dir(app_handle.clone()).map(PathBuf::from)
+}
+
+fn library_index_path(app_handle: &AppHandle, scan_path: &Path) -> Result<PathBuf, String> {
+    let dir = app_handle
+        .path()
+        .app_cache_dir()
+        .map_err(|e| format!("unable to get app cache dir: {}", e))?
+        .join("library-index");
+    Ok(dir.join(format!("{}.json", path_key(scan_path))))
+}
+
+fn read_library_index(index_path: &Path, scan_path: &Path) -> Vec<MusicFile> {
+    let Ok(bytes) = fs::read(index_path) else {
+        return Vec::new();
+    };
+    let Ok(index) = serde_json::from_slice::<LibraryIndex>(&bytes) else {
+        return Vec::new();
+    };
+    if index.version != LIBRARY_INDEX_VERSION || index.root != scan_path.to_string_lossy() {
+        return Vec::new();
+    }
+    index.files
+}
+
+fn write_library_index(
+    index_path: &Path,
+    scan_path: &Path,
+    files: &[MusicFile],
+) -> Result<(), String> {
+    if let Some(parent) = index_path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("create library index dir: {}", e))?;
+    }
+    let index = LibraryIndex {
+        version: LIBRARY_INDEX_VERSION,
+        root: scan_path.to_string_lossy().to_string(),
+        files: files.to_vec(),
+    };
+    let bytes =
+        serde_json::to_vec(&index).map_err(|e| format!("serialize library index: {}", e))?;
+    write_bytes_to_file(&bytes, index_path)
 }
 
 fn modified_ms(path: &Path) -> u64 {
@@ -251,53 +314,58 @@ pub fn scan_directory(
 /// need to scan the files and abstract the certain file types
 /// filter -> mp3, wav, ogg, flac
 /// if path include a dir, the dir also need to be scanned
-#[tauri::command]
-pub fn scan_files(
-    path: Option<String>,
-    default_directory: Option<String>,
-    app_handle: AppHandle,
-) -> Vec<MusicFile> {
+fn scan_files_sync(scan_path: &Path) -> Vec<MusicFile> {
     let mut music_files = Vec::new();
     let mut id_counter = 0;
 
-    // Determine which path to use
-    let scan_path = if let Some(custom_path) = path {
-        // If a specific path is provided, use it directly (for manual folder selection)
-        custom_path
-    } else if let Some(default_dir) = default_directory {
-        // If default_directory is provided, scan the music subfolder within it
-        std::path::Path::new(&default_dir)
-            .join("music")
-            .to_string_lossy()
-            .to_string()
-    } else {
-        // Fall back to the default music directory
-        match get_default_music_dir(app_handle) {
-            Ok(default_path) => default_path,
-            Err(_) => return music_files, // Return empty if we can't get default path
-        }
-    };
-
-    let base_path = std::path::Path::new(&scan_path).to_path_buf();
-    let path_obj = std::path::Path::new(&scan_path);
-    if path_obj.is_dir() {
-        scan_directory(&base_path, &base_path, &mut music_files, &mut id_counter);
+    if scan_path.is_dir() {
+        scan_directory(scan_path, scan_path, &mut music_files, &mut id_counter);
         music_files.sort_by(|a, b| a.file_name.cmp(&b.file_name));
         for (index, file) in music_files.iter_mut().enumerate() {
             file.id = index as i32;
         }
-    } else {
-        if supported_audio_extension(path_obj).is_some() {
-            if let Some(file_name) = path_obj.file_name() {
-                let relative = Path::new(file_name);
-                if let Some(file) = music_file_from_path(id_counter, path_obj, relative) {
-                    music_files.push(file);
-                }
+    } else if supported_audio_extension(scan_path).is_some() {
+        if let Some(file_name) = scan_path.file_name() {
+            let relative = Path::new(file_name);
+            if let Some(file) = music_file_from_path(id_counter, scan_path, relative) {
+                music_files.push(file);
             }
         }
     }
 
     music_files
+}
+
+#[tauri::command]
+pub async fn load_cached_music_files(
+    path: Option<String>,
+    default_directory: Option<String>,
+    app_handle: AppHandle,
+) -> Result<Vec<MusicFile>, String> {
+    let scan_path = resolve_scan_path(path, default_directory, &app_handle)?;
+    let index_path = library_index_path(&app_handle, &scan_path)?;
+    tokio::task::spawn_blocking(move || read_library_index(&index_path, &scan_path))
+        .await
+        .map_err(|e| format!("load library index task failed: {}", e))
+}
+
+#[tauri::command]
+pub async fn scan_files(
+    path: Option<String>,
+    default_directory: Option<String>,
+    app_handle: AppHandle,
+) -> Result<Vec<MusicFile>, String> {
+    let scan_path = resolve_scan_path(path, default_directory, &app_handle)?;
+    let index_path = library_index_path(&app_handle, &scan_path)?;
+    tokio::task::spawn_blocking(move || {
+        let files = scan_files_sync(&scan_path);
+        if let Err(error) = write_library_index(&index_path, &scan_path, &files) {
+            eprintln!("write library index failed: {}", error);
+        }
+        files
+    })
+    .await
+    .map_err(|e| format!("scan library task failed: {}", e))
 }
 
 /// get default music directory

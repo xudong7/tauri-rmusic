@@ -101,6 +101,8 @@ export enum ViewMode {
   PLAYLIST = "playlist", // 播放列表模式
 }
 
+export type SearchScope = "local" | "online" | "playlist";
+
 // 播放列表单项（本地或在线）
 export type PlaylistItem =
   | { type: "local"; file_name: string }

@@ -1,7 +1,13 @@
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tauri::{Emitter, Manager};
-use tauri_plugin_shell::process::CommandEvent;
+use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
+
+#[derive(Clone, Default)]
+pub struct OnlineServiceProcess {
+    child: Arc<Mutex<Option<CommandChild>>>,
+}
 
 /// 返回当前平台的 sidecar 名称（与 build.rs / lib.rs 中使用的名称一致）
 pub fn sidecar_name_for_current_platform() -> &'static str {
@@ -29,14 +35,25 @@ pub fn setup_service(
     service_name: &str,
     window: tauri::webview::WebviewWindow,
 ) -> Result<(), String> {
-    spawn_service(app.handle(), service_name, Some(window))
+    let process = app.state::<OnlineServiceProcess>();
+    spawn_service(app.handle(), service_name, Some(window), process.inner())
 }
 
 fn spawn_service(
     app_handle: &tauri::AppHandle,
     service_name: &str,
     window: Option<tauri::webview::WebviewWindow>,
+    process: &OnlineServiceProcess,
 ) -> Result<(), String> {
+    if process
+        .child
+        .lock()
+        .map_err(|_| "Online service process lock poisoned".to_string())?
+        .is_some()
+    {
+        return Ok(());
+    }
+
     let app_sidecar_command = app_handle
         .shell()
         .sidecar(service_name)
@@ -45,17 +62,38 @@ fn spawn_service(
     let (mut rx, child) = app_sidecar_command
         .spawn()
         .map_err(|e| format!("Failed to spawn sidecar {}: {}", service_name, e))?;
+    let pid = child.pid();
+    process
+        .child
+        .lock()
+        .map_err(|_| "Online service process lock poisoned".to_string())?
+        .replace(child);
 
+    let child_state = Arc::clone(&process.child);
     tauri::async_runtime::spawn(async move {
-        let _child = child;
         // 读取诸如 stdout 之类的事件
         while let Some(event) = rx.recv().await {
-            if let CommandEvent::Stdout(line) = event {
-                if let Some(window) = &window {
-                    if let Err(e) = window.emit("message", Some(format!("{:?}", line))) {
-                        eprintln!("Failed to emit event: {}", e);
+            match event {
+                CommandEvent::Stdout(line) => {
+                    if let Some(window) = &window {
+                        if let Err(e) = window.emit("message", Some(format!("{:?}", line))) {
+                            eprintln!("Failed to emit event: {}", e);
+                        }
                     }
                 }
+                CommandEvent::Terminated(_) => {
+                    if let Ok(mut current) = child_state.lock() {
+                        if current.as_ref().map(CommandChild::pid) == Some(pid) {
+                            current.take();
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+        if let Ok(mut current) = child_state.lock() {
+            if current.as_ref().map(CommandChild::pid) == Some(pid) {
+                current.take();
             }
         }
     });
@@ -63,44 +101,30 @@ fn spawn_service(
 }
 
 #[tauri::command]
-pub async fn restart_online_service(app_handle: tauri::AppHandle) -> Result<(), String> {
+pub async fn restart_online_service(
+    app_handle: tauri::AppHandle,
+    process: tauri::State<'_, OnlineServiceProcess>,
+) -> Result<(), String> {
     let service_name = sidecar_name_for_current_platform();
-    shutdown_service(service_name)?;
+    shutdown_service(process.inner())?;
     tokio::time::sleep(Duration::from_millis(500)).await;
     let window = app_handle.get_webview_window("main");
-    spawn_service(&app_handle, service_name, window)?;
+    spawn_service(&app_handle, service_name, window, process.inner())?;
     tokio::time::sleep(Duration::from_millis(800)).await;
     Ok(())
 }
 
 /// shutdown the service for the sidecar
-pub fn shutdown_service(service_name: &str) -> Result<(), String> {
-    // 尝试终止相关的进程
-    #[cfg(target_os = "windows")]
-    {
-        use std::process::Command;
-
-        // 获取进程名
-        let process_name = format!("{}.exe", service_name);
-
-        // 使用 taskkill 强制终止进程
-        if let Err(e) = Command::new("taskkill")
-            .args(&["/F", "/IM", &process_name])
-            .output()
-        {
-            eprintln!("Failed to terminate {} process: {}", service_name, e);
-        }
+pub fn shutdown_service(process: &OnlineServiceProcess) -> Result<(), String> {
+    let child = process
+        .child
+        .lock()
+        .map_err(|_| "Online service process lock poisoned".to_string())?
+        .take();
+    if let Some(child) = child {
+        child
+            .kill()
+            .map_err(|e| format!("Failed to terminate online service: {}", e))?;
     }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        use std::process::Command;
-
-        // 对于类 Unix 系统，使用 killall 或 pkill
-        if let Err(e) = Command::new("pkill").arg("-f").arg(service_name).output() {
-            eprintln!("Failed to terminate {} process: {}", service_name, e);
-        }
-    }
-
     Ok(())
 }

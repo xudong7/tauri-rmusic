@@ -3,10 +3,23 @@ export function useAppKeyboardShortcuts(options: {
   onTogglePlay: () => void;
   onNext: () => void;
 }) {
+  function isInteractiveTarget(target: EventTarget | null): boolean {
+    if (!(target instanceof HTMLElement)) return false;
+    return Boolean(
+      target.closest(
+        "input, textarea, select, button, [contenteditable='true'], [role='slider'], .el-slider"
+      )
+    );
+  }
+
   function handleKeyDown(event: KeyboardEvent) {
     if (
-      event.target instanceof HTMLInputElement ||
-      event.target instanceof HTMLTextAreaElement
+      event.defaultPrevented ||
+      event.repeat ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.altKey ||
+      isInteractiveTarget(event.target)
     ) {
       return;
     }

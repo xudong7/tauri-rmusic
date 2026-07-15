@@ -8,6 +8,13 @@ export async function scanFiles(args: {
   return await invokeCommand("scan_files", args);
 }
 
+export async function loadCachedMusicFiles(args: {
+  path: string | null;
+  defaultDirectory: string | null;
+}): Promise<MusicFile[]> {
+  return await invokeCommand("load_cached_music_files", args);
+}
+
 export async function getDefaultMusicDir(): Promise<string> {
   return await invokeCommand("get_default_music_dir");
 }

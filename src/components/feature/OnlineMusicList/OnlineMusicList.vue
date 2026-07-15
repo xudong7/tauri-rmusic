@@ -30,7 +30,13 @@ const props = withDefaults(
   }
 );
 
-const emit = defineEmits(["play", "download", "load-more", "add-to-playlist"]);
+const emit = defineEmits([
+  "play",
+  "toggle-current",
+  "download",
+  "load-more",
+  "add-to-playlist",
+]);
 
 function requestLoadMore() {
   if (props.loading || props.onlineSongs.length >= props.totalCount) return;
@@ -78,6 +84,7 @@ function handleAddToPlaylist(command: string, row: SongInfo) {
       :loading="loading"
       width="online"
       @activate="emit('play', onlineSongs[$event.sourceIndex])"
+      @toggle-current="emit('toggle-current')"
       @near-end="requestLoadMore"
     >
       <template #before>

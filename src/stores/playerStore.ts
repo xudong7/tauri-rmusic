@@ -239,6 +239,7 @@ export const usePlayerStore = defineStore("player", () => {
         id: song.id,
         name: song.name,
         artist: song.artists.join(", "),
+        picUrl: song.pic_url || undefined,
       });
 
       debugPlaybackLog("[播放控制] 获取到播放URL，准备播放");

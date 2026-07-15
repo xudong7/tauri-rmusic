@@ -15,6 +15,7 @@ export async function playNeteaseSong(args: {
   id: string;
   name: string;
   artist: string;
+  picUrl?: string;
 }): Promise<PlaySongResult> {
   return await invokeCommand("play_netease_song", args);
 }

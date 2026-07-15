@@ -28,11 +28,16 @@ const resolvedCoverUrl = computed(() =>
 );
 
 function handleRowClick() {
-  if (props.selectionMode) emit("toggleSelect", props.item);
+  if (props.selectionMode) {
+    emit("toggleSelect", props.item);
+    return;
+  }
+  handleActivate();
 }
 
 function handleActivate() {
-  if (!props.selectionMode && !props.item.disabled) emit("activate", props.item);
+  if (props.selectionMode || props.item.disabled) return;
+  emit("activate", props.item);
 }
 </script>
 
@@ -48,8 +53,12 @@ function handleActivate() {
       rowHeight ? { height: `${rowHeight}px`, minHeight: `${rowHeight}px` } : undefined
     "
     :title="`${item.title} — ${item.artist}`"
+    :tabindex="item.disabled ? -1 : 0"
+    role="button"
+    :aria-current="item.isCurrent ? 'true' : undefined"
+    :aria-disabled="item.disabled || undefined"
     @click="handleRowClick"
-    @dblclick="handleActivate"
+    @keydown.enter.space.prevent="handleRowClick"
   >
     <div class="track-row__play">
       <el-checkbox
@@ -109,6 +118,7 @@ function handleActivate() {
   transition:
     background var(--app-control-transition),
     color var(--app-control-transition);
+  outline: none;
 }
 
 .track-row:hover {
@@ -118,6 +128,15 @@ function handleActivate() {
 .track-row.is-current,
 .track-row.is-selected {
   background: var(--active-item-bg);
+}
+
+.track-row.is-current {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--el-color-primary) 14%, transparent);
+}
+
+.track-row:focus-visible {
+  background: var(--hover-bg-color);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--el-color-primary) 52%, transparent);
 }
 
 .track-row.is-current::before {

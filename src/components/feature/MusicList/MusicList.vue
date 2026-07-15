@@ -104,16 +104,18 @@ const props = withDefaults(
     musicFiles: MusicFile[];
     currentMusic: MusicFile | null;
     isPlaying: boolean;
+    loading?: boolean;
     showImportButton?: boolean;
     getDefaultDirectory?: () => string | null;
   }>(),
   {
     showImportButton: false,
+    loading: false,
     getDefaultDirectory: () => null,
   }
 );
 
-const emit = defineEmits(["play", "import"]);
+const emit = defineEmits(["play", "toggle-current", "import"]);
 
 watch(
   () => props.musicFiles,
@@ -251,13 +253,18 @@ function scheduleVisibleCovers(items: TrackRowModel[]) {
 
     <TrackList
       :items="trackRows"
+      :loading="loading"
       :selection-mode="selectionMode"
       :selected-keys="selectedKeys"
       width="reading"
       @activate="emit('play', musicFiles[$event.sourceIndex])"
+      @toggle-current="emit('toggle-current')"
       @toggle-select="toggleSelectRow(musicFiles[$event.sourceIndex])"
       @visible-items="scheduleVisibleCovers"
     >
+      <template #loading>
+        <el-skeleton :rows="6" animated />
+      </template>
       <template #empty>
         <el-empty :description="t('musicList.empty')" />
       </template>

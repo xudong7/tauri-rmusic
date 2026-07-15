@@ -24,6 +24,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   activate: [item: TrackRowModel];
+  toggleCurrent: [item: TrackRowModel];
   toggleSelect: [item: TrackRowModel];
   nearEnd: [];
   visibleItems: [items: TrackRowModel[]];
@@ -44,6 +45,11 @@ function handleScroll(event: Event) {
   if (!target) return;
   const remaining = target.scrollHeight - target.scrollTop - target.clientHeight;
   if (remaining < props.nearEndThreshold) emit("nearEnd");
+}
+
+function handleActivate(item: TrackRowModel) {
+  if (item.isCurrent) emit("toggleCurrent", item);
+  else emit("activate", item);
 }
 </script>
 
@@ -73,7 +79,7 @@ function handleScroll(event: Event) {
           :selection-mode="selectionMode"
           :selected="selectedKeys.has(item.key)"
           :row-height="rowHeight"
-          @activate="emit('activate', $event)"
+          @activate="handleActivate"
           @toggle-select="emit('toggleSelect', $event)"
         >
           <template v-if="$slots.actions" #actions="{ item: actionItem }">
@@ -96,7 +102,7 @@ function handleScroll(event: Event) {
           :item="item"
           :selection-mode="selectionMode"
           :selected="selectedKeys.has(item.key)"
-          @activate="emit('activate', $event)"
+          @activate="handleActivate"
           @toggle-select="emit('toggleSelect', $event)"
         >
           <template v-if="$slots.actions" #actions="{ item: actionItem }">
