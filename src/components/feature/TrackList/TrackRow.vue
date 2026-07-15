@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onBeforeUnmount } from "vue";
 import { CaretRight, VideoPause } from "@element-plus/icons-vue";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import type { TrackRowModel } from "./types";
@@ -20,20 +20,40 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   activate: [item: TrackRowModel];
+  intent: [item: TrackRowModel];
   toggleSelect: [item: TrackRowModel];
 }>();
+
+let intentTimer: number | null = null;
 
 const resolvedCoverUrl = computed(() =>
   typeof props.item.coverUrl === "function" ? props.item.coverUrl() : props.item.coverUrl
 );
 
 function handleRowClick() {
+  cancelIntent();
   if (props.selectionMode) {
     emit("toggleSelect", props.item);
     return;
   }
   handleActivate();
 }
+
+function scheduleIntent() {
+  if (props.selectionMode || props.item.disabled || intentTimer !== null) return;
+  intentTimer = window.setTimeout(() => {
+    intentTimer = null;
+    emit("intent", props.item);
+  }, 180);
+}
+
+function cancelIntent() {
+  if (intentTimer === null) return;
+  clearTimeout(intentTimer);
+  intentTimer = null;
+}
+
+onBeforeUnmount(cancelIntent);
 
 function handleActivate() {
   if (props.selectionMode || props.item.disabled) return;
@@ -59,6 +79,10 @@ function handleActivate() {
     :aria-disabled="item.disabled || undefined"
     @click="handleRowClick"
     @keydown.enter.space.prevent="handleRowClick"
+    @pointerenter="scheduleIntent"
+    @pointerleave="cancelIntent"
+    @focus="scheduleIntent"
+    @blur="cancelIntent"
   >
     <div class="track-row__play">
       <el-checkbox
@@ -76,7 +100,10 @@ function handleActivate() {
         :icon="item.isCurrent && item.isPlaying ? VideoPause : CaretRight"
         :disabled="item.disabled"
         :aria-label="item.title"
-        @click.stop="handleActivate"
+        @click.stop="
+          cancelIntent();
+          handleActivate();
+        "
       />
     </div>
 

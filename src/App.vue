@@ -127,6 +127,7 @@ onMounted(() => {
     runInitTask("local library", () => localStore.initializeLocalLibrary()),
     runInitTask("playlists", () => playlistStore.loadPlaylists()),
     runInitTask("playback volume", () => playerStore.syncVolumeToBackend()),
+    runInitTask("playback events", () => playerStore.startPlaybackEventListening()),
     runInitTask("tray events", () => trayEvents.start()),
   ]);
 
@@ -146,6 +147,7 @@ onUnmounted(() => {
   onlineServiceStore.stop();
   trayEvents.stop();
   playerStore.stopPlayTimeTracking();
+  playerStore.stopPlaybackEventListening();
   window.removeEventListener("beforeunload", flushPlaylistSave);
   window.removeEventListener("pagehide", flushPlaylistSave);
   flushPlaylistSave();

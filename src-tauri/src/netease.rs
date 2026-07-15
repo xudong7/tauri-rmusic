@@ -575,6 +575,7 @@ pub async fn get_song_url(id: String) -> Result<String, String> {
 /// play online song by id
 #[tauri::command]
 pub async fn play_netease_song(
+    app_handle: tauri::AppHandle,
     id: String,
     name: String,
     artist: String,
@@ -589,7 +590,14 @@ pub async fn play_netease_song(
             None => get_song_cover(cover_id, cover_name, cover_artist).await,
         }
     };
-    let (url_result, cover_result) = tokio::join!(get_song_url(id.clone()), cover_future);
+    let url_future = async {
+        if crate::music::is_online_audio_cached(&app_handle, &id) {
+            Ok(String::new())
+        } else {
+            get_song_url(id.clone()).await
+        }
+    };
+    let (url_result, cover_result) = tokio::join!(url_future, cover_future);
     let url = url_result?;
     let pic_url = cover_result.unwrap_or_default();
     // 组装结果

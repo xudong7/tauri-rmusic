@@ -1,7 +1,7 @@
 import type { PlaybackState } from "@/api/commands/music";
 
 const UI_TICK_INTERVAL_MS = 250;
-const BACKEND_SYNC_INTERVAL_MS = 1000;
+const BACKEND_SYNC_INTERVAL_MS = 10_000;
 
 export function usePlaybackClock(options: {
   getBackendState: () => Promise<PlaybackState>;
@@ -53,7 +53,7 @@ export function usePlaybackClock(options: {
   }
 
   function tick() {
-    if (!options.getHasTrack() || options.getIsLoading()) return;
+    if (document.hidden || !options.getHasTrack() || options.getIsLoading()) return;
 
     if (options.getIsPlaying()) {
       options.setPosition(Date.now() - playStartTimestamp);
@@ -67,6 +67,14 @@ export function usePlaybackClock(options: {
     }
   }
 
+  function handleVisibilityChange() {
+    if (document.hidden || !options.getHasTrack() || options.getIsLoading()) return;
+    void syncNow({ allowEnded: false }).catch((error) => {
+      console.error("[播放时钟] 窗口恢复时同步后端状态失败:", error);
+      lastBackendSync = Date.now();
+    });
+  }
+
   function start() {
     stop({ updatePosition: false });
     resetLocalClock();
@@ -75,6 +83,7 @@ export function usePlaybackClock(options: {
       console.error("[播放时钟] 初始同步后端状态失败:", error);
       lastBackendSync = Date.now();
     });
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     interval = window.setInterval(tick, UI_TICK_INTERVAL_MS);
   }
 
@@ -87,6 +96,7 @@ export function usePlaybackClock(options: {
       clearInterval(interval);
       interval = null;
     }
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
   }
 
   function setPosition(positionMs: number) {

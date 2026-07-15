@@ -24,6 +24,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   activate: [item: TrackRowModel];
+  intent: [item: TrackRowModel];
   toggleCurrent: [item: TrackRowModel];
   toggleSelect: [item: TrackRowModel];
   nearEnd: [];
@@ -80,6 +81,7 @@ function handleActivate(item: TrackRowModel) {
           :selected="selectedKeys.has(item.key)"
           :row-height="rowHeight"
           @activate="handleActivate"
+          @intent="emit('intent', $event)"
           @toggle-select="emit('toggleSelect', $event)"
         >
           <template v-if="$slots.actions" #actions="{ item: actionItem }">
@@ -103,6 +105,7 @@ function handleActivate(item: TrackRowModel) {
           :selection-mode="selectionMode"
           :selected="selectedKeys.has(item.key)"
           @activate="handleActivate"
+          @intent="emit('intent', $event)"
           @toggle-select="emit('toggleSelect', $event)"
         >
           <template v-if="$slots.actions" #actions="{ item: actionItem }">

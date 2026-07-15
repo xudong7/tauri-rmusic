@@ -7,7 +7,7 @@ use std::io::{BufReader, ErrorKind};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex as StdMutex, OnceLock, Weak};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::io::AsyncWriteExt;
 use tokio::sync::broadcast::Sender;
 use tokio::sync::{broadcast, Mutex};
@@ -17,6 +17,7 @@ use crate::netease;
 const MAX_ONLINE_AUDIO_CACHE_BYTES: u64 = 1024 * 1024 * 1024;
 const MAX_ONLINE_AUDIO_CACHE_FILES: usize = 200;
 const STREAM_IDLE_TIMEOUT: Duration = Duration::from_secs(30);
+const PLAYBACK_END_POLL_INTERVAL: Duration = Duration::from_millis(250);
 static CACHE_DOWNLOAD_LOCKS: OnceLock<StdMutex<HashMap<PathBuf, Weak<Mutex<()>>>>> =
     OnceLock::new();
 
@@ -44,6 +45,13 @@ pub struct PlayStartResult {
     pub is_paused: bool,
     pub has_track: bool,
     pub track_id: u64,
+}
+
+#[derive(Clone, Serialize, Debug)]
+struct PlaybackEndedEvent {
+    position_ms: u64,
+    duration_ms: u64,
+    track_id: u64,
 }
 
 #[derive(Deserialize, Debug)]
@@ -164,6 +172,43 @@ async fn append_file_to_sink(
     Ok(())
 }
 
+fn start_playback_end_monitor(
+    app_handle: AppHandle,
+    sink: Arc<Mutex<Sink>>,
+    duration: Arc<Mutex<u64>>,
+    current_track_id: Arc<Mutex<u64>>,
+    expected_track_id: u64,
+) {
+    tauri::async_runtime::spawn(async move {
+        loop {
+            tokio::time::sleep(PLAYBACK_END_POLL_INTERVAL).await;
+
+            if *current_track_id.lock().await != expected_track_id {
+                return;
+            }
+
+            let (is_empty, position_ms) = {
+                let sink = sink.lock().await;
+                (sink.empty(), sink.get_pos().as_millis() as u64)
+            };
+            if !is_empty || position_ms == 0 {
+                continue;
+            }
+
+            let duration_ms = *duration.lock().await;
+            let _ = app_handle.emit(
+                "playback-ended",
+                PlaybackEndedEvent {
+                    position_ms,
+                    duration_ms,
+                    track_id: expected_track_id,
+                },
+            );
+            return;
+        }
+    });
+}
+
 fn online_cache_dir(app_handle: &AppHandle) -> Result<PathBuf, String> {
     let cache_dir = app_handle
         .path()
@@ -182,6 +227,13 @@ fn online_cache_path(app_handle: &AppHandle, cache_key: &str) -> Result<PathBuf,
     let digest = format!("{:x}", hasher.finalize());
 
     Ok(cache_dir.join(format!("{}.audio", digest)))
+}
+
+pub(crate) fn is_online_audio_cached(app_handle: &AppHandle, cache_key: &str) -> bool {
+    online_cache_path(app_handle, cache_key)
+        .ok()
+        .and_then(|path| fs::metadata(path).ok())
+        .is_some_and(|metadata| metadata.len() > 0)
 }
 
 fn unique_temp_path_for(target_path: &Path) -> PathBuf {
@@ -375,18 +427,30 @@ pub async fn play_track(
     let source_path = match source {
         PlaybackSource::Local { path } => PathBuf::from(path),
         PlaybackSource::Online { url, cache_key } => {
-            cached_online_file(&app_handle, &url, &cache_key).await?
+            let resolved_url = if url.trim().is_empty() {
+                netease::get_song_url(cache_key.clone()).await?
+            } else {
+                url
+            };
+            cached_online_file(&app_handle, &resolved_url, &cache_key).await?
         }
     };
-
-    append_file_to_sink(&source_path, Arc::clone(&sink), Arc::clone(&duration.0)).await?;
 
     let next_track_id = {
         let mut id = track_id.0.lock().await;
         *id = id.saturating_add(1);
         *id
     };
+
+    append_file_to_sink(&source_path, Arc::clone(&sink), Arc::clone(&duration.0)).await?;
     let duration_ms = *duration.0.lock().await;
+    start_playback_end_monitor(
+        app_handle,
+        Arc::clone(&sink),
+        Arc::clone(&duration.0),
+        Arc::clone(&track_id.0),
+        next_track_id,
+    );
 
     Ok(PlayStartResult {
         position_ms: 0,
@@ -401,6 +465,9 @@ pub async fn play_track(
 pub async fn prefetch_netease_song(app_handle: AppHandle, id: String) -> Result<(), String> {
     if id.trim().is_empty() {
         return Err("Empty song id".to_string());
+    }
+    if is_online_audio_cached(&app_handle, &id) {
+        return Ok(());
     }
 
     let url = netease::get_song_url(id.clone()).await?;

@@ -120,6 +120,7 @@
         :selected-keys="selectedRowKeys"
         width="reading"
         @activate="playAt($event.sourceIndex)"
+        @intent="prefetchTrack($event.sourceIndex)"
         @toggle-current="playerStore.togglePlay"
         @toggle-select="toggleSelectRow($event.sourceIndex)"
         @visible-items="scheduleVisibleLocalCovers"
@@ -387,6 +388,11 @@ function playAt(index: number) {
   const list = playlist.value;
   if (!list) return;
   playerStore.playFromPlaylist(list.id, index);
+}
+
+function prefetchTrack(index: number) {
+  const song = resolvedItems.value[index]?.songInfo;
+  if (song) void playerStore.prefetchOnlineSong(song);
 }
 
 function playAll() {

@@ -32,6 +32,7 @@ const props = withDefaults(
 
 const emit = defineEmits([
   "play",
+  "prefetch",
   "toggle-current",
   "download",
   "load-more",
@@ -84,6 +85,7 @@ function handleAddToPlaylist(command: string, row: SongInfo) {
       :loading="loading"
       width="online"
       @activate="emit('play', onlineSongs[$event.sourceIndex])"
+      @intent="emit('prefetch', onlineSongs[$event.sourceIndex])"
       @toggle-current="emit('toggle-current')"
       @near-end="requestLoadMore"
     >
