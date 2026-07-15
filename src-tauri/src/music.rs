@@ -153,12 +153,12 @@ fn decode_file(path: &Path) -> Result<(Decoder<BufReader<File>>, u64), String> {
     Ok((source, duration_ms))
 }
 
-async fn append_file_to_sink(
-    path: &Path,
+async fn replace_sink_source(
+    source: Decoder<BufReader<File>>,
+    duration_ms: u64,
     sink: Arc<Mutex<Sink>>,
     duration: Arc<Mutex<u64>>,
-) -> Result<(), String> {
-    let (source, duration_ms) = decode_file(path)?;
+) {
     {
         let mut dur = duration.lock().await;
         *dur = duration_ms;
@@ -169,7 +169,6 @@ async fn append_file_to_sink(
     if sink_lock.is_paused() {
         sink_lock.play();
     }
-    Ok(())
 }
 
 fn start_playback_end_monitor(
@@ -436,13 +435,20 @@ pub async fn play_track(
         }
     };
 
+    let (decoded_source, decoded_duration_ms) = decode_file(&source_path)?;
     let next_track_id = {
         let mut id = track_id.0.lock().await;
         *id = id.saturating_add(1);
         *id
     };
 
-    append_file_to_sink(&source_path, Arc::clone(&sink), Arc::clone(&duration.0)).await?;
+    replace_sink_source(
+        decoded_source,
+        decoded_duration_ms,
+        Arc::clone(&sink),
+        Arc::clone(&duration.0),
+    )
+    .await;
     let duration_ms = *duration.0.lock().await;
     start_playback_end_monitor(
         app_handle,

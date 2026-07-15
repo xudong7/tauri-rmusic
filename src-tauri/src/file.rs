@@ -533,6 +533,10 @@ pub fn load_local_cover_path(
     for ext in ["jpg", "jpeg", "png", "webp"] {
         let path = base_dir.join("cover").join(format!("{}.{}", stem, ext));
         if path.exists() {
+            app_handle
+                .asset_protocol_scope()
+                .allow_file(&path)
+                .map_err(|e| format!("allow cover asset path error: {}", e))?;
             return path
                 .to_str()
                 .map(|path| Some(path.to_string()))

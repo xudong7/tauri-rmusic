@@ -37,6 +37,19 @@ interface PlaybackEndedPayload {
   track_id: number;
 }
 
+interface PlaybackSnapshot {
+  music: MusicFile | null;
+  onlineSong: SongInfo | null;
+  onlineQueue: SongInfo[];
+  playlistId: string | null;
+  isPlaying: boolean;
+  positionMs: number;
+  durationMs: number;
+  backendTrackId: number;
+}
+
+const MAX_SHUFFLE_HISTORY_SIZE = 200;
+
 export const usePlayerStore = defineStore("player", () => {
   const viewStore = useViewStore();
   const localStore = useLocalMusicStore();
@@ -56,6 +69,9 @@ export const usePlayerStore = defineStore("player", () => {
   let playbackEventRequested = false;
   let playbackEndedUnlisten: UnlistenFn | null = null;
   let playbackEventStartPromise: Promise<void> | null = null;
+  let shuffleContextKey = "";
+  let shuffleHistory: string[] = [];
+  let shuffleCursor = -1;
   /** 当前从播放列表播放时记录列表 id，用于上一曲/下一曲 */
   const currentPlaylistId = ref<string | null>(null);
 
@@ -122,6 +138,41 @@ export const usePlayerStore = defineStore("player", () => {
     currentPlayTime.value = 0;
     currentTrackDurationMs.value = 0;
     currentBackendTrackId.value = 0;
+  }
+
+  function capturePlaybackSnapshot(): PlaybackSnapshot {
+    return {
+      music: currentMusic.value,
+      onlineSong: currentOnlineSong.value,
+      onlineQueue: [...currentOnlineQueue.value],
+      playlistId: currentPlaylistId.value,
+      isPlaying: isPlaying.value,
+      positionMs: currentPlayTime.value,
+      durationMs: currentTrackDurationMs.value,
+      backendTrackId: currentBackendTrackId.value,
+    };
+  }
+
+  function restorePlaybackSnapshot(snapshot: PlaybackSnapshot) {
+    currentMusic.value = snapshot.music;
+    currentOnlineSong.value = snapshot.onlineSong;
+    currentOnlineQueue.value = snapshot.onlineQueue;
+    currentPlaylistId.value = snapshot.playlistId;
+    currentPlayTime.value = snapshot.positionMs;
+    currentTrackDurationMs.value = snapshot.durationMs;
+    currentBackendTrackId.value = snapshot.backendTrackId;
+    isPlaying.value = snapshot.isPlaying;
+    if (snapshot.isPlaying && (snapshot.music || snapshot.onlineSong)) {
+      startPlayTimeTracking();
+    } else {
+      stopPlayTimeTracking();
+    }
+  }
+
+  function resetShuffleHistory() {
+    shuffleContextKey = "";
+    shuffleHistory = [];
+    shuffleCursor = -1;
   }
 
   function updateProgressFromBackend(progress: {
@@ -222,6 +273,7 @@ export const usePlayerStore = defineStore("player", () => {
   }
 
   async function playMusic(music: MusicFile, options?: { fromPlaylistId?: string }) {
+    const previousPlayback = capturePlaybackSnapshot();
     try {
       if (!options?.fromPlaylistId) currentPlaylistId.value = null;
       playbackQueue.clearOnlineQueue();
@@ -250,13 +302,12 @@ export const usePlayerStore = defineStore("player", () => {
       console.error("[播放控制] 播放本地音乐失败:", error);
       ElMessage.error(`${i18n.global.t("errors.playFailed")}: ${error}`);
       isLoadingSong.value = false;
-      isPlaying.value = false;
-      stopPlayTimeTracking();
-      resetProgressState();
+      restorePlaybackSnapshot(previousPlayback);
     }
   }
 
   async function playOnlineSong(song: SongInfo, options?: PlayOnlineOptions) {
+    const previousPlayback = capturePlaybackSnapshot();
     try {
       if (
         currentOnlineSong.value?.id === song.id &&
@@ -317,9 +368,7 @@ export const usePlayerStore = defineStore("player", () => {
       console.error("[播放控制] 播放在线歌曲失败:", error);
       ElMessage.error(`${i18n.global.t("errors.playFailedOnline")}: ${error}`);
       isLoadingSong.value = false;
-      isPlaying.value = false;
-      stopPlayTimeTracking();
-      resetProgressState();
+      restorePlaybackSnapshot(previousPlayback);
     }
   }
 
@@ -363,10 +412,136 @@ export const usePlayerStore = defineStore("player", () => {
     }
   }
 
+  interface ShuffleTarget {
+    key: string;
+    play: () => Promise<void>;
+  }
+
+  function alignShuffleHistory(contextKey: string, currentKey: string | null) {
+    if (shuffleContextKey !== contextKey) {
+      shuffleContextKey = contextKey;
+      shuffleHistory = currentKey ? [currentKey] : [];
+      shuffleCursor = shuffleHistory.length - 1;
+      return;
+    }
+
+    if (!currentKey || shuffleHistory[shuffleCursor] === currentKey) return;
+    const previousIndex = shuffleHistory.lastIndexOf(currentKey);
+    if (previousIndex >= 0) {
+      shuffleCursor = previousIndex;
+    } else {
+      shuffleHistory = [currentKey];
+      shuffleCursor = 0;
+    }
+  }
+
+  function getShuffleTargets(): {
+    contextKey: string;
+    currentKey: string | null;
+    targets: ShuffleTarget[];
+  } {
+    if (currentPlaylistId.value) {
+      const playlistId = currentPlaylistId.value;
+      const list = playlistStore.getPlaylist(playlistId);
+      const targets: ShuffleTarget[] = [];
+      for (let index = 0; index < (list?.items.length ?? 0); index++) {
+        const item = list!.items[index];
+        if (item.type === "local" && !localMusicByFileName.value.has(item.file_name)) {
+          continue;
+        }
+        const key =
+          item.type === "local" ? `local:${item.file_name}` : `online:${item.song.id}`;
+        targets.push({
+          key,
+          play: () => playFromPlaylist(playlistId, index),
+        });
+      }
+      const currentKey = currentMusic.value
+        ? `local:${currentMusic.value.file_name}`
+        : currentOnlineSong.value
+          ? `online:${currentOnlineSong.value.id}`
+          : null;
+      return { contextKey: `playlist:${playlistId}`, currentKey, targets };
+    }
+
+    if (currentMusic.value) {
+      return {
+        contextKey: `local:${localStore.currentDirectory ?? "default"}`,
+        currentKey: getLocalTrackKey(currentMusic.value),
+        targets: localStore.musicFiles.map((music) => ({
+          key: getLocalTrackKey(music),
+          play: () => playMusic(music),
+        })),
+      };
+    }
+
+    const queue = playbackQueue.getActiveOnlineQueue();
+    return {
+      contextKey: `online:${queue[0]?.id ?? "empty"}`,
+      currentKey: currentOnlineSong.value?.id ?? null,
+      targets: queue.map((song) => ({
+        key: song.id,
+        play: () => playOnlineSong(song, { queue }),
+      })),
+    };
+  }
+
+  async function playRandomWithHistory(direction: number) {
+    const { contextKey, currentKey, targets } = getShuffleTargets();
+    if (targets.length === 0) return;
+    alignShuffleHistory(contextKey, currentKey);
+
+    let targetKey: string | null = null;
+    if (direction < 0) {
+      while (shuffleCursor > 0) {
+        shuffleCursor--;
+        const candidate = shuffleHistory[shuffleCursor];
+        if (targets.some((target) => target.key === candidate)) {
+          targetKey = candidate;
+          break;
+        }
+      }
+    } else if (shuffleCursor < shuffleHistory.length - 1) {
+      while (shuffleCursor < shuffleHistory.length - 1) {
+        shuffleCursor++;
+        const candidate = shuffleHistory[shuffleCursor];
+        if (targets.some((target) => target.key === candidate)) {
+          targetKey = candidate;
+          break;
+        }
+      }
+    } else {
+      const visited = new Set(shuffleHistory);
+      let candidates = targets.filter(
+        (target) => target.key !== currentKey && !visited.has(target.key)
+      );
+      if (candidates.length === 0) {
+        candidates = targets.filter((target) => target.key !== currentKey);
+      }
+      if (candidates.length === 0) return;
+
+      targetKey = candidates[Math.floor(Math.random() * candidates.length)].key;
+      shuffleHistory = shuffleHistory.slice(0, shuffleCursor + 1);
+      shuffleHistory.push(targetKey);
+      if (shuffleHistory.length > MAX_SHUFFLE_HISTORY_SIZE) {
+        shuffleHistory.shift();
+      }
+      shuffleCursor = shuffleHistory.length - 1;
+    }
+
+    const target = targets.find((item) => item.key === targetKey);
+    if (target) await target.play();
+  }
+
   async function playNextOrPreviousMusic(step: number) {
     try {
       if (isLoadingSong.value) {
         debugPlaybackLog("[播放控制] 歌曲正在加载中，忽略切换请求");
+        return;
+      }
+
+      if (playMode.value === PlayMode.RANDOM) {
+        await playRandomWithHistory(step);
         return;
       }
 
@@ -461,6 +636,7 @@ export const usePlayerStore = defineStore("player", () => {
     const currentIndex = modes.indexOf(playMode.value);
     const nextIndex = (currentIndex + 1) % modes.length;
     playMode.value = modes[nextIndex];
+    resetShuffleHistory();
 
     const modeKey =
       playMode.value === PlayMode.SEQUENTIAL
