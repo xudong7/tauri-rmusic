@@ -105,19 +105,6 @@ const { artistNames, canNavigateArtist, navigateArtistByName } = useArtistNaviga
   onlineArtists: () => onlineStore.onlineArtists,
 });
 
-// 用于背景的模糊封面样式
-const backgroundStyle = computed(() => {
-  if (currentCoverUrl.value) {
-    return {
-      backgroundImage: `url(${currentCoverUrl.value})`,
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-      backgroundRepeat: "no-repeat",
-    };
-  }
-  return {};
-});
-
 // 背景滤镜样式
 const backgroundFilterStyle = computed(() => {
   return `blur(46px) saturate(1.36) contrast(1.04) brightness(${imageAnalysisState.value.brightness})`;
@@ -173,11 +160,15 @@ const overlayStyle = computed(() => {
       'uses-dark-foreground': usesDarkForeground,
     }"
   >
-    <div
+    <img
       v-if="currentCoverUrl"
+      :key="currentCoverUrl"
+      :src="currentCoverUrl"
       class="background-cover"
-      :style="[backgroundStyle, { filter: backgroundFilterStyle }]"
-    ></div>
+      :style="{ filter: backgroundFilterStyle }"
+      alt=""
+      aria-hidden="true"
+    />
     <div class="overlay" :style="overlayStyle"></div>
     <div
       class="immersive-titlebar-drag-region"
@@ -220,6 +211,7 @@ const overlayStyle = computed(() => {
         <div class="cover-container">
           <img
             v-if="currentCoverUrl"
+            :key="currentCoverUrl"
             :src="currentCoverUrl"
             class="song-cover"
             alt="封面"
@@ -238,14 +230,16 @@ const overlayStyle = computed(() => {
             >
               <template v-if="artistNames.length">
                 <template v-for="(a, idx) in artistNames" :key="a + idx">
-                  <span
+                  <component
+                    :is="canNavigateArtist ? 'button' : 'span'"
+                    :type="canNavigateArtist ? 'button' : undefined"
                     class="artist-part"
                     :class="{ 'artist-link': canNavigateArtist }"
                     @click.stop="navigateArtistByName(a)"
-                    :title="`${a}（点击查看）`"
+                    :title="canNavigateArtist ? t('artist.open', { name: a }) : a"
                   >
                     {{ a }}
-                  </span>
+                  </component>
                   <span v-if="idx < artistNames.length - 1" class="artist-sep">, </span>
                 </template>
               </template>

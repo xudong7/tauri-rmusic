@@ -21,8 +21,11 @@ export const i18n = createI18n({
   },
 });
 
+document.documentElement.lang = initialLocale === "zh" ? "zh-CN" : "en";
+
 export function setLocale(locale: LocaleKey) {
   i18n.global.locale.value = locale;
+  document.documentElement.lang = locale === "zh" ? "zh-CN" : "en";
   localStorage.setItem(STORAGE_KEY_LOCALE, locale);
 }
 

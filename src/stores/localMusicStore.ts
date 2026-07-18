@@ -12,6 +12,7 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
   const searchKeyword = ref("");
   const currentDirectory = ref("");
   const isLoading = ref(false);
+  const isRefreshing = ref(false);
 
   const defaultDirectory = ref<string | null>(null);
   const isInitialized = ref(false);
@@ -36,7 +37,8 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
 
   async function loadMusicFiles(path?: string, options?: { restoreCache?: boolean }) {
     const requestId = ++latestLoadRequestId;
-    isLoading.value = true;
+    let restoredCachedFiles = false;
+    isLoading.value = musicFiles.value.length === 0;
     try {
       if (path) currentDirectory.value = path;
       if (options?.restoreCache) {
@@ -45,8 +47,33 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
           defaultDirectory: defaultDirectory.value,
         });
         if (requestId !== latestLoadRequestId) return;
-        if (cachedFiles.length > 0) musicFiles.value = cachedFiles;
+        if (cachedFiles.length > 0) {
+          musicFiles.value = cachedFiles;
+          restoredCachedFiles = true;
+          isLoading.value = false;
+        }
       }
+
+      const refresh = refreshMusicFilesFromDisk(requestId, path);
+      if (restoredCachedFiles) {
+        void refresh;
+        return;
+      }
+      await refresh;
+    } catch (error) {
+      if (requestId !== latestLoadRequestId) return;
+      console.error("加载音乐文件失败:", error);
+      ElMessage.error(`${i18n.global.t("errors.loadMusicFailed")}: ${error}`);
+    } finally {
+      if (requestId === latestLoadRequestId && !restoredCachedFiles) {
+        isLoading.value = false;
+      }
+    }
+  }
+
+  async function refreshMusicFilesFromDisk(requestId: number, path?: string) {
+    isRefreshing.value = true;
+    try {
       const files = await scanFiles({
         path: path || null,
         defaultDirectory: defaultDirectory.value,
@@ -55,10 +82,13 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
       musicFiles.value = files;
     } catch (error) {
       if (requestId !== latestLoadRequestId) return;
-      console.error("加载音乐文件失败:", error);
+      console.error("刷新音乐文件失败:", error);
       ElMessage.error(`${i18n.global.t("errors.loadMusicFailed")}: ${error}`);
     } finally {
-      if (requestId === latestLoadRequestId) isLoading.value = false;
+      if (requestId === latestLoadRequestId) {
+        isLoading.value = false;
+        isRefreshing.value = false;
+      }
     }
   }
 
@@ -150,6 +180,7 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
     searchKeyword,
     currentDirectory,
     isLoading,
+    isRefreshing,
     defaultDirectory,
     isInitialized,
     loadMusicFiles,

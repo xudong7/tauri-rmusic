@@ -30,13 +30,14 @@ pub fn sidecar_name_for_current_platform() -> &'static str {
 }
 
 /// set up the service for the sidecar
-pub fn setup_service(
-    app: &tauri::App,
-    service_name: &str,
-    window: tauri::webview::WebviewWindow,
+#[tauri::command]
+pub fn ensure_online_service(
+    app_handle: tauri::AppHandle,
+    process: tauri::State<'_, OnlineServiceProcess>,
 ) -> Result<(), String> {
-    let process = app.state::<OnlineServiceProcess>();
-    spawn_service(app.handle(), service_name, Some(window), process.inner())
+    let service_name = sidecar_name_for_current_platform();
+    let window = app_handle.get_webview_window("main");
+    spawn_service(&app_handle, service_name, window, process.inner())
 }
 
 fn spawn_service(

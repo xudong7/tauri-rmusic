@@ -137,6 +137,7 @@ function handleActivate(item: TrackRowModel) {
   width: 100%;
   padding: 0 4px 12px;
   box-sizing: border-box;
+  margin-inline: auto;
 }
 
 .track-list--reading .track-list__rows {

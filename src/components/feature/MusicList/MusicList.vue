@@ -101,12 +101,14 @@ const props = withDefaults(
     currentMusic: MusicFile | null;
     isPlaying: boolean;
     loading?: boolean;
+    refreshing?: boolean;
     showImportButton?: boolean;
     getDefaultDirectory?: () => string | null;
   }>(),
   {
     showImportButton: false,
     loading: false,
+    refreshing: false,
     getDefaultDirectory: () => null,
   }
 );
@@ -184,7 +186,10 @@ function scheduleVisibleCovers(items: TrackRowModel[]) {
 
 <template>
   <PageLayout class="music-list-container">
-    <PageHeader :title="t('musicList.title')">
+    <PageHeader
+      :title="t('musicList.title')"
+      :subtitle="refreshing && musicFiles.length ? t('musicList.updating') : undefined"
+    >
       <template #actions>
         <template v-if="selectionMode">
           <span class="select-actions">

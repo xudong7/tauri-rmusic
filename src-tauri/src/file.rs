@@ -18,13 +18,22 @@ use tauri::Manager;
 use tokio::io::AsyncWriteExt;
 
 const STREAM_IDLE_TIMEOUT: Duration = Duration::from_secs(30);
-const LIBRARY_INDEX_VERSION: u32 = 2;
+const LIBRARY_INDEX_VERSION: u32 = 3;
 
 #[derive(Serialize, Deserialize)]
 struct LibraryIndex {
     version: u32,
     root: String,
     files: Vec<MusicFile>,
+    #[serde(default)]
+    directories: Vec<DirectorySnapshot>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+struct DirectorySnapshot {
+    relative_path: String,
+    modified_ms: u64,
+    child_directories: Vec<String>,
 }
 
 fn supported_audio_extension(path: &Path) -> Option<String> {
@@ -64,22 +73,35 @@ fn library_index_path(app_handle: &AppHandle, scan_path: &Path) -> Result<PathBu
 }
 
 fn read_library_index(index_path: &Path, scan_path: &Path) -> Vec<MusicFile> {
+    read_library_index_value(index_path, scan_path)
+        .filter(|index| index.version == 2 || index.version == LIBRARY_INDEX_VERSION)
+        .map(|index| index.files)
+        .unwrap_or_default()
+}
+
+fn read_library_index_value(index_path: &Path, scan_path: &Path) -> Option<LibraryIndex> {
     let Ok(bytes) = fs::read(index_path) else {
-        return Vec::new();
+        return None;
     };
     let Ok(index) = serde_json::from_slice::<LibraryIndex>(&bytes) else {
-        return Vec::new();
+        return None;
     };
-    if index.version != LIBRARY_INDEX_VERSION || index.root != scan_path.to_string_lossy() {
-        return Vec::new();
+    if index.root != scan_path.to_string_lossy() {
+        return None;
     }
-    index.files
+    Some(index)
+}
+
+fn read_incremental_library_index(index_path: &Path, scan_path: &Path) -> Option<LibraryIndex> {
+    read_library_index_value(index_path, scan_path)
+        .filter(|index| index.version == LIBRARY_INDEX_VERSION)
 }
 
 fn write_library_index(
     index_path: &Path,
     scan_path: &Path,
     files: &[MusicFile],
+    directories: &[DirectorySnapshot],
 ) -> Result<(), String> {
     if let Some(parent) = index_path.parent() {
         fs::create_dir_all(parent).map_err(|e| format!("create library index dir: {}", e))?;
@@ -88,6 +110,7 @@ fn write_library_index(
         version: LIBRARY_INDEX_VERSION,
         root: scan_path.to_string_lossy().to_string(),
         files: files.to_vec(),
+        directories: directories.to_vec(),
     };
     let bytes =
         serde_json::to_vec(&index).map_err(|e| format!("serialize library index: {}", e))?;
@@ -138,11 +161,11 @@ fn collect_metadata_revision(revision: &MetadataRevision, metadata: &mut AudioMe
     }
 }
 
-fn read_mp3_metadata(path: &Path) -> Option<AudioMetadata> {
+fn read_symphonia_metadata(path: &Path, extension: &str) -> Option<AudioMetadata> {
     let source = File::open(path).ok()?;
     let media_source = MediaSourceStream::new(Box::new(source), Default::default());
     let mut hint = Hint::new();
-    hint.with_extension("mp3");
+    hint.with_extension(extension);
 
     let mut probed = symphonia::default::get_probe()
         .format(
@@ -193,11 +216,7 @@ fn read_duration_ms(path: &Path) -> u64 {
 }
 
 fn read_audio_metadata(path: &Path, extension: &str) -> AudioMetadata {
-    let mut metadata = if extension == "mp3" {
-        read_mp3_metadata(path).unwrap_or_default()
-    } else {
-        AudioMetadata::default()
-    };
+    let mut metadata = read_symphonia_metadata(path, extension).unwrap_or_default();
 
     if metadata.duration_ms == 0 {
         metadata.duration_ms = read_duration_ms(path);
@@ -429,6 +448,7 @@ fn copy_file_to_path(source_path: &Path, target_path: &Path) -> Result<(), Strin
 
 /// recursive scan the directory
 /// and add the files to the list
+#[cfg(test)]
 pub fn scan_directory(
     base_path: &std::path::Path,
     dir_path: &std::path::Path,
@@ -469,29 +489,184 @@ pub fn scan_directory(
     }
 }
 
-/// need to scan the files and abstract the certain file types
-/// filter -> mp3, wav, ogg, flac
-/// if path include a dir, the dir also need to be scanned
-fn scan_files_sync(scan_path: &Path) -> Vec<MusicFile> {
-    let mut music_files = Vec::new();
-    let mut id_counter = 0;
+fn relative_path_string(base_path: &Path, path: &Path) -> Option<String> {
+    let relative = path.strip_prefix(base_path).ok()?;
+    if relative.as_os_str().is_empty() {
+        Some(String::new())
+    } else {
+        relative.to_str().map(ToOwned::to_owned)
+    }
+}
 
+fn parent_relative_path(relative_path: &str) -> String {
+    Path::new(relative_path)
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .and_then(Path::to_str)
+        .unwrap_or("")
+        .to_string()
+}
+
+fn scan_directory_incremental(
+    base_path: &Path,
+    dir_path: &Path,
+    cached_directories: &HashMap<String, DirectorySnapshot>,
+    cached_files_by_parent: &HashMap<String, Vec<MusicFile>>,
+    files: &mut Vec<MusicFile>,
+    directories: &mut Vec<DirectorySnapshot>,
+) -> bool {
+    let Ok(metadata) = fs::symlink_metadata(dir_path) else {
+        return false;
+    };
+    if !metadata.is_dir() || metadata.file_type().is_symlink() {
+        return false;
+    }
+
+    let Some(relative_path) = relative_path_string(base_path, dir_path) else {
+        return false;
+    };
+    let current_modified_ms = metadata
+        .modified()
+        .ok()
+        .and_then(|modified| modified.duration_since(UNIX_EPOCH).ok())
+        .map(|duration| duration.as_millis() as u64)
+        .unwrap_or(0);
+    let cached_directory = cached_directories.get(&relative_path);
+    let can_reuse_listing =
+        cached_directory.is_some_and(|cached| cached.modified_ms == current_modified_ms);
+    let mut child_directories = Vec::new();
+
+    if can_reuse_listing {
+        if let Some(cached_files) = cached_files_by_parent.get(&relative_path) {
+            for cached_file in cached_files {
+                let absolute_path = base_path.join(&cached_file.relative_path);
+                let Ok(file_metadata) = fs::symlink_metadata(&absolute_path) else {
+                    continue;
+                };
+                if !file_metadata.is_file() || file_metadata.file_type().is_symlink() {
+                    continue;
+                }
+                let relative = Path::new(&cached_file.relative_path);
+                if let Some(file) = music_file_from_path(0, &absolute_path, relative) {
+                    files.push(file);
+                }
+            }
+        }
+
+        if let Some(cached) = cached_directory {
+            for child_relative in &cached.child_directories {
+                let child_path = base_path.join(child_relative);
+                if scan_directory_incremental(
+                    base_path,
+                    &child_path,
+                    cached_directories,
+                    cached_files_by_parent,
+                    files,
+                    directories,
+                ) {
+                    child_directories.push(child_relative.clone());
+                }
+            }
+        }
+    } else if let Ok(entries) = read_dir(dir_path) {
+        let mut entries: Vec<_> = entries.flatten().collect();
+        entries.sort_by_key(|entry| entry.path());
+
+        for entry in entries {
+            let path = entry.path();
+            let Ok(file_type) = entry.file_type() else {
+                continue;
+            };
+            if file_type.is_symlink() {
+                continue;
+            }
+            let is_hidden = path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.starts_with('.'));
+            if is_hidden {
+                continue;
+            }
+
+            if file_type.is_dir() {
+                let Some(child_relative) = relative_path_string(base_path, &path) else {
+                    continue;
+                };
+                if scan_directory_incremental(
+                    base_path,
+                    &path,
+                    cached_directories,
+                    cached_files_by_parent,
+                    files,
+                    directories,
+                ) {
+                    child_directories.push(child_relative);
+                }
+            } else if file_type.is_file() && supported_audio_extension(&path).is_some() {
+                if let Ok(relative) = path.strip_prefix(base_path) {
+                    if let Some(file) = music_file_from_path(0, &path, relative) {
+                        files.push(file);
+                    }
+                }
+            }
+        }
+    }
+
+    directories.push(DirectorySnapshot {
+        relative_path,
+        modified_ms: current_modified_ms,
+        child_directories,
+    });
+    true
+}
+
+fn scan_files_incremental(
+    scan_path: &Path,
+    cached_index: Option<&LibraryIndex>,
+) -> (Vec<MusicFile>, Vec<DirectorySnapshot>) {
+    let cached_directories: HashMap<String, DirectorySnapshot> = cached_index
+        .map(|index| {
+            index
+                .directories
+                .iter()
+                .cloned()
+                .map(|directory| (directory.relative_path.clone(), directory))
+                .collect()
+        })
+        .unwrap_or_default();
+    let mut cached_files_by_parent: HashMap<String, Vec<MusicFile>> = HashMap::new();
+    if let Some(index) = cached_index {
+        for file in &index.files {
+            cached_files_by_parent
+                .entry(parent_relative_path(&file.relative_path))
+                .or_default()
+                .push(file.clone());
+        }
+    }
+
+    let mut music_files = Vec::new();
+    let mut directories = Vec::new();
     if scan_path.is_dir() {
-        scan_directory(scan_path, scan_path, &mut music_files, &mut id_counter);
+        scan_directory_incremental(
+            scan_path,
+            scan_path,
+            &cached_directories,
+            &cached_files_by_parent,
+            &mut music_files,
+            &mut directories,
+        );
         music_files.sort_by(|a, b| a.file_name.cmp(&b.file_name));
         for (index, file) in music_files.iter_mut().enumerate() {
             file.id = index as i32;
         }
     } else if supported_audio_extension(scan_path).is_some() {
         if let Some(file_name) = scan_path.file_name() {
-            let relative = Path::new(file_name);
-            if let Some(file) = music_file_from_path(id_counter, scan_path, relative) {
+            if let Some(file) = music_file_from_path(0, scan_path, Path::new(file_name)) {
                 music_files.push(file);
             }
         }
     }
-
-    music_files
+    (music_files, directories)
 }
 
 #[tauri::command]
@@ -516,10 +691,14 @@ pub async fn scan_files(
     let scan_path = resolve_scan_path(path, default_directory, &app_handle)?;
     let index_path = library_index_path(&app_handle, &scan_path)?;
     tokio::task::spawn_blocking(move || {
-        let cached_files = read_library_index(&index_path, &scan_path);
-        let mut files = scan_files_sync(&scan_path);
+        let cached_index = read_incremental_library_index(&index_path, &scan_path);
+        let cached_files = cached_index
+            .as_ref()
+            .map(|index| index.files.clone())
+            .unwrap_or_default();
+        let (mut files, directories) = scan_files_incremental(&scan_path, cached_index.as_ref());
         enrich_music_files(&scan_path, &mut files, &cached_files);
-        if let Err(error) = write_library_index(&index_path, &scan_path, &files) {
+        if let Err(error) = write_library_index(&index_path, &scan_path, &files, &directories) {
             eprintln!("write library index failed: {}", error);
         }
         files

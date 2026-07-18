@@ -12,6 +12,17 @@ body {
   overflow: hidden;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 html {
   overflow: hidden;
 }
@@ -34,8 +45,8 @@ html {
   --app-content-padding-compact: 16px;
 
   /* 页面骨架 */
-  --app-page-max-width: 1060px;
-  --app-page-wide-max-width: 1180px;
+  --app-page-max-width: 1280px;
+  --app-page-wide-max-width: 1440px;
   --app-page-header-height: 44px;
   --app-page-header-gap: 16px;
   --app-page-title-size: 18px;
@@ -78,8 +89,8 @@ html {
   --app-track-row-gap: 12px;
   --app-track-row-padding-x: 10px;
   --app-track-row-padding-y: 8px;
-  --app-list-reading-width: 860px;
-  --app-online-list-width: 980px;
+  --app-list-reading-width: 1180px;
+  --app-online-list-width: 1280px;
 
   /* 按钮与控件：macOS / Apple Music 风格 */
   --app-button-height: 32px;

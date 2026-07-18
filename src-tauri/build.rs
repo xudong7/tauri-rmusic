@@ -119,10 +119,12 @@ fn ensure_sidecar_with_target_triple(
     let dst = binaries_dir.join(format!("{}-{}{}", base_name, target, ext));
     if src.exists() && (source_changed || !dst.exists()) {
         fs::copy(&src, &dst).map_err(|e| {
-            std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("copy {} -> {}: {}", src.display(), dst.display(), e),
-            )
+            std::io::Error::other(format!(
+                "copy {} -> {}: {}",
+                src.display(),
+                dst.display(),
+                e
+            ))
         })?;
     }
     Ok(())

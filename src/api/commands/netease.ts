@@ -30,6 +30,10 @@ export async function checkOnlineServiceStatus(): Promise<OnlineServiceStatus> {
   return await invokeCommand("check_online_service_status");
 }
 
+export async function ensureOnlineService(): Promise<void> {
+  return await invokeCommand("ensure_online_service");
+}
+
 export async function restartOnlineService(): Promise<void> {
   return await invokeCommand("restart_online_service");
 }

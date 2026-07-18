@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, computed } from "vue";
+import {
+  onMounted,
+  onUnmounted,
+  computed,
+  nextTick,
+  watch,
+  type WatchStopHandle,
+} from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import zhCn from "element-plus/es/locale/lang/zh-cn";
@@ -8,6 +15,7 @@ import { ElConfigProvider } from "element-plus";
 import HeaderBar from "./components/layout/HeaderBar/HeaderBar.vue";
 import Sidebar from "./components/layout/Sidebar/Sidebar.vue";
 import PlayerBar from "./components/feature/PlayerBar/PlayerBar.vue";
+import PlaybackQueue from "./components/feature/PlaybackQueue/PlaybackQueue.vue";
 import ImmersiveView from "./components/feature/ImmersiveView/ImmersiveView.vue";
 import type { SearchScope } from "./types/model";
 import { useAppKeyboardShortcuts } from "./composables/useAppKeyboardShortcuts";
@@ -40,7 +48,7 @@ const playlistStore = usePlaylistStore();
 const route = useRoute();
 const router = useRouter();
 let isQuitting = false;
-let onlineServiceStartTimer: number | null = null;
+let stopOnlineScopeWatch: WatchStopHandle | null = null;
 
 const searchScope = computed<SearchScope | null>(() => {
   if (route.name === "LocalMusic") return "local";
@@ -50,7 +58,7 @@ const searchScope = computed<SearchScope | null>(() => {
 });
 
 const windowSizeConstraints = useWindowSizeConstraints({
-  minWidth: 900,
+  minWidth: 760,
   minHeight: 640,
 });
 const keyboardShortcuts = useAppKeyboardShortcuts({
@@ -88,6 +96,7 @@ async function handleSearch(keyword: string, scope: SearchScope) {
   }
 
   if (kw) {
+    await onlineServiceStore.ensureStarted();
     await onlineStore.searchOnlineMusic(kw);
   } else {
     onlineStore.resetResults();
@@ -96,6 +105,12 @@ async function handleSearch(keyword: string, scope: SearchScope) {
 
 function flushPlaylistSave() {
   void playlistStore.flushSave();
+}
+
+async function closePlaybackQueue() {
+  viewStore.closePlaybackQueue();
+  await nextTick();
+  document.querySelector<HTMLButtonElement>(".queue-btn")?.focus();
 }
 
 async function quitAfterFlush() {
@@ -131,19 +146,21 @@ onMounted(() => {
     runInitTask("tray events", () => trayEvents.start()),
   ]);
 
-  onlineServiceStartTimer = window.setTimeout(() => {
-    onlineServiceStartTimer = null;
-    onlineServiceStore.start();
-  }, 250);
+  stopOnlineScopeWatch = watch(
+    searchScope,
+    (scope) => {
+      if (scope === "online") onlineServiceStore.start();
+      else onlineServiceStore.stop();
+    },
+    { immediate: true }
+  );
 });
 
 onUnmounted(() => {
   keyboardShortcuts.stop();
   themeSync.stop();
-  if (onlineServiceStartTimer !== null) {
-    clearTimeout(onlineServiceStartTimer);
-    onlineServiceStartTimer = null;
-  }
+  stopOnlineScopeWatch?.();
+  stopOnlineScopeWatch = null;
   onlineServiceStore.stop();
   trayEvents.stop();
   playerStore.stopPlayTimeTracking();
@@ -168,10 +185,19 @@ onUnmounted(() => {
           <router-view />
         </div>
       </div>
+      <PlaybackQueue
+        v-if="viewStore.showPlaybackQueue"
+        :items="playerStore.playbackQueueItems"
+        :title="playerStore.playbackQueueTitle"
+        :is-playing="playerStore.isPlaying"
+        @close="closePlaybackQueue"
+        @play="playerStore.playQueueItem"
+      />
       <PlayerBar
         :currentMusic="playerStore.currentMusic"
         :currentOnlineSong="playerStore.currentOnlineSong"
         :isPlaying="playerStore.isPlaying"
+        :playbackPhase="playerStore.playbackPhase"
         :playMode="playerStore.playMode"
         :volume="playerStore.volume"
         :currentPlayTime="playerStore.currentPlayTime"
@@ -181,6 +207,7 @@ onUnmounted(() => {
         @previous="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1))"
         @next="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1))"
         @toggle-play-mode="playerStore.togglePlayMode"
+        @toggle-queue="viewStore.togglePlaybackQueue"
         @show-immersive="playerStore.showImmersive"
         @seek="playerStore.seekToPosition"
       />

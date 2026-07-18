@@ -9,9 +9,15 @@ import {
   Sort,
   Refresh,
   RefreshRight,
+  Tickets,
 } from "@element-plus/icons-vue";
-import { PlayMode, type MusicFile, type SongInfo } from "@/types/model";
-import { getLocalMusicDisplayInfo } from "@/utils/songUtils";
+import {
+  PlayMode,
+  type MusicFile,
+  type PlaybackPhase,
+  type SongInfo,
+} from "@/types/model";
+import { formatDuration, getLocalMusicDisplayInfo } from "@/utils/songUtils";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import { useArtistNavigation } from "@/composables/useArtistNavigation";
 import { useCoverLoader } from "@/composables/useCoverLoader";
@@ -22,15 +28,21 @@ import { useLocalMusicStore } from "@/stores/localMusicStore";
 
 const { t, locale } = useI18n();
 
-const props = defineProps<{
-  currentMusic: MusicFile | null;
-  currentOnlineSong: SongInfo | null;
-  isPlaying: boolean;
-  playMode: PlayMode;
-  volume: number;
-  currentPlayTime: number;
-  currentTrackDuration: number;
-}>();
+const props = withDefaults(
+  defineProps<{
+    currentMusic: MusicFile | null;
+    currentOnlineSong: SongInfo | null;
+    isPlaying: boolean;
+    playbackPhase?: PlaybackPhase;
+    playMode: PlayMode;
+    volume: number;
+    currentPlayTime: number;
+    currentTrackDuration: number;
+  }>(),
+  {
+    playbackPhase: "idle",
+  }
+);
 
 const emit = defineEmits([
   "toggle-play",
@@ -38,6 +50,7 @@ const emit = defineEmits([
   "next",
   "previous",
   "toggle-play-mode",
+  "toggle-queue",
   "show-immersive",
   "seek",
 ]);
@@ -46,11 +59,14 @@ const artistStore = useArtistStore();
 const onlineStore = useOnlineMusicStore();
 const localStore = useLocalMusicStore();
 const volumeSliderValue = ref(props.volume);
+const lastAudibleVolume = ref(props.volume > 0 ? props.volume : 50);
+const showRemainingTime = ref(false);
 
 watch(
   () => props.volume,
   (value) => {
     if (value !== volumeSliderValue.value) volumeSliderValue.value = value;
+    if (value > 0) lastAudibleVolume.value = value;
   }
 );
 
@@ -58,6 +74,10 @@ function handleVolumeChange(value: number | number[]) {
   const nextValue = Array.isArray(value) ? (value[0] ?? 0) : value;
   volumeSliderValue.value = nextValue;
   emit("volume-change", nextValue);
+}
+
+function toggleMute() {
+  handleVolumeChange(props.volume > 0 ? 0 : lastAudibleVolume.value);
 }
 
 const currentSongName = computed(() => {
@@ -69,6 +89,16 @@ const currentSongName = computed(() => {
 });
 
 const songTitle = computed(() => currentSongName.value);
+const isLoading = computed(() => props.playbackPhase !== "idle");
+const playbackStatus = computed(() =>
+  props.playbackPhase === "resolving"
+    ? t("playerBar.resolving")
+    : t("playerBar.buffering")
+);
+const remainingTimeDisplay = computed(
+  () =>
+    `-${formatDuration(Math.max(0, props.currentTrackDuration - props.currentPlayTime))}`
+);
 
 const currentArtistDisplay = computed(() => {
   void locale.value;
@@ -153,21 +183,26 @@ const {
       </div>
       <div class="song-info">
         <div class="song-name" :title="songTitle">{{ songTitle }}</div>
+        <div v-if="isLoading" class="playback-status" role="status">
+          {{ playbackStatus }}
+        </div>
         <div
-          v-if="currentArtistDisplay"
+          v-else-if="currentArtistDisplay"
           class="artist-name"
           :title="currentArtistDisplay"
         >
           <template v-if="artistNames.length">
             <template v-for="(a, idx) in artistNames" :key="a + idx">
-              <span
+              <component
+                :is="canNavigateArtist ? 'button' : 'span'"
+                :type="canNavigateArtist ? 'button' : undefined"
                 class="artist-part"
                 :class="{ 'artist-link': canNavigateArtist }"
                 @click.stop="navigateArtistByName(a)"
-                :title="`${a}（点击查看）`"
+                :title="canNavigateArtist ? t('artist.open', { name: a }) : a"
               >
                 {{ a }}
-              </span>
+              </component>
               <span v-if="idx < artistNames.length - 1" class="artist-sep">, </span>
             </template>
           </template>
@@ -204,6 +239,7 @@ const {
           <el-button
             class="control-btn play-btn app-play-button"
             :icon="isPlaying ? VideoPause : VideoPlay"
+            :loading="isLoading"
             :disabled="!currentMusic && !currentOnlineSong"
             @click="emit('toggle-play')"
           />
@@ -237,29 +273,51 @@ const {
           @input="handleProgressInput"
           @change="handleProgressChange"
         />
-        <span class="time-display">{{ durationDisplay }}</span>
+        <button
+          type="button"
+          class="time-display time-display-toggle"
+          :aria-label="t('playerBar.toggleRemainingTime')"
+          @click="showRemainingTime = !showRemainingTime"
+        >
+          {{ showRemainingTime ? remainingTimeDisplay : durationDisplay }}
+        </button>
       </div>
     </div>
 
     <!-- 右侧：播放模式 + 内联音量条 -->
     <div class="player-right">
+      <el-tooltip :content="t('playerBar.queue')" placement="top" effect="light">
+        <el-button
+          class="queue-btn app-icon-button"
+          circle
+          :icon="Tickets"
+          :disabled="!currentMusic && !currentOnlineSong"
+          :aria-label="t('playerBar.queue')"
+          @click="emit('toggle-queue')"
+        />
+      </el-tooltip>
       <el-tooltip :content="playModeTooltip" placement="top" effect="light">
         <el-button
           class="play-mode-btn app-icon-button"
-          :class="{ 'is-active': true }"
+          :class="{ 'is-active': playMode !== PlayMode.SEQUENTIAL }"
           circle
           :icon="playModeIcon"
           @click="emit('toggle-play-mode')"
         />
       </el-tooltip>
       <div class="volume-bar">
-        <span class="volume-speaker-icon" aria-hidden="true">
+        <button
+          type="button"
+          class="volume-speaker-icon"
+          :aria-label="t(volume > 0 ? 'playerBar.mute' : 'playerBar.unmute')"
+          @click="toggleMute"
+        >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
             <path
               d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"
             />
           </svg>
-        </span>
+        </button>
         <el-slider
           v-model="volumeSliderValue"
           :max="100"

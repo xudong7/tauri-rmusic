@@ -340,6 +340,8 @@ html.dark .search-history-chip:hover {
   overflow: hidden;
   color: var(--app-icon-button-color);
   border: 1px solid transparent;
+  padding: 0;
+  background: transparent;
   transition:
     color var(--app-control-transition),
     background var(--app-control-transition),

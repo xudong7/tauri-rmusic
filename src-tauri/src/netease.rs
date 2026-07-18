@@ -1,4 +1,3 @@
-use reqwest;
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};

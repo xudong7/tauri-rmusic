@@ -1,5 +1,5 @@
 import { ref } from "vue";
-import { PlayMode, ViewMode, type Playlist, type SongInfo } from "@/types/model";
+import { PlayMode, type Playlist, type SongInfo } from "@/types/model";
 
 const MAX_PREFETCHED_ONLINE_SONG_IDS = 300;
 const MAX_CONCURRENT_ONLINE_PREFETCHES = 2;
@@ -11,8 +11,8 @@ export interface PlayOnlineOptions {
 
 export function usePlaybackQueue(options: {
   getPlayMode: () => PlayMode;
-  getViewMode: () => ViewMode;
-  getFallbackOnlineQueue: () => SongInfo[];
+  getViewMode?: () => unknown;
+  getFallbackOnlineQueue?: () => SongInfo[];
   getCurrentPlaylistId: () => string | null;
   setCurrentPlaylistId: (id: string | null) => void;
   getPlaylist: (id: string) => Playlist | undefined;
@@ -26,17 +26,35 @@ export function usePlaybackQueue(options: {
     currentOnlineQueue.value = [];
   }
 
-  function applyOnlinePlaybackContext(playOptions?: PlayOnlineOptions) {
-    if (!playOptions?.fromPlaylistId) options.setCurrentPlaylistId(null);
-    currentOnlineQueue.value = playOptions?.fromPlaylistId
-      ? []
-      : [...(playOptions?.queue ?? [])];
+  function applyOnlinePlaybackContext(playOptions?: PlayOnlineOptions): void;
+  function applyOnlinePlaybackContext(
+    song: SongInfo,
+    playOptions?: PlayOnlineOptions
+  ): void;
+  function applyOnlinePlaybackContext(
+    songOrOptions?: SongInfo | PlayOnlineOptions,
+    optionsArg?: PlayOnlineOptions
+  ) {
+    const song = songOrOptions && "id" in songOrOptions ? songOrOptions : null;
+    const playOptions = song
+      ? optionsArg
+      : (songOrOptions as PlayOnlineOptions | undefined);
+    if (playOptions?.fromPlaylistId) {
+      options.setCurrentPlaylistId(playOptions.fromPlaylistId);
+      currentOnlineQueue.value = [];
+      return;
+    }
+
+    options.setCurrentPlaylistId(null);
+    if (playOptions?.queue) {
+      currentOnlineQueue.value = [...playOptions.queue];
+    } else if (song && !currentOnlineQueue.value.some((item) => item.id === song.id)) {
+      currentOnlineQueue.value = [song];
+    }
   }
 
   function getActiveOnlineQueue(): SongInfo[] {
-    return currentOnlineQueue.value.length > 0
-      ? currentOnlineQueue.value
-      : options.getFallbackOnlineQueue();
+    return currentOnlineQueue.value;
   }
 
   function getNextOnlineSongForPrefetch(song: SongInfo): SongInfo | null {
@@ -59,9 +77,7 @@ export function usePlaybackQueue(options: {
     }
 
     const queue = getActiveOnlineQueue();
-    if (options.getViewMode() !== ViewMode.ONLINE || queue.length <= 1) {
-      return null;
-    }
+    if (queue.length <= 1) return null;
     const currentIndex = queue.findIndex((item) => item.id === song.id);
     if (currentIndex === -1) return null;
     return queue[(currentIndex + 1) % queue.length];

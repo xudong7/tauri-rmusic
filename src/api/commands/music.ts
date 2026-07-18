@@ -6,8 +6,9 @@ export async function handleEvent(
   action: HandleEventAction,
   payload: Record<string, unknown>
 ) {
-  return await invokeCommand("handle_event", {
-    event: JSON.stringify({ action, ...payload }),
+  return await invokeCommand("control_playback", {
+    action: action === "recovery" ? "play" : action,
+    volume: typeof payload.volume === "number" ? payload.volume : null,
   });
 }
 
@@ -20,8 +21,15 @@ export async function playNeteaseSong(args: {
   return await invokeCommand("play_netease_song", args);
 }
 
-export async function playTrack(source: PlaybackSource): Promise<PlayStartResult> {
-  return await invokeCommand("play_track", { source });
+export async function playTrack(
+  source: PlaybackSource,
+  requestId: number
+): Promise<PlayStartResult> {
+  return await invokeCommand("play_track", { source, requestId });
+}
+
+export async function preparePlaybackRequest(requestId: number): Promise<void> {
+  await invokeCommand("prepare_playback_request", { requestId });
 }
 
 export async function prefetchNeteaseSong(id: string): Promise<void> {
@@ -49,17 +57,10 @@ export async function downloadMusic(args: {
   return await invokeCommand("download_music", args);
 }
 
-export async function isSinkEmpty(): Promise<boolean> {
-  return await invokeCommand("is_sink_empty");
-}
-
-export interface PlaybackProgress {
+export interface PlaybackState {
   position_ms: number;
   duration_ms: number;
   is_ended: boolean;
-}
-
-export interface PlaybackState extends PlaybackProgress {
   is_paused: boolean;
   has_track: boolean;
   track_id: number;
@@ -68,10 +69,6 @@ export interface PlaybackState extends PlaybackProgress {
 export interface SeekResult {
   success: boolean;
   should_play_next: boolean;
-}
-
-export async function getProgress(): Promise<PlaybackProgress> {
-  return await invokeCommand("get_progress");
 }
 
 export async function getPlaybackState(): Promise<PlaybackState> {

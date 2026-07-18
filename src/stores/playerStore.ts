@@ -2,8 +2,13 @@ import { ref, computed } from "vue";
 import { defineStore } from "pinia";
 import { ElMessage } from "element-plus";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import type { MusicFile, SongInfo } from "@/types/model";
-import { PlayMode, ViewMode } from "@/types/model";
+import type {
+  MusicFile,
+  PlaybackPhase,
+  PlaybackQueueItem,
+  SongInfo,
+} from "@/types/model";
+import { PlayMode } from "@/types/model";
 import { i18n } from "@/i18n";
 import { joinPathSegment } from "@/utils/pathUtils";
 import { getLocalMusicDisplayInfo } from "@/utils/songUtils";
@@ -12,6 +17,7 @@ import {
   handleEvent,
   playNeteaseSong,
   playTrack,
+  preparePlaybackRequest,
   prefetchNeteaseSong,
   getPlaybackState,
   seekTo,
@@ -21,7 +27,7 @@ import { usePlaybackQueue, type PlayOnlineOptions } from "@/composables/usePlayb
 import { usePlaybackVolume } from "@/composables/usePlaybackVolume";
 import { useViewStore } from "./viewStore";
 import { useLocalMusicStore } from "./localMusicStore";
-import { useOnlineMusicStore } from "./onlineMusicStore";
+import { useOnlineServiceStore } from "./onlineServiceStore";
 import { usePlaylistStore } from "./playlistStore";
 
 function debugPlaybackLog(message: string) {
@@ -41,6 +47,7 @@ interface PlaybackEndedPayload {
 interface PlaybackSnapshot {
   music: MusicFile | null;
   onlineSong: SongInfo | null;
+  localQueue: MusicFile[];
   onlineQueue: SongInfo[];
   playlistId: string | null;
   isPlaying: boolean;
@@ -49,12 +56,17 @@ interface PlaybackSnapshot {
   backendTrackId: number;
 }
 
+interface PlayLocalOptions {
+  fromPlaylistId?: string;
+  queue?: MusicFile[];
+}
+
 const MAX_SHUFFLE_HISTORY_SIZE = 200;
 
 export const usePlayerStore = defineStore("player", () => {
   const viewStore = useViewStore();
   const localStore = useLocalMusicStore();
-  const onlineStore = useOnlineMusicStore();
+  const onlineServiceStore = useOnlineServiceStore();
   const playlistStore = usePlaylistStore();
 
   const playMode = ref<PlayMode>(PlayMode.SEQUENTIAL);
@@ -63,6 +75,7 @@ export const usePlayerStore = defineStore("player", () => {
   const currentOnlineSong = ref<SongInfo | null>(null);
   const isPlaying = ref(false);
   const isLoadingSong = ref(false);
+  const playbackPhase = ref<PlaybackPhase>("idle");
   const currentPlayTime = ref(0);
   const currentTrackDurationMs = ref(0);
   const currentBackendTrackId = ref(0);
@@ -73,6 +86,8 @@ export const usePlayerStore = defineStore("player", () => {
   let shuffleContextKey = "";
   let shuffleHistory: string[] = [];
   let shuffleCursor = -1;
+  let playbackRequestId = 0;
+  let fallbackPlaybackSnapshot: PlaybackSnapshot | null = null;
   /** 当前从播放列表播放时记录列表 id，用于上一曲/下一曲 */
   const currentPlaylistId = ref<string | null>(null);
 
@@ -83,8 +98,6 @@ export const usePlayerStore = defineStore("player", () => {
 
   const playbackQueue = usePlaybackQueue({
     getPlayMode: () => playMode.value,
-    getViewMode: () => viewStore.viewMode,
-    getFallbackOnlineQueue: () => onlineStore.onlineSongs,
     getCurrentPlaylistId: () => currentPlaylistId.value,
     setCurrentPlaylistId: (id) => {
       currentPlaylistId.value = id;
@@ -92,6 +105,7 @@ export const usePlayerStore = defineStore("player", () => {
     getPlaylist: playlistStore.getPlaylist,
     prefetchOnlineSong: prefetchNeteaseSong,
   });
+  const currentLocalQueue = ref<MusicFile[]>([]);
   const currentOnlineQueue = playbackQueue.currentOnlineQueue;
 
   const hasCurrentTrack = computed(
@@ -130,6 +144,76 @@ export const usePlayerStore = defineStore("player", () => {
     return null;
   });
 
+  const playbackQueueItems = computed<PlaybackQueueItem[]>(() => {
+    if (currentPlaylistId.value) {
+      const playlist = playlistStore.getPlaylist(currentPlaylistId.value);
+      return (playlist?.items ?? []).map((item, sourceIndex) => {
+        if (item.type === "online") {
+          return {
+            key: `online:${sourceIndex}:${item.song.id}`,
+            title: item.song.name,
+            artist: item.song.artists.join(", "),
+            source: "online",
+            sourceIndex,
+            isCurrent: currentOnlineSong.value?.id === item.song.id,
+          };
+        }
+        const file = localMusicByFileName.value.get(item.file_name);
+        const display = getLocalMusicDisplayInfo(
+          file ?? { id: -1, file_name: item.file_name },
+          i18n.global.t("common.unknownArtist")
+        );
+        return {
+          key: `local:${sourceIndex}:${item.file_name}`,
+          title: display.title,
+          artist: display.artist,
+          source: "local",
+          sourceIndex,
+          isCurrent: currentMusic.value?.file_name === item.file_name,
+          disabled: !file,
+        };
+      });
+    }
+
+    if (currentMusic.value) {
+      const queue = currentLocalQueue.value.length
+        ? currentLocalQueue.value
+        : localStore.musicFiles;
+      return queue.map((file, sourceIndex) => {
+        const display = getLocalMusicDisplayInfo(
+          file,
+          i18n.global.t("common.unknownArtist")
+        );
+        return {
+          key: `local:${getLocalTrackKey(file)}`,
+          title: display.title,
+          artist: display.artist,
+          source: "local",
+          sourceIndex,
+          isCurrent: getLocalTrackKey(file) === getLocalTrackKey(currentMusic.value!),
+        };
+      });
+    }
+
+    return currentOnlineQueue.value.map((song, sourceIndex) => ({
+      key: `online:${song.id}`,
+      title: song.name,
+      artist: song.artists.join(", "),
+      source: "online",
+      sourceIndex,
+      isCurrent: currentOnlineSong.value?.id === song.id,
+    }));
+  });
+
+  const playbackQueueTitle = computed(() => {
+    if (currentPlaylistId.value) {
+      return playlistStore.getPlaylist(currentPlaylistId.value)?.name ?? "";
+    }
+    return currentMusic.value
+      ? i18n.global.t("common.localMusic")
+      : i18n.global.t("onlineMusic.title");
+  });
+
   function clampPlayTime(positionMs: number): number {
     const duration = currentTrackDuration.value;
     const safePosition = Math.max(0, positionMs || 0);
@@ -146,6 +230,7 @@ export const usePlayerStore = defineStore("player", () => {
     return {
       music: currentMusic.value,
       onlineSong: currentOnlineSong.value,
+      localQueue: [...currentLocalQueue.value],
       onlineQueue: [...currentOnlineQueue.value],
       playlistId: currentPlaylistId.value,
       isPlaying: isPlaying.value,
@@ -158,16 +243,54 @@ export const usePlayerStore = defineStore("player", () => {
   function restorePlaybackSnapshot(snapshot: PlaybackSnapshot) {
     currentMusic.value = snapshot.music;
     currentOnlineSong.value = snapshot.onlineSong;
+    currentLocalQueue.value = snapshot.localQueue;
     currentOnlineQueue.value = snapshot.onlineQueue;
     currentPlaylistId.value = snapshot.playlistId;
     currentPlayTime.value = snapshot.positionMs;
     currentTrackDurationMs.value = snapshot.durationMs;
     currentBackendTrackId.value = snapshot.backendTrackId;
     isPlaying.value = snapshot.isPlaying;
+    isLoadingSong.value = false;
+    playbackPhase.value = "idle";
     if (snapshot.isPlaying && (snapshot.music || snapshot.onlineSong)) {
       startPlayTimeTracking();
     } else {
       stopPlayTimeTracking();
+    }
+  }
+
+  function beginPlaybackRequest(): number {
+    if (!isLoadingSong.value || fallbackPlaybackSnapshot === null) {
+      fallbackPlaybackSnapshot = capturePlaybackSnapshot();
+    }
+    const requestId = ++playbackRequestId;
+    isLoadingSong.value = true;
+    isPlaying.value = false;
+    stopPlayTimeTracking();
+    resetProgressState();
+    return requestId;
+  }
+
+  function isCurrentPlaybackRequest(requestId: number): boolean {
+    return requestId === playbackRequestId;
+  }
+
+  function completePlaybackRequest(requestId: number): boolean {
+    if (!isCurrentPlaybackRequest(requestId)) return false;
+    isLoadingSong.value = false;
+    playbackPhase.value = "idle";
+    fallbackPlaybackSnapshot = null;
+    return true;
+  }
+
+  function failPlaybackRequest(requestId: number) {
+    if (!isCurrentPlaybackRequest(requestId)) return;
+    const snapshot = fallbackPlaybackSnapshot;
+    fallbackPlaybackSnapshot = null;
+    if (snapshot) restorePlaybackSnapshot(snapshot);
+    else {
+      isLoadingSong.value = false;
+      playbackPhase.value = "idle";
     }
   }
 
@@ -274,70 +397,77 @@ export const usePlayerStore = defineStore("player", () => {
     playbackClock.stop();
   }
 
-  async function playMusic(music: MusicFile, options?: { fromPlaylistId?: string }) {
-    const previousPlayback = capturePlaybackSnapshot();
+  async function playMusic(music: MusicFile, options?: PlayLocalOptions) {
+    const requestId = beginPlaybackRequest();
     try {
-      if (!options?.fromPlaylistId) currentPlaylistId.value = null;
+      if (options?.fromPlaylistId) {
+        currentPlaylistId.value = options.fromPlaylistId;
+        currentLocalQueue.value = [];
+      } else {
+        currentPlaylistId.value = null;
+        const nextQueue = options?.queue ?? currentLocalQueue.value;
+        currentLocalQueue.value = nextQueue.some(
+          (item) => getLocalTrackKey(item) === getLocalTrackKey(music)
+        )
+          ? [...nextQueue]
+          : [...localStore.musicFiles];
+      }
       playbackQueue.clearOnlineQueue();
       debugPlaybackLog(`[播放控制] 开始播放本地音乐: ${music.file_name}`);
 
-      isLoadingSong.value = true;
-      isPlaying.value = false;
-      stopPlayTimeTracking();
-      resetProgressState();
-
       currentMusic.value = music;
       currentOnlineSong.value = null;
+      playbackPhase.value = "buffering";
+      await preparePlaybackRequest(requestId);
+      if (!isCurrentPlaybackRequest(requestId)) return;
 
       const fullPath = joinPathSegment(localStore.currentDirectory, music.file_name);
-      const playResult = await playTrack({ type: "local", path: fullPath });
+      const playResult = await playTrack({ type: "local", path: fullPath }, requestId);
+      if (!isCurrentPlaybackRequest(requestId)) return;
       currentBackendTrackId.value = playResult.track_id;
       updateProgressFromBackend(playResult);
 
-      isLoadingSong.value = false;
+      if (!completePlaybackRequest(requestId)) return;
       isPlaying.value = true;
       startPlayTimeTracking();
 
-      if (options?.fromPlaylistId) currentPlaylistId.value = options.fromPlaylistId;
       debugPlaybackLog(`[播放控制] 本地音乐播放成功: ${music.file_name}`);
     } catch (error) {
+      if (!isCurrentPlaybackRequest(requestId)) return;
       console.error("[播放控制] 播放本地音乐失败:", error);
       ElMessage.error(`${i18n.global.t("errors.playFailed")}: ${error}`);
-      isLoadingSong.value = false;
-      restorePlaybackSnapshot(previousPlayback);
+      failPlaybackRequest(requestId);
     }
   }
 
   async function playOnlineSong(song: SongInfo, options?: PlayOnlineOptions) {
-    const previousPlayback = capturePlaybackSnapshot();
+    if (
+      currentOnlineSong.value?.id === song.id &&
+      isPlaying.value &&
+      !isLoadingSong.value
+    ) {
+      playbackQueue.applyOnlinePlaybackContext(song, options);
+      void playbackQueue.prefetchNextOnlineSong(song);
+      debugPlaybackLog("[播放控制] 歌曲正在播放，忽略重复请求");
+      return;
+    }
+
+    const requestId = beginPlaybackRequest();
     try {
-      if (
-        currentOnlineSong.value?.id === song.id &&
-        isPlaying.value &&
-        !isLoadingSong.value
-      ) {
-        playbackQueue.applyOnlinePlaybackContext(options);
-        void playbackQueue.prefetchNextOnlineSong(song);
-        debugPlaybackLog("[播放控制] 歌曲正在播放，忽略重复请求");
-        return;
-      }
-      if (isLoadingSong.value) {
-        debugPlaybackLog("[播放控制] 歌曲正在加载中，忽略重复请求");
-        return;
-      }
-      playbackQueue.applyOnlinePlaybackContext(options);
+      playbackQueue.applyOnlinePlaybackContext(song, options);
 
       debugPlaybackLog(
         `[播放控制] 开始播放在线歌曲: ${song.name} - ${song.artists.join(", ")}`
       );
 
-      isLoadingSong.value = true;
-      isPlaying.value = false;
-      stopPlayTimeTracking();
-      resetProgressState();
-
       currentOnlineSong.value = song;
       currentMusic.value = null;
+      currentLocalQueue.value = [];
+      playbackPhase.value = "resolving";
+      await preparePlaybackRequest(requestId);
+      if (!isCurrentPlaybackRequest(requestId)) return;
+      await onlineServiceStore.ensureStarted();
+      if (!isCurrentPlaybackRequest(requestId)) return;
 
       const playResult = await playNeteaseSong({
         id: song.id,
@@ -345,32 +475,36 @@ export const usePlayerStore = defineStore("player", () => {
         artist: song.artists.join(", "),
         picUrl: song.pic_url || undefined,
       });
+      if (!isCurrentPlaybackRequest(requestId)) return;
 
       debugPlaybackLog("[播放控制] 获取到播放URL，准备播放");
-      const startResult = await playTrack({
-        type: "online",
-        url: playResult.url,
-        cache_key: song.id,
-      });
+      playbackPhase.value = "buffering";
+      const startResult = await playTrack(
+        {
+          type: "online",
+          url: playResult.url,
+          cache_key: song.id,
+        },
+        requestId
+      );
+      if (!isCurrentPlaybackRequest(requestId)) return;
       currentBackendTrackId.value = startResult.track_id;
       updateProgressFromBackend(startResult);
 
-      isLoadingSong.value = false;
+      if (!completePlaybackRequest(requestId)) return;
       isPlaying.value = true;
       startPlayTimeTracking();
 
       if (playResult.pic_url && currentOnlineSong.value) {
         currentOnlineSong.value.pic_url = playResult.pic_url;
       }
-      if (options?.fromPlaylistId) currentPlaylistId.value = options.fromPlaylistId;
-
       debugPlaybackLog(`[播放控制] 在线歌曲播放成功: ${song.name}`);
       void playbackQueue.prefetchNextOnlineSong(song);
     } catch (error) {
+      if (!isCurrentPlaybackRequest(requestId)) return;
       console.error("[播放控制] 播放在线歌曲失败:", error);
       ElMessage.error(`${i18n.global.t("errors.playFailedOnline")}: ${error}`);
-      isLoadingSong.value = false;
-      restorePlaybackSnapshot(previousPlayback);
+      failPlaybackRequest(requestId);
     }
   }
 
@@ -385,6 +519,24 @@ export const usePlayerStore = defineStore("player", () => {
     } else {
       await playOnlineSong(item.song, { fromPlaylistId: playlistId });
     }
+  }
+
+  async function playQueueItem(index: number) {
+    if (currentPlaylistId.value) {
+      await playFromPlaylist(currentPlaylistId.value, index);
+      return;
+    }
+    if (currentMusic.value) {
+      const queue = currentLocalQueue.value.length
+        ? currentLocalQueue.value
+        : localStore.musicFiles;
+      const music = queue[index];
+      if (music) await playMusic(music, { queue });
+      return;
+    }
+    const queue = currentOnlineQueue.value;
+    const song = queue[index];
+    if (song) await playOnlineSong(song, { queue });
   }
 
   async function togglePlay() {
@@ -467,12 +619,16 @@ export const usePlayerStore = defineStore("player", () => {
     }
 
     if (currentMusic.value) {
+      const queue =
+        currentLocalQueue.value.length > 0
+          ? currentLocalQueue.value
+          : localStore.musicFiles;
       return {
         contextKey: `local:${localStore.currentDirectory ?? "default"}`,
         currentKey: getLocalTrackKey(currentMusic.value),
-        targets: localStore.musicFiles.map((music) => ({
+        targets: queue.map((music) => ({
           key: getLocalTrackKey(music),
-          play: () => playMusic(music),
+          play: () => playMusic(music, { queue }),
         })),
       };
     }
@@ -537,11 +693,6 @@ export const usePlayerStore = defineStore("player", () => {
 
   async function playNextOrPreviousMusic(step: number) {
     try {
-      if (isLoadingSong.value) {
-        debugPlaybackLog("[播放控制] 歌曲正在加载中，忽略切换请求");
-        return;
-      }
-
       if (playMode.value === PlayMode.RANDOM) {
         await playRandomWithHistory(step);
         return;
@@ -573,27 +724,27 @@ export const usePlayerStore = defineStore("player", () => {
         currentPlaylistId.value = null;
       }
 
-      if (viewStore.viewMode === ViewMode.LOCAL) {
-        if (localStore.musicFiles.length === 0) {
+      if (currentMusic.value) {
+        const queue =
+          currentLocalQueue.value.length > 0
+            ? currentLocalQueue.value
+            : localStore.musicFiles;
+        if (queue.length === 0) {
           ElMessage.warning(i18n.global.t("messages.noLocalMusic"));
           return;
         }
 
-        let currentIndex = localStore.musicFiles.findIndex(
+        let currentIndex = queue.findIndex(
           (file) =>
             currentMusic.value !== null &&
             getLocalTrackKey(file) === getLocalTrackKey(currentMusic.value)
         );
         if (currentIndex === -1) currentIndex = 0;
 
-        const nextIndex = getSequentialIndex(
-          currentIndex,
-          step,
-          localStore.musicFiles.length
-        );
+        const nextIndex = getSequentialIndex(currentIndex, step, queue.length);
 
-        await playMusic(localStore.musicFiles[nextIndex]);
-      } else {
+        await playMusic(queue[nextIndex], { queue });
+      } else if (currentOnlineSong.value) {
         const queue = playbackQueue.getActiveOnlineQueue();
         if (queue.length === 0) {
           ElMessage.warning(i18n.global.t("messages.noOnlineMusic"));
@@ -620,9 +771,11 @@ export const usePlayerStore = defineStore("player", () => {
       const list = playlistStore.getPlaylist(currentPlaylistId.value);
       return list?.items.length ?? 0;
     }
-    return viewStore.viewMode === ViewMode.LOCAL
-      ? localStore.musicFiles.length
-      : playbackQueue.getActiveOnlineQueue().length;
+    if (currentMusic.value) {
+      return currentLocalQueue.value.length || localStore.musicFiles.length;
+    }
+    if (currentOnlineSong.value) return playbackQueue.getActiveOnlineQueue().length;
+    return 0;
   }
 
   function getPlayStep(direction: number): number {
@@ -654,7 +807,9 @@ export const usePlayerStore = defineStore("player", () => {
     if (currentMusic.value) {
       await playMusic(
         currentMusic.value,
-        currentPlaylistId.value ? { fromPlaylistId: currentPlaylistId.value } : undefined
+        currentPlaylistId.value
+          ? { fromPlaylistId: currentPlaylistId.value }
+          : { queue: currentLocalQueue.value }
       );
     } else if (currentOnlineSong.value) {
       await playOnlineSong(
@@ -720,14 +875,18 @@ export const usePlayerStore = defineStore("player", () => {
     currentOnlineSong,
     isPlaying,
     isLoadingSong,
+    playbackPhase,
     currentPlayTime,
     volume,
     currentPlaylistId,
+    currentLocalQueue,
     currentOnlineQueue,
 
     hasCurrentTrack,
     currentTrackDuration,
     currentTrackInfo,
+    playbackQueueItems,
+    playbackQueueTitle,
 
     startPlayTimeTracking,
     stopPlayTimeTracking,
@@ -737,6 +896,7 @@ export const usePlayerStore = defineStore("player", () => {
     playOnlineSong,
     prefetchOnlineSong,
     playFromPlaylist,
+    playQueueItem,
     togglePlay,
     adjustVolume,
     syncVolumeToBackend,
