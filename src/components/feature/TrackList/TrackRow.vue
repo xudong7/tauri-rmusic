@@ -73,16 +73,11 @@ function handleActivate() {
       rowHeight ? { height: `${rowHeight}px`, minHeight: `${rowHeight}px` } : undefined
     "
     :title="`${item.title} — ${item.artist}`"
-    :tabindex="item.disabled ? -1 : 0"
-    role="button"
     :aria-current="item.isCurrent ? 'true' : undefined"
     :aria-disabled="item.disabled || undefined"
     @click="handleRowClick"
-    @keydown.enter.space.prevent="handleRowClick"
     @pointerenter="scheduleIntent"
     @pointerleave="cancelIntent"
-    @focus="scheduleIntent"
-    @blur="cancelIntent"
   >
     <div class="track-row__play">
       <el-checkbox
@@ -116,8 +111,13 @@ function handleActivate() {
         {{ item.title }}
       </div>
       <div class="track-row__meta">
-        {{ item.artist }}<template v-if="item.album"> · {{ item.album }}</template>
+        {{ item.artist
+        }}<span v-if="item.album" class="track-row__meta-album"> · {{ item.album }}</span>
       </div>
+    </div>
+
+    <div v-if="item.album" class="track-row__album" :title="item.album">
+      {{ item.album }}
     </div>
 
     <div v-if="item.durationLabel" class="track-row__duration">
@@ -134,7 +134,7 @@ function handleActivate() {
 .track-row {
   position: relative;
   min-height: var(--app-track-row-height);
-  margin-bottom: 2px;
+  margin-bottom: 0;
   padding: var(--app-track-row-padding-y) var(--app-track-row-padding-x);
   display: flex;
   align-items: center;
@@ -185,9 +185,19 @@ function handleActivate() {
 
 .track-row__play,
 .track-row__cover,
+.track-row__album,
 .track-row__duration,
 .track-row__actions {
   flex-shrink: 0;
+}
+
+.track-row__album {
+  width: clamp(140px, 20vw, 260px);
+  overflow: hidden;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .track-row__cover {
@@ -208,6 +218,10 @@ function handleActivate() {
   text-overflow: ellipsis;
   white-space: nowrap;
   letter-spacing: 0;
+}
+
+.track-row__meta-album {
+  display: none;
 }
 
 .track-row__title {
@@ -297,6 +311,16 @@ function handleActivate() {
     gap: 10px;
     padding-right: 8px;
     padding-left: 8px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .track-row__album {
+    display: none;
+  }
+
+  .track-row__meta-album {
+    display: inline;
   }
 }
 </style>

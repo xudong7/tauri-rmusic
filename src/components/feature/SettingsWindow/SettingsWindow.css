@@ -87,8 +87,32 @@
 }
 
 .cache-control,
-.setting-actions {
+.setting-actions,
+.service-control {
   gap: 6px;
+}
+
+.service-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+}
+
+.service-state-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--el-color-warning);
+}
+
+.service-state.is-available .service-state-dot {
+  background: var(--el-color-success);
+}
+
+.service-state.is-unavailable .service-state-dot {
+  background: var(--el-color-danger);
 }
 
 .theme-select,

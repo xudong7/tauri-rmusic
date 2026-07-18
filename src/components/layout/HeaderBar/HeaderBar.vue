@@ -250,27 +250,30 @@ onUnmounted(clearBlurTimer);
       </el-tooltip>
       <!-- 非 macOS 平台显示窗口控制按钮 -->
       <div v-if="!isMacPlatform" class="window-controls">
-        <div
+        <button
+          type="button"
           class="header-button window-button"
           :title="t('header.minimize')"
           @click="minimize"
         >
           <el-icon><Minus /></el-icon>
-        </div>
-        <div
+        </button>
+        <button
+          type="button"
           class="header-button window-button"
           :title="isMaximized ? t('header.restore') : t('header.maximize')"
           @click="toggleMaximize"
         >
           <el-icon><component :is="maximizeIcon" /></el-icon>
-        </div>
-        <div
+        </button>
+        <button
+          type="button"
           class="header-button window-button close"
           :title="t('header.close')"
           @click="close"
         >
           <el-icon><Close /></el-icon>
-        </div>
+        </button>
       </div>
     </div>
   </div>

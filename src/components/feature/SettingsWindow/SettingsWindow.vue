@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { computed, ref, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   Brush,
@@ -10,11 +10,13 @@ import {
   Delete,
   FolderOpened,
   RefreshLeft,
+  Refresh,
 } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useThemeStore, type ThemeMode } from "@/stores/themeStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
+import { useOnlineServiceStore } from "@/stores/onlineServiceStore";
 import { enable, isEnabled, disable } from "@tauri-apps/plugin-autostart";
 import { setLocale, getLocale, type LocaleKey } from "@/i18n";
 import {
@@ -28,12 +30,33 @@ import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
 const { t } = useI18n();
 const themeStore = useThemeStore();
 const localStore = useLocalMusicStore();
+const onlineServiceStore = useOnlineServiceStore();
 const downloadPath = ref("");
 const autoStartEnabled = ref(false);
 const currentLocale = ref<LocaleKey>(getLocale());
 const onlineCacheSize = ref(0);
 const onlineCachePath = ref("");
 const clearingCache = ref(false);
+const serviceStatusLabel = computed(() => {
+  if (onlineServiceStore.state === "checking") return t("onlineService.checking");
+  if (onlineServiceStore.state === "restarting") return t("onlineService.restarting");
+  return onlineServiceStore.isAvailable
+    ? t("onlineService.available")
+    : t("onlineService.unavailable");
+});
+
+watch(
+  () => localStore.defaultDirectory,
+  (directory) => {
+    if (directory) downloadPath.value = directory;
+  },
+  { immediate: true }
+);
+
+async function refreshOnlineService() {
+  await onlineServiceStore.ensureStarted();
+  await onlineServiceStore.checkNow();
+}
 
 const localeOptions: { value: LocaleKey; labelKey: string }[] = [
   { value: "zh", labelKey: "settings.languageZh" },
@@ -144,8 +167,6 @@ const handleAutoStartChange = async (value: boolean) => {
 
 onMounted(async () => {
   try {
-    await localStore.initializeLocalLibrary();
-    themeStore.initializeTheme();
     const dir = localStore.getDefaultDirectory();
     if (dir) downloadPath.value = dir;
     await refreshOnlineCachePath();
@@ -213,6 +234,27 @@ onMounted(async () => {
           <label>{{ t("settings.autoStart") }}</label>
           <div class="setting-control">
             <el-switch v-model="autoStartEnabled" @change="handleAutoStartChange" />
+          </div>
+        </div>
+        <div class="setting-row">
+          <label>{{ t("settings.serviceStatus") }}</label>
+          <div class="setting-control service-control">
+            <span
+              class="service-state"
+              :class="`is-${onlineServiceStore.state}`"
+              role="status"
+            >
+              <span class="service-state-dot" />
+              {{ serviceStatusLabel }}
+            </span>
+            <el-button
+              circle
+              :icon="Refresh"
+              :loading="onlineServiceStore.isChecking || onlineServiceStore.isRestarting"
+              :aria-label="t('settings.refreshService')"
+              class="settings-action-btn app-icon-button"
+              @click="refreshOnlineService"
+            />
           </div>
         </div>
       </div>

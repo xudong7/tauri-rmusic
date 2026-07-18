@@ -72,43 +72,46 @@ function goToPlaylist(id: string) {
 <template>
   <aside class="sidebar">
     <nav class="sidebar-nav">
-      <div
+      <button
         v-for="item in navItems"
         :key="item.path"
+        type="button"
         class="nav-item"
         :class="{ 'is-active': isActive(item) }"
         @click="goTo(item)"
       >
         <el-icon class="nav-icon"><component :is="item.icon" /></el-icon>
         <span class="nav-label">{{ t(item.labelKey) }}</span>
-      </div>
+      </button>
 
       <div class="playlist-section" :class="{ 'is-collapsed': !playlistSectionExpanded }">
-        <div
-          class="playlist-section-title"
-          role="button"
-          tabindex="0"
-          :aria-expanded="playlistSectionExpanded"
-          @click="togglePlaylistSection"
-          @keydown.enter.space.prevent="togglePlaylistSection"
-        >
-          <el-icon class="chevron"><ArrowDown /></el-icon>
-          <el-icon class="title-icon"><List /></el-icon>
-          <span class="playlist-section-title-text">{{ t("playlist.title") }}</span>
-          <el-icon
+        <div class="playlist-section-title">
+          <button
+            type="button"
+            class="playlist-section-toggle"
+            :aria-expanded="playlistSectionExpanded"
+            @click="togglePlaylistSection"
+          >
+            <el-icon class="chevron"><ArrowDown /></el-icon>
+            <el-icon class="title-icon"><List /></el-icon>
+            <span class="playlist-section-title-text">{{ t("playlist.title") }}</span>
+          </button>
+          <button
+            type="button"
             class="playlist-section-add"
             :title="t('playlist.newPlaylist')"
             :aria-label="t('playlist.newPlaylist')"
-            @click.stop="goToNewPlaylist"
+            @click="goToNewPlaylist"
           >
-            <Plus />
-          </el-icon>
+            <el-icon><Plus /></el-icon>
+          </button>
         </div>
         <Transition name="playlist-body">
           <div v-show="playlistSectionExpanded" class="playlist-section-body">
-            <div
+            <button
               v-for="pl in playlistStore.playlists"
               :key="pl.id"
+              type="button"
               class="nav-item nav-item-playlist"
               :class="{ 'is-active': isPlaylistActive(pl.id) }"
               @click="goToPlaylist(pl.id)"
@@ -116,7 +119,7 @@ function goToPlaylist(id: string) {
               <span class="nav-label" :title="pl.name">{{
                 pl.name || t("playlist.unnamed")
               }}</span>
-            </div>
+            </button>
           </div>
         </Transition>
       </div>

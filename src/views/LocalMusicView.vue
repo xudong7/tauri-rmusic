@@ -5,9 +5,10 @@
       :currentMusic="playerStore.currentMusic"
       :isPlaying="playerStore.isPlaying"
       :loading="localStore.isLoading"
+      :refreshing="localStore.isRefreshing"
       :getDefaultDirectory="localStore.getDefaultDirectory"
       :showImportButton="true"
-      @play="playerStore.playMusic"
+      @play="playLocalMusic"
       @toggle-current="playerStore.togglePlay"
       @import="importMusic"
     />
@@ -25,6 +26,7 @@ import { useViewStore } from "@/stores/viewStore";
 import MusicList from "@/components/feature/MusicList/MusicList.vue";
 import { ViewMode } from "@/types/model";
 import { importMusic as importMusicCommand } from "@/api/commands/file";
+import type { MusicFile } from "@/types/model";
 
 const { t } = useI18n();
 const localStore = useLocalMusicStore();
@@ -34,6 +36,10 @@ const viewStore = useViewStore();
 onMounted(() => {
   viewStore.setViewMode(ViewMode.LOCAL);
 });
+
+function playLocalMusic(music: MusicFile) {
+  void playerStore.playMusic(music, { queue: localStore.filteredMusicFiles });
+}
 
 async function importMusic() {
   try {

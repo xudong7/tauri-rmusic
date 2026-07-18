@@ -16,7 +16,7 @@ export function useLocalCoverCache<T>(options: UseLocalCoverCacheOptions<T>) {
   const coverByKey = reactive<Record<string, string>>({});
   const queue: T[] = [];
   const pendingKeys = new Set<string>();
-  const cachedKeys: string[] = [];
+  const cacheOrder = new Map<string, true>();
   let running = 0;
 
   function normalizeKey(item: T): string {
@@ -25,13 +25,14 @@ export function useLocalCoverCache<T>(options: UseLocalCoverCacheOptions<T>) {
 
   function setCachedCover(key: string, value: string) {
     const maxEntries = options.maxEntries ?? DEFAULT_MAX_COVER_CACHE_ENTRIES;
-    const existingIndex = cachedKeys.indexOf(key);
-    if (existingIndex >= 0) cachedKeys.splice(existingIndex, 1);
-    cachedKeys.push(key);
+    cacheOrder.delete(key);
+    cacheOrder.set(key, true);
     coverByKey[key] = value;
-    while (cachedKeys.length > maxEntries) {
-      const keyToDelete = cachedKeys.shift();
-      if (keyToDelete) delete coverByKey[keyToDelete];
+    while (cacheOrder.size > maxEntries) {
+      const keyToDelete = cacheOrder.keys().next().value;
+      if (!keyToDelete) break;
+      cacheOrder.delete(keyToDelete);
+      delete coverByKey[keyToDelete];
     }
   }
 
@@ -79,11 +80,8 @@ export function useLocalCoverCache<T>(options: UseLocalCoverCacheOptions<T>) {
   function getCover(item: T): string {
     const key = normalizeKey(item);
     if (coverByKey[key] !== undefined) {
-      const existingIndex = cachedKeys.indexOf(key);
-      if (existingIndex >= 0) {
-        cachedKeys.splice(existingIndex, 1);
-        cachedKeys.push(key);
-      }
+      cacheOrder.delete(key);
+      cacheOrder.set(key, true);
     }
     return coverByKey[key] ?? "";
   }
@@ -91,7 +89,7 @@ export function useLocalCoverCache<T>(options: UseLocalCoverCacheOptions<T>) {
   function clear() {
     queue.length = 0;
     pendingKeys.clear();
-    cachedKeys.length = 0;
+    cacheOrder.clear();
     for (const key of Object.keys(coverByKey)) delete coverByKey[key];
   }
 

@@ -85,6 +85,18 @@ export interface PlayStartResult {
   track_id: number;
 }
 
+export type PlaybackPhase = "idle" | "resolving" | "buffering";
+
+export interface PlaybackQueueItem {
+  key: string;
+  title: string;
+  artist: string;
+  source: "local" | "online";
+  sourceIndex: number;
+  isCurrent: boolean;
+  disabled?: boolean;
+}
+
 export interface OnlineServiceStatus {
   available: boolean;
   status_code: number | null;

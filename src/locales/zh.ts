@@ -15,6 +15,7 @@ export default {
     warm: "暖色",
     cancel: "取消",
     confirmDelete: "确定删除",
+    close: "关闭",
   },
   playlist: {
     title: "播放列表",
@@ -71,6 +72,9 @@ export default {
     about: "关于",
     aboutDesc: "一个基于 Tauri 和 Vue 的音乐播放器",
     language: "语言",
+    onlineService: "在线服务",
+    serviceStatus: "服务状态",
+    refreshService: "启动或刷新在线服务",
   },
   musicList: {
     title: "曲库",
@@ -82,6 +86,7 @@ export default {
     cancelSelect: "取消多选",
     addSelectedToPlaylist: "添加到播放列表",
     selectedCount: "已选 {count} 首",
+    updating: "正在后台更新曲库…",
   },
   onlineMusic: {
     title: "搜索",
@@ -97,6 +102,7 @@ export default {
   },
   artist: {
     backToSearch: "返回搜索",
+    open: "查看歌手：{name}",
   },
   playerBar: {
     noSong: "未选择歌曲",
@@ -104,6 +110,14 @@ export default {
     next: "下一曲",
     play: "播放",
     pause: "暂停",
+    resolving: "正在获取播放地址…",
+    buffering: "正在缓冲…",
+    queue: "播放队列",
+    currentQueue: "当前队列",
+    queueEmpty: "队列中还没有歌曲",
+    mute: "静音",
+    unmute: "恢复音量",
+    toggleRemainingTime: "切换总时长与剩余时间",
     sequential: "顺序播放",
     random: "随机播放",
     repeatOne: "单曲循环",

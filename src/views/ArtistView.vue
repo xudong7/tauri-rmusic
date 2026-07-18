@@ -27,7 +27,6 @@
       :totalCount="artistStore.artistSongsTotal"
       :showTitle="false"
       @play="playArtistSong"
-      @prefetch="playerStore.prefetchOnlineSong"
       @toggle-current="playerStore.togglePlay"
       @download="downloadOnlineSong"
       @load-more="artistStore.loadMoreArtistSongs"

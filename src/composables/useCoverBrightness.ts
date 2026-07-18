@@ -7,6 +7,18 @@ interface CoverBrightnessState {
 }
 
 const MAX_ANALYSIS_IMAGE_SIZE = 96;
+const MAX_BRIGHTNESS_CACHE_ENTRIES = 100;
+const brightnessCache = new Map<string, number>();
+
+function cacheBrightness(url: string, brightness: number) {
+  brightnessCache.delete(url);
+  brightnessCache.set(url, brightness);
+  while (brightnessCache.size > MAX_BRIGHTNESS_CACHE_ENTRIES) {
+    const oldest = brightnessCache.keys().next().value;
+    if (!oldest) break;
+    brightnessCache.delete(oldest);
+  }
+}
 
 function getAdjustedBrightness(averageBrightness: number): number {
   if (averageBrightness < 0.3) return 1.28;
@@ -70,6 +82,7 @@ export function useCoverBrightness(imageUrl: Ref<string>) {
       state.value.brightness =
         averageBrightness === null ? 0.7 : getAdjustedBrightness(averageBrightness);
       state.value.isAnalyzed = true;
+      cacheBrightness(url, state.value.brightness);
     } catch (error) {
       if (currentAnalysisId !== analysisId) return;
       console.error("分析封面图片亮度失败:", error);
@@ -87,7 +100,16 @@ export function useCoverBrightness(imageUrl: Ref<string>) {
       const currentAnalysisId = ++analysisId;
       state.value.isAnalyzed = false;
       if (url) {
-        void analyze(url, currentAnalysisId);
+        const cached = brightnessCache.get(url);
+        if (cached !== undefined) {
+          state.value = {
+            brightness: cached,
+            isAnalyzing: false,
+            isAnalyzed: true,
+          };
+        } else {
+          void analyze(url, currentAnalysisId);
+        }
       } else {
         state.value.isAnalyzing = false;
       }

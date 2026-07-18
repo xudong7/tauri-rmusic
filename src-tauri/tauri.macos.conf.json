@@ -6,7 +6,7 @@
         "title": "rmusic",
         "width": 1200,
         "height": 1000,
-        "minWidth": 900,
+        "minWidth": 760,
         "minHeight": 640,
         "decorations": true,
         "titleBarStyle": "Overlay",
@@ -16,8 +16,7 @@
           "y": 14
         },
         "center": true,
-        "shadow": true,
-        "devtools": true
+        "shadow": true
       }
     ]
   },

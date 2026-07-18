@@ -34,6 +34,13 @@
   user-select: none;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .background-cover {
+    filter: none !important;
+    opacity: 0.58;
+  }
+}
+
 .immersive-view.uses-dark-foreground {
   --immersive-control-surface: rgba(245, 248, 250, 0.22);
   --immersive-control-border: rgba(18, 31, 40, 0.22);
@@ -53,24 +60,21 @@
   width: calc(100% + 80px);
   height: calc(100% + 80px);
   z-index: 0;
-  background-size: cover;
-  background-position: center;
+  object-fit: cover;
   opacity: 1;
   filter: saturate(0.82) contrast(1.05);
   transform: scale(1.06);
-  transition:
-    background-image 0.6s ease,
-    opacity 0.3s ease;
+  pointer-events: none;
+  animation: immersive-background-enter 240ms ease-out both;
 }
 
-.background-cover::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(5, 7, 9, 0.08);
+@keyframes immersive-background-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* 遮罩层 */
@@ -262,7 +266,18 @@
 }
 
 .song-artist .artist-part.artist-link {
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
   cursor: pointer;
+}
+
+.song-artist .artist-part.artist-link:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
 }
 
 .song-artist .artist-part.artist-link:hover {

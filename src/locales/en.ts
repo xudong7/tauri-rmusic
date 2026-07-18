@@ -15,6 +15,7 @@ export default {
     warm: "Warm",
     cancel: "Cancel",
     confirmDelete: "Delete",
+    close: "Close",
   },
   playlist: {
     title: "Playlists",
@@ -71,6 +72,9 @@ export default {
     about: "About",
     aboutDesc: "A music player built with Tauri and Vue",
     language: "Language",
+    onlineService: "Online Service",
+    serviceStatus: "Service status",
+    refreshService: "Start or refresh online service",
   },
   musicList: {
     title: "Library",
@@ -82,6 +86,7 @@ export default {
     cancelSelect: "Cancel",
     addSelectedToPlaylist: "Add to playlist",
     selectedCount: "{count} selected",
+    updating: "Updating library in the background…",
   },
   onlineMusic: {
     title: "Search",
@@ -97,6 +102,7 @@ export default {
   },
   artist: {
     backToSearch: "Back to search",
+    open: "Open artist: {name}",
   },
   playerBar: {
     noSong: "No song selected",
@@ -104,6 +110,14 @@ export default {
     next: "Next",
     play: "Play",
     pause: "Pause",
+    resolving: "Resolving stream…",
+    buffering: "Buffering…",
+    queue: "Play Queue",
+    currentQueue: "Current queue",
+    queueEmpty: "The queue is empty",
+    mute: "Mute",
+    unmute: "Unmute",
+    toggleRemainingTime: "Toggle duration and remaining time",
     sequential: "Sequential",
     random: "Shuffle",
     repeatOne: "Repeat One",

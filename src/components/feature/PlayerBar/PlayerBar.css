@@ -1,6 +1,6 @@
 .player-bar {
   display: grid;
-  grid-template-columns: minmax(150px, 168px) minmax(0, 1fr) minmax(140px, 180px);
+  grid-template-columns: minmax(150px, 190px) minmax(0, 1fr) minmax(180px, 220px);
   align-items: center;
   height: var(--app-player-height, 64px);
   padding: 0 16px;
@@ -85,8 +85,28 @@ html.dark .player-bar {
   margin-top: 2px;
 }
 
+.playback-status {
+  margin-top: 2px;
+  color: var(--el-color-primary);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .artist-link {
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
   cursor: pointer;
+}
+
+.artist-link:focus-visible {
+  border-radius: 2px;
+  outline: 2px solid color-mix(in srgb, var(--el-color-primary) 44%, transparent);
+  outline-offset: 1px;
 }
 
 .artist-link:hover {
@@ -180,6 +200,21 @@ html.dark .player-bar {
   font-weight: 500;
 }
 
+.player-progress .time-display-toggle {
+  padding: 2px 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.player-progress .time-display-toggle:hover,
+.player-progress .time-display-toggle:focus-visible {
+  color: var(--el-color-primary);
+  outline: 2px solid color-mix(in srgb, var(--el-color-primary) 36%, transparent);
+  outline-offset: 1px;
+}
+
 .player-progress .progress-slider {
   flex: 1;
 }
@@ -241,7 +276,8 @@ html.dark .player-bar {
   justify-content: flex-end;
 }
 
-.play-mode-btn {
+.play-mode-btn,
+.queue-btn {
   width: var(--app-icon-btn-sm);
   height: var(--app-icon-btn-sm);
   padding: 0;
@@ -255,10 +291,16 @@ html.dark .player-bar {
     transform var(--app-control-transition);
 }
 
-.play-mode-btn:hover {
+.play-mode-btn:hover,
+.queue-btn:hover {
   background: var(--app-icon-button-hover-bg) !important;
   border-color: var(--app-button-border) !important;
   color: var(--app-icon-button-hover-color) !important;
+}
+
+.play-mode-btn.is-active {
+  color: var(--el-color-primary) !important;
+  background: var(--active-item-bg) !important;
 }
 
 /* 内联音量条：扬声器图标 + 横向轨道，常驻播放条 */
@@ -279,6 +321,16 @@ html.dark .player-bar {
   width: 18px;
   height: 18px;
   color: var(--el-text-color-secondary);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.volume-speaker-icon:hover,
+.volume-speaker-icon:focus-visible {
+  color: var(--el-color-primary);
+  outline: none;
 }
 
 .volume-speaker-icon svg {

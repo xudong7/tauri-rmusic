@@ -1,7 +1,11 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
 import type { OnlineServiceStatus } from "@/types/model";
-import { checkOnlineServiceStatus, restartOnlineService } from "@/api/commands/netease";
+import {
+  checkOnlineServiceStatus,
+  ensureOnlineService,
+  restartOnlineService,
+} from "@/api/commands/netease";
 
 type ServiceState = "checking" | "restarting" | "available" | "unavailable";
 
@@ -17,6 +21,7 @@ export const useOnlineServiceStore = defineStore("onlineService", () => {
   const isRestarting = ref(false);
   let timer: number | null = null;
   let started = false;
+  let startPromise: Promise<void> | null = null;
   let failureStreak = 0;
 
   const isAvailable = computed(() => state.value === "available");
@@ -99,11 +104,35 @@ export const useOnlineServiceStore = defineStore("onlineService", () => {
     }
   }
 
+  async function ensureStarted() {
+    let didStart = false;
+    if (!started) {
+      started = true;
+      didStart = true;
+      state.value = "checking";
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+    }
+    if (startPromise) return startPromise;
+    if (isAvailable.value) {
+      if (didStart) scheduleNextCheck();
+      return;
+    }
+
+    startPromise = (async () => {
+      try {
+        await ensureOnlineService();
+      } catch (error) {
+        message.value = error instanceof Error ? error.message : String(error);
+      }
+      await checkNow();
+    })().finally(() => {
+      startPromise = null;
+    });
+    return startPromise;
+  }
+
   function start() {
-    if (started) return;
-    started = true;
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    void checkNow();
+    void ensureStarted();
   }
 
   function stop() {
@@ -121,6 +150,7 @@ export const useOnlineServiceStore = defineStore("onlineService", () => {
     isRestarting,
     isAvailable,
     checkNow,
+    ensureStarted,
     restartService,
     start,
     stop,
