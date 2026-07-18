@@ -21,6 +21,14 @@
   font-size: var(--list-header-icon-size, 16px);
 }
 
+.library-import-btn {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--app-radius-full);
+  font-weight: 600;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+}
+
 .batch-add-btn {
   margin-left: 8px;
   padding-left: 10px;

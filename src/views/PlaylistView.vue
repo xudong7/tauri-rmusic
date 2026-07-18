@@ -8,6 +8,14 @@
         :title="displayName"
         :subtitle="t('playlist.trackCount', { count: playlist.items.length })"
       >
+        <template #before-title>
+          <PlaylistCover
+            :item="playlist.items[0]"
+            :size="44"
+            :radius="10"
+            class="playlist-header-cover"
+          />
+        </template>
         <template #after-title>
           <el-tooltip v-if="!editingName" :content="t('playlist.rename')" placement="top">
             <el-button
@@ -167,6 +175,7 @@ import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
 import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
 import TrackList from "@/components/feature/TrackList/TrackList.vue";
 import type { TrackRowModel } from "@/components/feature/TrackList/types";
+import PlaylistCover from "@/components/feature/PlaylistCover/PlaylistCover.vue";
 
 const { t } = useI18n();
 const route = useRoute();

@@ -126,7 +126,7 @@
   color: var(--immersive-top-control) !important;
   width: 28px;
   height: 28px;
-  border-radius: 9999px !important;
+  border-radius: var(--app-radius-full) !important;
   box-shadow: none;
   transition:
     background 0.2s ease,
@@ -298,6 +298,7 @@
   border: 1px solid var(--immersive-control-border) !important;
   height: var(--app-icon-btn-lg);
   width: var(--app-icon-btn-lg);
+  border-radius: var(--app-radius-md) !important;
   background: transparent !important;
   color: var(--immersive-control-text) !important;
   box-shadow: none;
@@ -334,6 +335,7 @@
   color: #fff !important;
   height: var(--app-play-btn-lg) !important;
   width: var(--app-play-btn-lg) !important;
+  border-radius: var(--app-radius-lg) !important;
   font-size: 20px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
   transition:

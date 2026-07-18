@@ -91,7 +91,6 @@ export interface PlaybackQueueItem {
   key: string;
   title: string;
   artist: string;
-  source: "local" | "online";
   sourceIndex: number;
   isCurrent: boolean;
   disabled?: boolean;

@@ -22,6 +22,14 @@
   box-shadow: none;
 }
 
+.settings-group {
+  overflow: hidden;
+  background: color-mix(in srgb, var(--app-card-bg) 86%, transparent);
+  border: 1px solid var(--app-surface-border);
+  border-radius: var(--app-radius-lg);
+  box-shadow: var(--app-surface-shadow);
+}
+
 .settings-section .section-title {
   display: flex;
   align-items: center;
@@ -45,12 +53,16 @@
   min-height: 54px;
   margin-top: 0;
   padding: 0 14px;
-  background: color-mix(in srgb, var(--app-card-bg) 84%, transparent);
-  border: 1px solid var(--app-surface-border);
-  border-radius: var(--app-radius-md);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   transition:
     background var(--app-control-transition),
     border-color var(--app-control-transition);
+}
+
+.settings-group > :not(:first-child) {
+  border-top: 1px solid var(--app-surface-border);
 }
 
 .setting-row {
@@ -60,12 +72,7 @@
 
 .setting-row:hover,
 .path-summary:hover {
-  background: color-mix(in srgb, var(--app-card-bg) 92%, var(--active-item-bg));
-  border-color: color-mix(
-    in srgb,
-    var(--el-color-primary) 18%,
-    var(--app-surface-border)
-  );
+  background: color-mix(in srgb, var(--app-card-bg) 84%, var(--active-item-bg));
 }
 
 .setting-row > label,
@@ -75,6 +82,20 @@
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
+}
+
+.setting-row > label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.setting-row > label small {
+  color: var(--el-text-color-secondary);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.35;
+  white-space: normal;
 }
 
 .setting-control,
@@ -120,6 +141,30 @@
   width: 176px;
 }
 
+.theme-option-content {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.theme-option-dot {
+  width: 10px;
+  height: 10px;
+  border: 1px solid rgba(30, 35, 40, 0.15);
+  border-radius: 50%;
+  background: #f5f5f7;
+}
+
+.theme-option-dot.is-dark {
+  background: #202124;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.theme-option-dot.is-warm {
+  background: #d9cec4;
+}
+
 .cache-size {
   margin-right: 4px;
   color: var(--el-text-color-secondary);
@@ -158,9 +203,9 @@
   display: block;
   min-height: 0;
   padding: 14px;
-  background: color-mix(in srgb, var(--app-card-bg) 84%, transparent);
-  border: 1px solid var(--app-surface-border);
-  border-radius: var(--app-radius-md);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
 }
 
 .about-desc {

@@ -6,6 +6,7 @@ import { Folder, Search, Setting, Plus, List, ArrowDown } from "@element-plus/ic
 import { STORAGE_KEY_SIDEBAR_PLAYLIST_EXPANDED } from "@/constants";
 import { useViewStore } from "@/stores/viewStore";
 import { usePlaylistStore } from "@/stores/playlistStore";
+import PlaylistCover from "@/components/feature/PlaylistCover/PlaylistCover.vue";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -116,6 +117,12 @@ function goToPlaylist(id: string) {
               :class="{ 'is-active': isPlaylistActive(pl.id) }"
               @click="goToPlaylist(pl.id)"
             >
+              <PlaylistCover
+                :item="pl.items[0]"
+                :size="24"
+                :radius="6"
+                aria-hidden="true"
+              />
               <span class="nav-label" :title="pl.name">{{
                 pl.name || t("playlist.unnamed")
               }}</span>

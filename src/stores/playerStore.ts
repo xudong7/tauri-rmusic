@@ -86,7 +86,9 @@ export const usePlayerStore = defineStore("player", () => {
   let shuffleContextKey = "";
   let shuffleHistory: string[] = [];
   let shuffleCursor = -1;
-  let playbackRequestId = 0;
+  // 时间基准避免 WebView/HMR 重载后编号回到 1，与仍在运行的 Rust 状态冲突。
+  // 乘以 1000 为同一毫秒内的连续切歌预留递增空间，数值仍在 JS 安全整数范围内。
+  let playbackRequestId = Date.now() * 1000;
   let fallbackPlaybackSnapshot: PlaybackSnapshot | null = null;
   /** 当前从播放列表播放时记录列表 id，用于上一曲/下一曲 */
   const currentPlaylistId = ref<string | null>(null);
@@ -153,7 +155,6 @@ export const usePlayerStore = defineStore("player", () => {
             key: `online:${sourceIndex}:${item.song.id}`,
             title: item.song.name,
             artist: item.song.artists.join(", "),
-            source: "online",
             sourceIndex,
             isCurrent: currentOnlineSong.value?.id === item.song.id,
           };
@@ -167,7 +168,6 @@ export const usePlayerStore = defineStore("player", () => {
           key: `local:${sourceIndex}:${item.file_name}`,
           title: display.title,
           artist: display.artist,
-          source: "local",
           sourceIndex,
           isCurrent: currentMusic.value?.file_name === item.file_name,
           disabled: !file,
@@ -188,7 +188,6 @@ export const usePlayerStore = defineStore("player", () => {
           key: `local:${getLocalTrackKey(file)}`,
           title: display.title,
           artist: display.artist,
-          source: "local",
           sourceIndex,
           isCurrent: getLocalTrackKey(file) === getLocalTrackKey(currentMusic.value!),
         };
@@ -199,7 +198,6 @@ export const usePlayerStore = defineStore("player", () => {
       key: `online:${song.id}`,
       title: song.name,
       artist: song.artists.join(", "),
-      source: "online",
       sourceIndex,
       isCurrent: currentOnlineSong.value?.id === song.id,
     }));
@@ -263,12 +261,12 @@ export const usePlayerStore = defineStore("player", () => {
     if (!isLoadingSong.value || fallbackPlaybackSnapshot === null) {
       fallbackPlaybackSnapshot = capturePlaybackSnapshot();
     }
-    const requestId = ++playbackRequestId;
+    playbackRequestId = Math.max(playbackRequestId + 1, Date.now() * 1000);
     isLoadingSong.value = true;
     isPlaying.value = false;
     stopPlayTimeTracking();
     resetProgressState();
-    return requestId;
+    return playbackRequestId;
   }
 
   function isCurrentPlaybackRequest(requestId: number): boolean {
@@ -292,6 +290,11 @@ export const usePlayerStore = defineStore("player", () => {
       isLoadingSong.value = false;
       playbackPhase.value = "idle";
     }
+  }
+
+  function isSupersededPlaybackRequest(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error);
+    return message.includes("playback request superseded");
   }
 
   function resetShuffleHistory() {
@@ -434,6 +437,11 @@ export const usePlayerStore = defineStore("player", () => {
       debugPlaybackLog(`[播放控制] 本地音乐播放成功: ${music.file_name}`);
     } catch (error) {
       if (!isCurrentPlaybackRequest(requestId)) return;
+      if (isSupersededPlaybackRequest(error)) {
+        debugPlaybackLog("[播放控制] 播放请求已被更新请求替代");
+        failPlaybackRequest(requestId);
+        return;
+      }
       console.error("[播放控制] 播放本地音乐失败:", error);
       ElMessage.error(`${i18n.global.t("errors.playFailed")}: ${error}`);
       failPlaybackRequest(requestId);
@@ -502,6 +510,11 @@ export const usePlayerStore = defineStore("player", () => {
       void playbackQueue.prefetchNextOnlineSong(song);
     } catch (error) {
       if (!isCurrentPlaybackRequest(requestId)) return;
+      if (isSupersededPlaybackRequest(error)) {
+        debugPlaybackLog("[播放控制] 在线播放请求已被更新请求替代");
+        failPlaybackRequest(requestId);
+        return;
+      }
       console.error("[播放控制] 播放在线歌曲失败:", error);
       ElMessage.error(`${i18n.global.t("errors.playFailedOnline")}: ${error}`);
       failPlaybackRequest(requestId);

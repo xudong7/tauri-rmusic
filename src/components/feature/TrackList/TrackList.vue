@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, watch } from "vue";
+import { i18n } from "@/i18n";
 import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
 import TrackRow from "./TrackRow.vue";
 import type { TrackRowModel } from "./types";
@@ -21,6 +22,14 @@ const props = withDefaults(
     nearEndThreshold: 220,
   }
 );
+const columnLabels = computed(() => {
+  void i18n.global.locale.value;
+  return {
+    song: i18n.global.t("musicList.columnSong"),
+    album: i18n.global.t("musicList.columnAlbum"),
+    duration: i18n.global.t("musicList.columnDuration"),
+  };
+});
 
 const emit = defineEmits<{
   activate: [item: TrackRowModel];
@@ -52,6 +61,21 @@ function handleActivate(item: TrackRowModel) {
   if (item.isCurrent) emit("toggleCurrent", item);
   else emit("activate", item);
 }
+
+function handleListKeydown(event: KeyboardEvent) {
+  if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+  const target = (event.target as HTMLElement | null)?.closest<HTMLElement>(".track-row");
+  const parent = target?.parentElement;
+  if (!target || !parent) return;
+  const rows = Array.from(parent.querySelectorAll<HTMLElement>(".track-row"));
+  const currentIndex = rows.indexOf(target);
+  if (currentIndex < 0) return;
+  const nextIndex = currentIndex + (event.key === "ArrowDown" ? 1 : -1);
+  const nextRow = rows[nextIndex];
+  if (!nextRow) return;
+  event.preventDefault();
+  nextRow.focus();
+}
 </script>
 
 <template>
@@ -65,14 +89,24 @@ function handleActivate(item: TrackRowModel) {
       <slot name="empty" />
     </div>
 
+    <div v-if="items.length > 0" class="track-list__columns" aria-hidden="true">
+      <span />
+      <span />
+      <span class="track-list__column-song">{{ columnLabels.song }}</span>
+      <span class="track-list__column-album">{{ columnLabels.album }}</span>
+      <span class="track-list__column-duration">{{ columnLabels.duration }}</span>
+      <span />
+    </div>
+
     <div
-      v-else-if="useVirtual"
+      v-if="items.length > 0 && useVirtual"
       v-bind="containerProps"
       class="track-list__scroll track-list__scroll--virtual"
       data-render-mode="virtual"
       @scroll.passive="handleScroll"
+      @keydown="handleListKeydown"
     >
-      <div v-bind="wrapperProps" class="track-list__rows">
+      <div v-bind="wrapperProps" class="track-list__rows" role="list">
         <TrackRow
           v-for="{ data: item } in virtualList"
           :key="item.key"
@@ -92,12 +126,13 @@ function handleActivate(item: TrackRowModel) {
     </div>
 
     <div
-      v-else
+      v-else-if="items.length > 0"
       class="track-list__scroll"
       data-render-mode="standard"
       @scroll.passive="handleScroll"
+      @keydown="handleListKeydown"
     >
-      <div class="track-list__rows">
+      <div class="track-list__rows" role="list">
         <TrackRow
           v-for="item in items"
           :key="item.key"
@@ -140,12 +175,42 @@ function handleActivate(item: TrackRowModel) {
   margin-inline: auto;
 }
 
+.track-list__columns {
+  width: calc(100% - 8px);
+  min-height: 32px;
+  margin-inline: auto;
+  padding: 0 var(--app-track-row-padding-x);
+  display: grid;
+  grid-template-columns: 36px 44px minmax(180px, 1fr) minmax(140px, 220px) 48px 34px;
+  align-items: center;
+  gap: var(--app-track-row-gap);
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--app-surface-border);
+  color: var(--el-text-color-secondary);
+  font-size: 11px;
+  font-weight: 550;
+  letter-spacing: 0.02em;
+}
+
+.track-list__column-duration {
+  text-align: right;
+}
+
 .track-list--reading .track-list__rows {
+  max-width: var(--app-list-reading-width);
+}
+
+.track-list--reading .track-list__columns {
   max-width: var(--app-list-reading-width);
 }
 
 .track-list--online .track-list__rows {
   max-width: var(--app-online-list-width);
+}
+
+.track-list--online .track-list__columns {
+  max-width: var(--app-online-list-width);
+  grid-template-columns: 36px 44px minmax(180px, 1fr) minmax(140px, 220px) 48px 76px;
 }
 
 .track-list__state {
@@ -154,5 +219,34 @@ function handleActivate(item: TrackRowModel) {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+@media (max-width: 1100px) {
+  .track-list__columns {
+    grid-template-columns: 36px 44px minmax(0, 1fr) 48px 34px;
+  }
+
+  .track-list--online .track-list__columns {
+    grid-template-columns: 36px 44px minmax(0, 1fr) 48px 76px;
+  }
+
+  .track-list__column-album {
+    display: none;
+  }
+
+  .track-list__column-duration {
+    grid-column: 4;
+  }
+}
+
+@media (max-width: 840px) {
+  .track-list__columns {
+    grid-template-columns: 32px 44px minmax(0, 1fr) 44px 32px;
+    gap: 10px;
+  }
+
+  .track-list--online .track-list__columns {
+    grid-template-columns: 32px 44px minmax(0, 1fr) 44px 76px;
+  }
 }
 </style>

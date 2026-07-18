@@ -104,9 +104,6 @@ function handlePanelKeydown(event: KeyboardEvent) {
             <strong>{{ item.title }}</strong>
             <span>{{ item.artist }}</span>
           </span>
-          <span class="queue-item-source">
-            {{ t(item.source === "local" ? "common.localMusic" : "onlineMusic.title") }}
-          </span>
         </button>
       </div>
 
@@ -125,25 +122,24 @@ function handlePanelKeydown(event: KeyboardEvent) {
   z-index: 180;
   display: flex;
   justify-content: flex-end;
-  background: rgba(15, 23, 42, 0.14);
-  backdrop-filter: blur(2px);
+  background: var(--app-overlay-scrim);
 }
 
 .queue-panel {
-  width: min(390px, calc(100vw - 32px));
+  width: min(350px, calc(100vw - 32px));
   height: 100%;
   display: flex;
   flex-direction: column;
   color: var(--el-text-color-primary);
-  background: color-mix(in srgb, var(--app-card-bg) 94%, transparent);
+  background: var(--app-overlay-panel-bg);
   border-left: 1px solid var(--app-surface-border);
-  box-shadow: -18px 0 50px rgba(15, 23, 42, 0.12);
+  box-shadow: var(--app-overlay-panel-shadow);
   outline: none;
 }
 
 .queue-header {
-  min-height: 72px;
-  padding: 14px 16px 12px 20px;
+  min-height: 64px;
+  padding: 10px 12px 9px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -164,7 +160,7 @@ function handlePanelKeydown(event: KeyboardEvent) {
 }
 
 .queue-heading h2 {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 650;
 }
 
@@ -179,8 +175,8 @@ function handlePanelKeydown(event: KeyboardEvent) {
   height: 32px;
   flex-shrink: 0;
   border: 0;
-  border-radius: 50%;
-  color: var(--el-text-color-secondary);
+  border-radius: var(--app-radius-full);
+  color: var(--el-text-color-regular);
   background: transparent;
   cursor: pointer;
 }
@@ -193,18 +189,19 @@ function handlePanelKeydown(event: KeyboardEvent) {
 .queue-list {
   flex: 1;
   min-height: 0;
-  padding: 8px;
+  padding: 6px;
   overflow-y: auto;
+  scroll-padding-block: 8px;
 }
 
 .queue-item {
   width: 100%;
-  min-height: 58px;
-  padding: 8px 10px;
+  min-height: 46px;
+  padding: 6px 8px;
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) auto;
+  grid-template-columns: 26px minmax(0, 1fr);
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   border: 0;
   border-radius: var(--app-radius-md);
   color: inherit;
@@ -240,7 +237,7 @@ function handlePanelKeydown(event: KeyboardEvent) {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 
 .queue-item-main strong,
@@ -255,17 +252,9 @@ function handlePanelKeydown(event: KeyboardEvent) {
   font-weight: 600;
 }
 
-.queue-item-main span,
-.queue-item-source {
+.queue-item-main span {
   color: var(--el-text-color-secondary);
   font-size: 11px;
-}
-
-.queue-item-source {
-  max-width: 74px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .queue-empty {

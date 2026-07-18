@@ -190,38 +190,51 @@ onMounted(async () => {
         <h3 class="section-title">
           <el-icon><Brush /></el-icon> {{ t("settings.appearance") }}
         </h3>
-        <div class="setting-row">
-          <label>{{ t("settings.themeMode") }}</label>
-          <div class="setting-control">
-            <el-select
-              :model-value="themeStore.themeMode"
-              class="theme-select"
-              @update:model-value="handleThemeModeChange"
-            >
-              <el-option
-                v-for="opt in themeOptions"
-                :key="opt.value"
-                :value="opt.value"
-                :label="t(opt.labelKey)"
-              />
-            </el-select>
+        <div class="settings-group">
+          <div class="setting-row">
+            <label>
+              <span>{{ t("settings.themeMode") }}</span>
+              <small>{{ t("settings.themeModeDesc") }}</small>
+            </label>
+            <div class="setting-control">
+              <el-select
+                :model-value="themeStore.themeMode"
+                class="theme-select"
+                @update:model-value="handleThemeModeChange"
+              >
+                <el-option
+                  v-for="opt in themeOptions"
+                  :key="opt.value"
+                  :value="opt.value"
+                  :label="t(opt.labelKey)"
+                >
+                  <span class="theme-option-content">
+                    <span class="theme-option-dot" :class="`is-${opt.value}`" />
+                    <span>{{ t(opt.labelKey) }}</span>
+                  </span>
+                </el-option>
+              </el-select>
+            </div>
           </div>
-        </div>
-        <div class="setting-row">
-          <label>{{ t("settings.language") }}</label>
-          <div class="setting-control">
-            <el-select
-              v-model="currentLocale"
-              @change="handleLocaleChange"
-              class="locale-select"
-            >
-              <el-option
-                v-for="opt in localeOptions"
-                :key="opt.value"
-                :value="opt.value"
-                :label="t(opt.labelKey)"
-              />
-            </el-select>
+          <div class="setting-row">
+            <label>
+              <span>{{ t("settings.language") }}</span>
+              <small>{{ t("settings.languageDesc") }}</small>
+            </label>
+            <div class="setting-control">
+              <el-select
+                v-model="currentLocale"
+                @change="handleLocaleChange"
+                class="locale-select"
+              >
+                <el-option
+                  v-for="opt in localeOptions"
+                  :key="opt.value"
+                  :value="opt.value"
+                  :label="t(opt.labelKey)"
+                />
+              </el-select>
+            </div>
           </div>
         </div>
       </div>
@@ -230,31 +243,41 @@ onMounted(async () => {
         <h3 class="section-title">
           <el-icon><CircleCheck /></el-icon> {{ t("settings.appSettings") }}
         </h3>
-        <div class="setting-row">
-          <label>{{ t("settings.autoStart") }}</label>
-          <div class="setting-control">
-            <el-switch v-model="autoStartEnabled" @change="handleAutoStartChange" />
+        <div class="settings-group">
+          <div class="setting-row">
+            <label>
+              <span>{{ t("settings.autoStart") }}</span>
+              <small>{{ t("settings.autoStartDesc") }}</small>
+            </label>
+            <div class="setting-control">
+              <el-switch v-model="autoStartEnabled" @change="handleAutoStartChange" />
+            </div>
           </div>
-        </div>
-        <div class="setting-row">
-          <label>{{ t("settings.serviceStatus") }}</label>
-          <div class="setting-control service-control">
-            <span
-              class="service-state"
-              :class="`is-${onlineServiceStore.state}`"
-              role="status"
-            >
-              <span class="service-state-dot" />
-              {{ serviceStatusLabel }}
-            </span>
-            <el-button
-              circle
-              :icon="Refresh"
-              :loading="onlineServiceStore.isChecking || onlineServiceStore.isRestarting"
-              :aria-label="t('settings.refreshService')"
-              class="settings-action-btn app-icon-button"
-              @click="refreshOnlineService"
-            />
+          <div class="setting-row">
+            <label>
+              <span>{{ t("settings.serviceStatus") }}</span>
+              <small>{{ t("settings.serviceStatusDesc") }}</small>
+            </label>
+            <div class="setting-control service-control">
+              <span
+                class="service-state"
+                :class="`is-${onlineServiceStore.state}`"
+                role="status"
+              >
+                <span class="service-state-dot" />
+                {{ serviceStatusLabel }}
+              </span>
+              <el-button
+                circle
+                :icon="Refresh"
+                :loading="
+                  onlineServiceStore.isChecking || onlineServiceStore.isRestarting
+                "
+                :aria-label="t('settings.refreshService')"
+                class="settings-action-btn app-icon-button"
+                @click="refreshOnlineService"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -263,37 +286,44 @@ onMounted(async () => {
         <h3 class="section-title">
           <el-icon><Download /></el-icon> {{ t("settings.download") }}
         </h3>
-        <div class="setting-row">
-          <label>{{ t("settings.downloadLocation") }}</label>
-          <div class="setting-actions">
-            <el-tooltip :content="t('common.browse')" placement="top">
-              <el-button
-                circle
-                type="primary"
-                :icon="FolderOpened"
-                class="settings-action-btn app-icon-button app-icon-button--primary"
-                @click="selectDownloadPath"
-              />
-            </el-tooltip>
-            <el-tooltip :content="t('common.reset')" placement="top">
-              <el-button
-                circle
-                :icon="RefreshLeft"
-                class="settings-action-btn app-icon-button"
-                @click="resetDownloadPath"
-              />
-            </el-tooltip>
+        <div class="settings-group">
+          <div class="setting-row">
+            <label>
+              <span>{{ t("settings.downloadLocation") }}</span>
+              <small>{{ t("settings.downloadLocationDesc") }}</small>
+            </label>
+            <div class="setting-actions">
+              <el-tooltip :content="t('common.browse')" placement="top">
+                <el-button
+                  circle
+                  type="primary"
+                  :icon="FolderOpened"
+                  class="settings-action-btn app-icon-button app-icon-button--primary"
+                  @click="selectDownloadPath"
+                />
+              </el-tooltip>
+              <el-tooltip :content="t('common.reset')" placement="top">
+                <el-button
+                  circle
+                  :icon="RefreshLeft"
+                  class="settings-action-btn app-icon-button"
+                  @click="resetDownloadPath"
+                />
+              </el-tooltip>
+            </div>
           </div>
-        </div>
-        <div class="path-summary">
-          <span class="path-summary-label">{{ t("settings.libraryRoot") }}</span>
-          <code class="path-summary-value" :title="downloadPath">{{ downloadPath }}</code>
-          <el-button
-            link
-            :icon="CopyDocument"
-            class="path-copy"
-            @click="copyPath(downloadPath)"
-          />
+          <div class="path-summary">
+            <span class="path-summary-label">{{ t("settings.libraryRoot") }}</span>
+            <code class="path-summary-value" :title="downloadPath">{{
+              downloadPath
+            }}</code>
+            <el-button
+              link
+              :icon="CopyDocument"
+              class="path-copy"
+              @click="copyPath(downloadPath)"
+            />
+          </div>
         </div>
       </div>
 
@@ -301,32 +331,37 @@ onMounted(async () => {
         <h3 class="section-title">
           <el-icon><Delete /></el-icon> {{ t("settings.cache") }}
         </h3>
-        <div class="setting-row">
-          <label>{{ t("settings.onlineAudioCache") }}</label>
-          <div class="setting-control cache-control">
-            <span class="cache-size">{{ formatBytes(onlineCacheSize) }}</span>
-            <el-tooltip :content="t('settings.clearCache')" placement="top">
-              <el-button
-                circle
-                :icon="Delete"
-                :loading="clearingCache"
-                class="settings-action-btn settings-danger-action app-icon-button app-icon-button--danger"
-                @click="handleClearOnlineCache"
-              />
-            </el-tooltip>
+        <div class="settings-group">
+          <div class="setting-row">
+            <label>
+              <span>{{ t("settings.onlineAudioCache") }}</span>
+              <small>{{ t("settings.onlineAudioCacheDesc") }}</small>
+            </label>
+            <div class="setting-control cache-control">
+              <span class="cache-size">{{ formatBytes(onlineCacheSize) }}</span>
+              <el-tooltip :content="t('settings.clearCache')" placement="top">
+                <el-button
+                  circle
+                  :icon="Delete"
+                  :loading="clearingCache"
+                  class="settings-action-btn settings-danger-action app-icon-button app-icon-button--danger"
+                  @click="handleClearOnlineCache"
+                />
+              </el-tooltip>
+            </div>
           </div>
-        </div>
-        <div class="path-summary">
-          <span class="path-summary-label">{{ t("settings.cachePath") }}</span>
-          <code class="path-summary-value" :title="onlineCachePath">{{
-            onlineCachePath || "-"
-          }}</code>
-          <el-button
-            link
-            :icon="CopyDocument"
-            class="path-copy"
-            @click="copyPath(onlineCachePath)"
-          />
+          <div class="path-summary">
+            <span class="path-summary-label">{{ t("settings.cachePath") }}</span>
+            <code class="path-summary-value" :title="onlineCachePath">{{
+              onlineCachePath || "-"
+            }}</code>
+            <el-button
+              link
+              :icon="CopyDocument"
+              class="path-copy"
+              @click="copyPath(onlineCachePath)"
+            />
+          </div>
         </div>
       </div>
 
@@ -334,8 +369,10 @@ onMounted(async () => {
         <h3 class="section-title">
           <el-icon><InfoFilled /></el-icon> {{ t("settings.about") }}
         </h3>
-        <div class="setting-row about-content">
-          <p class="about-desc">{{ t("settings.aboutDesc") }}</p>
+        <div class="settings-group">
+          <div class="setting-row about-content">
+            <p class="about-desc">{{ t("settings.aboutDesc") }}</p>
+          </div>
         </div>
       </div>
     </PageLayout>
