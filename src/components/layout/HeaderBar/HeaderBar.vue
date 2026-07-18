@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, reactive, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   Close,
@@ -43,10 +43,14 @@ const searchKeyword = computed({
 });
 const showHistoryDropdown = ref(false);
 const searchWrapperRef = ref<HTMLElement | null>(null);
+const searchInputRef = ref<InstanceType<typeof import("element-plus").ElInput> | null>(
+  null
+);
 /** 失焦后延迟关闭历史面板，避免点击历史项时误关 */
 let blurTimer: ReturnType<typeof setTimeout> | null = null;
 
 const { isMacPlatform } = usePlatform();
+const searchShortcutLabel = computed(() => (isMacPlatform.value ? "⌘ K" : "Ctrl K"));
 
 const { isMaximized, minimize, toggleMaximize, close } = useWindowControls({
   onClose: "hide",
@@ -75,6 +79,9 @@ const onlineServiceStatusTitle = computed(() => {
     ? `${t("onlineService.unavailable")}: ${onlineServiceStore.message} · ${t("onlineService.clickToRestart")}`
     : `${t("onlineService.unavailable")} · ${t("onlineService.clickToRestart")}`;
 });
+const showOnlineServiceLabel = computed(
+  () => props.searchScope === "online" && onlineServiceStore.state !== "available"
+);
 
 function handleOnlineServiceStatusClick() {
   if (onlineServiceStore.state === "unavailable") {
@@ -151,7 +158,18 @@ function clearHistory(e: Event) {
   showHistoryDropdown.value = false;
 }
 
-onUnmounted(clearBlurTimer);
+function handleSearchShortcut(event: KeyboardEvent) {
+  if (!props.searchScope || event.key.toLowerCase() !== "k") return;
+  if (!(event.metaKey || event.ctrlKey)) return;
+  event.preventDefault();
+  searchInputRef.value?.focus();
+}
+
+onMounted(() => window.addEventListener("keydown", handleSearchShortcut));
+onUnmounted(() => {
+  clearBlurTimer();
+  window.removeEventListener("keydown", handleSearchShortcut);
+});
 </script>
 
 <template>
@@ -174,8 +192,10 @@ onUnmounted(clearBlurTimer);
           @click="onSearchWrapperClick"
         >
           <el-input
+            ref="searchInputRef"
             v-model="searchKeyword"
             :placeholder="searchPlaceholder"
+            clearable
             class="search-input search-pill"
             @keyup.enter="handleSearch"
             @focus="onSearchFocus"
@@ -183,6 +203,9 @@ onUnmounted(clearBlurTimer);
           >
             <template #prefix>
               <el-icon class="search-prefix-icon"><Search /></el-icon>
+            </template>
+            <template #suffix>
+              <kbd class="search-shortcut">{{ searchShortcutLabel }}</kbd>
             </template>
           </el-input>
           <Transition name="history-dropdown">
@@ -204,23 +227,24 @@ onUnmounted(clearBlurTimer);
                   <span>{{ t("search.clearHistory") }}</span>
                 </button>
               </div>
-              <div v-if="historyList.length > 0" class="search-history-chips">
-                <button
-                  v-for="item in historyList"
-                  :key="item"
-                  type="button"
-                  class="search-history-chip"
-                  @click="selectHistory(item)"
-                >
-                  <span class="search-history-chip-text">{{ item }}</span>
-                  <span
-                    class="search-history-chip-remove"
+              <div v-if="historyList.length > 0" class="search-history-list">
+                <div v-for="item in historyList" :key="item" class="search-history-item">
+                  <button
+                    type="button"
+                    class="search-history-item-action"
+                    @click="selectHistory(item)"
+                  >
+                    <span class="search-history-item-text">{{ item }}</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="search-history-item-remove"
                     :aria-label="t('search.removeItem')"
                     @click="removeHistoryItem(item, $event)"
                   >
                     <el-icon><Close /></el-icon>
-                  </span>
-                </button>
+                  </button>
+                </div>
               </div>
               <div v-else class="search-history-empty">
                 {{ t("search.noHistory") }}
@@ -241,11 +265,17 @@ onUnmounted(clearBlurTimer);
         <button
           type="button"
           class="service-status app-header-icon-button"
-          :class="`is-${onlineServiceStore.state}`"
+          :class="[
+            `is-${onlineServiceStore.state}`,
+            { 'has-label': showOnlineServiceLabel },
+          ]"
           :aria-label="onlineServiceStatusTitle"
           @click.stop="handleOnlineServiceStatusClick"
         >
           <span class="service-status-dot" />
+          <span v-if="showOnlineServiceLabel" class="service-status-label">
+            {{ onlineServiceStatusTitle }}
+          </span>
         </button>
       </el-tooltip>
       <!-- 非 macOS 平台显示窗口控制按钮 -->

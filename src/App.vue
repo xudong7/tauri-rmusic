@@ -261,7 +261,8 @@ onUnmounted(() => {
   overflow: hidden;
   padding: var(--app-content-padding, var(--app-spacing-xl, 28px));
   box-sizing: border-box;
-  background: var(--app-subtle-surface);
+  background: var(--app-content-bg, var(--app-subtle-surface));
+  border-top-left-radius: var(--app-radius-lg);
 }
 
 @media (max-width: 840px) {

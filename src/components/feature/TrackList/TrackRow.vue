@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount } from "vue";
-import { CaretRight, VideoPause } from "@element-plus/icons-vue";
+import { CaretRight } from "@element-plus/icons-vue";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import type { TrackRowModel } from "./types";
 
@@ -65,6 +65,7 @@ function handleActivate() {
   <div
     class="track-row"
     :class="{
+      'track-row--online': item.source === 'online',
       'is-current': item.isCurrent && !selectionMode,
       'is-selected': selected,
       'is-disabled': item.disabled,
@@ -73,9 +74,13 @@ function handleActivate() {
       rowHeight ? { height: `${rowHeight}px`, minHeight: `${rowHeight}px` } : undefined
     "
     :title="`${item.title} — ${item.artist}`"
+    :tabindex="item.disabled ? -1 : 0"
+    role="listitem"
     :aria-current="item.isCurrent ? 'true' : undefined"
     :aria-disabled="item.disabled || undefined"
     @click="handleRowClick"
+    @keydown.enter.self.prevent="handleRowClick"
+    @keydown.space.self.prevent="handleRowClick"
     @pointerenter="scheduleIntent"
     @pointerleave="cancelIntent"
   >
@@ -87,23 +92,32 @@ function handleActivate() {
         @click.stop
         @change="emit('toggleSelect', item)"
       />
-      <el-button
+      <button
         v-else
-        circle
-        size="small"
-        :type="item.isCurrent ? 'primary' : 'default'"
-        :icon="item.isCurrent && item.isPlaying ? VideoPause : CaretRight"
+        type="button"
+        class="track-row__play-button"
+        :class="{ 'is-current': item.isCurrent }"
         :disabled="item.disabled"
         :aria-label="item.title"
         @click.stop="
           cancelIntent();
           handleActivate();
         "
-      />
+      >
+        <span v-if="item.isCurrent && item.isPlaying" class="track-row__equalizer">
+          <i />
+          <i />
+          <i />
+        </span>
+        <el-icon v-else class="track-row__play-icon"><CaretRight /></el-icon>
+        <span v-if="!item.isCurrent" class="track-row__index">{{
+          item.sourceIndex + 1
+        }}</span>
+      </button>
     </div>
 
     <div class="track-row__cover">
-      <CoverImage :src="resolvedCoverUrl" alt="" :size="44" :radius="6" />
+      <CoverImage :src="resolvedCoverUrl" alt="" :size="44" :radius="7" />
     </div>
 
     <div class="track-row__main">
@@ -136,7 +150,8 @@ function handleActivate() {
   min-height: var(--app-track-row-height);
   margin-bottom: 0;
   padding: var(--app-track-row-padding-y) var(--app-track-row-padding-x);
-  display: flex;
+  display: grid;
+  grid-template-columns: 36px 44px minmax(180px, 1fr) minmax(140px, 220px) 48px 34px;
   align-items: center;
   gap: var(--app-track-row-gap);
   box-sizing: border-box;
@@ -191,7 +206,20 @@ function handleActivate() {
   flex-shrink: 0;
 }
 
+.track-row__play {
+  grid-column: 1;
+}
+
+.track-row__cover {
+  grid-column: 2;
+}
+
+.track-row__main {
+  grid-column: 3;
+}
+
 .track-row__album {
+  grid-column: 4;
   width: clamp(140px, 20vw, 260px);
   overflow: hidden;
   color: var(--el-text-color-secondary);
@@ -242,6 +270,7 @@ function handleActivate() {
 }
 
 .track-row__duration {
+  grid-column: 5;
   min-width: 40px;
   color: var(--el-text-color-secondary);
   font-size: 12px;
@@ -250,12 +279,18 @@ function handleActivate() {
 }
 
 .track-row__actions {
+  grid-column: 6;
   display: flex;
   align-items: center;
-  gap: 2px;
+  justify-content: flex-end;
+  gap: 8px;
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--app-control-transition);
+}
+
+.track-row--online {
+  grid-template-columns: 36px 44px minmax(180px, 1fr) minmax(140px, 220px) 48px 76px;
 }
 
 .track-row:hover .track-row__actions,
@@ -264,7 +299,6 @@ function handleActivate() {
   pointer-events: auto;
 }
 
-:deep(.track-row__play .el-button),
 :deep(.track-row__actions .el-button) {
   width: var(--list-row-btn-size);
   height: var(--list-row-btn-size);
@@ -280,23 +314,93 @@ function handleActivate() {
     box-shadow var(--app-control-transition);
 }
 
-:deep(.track-row__play .el-button:not(.el-button--primary):hover),
 :deep(.track-row__actions .el-button:hover) {
   color: var(--app-icon-button-hover-color);
   border-color: var(--app-button-border);
   background: var(--app-icon-button-hover-bg);
 }
 
-:deep(.track-row__play .el-button.el-button--primary) {
-  color: var(--app-play-button-color);
-  border-color: transparent;
-  background: var(--app-play-button-bg);
-  box-shadow: var(--app-play-button-shadow);
+.track-row__play-button {
+  position: relative;
+  width: var(--list-row-btn-size);
+  height: var(--list-row-btn-size);
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--app-radius-full);
+  color: var(--el-text-color-secondary);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  transition:
+    color var(--app-control-transition),
+    background var(--app-control-transition),
+    transform var(--app-control-transition);
 }
 
-:deep(.track-row__play .el-button.el-button--primary:hover) {
-  transform: translateY(-1px) scale(1.02);
-  box-shadow: var(--app-play-button-hover-shadow);
+.track-row__play-button:hover,
+.track-row__play-button:focus-visible,
+.track-row__play-button.is-current {
+  color: var(--el-color-primary);
+  background: var(--app-icon-button-hover-bg);
+  outline: none;
+}
+
+.track-row__play-icon {
+  position: absolute;
+  opacity: 0;
+  font-size: 15px;
+}
+
+.track-row:hover .track-row__play-icon,
+.track-row:focus-within .track-row__play-icon,
+.track-row__play-button.is-current .track-row__play-icon {
+  opacity: 1;
+}
+
+.track-row:hover .track-row__index,
+.track-row:focus-within .track-row__index {
+  opacity: 0;
+}
+
+.track-row__equalizer {
+  width: 16px;
+  height: 15px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+}
+
+.track-row__equalizer i {
+  width: 2px;
+  border-radius: var(--app-radius-full);
+  background: currentColor;
+  animation: track-equalizer 0.8s ease-in-out infinite alternate;
+}
+
+.track-row__equalizer i:nth-child(1) {
+  height: 8px;
+  animation-delay: -0.45s;
+}
+
+.track-row__equalizer i:nth-child(2) {
+  height: 14px;
+  animation-delay: -0.2s;
+}
+
+.track-row__equalizer i:nth-child(3) {
+  height: 10px;
+  animation-delay: -0.65s;
+}
+
+@keyframes track-equalizer {
+  to {
+    height: 4px;
+  }
 }
 
 @media (hover: none) {
@@ -306,21 +410,48 @@ function handleActivate() {
   }
 }
 
-@media (max-width: 840px) {
-  .track-row {
-    gap: 10px;
-    padding-right: 8px;
-    padding-left: 8px;
-  }
-}
-
 @media (max-width: 1100px) {
   .track-row__album {
     display: none;
   }
 
+  .track-row {
+    grid-template-columns: 36px 44px minmax(0, 1fr) 48px 34px;
+  }
+
+  .track-row.track-row--online {
+    grid-template-columns: 36px 44px minmax(0, 1fr) 48px 76px;
+  }
+
+  .track-row__duration {
+    grid-column: 4;
+  }
+
+  .track-row__actions {
+    grid-column: 5;
+  }
+
   .track-row__meta-album {
     display: inline;
+  }
+}
+
+@media (max-width: 840px) {
+  .track-row {
+    grid-template-columns: 32px 44px minmax(0, 1fr) 44px 32px;
+    gap: 10px;
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+
+  .track-row.track-row--online {
+    grid-template-columns: 32px 44px minmax(0, 1fr) 44px 76px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track-row__equalizer i {
+    animation: none;
   }
 }
 </style>

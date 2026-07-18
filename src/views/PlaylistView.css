@@ -6,6 +6,10 @@
   width: 200px;
 }
 
+.playlist-header-cover {
+  margin-right: 2px;
+}
+
 .header-actions {
   flex-shrink: 0;
   display: flex;

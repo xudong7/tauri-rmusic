@@ -41,23 +41,22 @@ html {
   --app-spacing-sm: 8px;
   --app-spacing-lg: 24px;
   --app-spacing-xl: 28px;
-  --app-content-padding: 14px 28px 20px;
+  --app-content-padding: 18px 32px 20px;
   --app-content-padding-compact: 16px;
 
   /* 页面骨架 */
   --app-page-max-width: 1280px;
   --app-page-wide-max-width: 1440px;
-  --app-page-header-height: 44px;
-  --app-page-header-gap: 16px;
-  --app-page-title-size: 18px;
-  --app-page-title-accent-height: 12px;
+  --app-page-header-height: 56px;
+  --app-page-header-gap: 10px;
+  --app-page-title-size: 24px;
 
   /* 主布局尺寸 */
   --app-header-height: 56px;
-  --app-player-height: 64px;
-  --app-sidebar-width: 184px;
+  --app-player-height: 80px;
+  --app-sidebar-width: 192px;
   --app-sidebar-width-compact: 156px;
-  --app-search-max-width: 320px;
+  --app-search-max-width: 400px;
 
   /* 毛玻璃与阴影 */
   --app-glass-blur: 16px;
@@ -67,7 +66,10 @@ html {
   --app-header-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   --app-surface-border: rgba(24, 33, 42, 0.07);
   --app-surface-shadow: 0 1px 2px rgba(15, 23, 42, 0.025);
-  --app-subtle-surface: rgba(255, 255, 255, 0.46);
+  --app-subtle-surface: rgba(255, 255, 255, 0.54);
+  --app-overlay-panel-bg: #ffffff;
+  --app-overlay-scrim: rgba(15, 23, 42, 0.08);
+  --app-overlay-panel-shadow: -18px 0 50px rgba(15, 23, 42, 0.14);
 
   /* 主色 */
   --el-color-primary: #7a9bb5;
@@ -87,10 +89,10 @@ html {
   --list-row-btn-size: 34px;
   --app-track-row-height: 64px;
   --app-track-row-gap: 12px;
-  --app-track-row-padding-x: 10px;
+  --app-track-row-padding-x: 8px;
   --app-track-row-padding-y: 8px;
-  --app-list-reading-width: 1180px;
-  --app-online-list-width: 1280px;
+  --app-list-reading-width: 1080px;
+  --app-online-list-width: 1180px;
 
   /* 按钮与控件：macOS / Apple Music 风格 */
   --app-button-height: 32px;
@@ -98,7 +100,7 @@ html {
   --app-icon-btn-sm: 28px;
   --app-icon-btn-md: 32px;
   --app-icon-btn-lg: 40px;
-  --app-play-btn-sm: 34px;
+  --app-play-btn-sm: 42px;
   --app-play-btn-lg: 56px;
   --app-button-radius: var(--app-radius-full);
   --app-control-transition: 180ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -132,7 +134,8 @@ html {
 /* ---------- 亮色主题 ---------- */
 :root {
   /* 页面与浮层背景 */
-  --app-page-bg: #f5f5f7;
+  --app-page-bg: #f1f2f4;
+  --app-content-bg: #f8f8f9;
   --app-card-bg: #ffffff;
   --header-glass-bg: rgba(255, 255, 255, 0.88);
   --player-glass-bg: rgba(250, 250, 252, 0.92);
@@ -200,6 +203,7 @@ html.dark {
 
   /* 设计令牌 - 深色 */
   --app-page-bg: #0d0d0d;
+  --app-content-bg: #121212;
   --app-card-bg: #1a1a1a;
   --header-glass-bg: rgba(18, 18, 18, 0.9);
   --player-glass-bg: rgba(28, 28, 30, 0.92);
@@ -211,6 +215,9 @@ html.dark {
   --app-surface-border: rgba(255, 255, 255, 0.07);
   --app-surface-shadow: none;
   --app-subtle-surface: rgba(255, 255, 255, 0.025);
+  --app-overlay-panel-bg: #1a1a1a;
+  --app-overlay-scrim: rgba(0, 0, 0, 0.22);
+  --app-overlay-panel-shadow: -20px 0 54px rgba(0, 0, 0, 0.36);
   --hover-bg-color: rgba(255, 255, 255, 0.04);
   --active-item-bg: rgba(106, 158, 200, 0.1);
 
@@ -274,21 +281,22 @@ html.theme-warm {
   --el-color-primary-light-5: #b8b0a0;
   --el-color-primary-light-8: rgba(138, 128, 112, 0.15);
   --el-color-primary-dark-2: #5a5040;
-  --el-bg-color: #f5efeb;
+  --el-bg-color: #f4f1ee;
   --el-bg-color-overlay: #fffbf9;
   /* 文字 */
-  --el-text-color-primary: #3d3832;
-  --el-text-color-regular: #5c5650;
-  --el-text-color-secondary: #7a746e;
-  --el-border-color: rgba(61, 56, 50, 0.14);
-  --el-border-color-light: rgba(61, 56, 50, 0.08);
-  --el-fill-color: #ebe6e2;
-  --el-fill-color-light: #f0ebe7;
+  --el-text-color-primary: #2f2c29;
+  --el-text-color-regular: #514c47;
+  --el-text-color-secondary: #716b65;
+  --el-border-color: rgba(47, 44, 41, 0.14);
+  --el-border-color-light: rgba(47, 44, 41, 0.08);
+  --el-fill-color: #e9e5e1;
+  --el-fill-color-light: #f0ece8;
   --el-fill-color-blank: #fffbf9;
   --el-mask-color: rgba(61, 56, 50, 0.12);
   color-scheme: light;
 
-  --app-page-bg: #f4f0ed;
+  --app-page-bg: #f4f1ee;
+  --app-content-bg: #fcfaf8;
   --app-card-bg: #fffdfb;
   --header-glass-bg: rgba(255, 251, 249, 0.92);
   --player-glass-bg: rgba(255, 251, 249, 0.95);
@@ -296,30 +304,33 @@ html.theme-warm {
   --player-bg-color: var(--player-glass-bg);
   --app-header-border: rgba(61, 56, 50, 0.1);
   --app-header-shadow: 0 1px 3px rgba(61, 56, 50, 0.06);
+  --app-overlay-panel-bg: #fffdfb;
+  --app-overlay-scrim: rgba(61, 56, 50, 0.1);
+  --app-overlay-panel-shadow: -18px 0 50px rgba(61, 56, 50, 0.16);
 
   /* 侧栏：与主区同色系 */
-  --sidebar-bg: #ede7e2;
+  --sidebar-bg: #ebe6e1;
   --sidebar-border-color: rgba(61, 56, 50, 0.12);
 
   --hover-bg-color: rgba(125, 110, 92, 0.07);
   --active-item-bg: rgba(125, 110, 92, 0.13);
 
   /* 按钮：主色暖灰褐，默认按钮 hover 同色系 */
-  --primary-button-bg: #8a8070;
+  --primary-button-bg: var(--el-color-primary);
   --primary-button-text: #fffbf9;
-  --primary-button-border: #8a8070;
-  --primary-button-hover-bg: #7a7060;
-  --primary-button-hover-border: #7a7060;
-  --primary-button-active-bg: #6a6050;
-  --primary-button-active-border: #6a6050;
-  --success-button-bg: #8a8070;
+  --primary-button-border: var(--el-color-primary);
+  --primary-button-hover-bg: var(--el-color-primary-hover);
+  --primary-button-hover-border: var(--el-color-primary-hover);
+  --primary-button-active-bg: var(--el-color-primary-active);
+  --primary-button-active-border: var(--el-color-primary-active);
+  --success-button-bg: var(--el-color-primary);
   --success-button-text: #fffbf9;
-  --success-button-border: #8a8070;
-  --success-button-hover-bg: #7a7060;
-  --success-button-hover-border: #7a7060;
+  --success-button-border: var(--el-color-primary);
+  --success-button-hover-bg: var(--el-color-primary-hover);
+  --success-button-hover-border: var(--el-color-primary-hover);
   --success-button-hover-text: #fffbf9;
-  --success-button-active-bg: #6a6050;
-  --success-button-active-border: #6a6050;
+  --success-button-active-bg: var(--el-color-primary-active);
+  --success-button-active-border: var(--el-color-primary-active);
   --info-button-bg: var(--el-fill-color-light);
   --info-button-text: var(--el-text-color-regular);
   --info-button-border: var(--el-border-color);
@@ -331,17 +342,17 @@ html.theme-warm {
   --default-button-text: var(--el-text-color-regular);
   --default-button-border: var(--el-border-color);
   --default-button-hover-bg: rgba(138, 128, 112, 0.06);
-  --default-button-hover-text: #7a7060;
+  --default-button-hover-text: var(--el-color-primary-hover);
   --default-button-hover-border: rgba(138, 128, 112, 0.3);
   --default-button-active-bg: rgba(138, 128, 112, 0.1);
-  --default-button-active-text: #6a6050;
+  --default-button-active-text: var(--el-color-primary-active);
   --default-button-active-border: rgba(138, 128, 112, 0.4);
   --app-button-bg: rgba(255, 253, 251, 0.66);
   --app-button-border: rgba(61, 56, 50, 0.1);
   --app-button-hover-bg: rgba(255, 253, 251, 0.94);
   --app-button-active-bg: rgba(235, 229, 222, 0.9);
   --app-icon-button-hover-bg: rgba(138, 128, 112, 0.1);
-  --app-icon-button-hover-color: #7a7060;
+  --app-icon-button-hover-color: var(--el-color-primary-hover);
   --app-play-button-shadow: 0 6px 18px rgba(91, 78, 62, 0.18);
   --app-play-button-hover-shadow: 0 10px 24px rgba(91, 78, 62, 0.24);
   --app-slider-track-bg: rgba(61, 56, 50, 0.1);

@@ -89,6 +89,7 @@ const currentSongName = computed(() => {
 });
 
 const songTitle = computed(() => currentSongName.value);
+const hasTrack = computed(() => Boolean(props.currentMusic || props.currentOnlineSong));
 const isLoading = computed(() => props.playbackPhase !== "idle");
 const playbackStatus = computed(() =>
   props.playbackPhase === "resolving"
@@ -169,7 +170,7 @@ const {
 </script>
 
 <template>
-  <div class="player-bar">
+  <div class="player-bar" :class="{ 'is-empty': !hasTrack }">
     <!-- 左侧：封面 + 歌曲信息 -->
     <div class="player-left">
       <div class="cover-container" @click="enterImmersiveMode">
@@ -177,8 +178,8 @@ const {
           :src="coverUrl"
           alt="Album Cover"
           :clickable="Boolean(currentOnlineSong || currentMusic)"
-          :size="44"
-          :radius="6"
+          :size="48"
+          :radius="8"
         />
       </div>
       <div class="song-info">
@@ -215,7 +216,7 @@ const {
 
     <!-- 中间：播放控制 + 进度条 -->
     <div class="player-center">
-      <div class="player-controls">
+      <div v-show="hasTrack" class="player-controls">
         <el-tooltip
           :content="t('playerBar.previous')"
           placement="top"
@@ -260,7 +261,7 @@ const {
         </el-tooltip>
       </div>
 
-      <div class="player-progress">
+      <div v-show="hasTrack" class="player-progress">
         <span class="time-display">{{ currentTimeDisplay }}</span>
         <el-slider
           v-model="sliderValue"
@@ -282,29 +283,34 @@ const {
           {{ showRemainingTime ? remainingTimeDisplay : durationDisplay }}
         </button>
       </div>
+      <div v-if="!hasTrack" class="player-empty-hint">
+        {{ t("playerBar.emptyHint") }}
+      </div>
     </div>
 
     <!-- 右侧：播放模式 + 内联音量条 -->
-    <div class="player-right">
-      <el-tooltip :content="t('playerBar.queue')" placement="top" effect="light">
-        <el-button
-          class="queue-btn app-icon-button"
-          circle
-          :icon="Tickets"
-          :disabled="!currentMusic && !currentOnlineSong"
-          :aria-label="t('playerBar.queue')"
-          @click="emit('toggle-queue')"
-        />
-      </el-tooltip>
-      <el-tooltip :content="playModeTooltip" placement="top" effect="light">
-        <el-button
-          class="play-mode-btn app-icon-button"
-          :class="{ 'is-active': playMode !== PlayMode.SEQUENTIAL }"
-          circle
-          :icon="playModeIcon"
-          @click="emit('toggle-play-mode')"
-        />
-      </el-tooltip>
+    <div v-show="hasTrack" class="player-right">
+      <div class="player-tool-group">
+        <el-tooltip :content="t('playerBar.queue')" placement="top" effect="light">
+          <el-button
+            class="queue-btn app-icon-button"
+            circle
+            :icon="Tickets"
+            :disabled="!currentMusic && !currentOnlineSong"
+            :aria-label="t('playerBar.queue')"
+            @click="emit('toggle-queue')"
+          />
+        </el-tooltip>
+        <el-tooltip :content="playModeTooltip" placement="top" effect="light">
+          <el-button
+            class="play-mode-btn app-icon-button"
+            :class="{ 'is-active': playMode !== PlayMode.SEQUENTIAL }"
+            circle
+            :icon="playModeIcon"
+            @click="emit('toggle-play-mode')"
+          />
+        </el-tooltip>
+      </div>
       <div class="volume-bar">
         <button
           type="button"

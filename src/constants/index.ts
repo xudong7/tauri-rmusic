@@ -10,7 +10,7 @@ export const STORAGE_KEY_PLAYER_VOLUME = "player_volume";
 
 /* ---------- 搜索历史 ---------- */
 /** 单模式（本地/在线）最多保留条数 */
-export const SEARCH_HISTORY_MAX_ITEMS = 20;
+export const SEARCH_HISTORY_MAX_ITEMS = 6;
 
 /* ---------- 播放列表 ---------- */
 /** 防抖写入延迟（ms），避免连续多次写入后端 */

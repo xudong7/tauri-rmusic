@@ -61,6 +61,11 @@ function toTrackRow(song: SongInfo, sourceIndex: number): TrackRowModel {
 }
 
 const trackRows = computed(() => props.onlineSongs.map(toTrackRow));
+const resultSummary = computed(() =>
+  props.totalCount > 0
+    ? t("onlineMusic.resultSummary", { count: props.totalCount })
+    : undefined
+);
 
 function goArtist(a: ArtistInfo) {
   router.push({
@@ -77,7 +82,11 @@ function handleAddToPlaylist(command: string, row: SongInfo) {
 
 <template>
   <div class="online-music-list-container">
-    <PageHeader v-if="showTitle" :title="t('onlineMusic.title')" />
+    <PageHeader
+      v-if="showTitle"
+      :title="t('onlineMusic.title')"
+      :subtitle="resultSummary"
+    />
 
     <TrackList
       :items="trackRows"
@@ -89,23 +98,25 @@ function handleAddToPlaylist(command: string, row: SongInfo) {
     >
       <template #before>
         <div v-if="onlineArtists?.length" class="artist-strip">
+          <div class="artist-strip-heading">{{ t("onlineMusic.artists") }}</div>
           <div class="artist-strip-scroll">
-            <div
+            <button
               v-for="a in onlineArtists"
               :key="a.id"
+              type="button"
               class="artist-card"
               @click="goArtist(a)"
             >
               <CoverImage
                 :src="a.pic_url"
                 alt=""
-                :size="54"
-                :radius="999"
+                :size="44"
+                :radius="22"
                 variant="artist"
                 class="artist-avatar-cover"
               />
               <div class="artist-name" :title="a.name">{{ a.name }}</div>
-            </div>
+            </button>
           </div>
         </div>
       </template>
@@ -116,20 +127,31 @@ function handleAddToPlaylist(command: string, row: SongInfo) {
         <el-empty :description="t('onlineMusic.empty')" />
       </template>
       <template #actions="{ item }">
-        <el-button
-          circle
-          size="small"
-          :icon="Download"
-          link
-          @click="emit('download', onlineSongs[item.sourceIndex])"
-        />
+        <el-tooltip :content="t('common.download')" placement="top">
+          <el-button
+            circle
+            size="small"
+            :icon="Download"
+            link
+            :aria-label="t('common.download')"
+            @click="emit('download', onlineSongs[item.sourceIndex])"
+          />
+        </el-tooltip>
         <el-dropdown
           trigger="click"
           @command="
             (cmd: string) => handleAddToPlaylist(cmd, onlineSongs[item.sourceIndex])
           "
         >
-          <el-button circle size="small" :icon="Plus" link />
+          <el-tooltip :content="t('playlist.addToPlaylist')" placement="top">
+            <el-button
+              circle
+              size="small"
+              :icon="Plus"
+              link
+              :aria-label="t('playlist.addToPlaylist')"
+            />
+          </el-tooltip>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="new">{{

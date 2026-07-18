@@ -113,6 +113,18 @@ const props = withDefaults(
   }
 );
 
+const librarySubtitle = computed(() => {
+  if (props.refreshing && props.musicFiles.length) return t("musicList.updating");
+  const totalDuration = props.musicFiles.reduce(
+    (total, file) => total + Math.max(0, file.duration_ms ?? 0),
+    0
+  );
+  return t("musicList.summary", {
+    count: props.musicFiles.length,
+    minutes: Math.round(totalDuration / 60_000),
+  });
+});
+
 const emit = defineEmits(["play", "toggle-current", "import"]);
 
 watch(
@@ -186,10 +198,7 @@ function scheduleVisibleCovers(items: TrackRowModel[]) {
 
 <template>
   <PageLayout class="music-list-container">
-    <PageHeader
-      :title="t('musicList.title')"
-      :subtitle="refreshing && musicFiles.length ? t('musicList.updating') : undefined"
-    >
+    <PageHeader :title="t('musicList.title')" :subtitle="librarySubtitle">
       <template #actions>
         <template v-if="selectionMode">
           <span class="select-actions">
@@ -229,6 +238,21 @@ function scheduleVisibleCovers(items: TrackRowModel[]) {
           </el-dropdown>
         </template>
         <template v-else>
+          <el-tooltip
+            v-if="showImportButton"
+            :content="t('musicList.importFolder')"
+            placement="bottom"
+          >
+            <el-button
+              size="small"
+              :icon="Upload"
+              type="primary"
+              class="library-import-btn"
+              @click="emit('import')"
+            >
+              {{ t("musicList.import") }}
+            </el-button>
+          </el-tooltip>
           <el-tooltip :content="t('musicList.multiSelect')" placement="bottom">
             <el-button
               link
@@ -237,20 +261,6 @@ function scheduleVisibleCovers(items: TrackRowModel[]) {
               type="primary"
               class="header-action-btn app-icon-button"
               @click="toggleSelectionMode"
-            />
-          </el-tooltip>
-          <el-tooltip
-            v-if="showImportButton"
-            :content="t('musicList.import')"
-            placement="bottom"
-          >
-            <el-button
-              link
-              size="small"
-              :icon="Upload"
-              type="primary"
-              class="header-action-btn app-icon-button"
-              @click="emit('import')"
             />
           </el-tooltip>
         </template>
