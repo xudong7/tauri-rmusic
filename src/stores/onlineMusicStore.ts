@@ -18,14 +18,6 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
   async function searchOnlineMusic(keyword: string, page = 1) {
     const requestId = ++searchRequestId;
     try {
-      if (page === 1) {
-        onlineSongs.value = [];
-        onlineSongsTotal.value = 0;
-        onlineArtists.value = [];
-      }
-
-      searchKeyword.value = keyword;
-      currentPage.value = page;
       isSearchLoading.value = true;
 
       const result = await searchOnlineMix({
@@ -37,6 +29,9 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
 
       if (requestId !== searchRequestId) return;
 
+      searchKeyword.value = keyword;
+      currentPage.value = page;
+
       if (page === 1) {
         onlineSongs.value = result.songs;
         onlineArtists.value = result.artists ?? [];
@@ -46,7 +41,7 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
 
       onlineSongsTotal.value = result.total;
 
-      if (result.songs.length === 0 && page === 1) {
+      if (result.songs.length === 0 && result.artists.length === 0 && page === 1) {
         ElMessage.info(i18n.global.t("messages.noSearchResult"));
       }
     } catch (error) {

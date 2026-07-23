@@ -11,7 +11,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import zhCn from "element-plus/es/locale/lang/zh-cn";
 import en from "element-plus/es/locale/lang/en";
-import { ElConfigProvider } from "element-plus";
+import { ElConfigProvider, ElMessage } from "element-plus";
 import HeaderBar from "./components/layout/HeaderBar/HeaderBar.vue";
 import Sidebar from "./components/layout/Sidebar/Sidebar.vue";
 import PlayerBar from "./components/feature/PlayerBar/PlayerBar.vue";
@@ -31,7 +31,7 @@ import { usePlayerStore } from "./stores/playerStore";
 import { usePlaylistStore } from "./stores/playlistStore";
 import { quitApp } from "./api/commands/system";
 
-const { locale } = useI18n();
+const { locale, t } = useI18n();
 const elementLocale = computed(() => (locale.value === "zh" ? zhCn : en));
 const elementMessageConfig = {
   offset: 72,
@@ -96,8 +96,14 @@ async function handleSearch(keyword: string, scope: SearchScope) {
   }
 
   if (kw) {
-    await onlineServiceStore.ensureStarted();
-    await onlineStore.searchOnlineMusic(kw);
+    try {
+      await onlineServiceStore.ensureStarted();
+      await onlineStore.searchOnlineMusic(kw);
+    } catch (error) {
+      console.error("Online service unavailable before search:", error);
+      const detail = error instanceof Error ? error.message : String(error);
+      ElMessage.error(`${t("onlineService.unavailable")}: ${detail}`);
+    }
   } else {
     onlineStore.resetResults();
   }
