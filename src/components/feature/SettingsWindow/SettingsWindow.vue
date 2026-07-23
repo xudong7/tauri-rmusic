@@ -54,8 +54,12 @@ watch(
 );
 
 async function refreshOnlineService() {
-  await onlineServiceStore.ensureStarted();
-  await onlineServiceStore.checkNow();
+  try {
+    await onlineServiceStore.ensureStarted();
+    await onlineServiceStore.checkNow();
+  } catch (error) {
+    console.error("Failed to refresh online service:", error);
+  }
 }
 
 const localeOptions: { value: LocaleKey; labelKey: string }[] = [

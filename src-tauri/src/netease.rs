@@ -68,12 +68,16 @@ const USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
 const HTTP_CONNECT_TIMEOUT: Duration = Duration::from_secs(8);
 const HTTP_RESPONSE_HEADERS_TIMEOUT: Duration = Duration::from_secs(15);
 const JSON_RESPONSE_BODY_TIMEOUT: Duration = Duration::from_secs(15);
+const TRANSIENT_REQUEST_RETRY_DELAYS: [Duration; 2] =
+    [Duration::from_millis(250), Duration::from_millis(700)];
 
 static DEFAULT_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
 
 fn build_client() -> Result<reqwest::Client, String> {
     reqwest::Client::builder()
         .user_agent(USER_AGENT)
+        // 这里的所有请求都发往内置 localhost 服务，不应被系统代理接管。
+        .no_proxy()
         .connect_timeout(HTTP_CONNECT_TIMEOUT)
         .build()
         .map_err(|e| format!("Failed to build HTTP client: {}", e))
@@ -190,17 +194,47 @@ async fn get_response_json(
     client: reqwest::Client,
     url: String,
 ) -> Result<serde_json::Value, String> {
+    let mut attempt = 0usize;
+    loop {
+        let result = get_response_json_once(client.clone(), url.clone()).await;
+        match result {
+            Ok(json) => return Ok(json),
+            Err(error)
+                if attempt < TRANSIENT_REQUEST_RETRY_DELAYS.len()
+                    && is_transient_request_error(&error) =>
+            {
+                let delay = TRANSIENT_REQUEST_RETRY_DELAYS[attempt];
+                attempt += 1;
+                tokio::time::sleep(delay).await;
+            }
+            Err(error) => return Err(error),
+        }
+    }
+}
+
+async fn get_response_json_once(
+    client: reqwest::Client,
+    url: String,
+) -> Result<serde_json::Value, String> {
     let response = get_response(client, url).await?;
     let text = get_text(response).await?;
-    let json: serde_json::Value = serde_json::from_str(&text).map_err(|e| {
+    serde_json::from_str(&text).map_err(|e| {
         let preview = if text.len() > 200 {
             &text[..200]
         } else {
             &text
         };
         format!("Serialize json error: {}, content: {}", e, preview)
-    })?;
-    Ok(json)
+    })
+}
+
+fn is_transient_request_error(error: &str) -> bool {
+    error.starts_with("API request timed out")
+        || (error.starts_with("API request error:") && !error.contains("HTTP "))
+        || error.starts_with("Read response timed out")
+        || error.starts_with("Read text error:")
+        || error == "Empty response"
+        || error.starts_with("Serialize json error:")
 }
 
 /// search online songs by keywords
@@ -383,8 +417,28 @@ pub async fn search_online_mix(
     };
 
     let (songs_res, artists_res) = tokio::join!(songs_fut, artists_fut);
-    let songs_res = songs_res?;
-    let artists = artists_res?;
+    let (songs_res, artists) = match (songs_res, artists_res) {
+        (Ok(songs), Ok(artists)) => (songs, artists),
+        (Ok(songs), Err(error)) => {
+            eprintln!("Artist search unavailable, returning song results: {error}");
+            (songs, Vec::new())
+        }
+        (Err(error), Ok(artists)) => {
+            eprintln!("Song search unavailable, returning artist results: {error}");
+            (
+                SearchResult {
+                    songs: Vec::new(),
+                    total: 0,
+                },
+                artists,
+            )
+        }
+        (Err(song_error), Err(artist_error)) => {
+            return Err(format!(
+                "Song and artist search failed: songs: {song_error}; artists: {artist_error}"
+            ));
+        }
+    };
 
     Ok(SearchMixResult {
         artists,

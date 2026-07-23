@@ -31,13 +31,50 @@ pub fn sidecar_name_for_current_platform() -> &'static str {
 
 /// set up the service for the sidecar
 #[tauri::command]
-pub fn ensure_online_service(
+pub async fn ensure_online_service(
     app_handle: tauri::AppHandle,
     process: tauri::State<'_, OnlineServiceProcess>,
 ) -> Result<(), String> {
     let service_name = sidecar_name_for_current_platform();
     let window = app_handle.get_webview_window("main");
-    spawn_service(&app_handle, service_name, window, process.inner())
+    spawn_service(&app_handle, service_name, window, process.inner())?;
+    wait_until_service_ready().await
+}
+
+/// Sidecar 进程创建成功不代表 HTTP 服务已经开始监听。这里用有上限的退避轮询
+/// 建立真正的就绪屏障，避免冷启动期间立即发出的搜索请求撞上未监听端口。
+async fn wait_until_service_ready() -> Result<(), String> {
+    const READY_TIMEOUT: Duration = Duration::from_secs(10);
+    const RETRY_DELAYS: [Duration; 5] = [
+        Duration::from_millis(120),
+        Duration::from_millis(200),
+        Duration::from_millis(350),
+        Duration::from_millis(500),
+        Duration::from_millis(700),
+    ];
+
+    let wait = async {
+        let mut attempt = 0usize;
+        loop {
+            let status = crate::netease::check_online_service_status().await?;
+            if status.available {
+                return Ok(());
+            }
+
+            let delay = RETRY_DELAYS[attempt.min(RETRY_DELAYS.len() - 1)];
+            attempt += 1;
+            tokio::time::sleep(delay).await;
+        }
+    };
+
+    tokio::time::timeout(READY_TIMEOUT, wait)
+        .await
+        .map_err(|_| {
+            format!(
+                "Online service did not become ready within {}s",
+                READY_TIMEOUT.as_secs()
+            )
+        })?
 }
 
 fn spawn_service(
@@ -108,11 +145,10 @@ pub async fn restart_online_service(
 ) -> Result<(), String> {
     let service_name = sidecar_name_for_current_platform();
     shutdown_service(process.inner())?;
-    tokio::time::sleep(Duration::from_millis(500)).await;
+    tokio::time::sleep(Duration::from_millis(300)).await;
     let window = app_handle.get_webview_window("main");
     spawn_service(&app_handle, service_name, window, process.inner())?;
-    tokio::time::sleep(Duration::from_millis(800)).await;
-    Ok(())
+    wait_until_service_ready().await
 }
 
 /// shutdown the service for the sidecar

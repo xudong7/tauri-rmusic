@@ -22,6 +22,8 @@ export const useOnlineServiceStore = defineStore("onlineService", () => {
   let timer: number | null = null;
   let started = false;
   let startPromise: Promise<void> | null = null;
+  let checkPromise: Promise<boolean> | null = null;
+  let restartPromise: Promise<void> | null = null;
   let failureStreak = 0;
 
   const isAvailable = computed(() => state.value === "available");
@@ -55,45 +57,64 @@ export const useOnlineServiceStore = defineStore("onlineService", () => {
     }, delay);
   }
 
-  async function checkNow() {
-    if (isChecking.value || isRestarting.value) return;
+  function checkNow(): Promise<boolean> {
+    if (checkPromise) return checkPromise;
+    if (isRestarting.value) return Promise.resolve(false);
+
     clearTimer();
     isChecking.value = true;
     if (!lastCheckedAt.value) state.value = "checking";
-    try {
-      applyStatus(await checkOnlineServiceStatus());
-    } catch (error) {
-      state.value = "unavailable";
-      message.value = error instanceof Error ? error.message : String(error);
-      statusCode.value = null;
-      lastCheckedAt.value = Date.now();
-      failureStreak++;
-    } finally {
-      isChecking.value = false;
-      scheduleNextCheck();
-    }
+
+    checkPromise = (async () => {
+      try {
+        applyStatus(await checkOnlineServiceStatus());
+      } catch (error) {
+        state.value = "unavailable";
+        message.value = error instanceof Error ? error.message : String(error);
+        statusCode.value = null;
+        lastCheckedAt.value = Date.now();
+        failureStreak++;
+      } finally {
+        isChecking.value = false;
+        scheduleNextCheck();
+      }
+      return isAvailable.value;
+    })().finally(() => {
+      checkPromise = null;
+    });
+
+    return checkPromise;
   }
 
-  async function restartService() {
-    if (isChecking.value || isRestarting.value) return;
-    isRestarting.value = true;
-    state.value = "restarting";
-    message.value = "";
-    statusCode.value = null;
-    let shouldRefreshStatus = false;
-    try {
-      await restartOnlineService();
-      shouldRefreshStatus = true;
-    } catch (error) {
-      state.value = "unavailable";
-      message.value = error instanceof Error ? error.message : String(error);
+  function restartService(): Promise<void> {
+    if (restartPromise) return restartPromise;
+
+    restartPromise = (async () => {
+      if (checkPromise) await checkPromise;
+
+      isRestarting.value = true;
+      state.value = "restarting";
+      message.value = "";
       statusCode.value = null;
-      lastCheckedAt.value = Date.now();
-    } finally {
-      isRestarting.value = false;
-      if (shouldRefreshStatus) await checkNow();
-      else scheduleNextCheck();
-    }
+      let shouldRefreshStatus = false;
+      try {
+        await restartOnlineService();
+        shouldRefreshStatus = true;
+      } catch (error) {
+        state.value = "unavailable";
+        message.value = error instanceof Error ? error.message : String(error);
+        statusCode.value = null;
+        lastCheckedAt.value = Date.now();
+      } finally {
+        isRestarting.value = false;
+        if (shouldRefreshStatus) await checkNow();
+        else scheduleNextCheck();
+      }
+    })().finally(() => {
+      restartPromise = null;
+    });
+
+    return restartPromise;
   }
 
   function handleVisibilityChange() {
@@ -113,18 +134,36 @@ export const useOnlineServiceStore = defineStore("onlineService", () => {
       document.addEventListener("visibilitychange", handleVisibilityChange);
     }
     if (startPromise) return startPromise;
+    if (restartPromise) {
+      await restartPromise;
+      if (isAvailable.value) return;
+    }
     if (isAvailable.value) {
       if (didStart) scheduleNextCheck();
       return;
     }
 
+    state.value = "checking";
+    message.value = "";
+    statusCode.value = null;
+
     startPromise = (async () => {
       try {
         await ensureOnlineService();
       } catch (error) {
+        state.value = "unavailable";
         message.value = error instanceof Error ? error.message : String(error);
+        statusCode.value = null;
+        lastCheckedAt.value = Date.now();
+        failureStreak++;
+        scheduleNextCheck();
+        throw error;
       }
-      await checkNow();
+
+      const available = await checkNow();
+      if (!available) {
+        throw new Error(message.value || "Online service is unavailable");
+      }
     })().finally(() => {
       startPromise = null;
     });
@@ -132,7 +171,9 @@ export const useOnlineServiceStore = defineStore("onlineService", () => {
   }
 
   function start() {
-    void ensureStarted();
+    void ensureStarted().catch((error) => {
+      console.error("Failed to start online service:", error);
+    });
   }
 
   function stop() {
