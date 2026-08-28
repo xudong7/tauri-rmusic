@@ -1,3 +1,5 @@
+
+
 # Rmusic
 
 A modern, lightweight cross-platform desktop music player built with Tauri 2 and Vue 3. Play local audio files and stream online music through third-party API proxies.
@@ -64,7 +66,7 @@ A modern, lightweight cross-platform desktop music player built with Tauri 2 and
 | -------- | ------------------------------------------------ |
 | Frontend | Vue 3, Element Plus, Vue Router, Pinia, Vue I18n |
 | Backend  | Rust, Tauri 2.0                                  |
-| Audio    | Rodio                                            |
+| Audio    | Rodio, Symphonia                                |
 | Network  | Reqwest, Tokio                                   |
 | Build    | Vite, Cargo                                      |
 
