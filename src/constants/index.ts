@@ -44,3 +44,13 @@ export const MAX_GRID_ITEMS = 200;
 
 /** 网格触底加载阈值（px），与 TrackList 默认值保持一致 */
 export const GRID_NEAR_END_THRESHOLD = 220;
+
+/* ---------- 在线歌单 ---------- */
+/**
+ * 歌单曲目首屏拉取条数。实测 /playlist/detail 对 <=200 首的歌单会一次性返回
+ * 全部曲目，因此按此上限首屏取满即可覆盖绝大多数歌单。
+ *
+ * 这同时规避了播放队列的快照问题：usePlaybackQueue 会复制传入数组，
+ * 若首屏只取 20 首，播放第 3 首时队列里就只有 20 首。
+ */
+export const PLAYLIST_TRACKS_PAGE_SIZE = 200;
