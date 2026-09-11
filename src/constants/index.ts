@@ -31,14 +31,11 @@ export const VIRTUAL_LIST_OVERSCAN = 10;
 
 /* ---------- 封面实体网格（歌单 / 专辑 / 排行榜） ---------- */
 /**
- * 网格每页条数。与列表分开定义：上面的 LIST_ROW_HEIGHT 等是行高驱动的
- * 一维虚拟滚动参数，网格不适用。
- */
-export const GRID_PAGE_SIZE = 30;
-
-/**
  * 网格条数软上限。超出后不再加载，改为提示用户细化搜索。
  * 这是刻意的产品取舍：用上限换掉手写二维虚拟化的复杂度与风险。
+ *
+ * 每页条数不在这里：它只被 onlineMusicStore 用于分页请求，
+ * 属于该 store 的内部细节（见其 GRID_SEARCH_PAGE_SIZE）。
  */
 export const MAX_GRID_ITEMS = 200;
 
