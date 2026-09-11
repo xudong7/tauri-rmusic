@@ -12,11 +12,6 @@
             class="online-playlist-view__cover"
           />
         </template>
-        <template #after-title>
-          <p v-if="store.detail.description" class="online-playlist-view__desc">
-            {{ store.detail.description }}
-          </p>
-        </template>
         <template #actions>
           <el-button text :icon="ArrowLeft" @click="goBack">{{
             t("onlinePlaylist.back")
@@ -24,6 +19,12 @@
         </template>
       </PageHeader>
     </template>
+
+    <!-- 放在 header 之外：PageHeader 的 title/after-title 是同一行 flex，
+         长简介塞进 after-title 会把标题挤成省略号。 -->
+    <p v-if="store.detail?.description" class="online-playlist-view__desc">
+      {{ store.detail.description }}
+    </p>
 
     <OnlineMusicList
       :onlineSongs="store.songs"
@@ -119,7 +120,8 @@ watch(() => route.fullPath, load, { immediate: true });
 }
 
 .online-playlist-view__desc {
-  margin: 4px 0 0;
+  flex-shrink: 0;
+  margin: 0 4px 12px;
   max-width: 720px;
   font-size: 12px;
   line-height: 1.5;

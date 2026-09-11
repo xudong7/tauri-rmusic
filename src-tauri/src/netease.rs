@@ -11,9 +11,6 @@ pub struct SongInfo {
     pub duration: u64, // ms
     pub pic_url: String,
     pub file_hash: String, // file hash for the song
-    /// 当前（匿名）状态下是否可播放，由 `fee` 推导。字段缺失时为 None，表示未知。
-    #[serde(default)]
-    pub playable: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -381,19 +378,6 @@ fn value_as_id(value: &serde_json::Value) -> Option<String> {
         .filter(|s| !s.is_empty())
 }
 
-/// 匿名状态下的可播性判断。
-///
-/// 依据 `fee`：0 免费、1 会员、4 专辑付费、8 免费低音质。
-/// 无登录态时 1/4 无法播放。
-///
-/// 注：`privileges` 数组更精确，但 `/artist/songs` 不返回该字段，
-/// 而 `fee` 在各类歌曲响应中均存在，故统一以 `fee` 为准。
-/// 字段缺失时返回 None（未知），不武断禁用。
-fn song_playable(song: &serde_json::Value) -> Option<bool> {
-    let fee = song["fee"].as_u64()?;
-    Some(fee != 1 && fee != 4)
-}
-
 /// 统一解析歌曲对象。
 ///
 /// NetEase 在不同接口返回两套字段命名，这里一并兼容：
@@ -441,7 +425,6 @@ fn parse_song(song: &serde_json::Value) -> Option<SongInfo> {
         duration,
         pic_url,
         file_hash: id,
-        playable: song_playable(song),
     })
 }
 
@@ -731,7 +714,6 @@ mod tests {
         assert_eq!(parsed.duration, 295940);
         assert_eq!(parsed.pic_url, "https://example.com/a.jpg");
         assert_eq!(parsed.file_hash, "1973665667");
-        assert_eq!(parsed.playable, Some(true));
     }
 
     #[test]
@@ -766,17 +748,6 @@ mod tests {
     fn parse_song_rejects_entries_without_id() {
         assert!(parse_song(&serde_json::json!({ "name": "x" })).is_none());
         assert!(parse_song(&serde_json::json!({ "id": "" })).is_none());
-    }
-
-    #[test]
-    fn song_playable_maps_fee_to_anonymous_availability() {
-        // 0 免费、8 免费低音质 -> 可播；1 会员、4 专辑付费 -> 匿名不可播。
-        assert_eq!(song_playable(&serde_json::json!({ "fee": 0 })), Some(true));
-        assert_eq!(song_playable(&serde_json::json!({ "fee": 8 })), Some(true));
-        assert_eq!(song_playable(&serde_json::json!({ "fee": 1 })), Some(false));
-        assert_eq!(song_playable(&serde_json::json!({ "fee": 4 })), Some(false));
-        // fee 缺失时保持未知，不武断禁用。
-        assert_eq!(song_playable(&serde_json::json!({})), None);
     }
 
     #[test]
@@ -1546,30 +1517,5 @@ mod live_sidecar_tests {
             .expect("artist albums");
         assert!(!albums.albums.is_empty());
         assert!(albums.albums.iter().any(|a| !a.artist.is_empty()));
-    }
-
-    /// 可播性标记必须在真实数据上产生区分度：
-    /// 若全部为 true，说明 fee 字段没有被正确读到，置灰功能形同虚设。
-    #[tokio::test]
-    #[ignore = "需要 localhost:3000 上有 sidecar 在运行"]
-    async fn playable_flag_discriminates_on_real_data() {
-        let detail = get_playlist_detail(PLAYLIST_ID.into())
-            .await
-            .expect("playlist detail");
-        let tracks = get_playlist_tracks(
-            PLAYLIST_ID.into(),
-            Some(0),
-            Some(PLAYLIST_TRACKS_PAGE_SIZE),
-            Some(detail.playlist.track_count),
-        )
-        .await
-        .expect("playlist tracks");
-
-        let with_fee = tracks.songs.iter().filter(|s| s.playable.is_some()).count();
-        assert!(with_fee > 0, "fee 字段未被解析，playable 全为 None");
-        assert!(
-            tracks.songs.iter().any(|s| s.playable == Some(true)),
-            "应存在可播放曲目"
-        );
     }
 }

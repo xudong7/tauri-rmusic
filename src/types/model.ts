@@ -22,11 +22,6 @@ export interface SongInfo {
   duration: number; // 持续时间（毫秒）
   pic_url: string; // 图片URL
   file_hash: string; // 文件哈希值，用于播放
-  /**
-   * 当前（匿名）状态下是否可播放，由后端依据 fee 字段推导。
-   * undefined 表示未知，此时不应当作不可播处理。
-   */
-  playable?: boolean;
 }
 
 // 在线歌单（/toplist、/cloudsearch?type=1000、/playlist/detail 共用）

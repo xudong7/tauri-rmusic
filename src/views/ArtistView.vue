@@ -11,18 +11,21 @@
           class="artist-avatar"
         />
       </template>
-      <template #after-title>
-        <p v-if="artistStore.artistDescription" class="artist-view__desc">
-          {{ artistStore.artistDescription }}
-        </p>
-        <p v-if="countsLabel" class="artist-view__counts">{{ countsLabel }}</p>
-      </template>
       <template #actions>
         <el-button class="back-to-search" text :icon="ArrowLeft" @click="goBackToSearch">
           {{ t("artist.backToSearch") }}
         </el-button>
       </template>
     </PageHeader>
+
+    <!-- 简介与计数放在 header 之外：PageHeader 的 title/after-title 是同一行
+         flex，把长文本塞进 after-title 会把标题挤成省略号。 -->
+    <div v-if="countsLabel || artistStore.artistDescription" class="artist-view__meta">
+      <p v-if="countsLabel" class="artist-view__counts">{{ countsLabel }}</p>
+      <p v-if="artistStore.artistDescription" class="artist-view__desc">
+        {{ artistStore.artistDescription }}
+      </p>
+    </div>
 
     <div class="artist-view__tabs">
       <el-segmented v-model="activeTab" :options="tabOptions" />
@@ -173,6 +176,11 @@ watch(() => route.fullPath, load, { immediate: true });
   flex-shrink: 0;
 }
 
+.artist-view__meta {
+  flex-shrink: 0;
+  padding: 0 4px 12px;
+}
+
 .artist-view__desc {
   margin: 4px 0 0;
   max-width: 720px;
@@ -188,7 +196,7 @@ watch(() => route.fullPath, load, { immediate: true });
 }
 
 .artist-view__counts {
-  margin: 2px 0 0;
+  margin: 0;
   font-size: 12px;
   color: var(--el-text-color-secondary);
 }

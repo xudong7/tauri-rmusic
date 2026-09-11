@@ -69,9 +69,6 @@ function toTrackRow(song: SongInfo, sourceIndex: number): TrackRowModel {
     sourceIndex,
     isCurrent: isCurrentSong(song),
     isPlaying: props.isPlaying,
-    // playable === false 表示匿名状态下无版权或需会员：置灰而不是让用户
-    // 点击后才吃到报错。undefined 表示未知，按可播处理。
-    disabled: song.playable === false,
   };
 }
 

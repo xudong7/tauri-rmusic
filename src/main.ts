@@ -12,6 +12,7 @@ import {
   ElOption,
   ElPopconfirm,
   ElScrollbar,
+  ElSegmented,
   ElSelect,
   ElSkeleton,
   ElSlider,
@@ -28,6 +29,7 @@ import "element-plus/es/components/message/style/css";
 import "element-plus/es/components/option/style/css";
 import "element-plus/es/components/popconfirm/style/css";
 import "element-plus/es/components/scrollbar/style/css";
+import "element-plus/es/components/segmented/style/css";
 import "element-plus/es/components/select/style/css";
 import "element-plus/es/components/skeleton/style/css";
 import "element-plus/es/components/slider/style/css";
@@ -59,6 +61,7 @@ app.use(i18n);
   ElOption,
   ElPopconfirm,
   ElScrollbar,
+  ElSegmented,
   ElSelect,
   ElSkeleton,
   ElSlider,
