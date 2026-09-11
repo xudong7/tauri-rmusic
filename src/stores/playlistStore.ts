@@ -85,7 +85,9 @@ export const usePlaylistStore = defineStore("playlist", () => {
   function createPlaylist(name: string): Playlist {
     const list: Playlist = {
       id: generateId(),
-      name: name.trim() || "新建播放列表",
+      // 兜底名要跟随界面语言：写死中文的话英文界面下也会建出「新建播放列表」，
+      // 而且因为它非空，之后不会再走 playlist.unnamed 那条兜底。
+      name: name.trim() || i18n.global.t("playlist.newPlaylist"),
       items: [],
       createdAt: Date.now(),
     };

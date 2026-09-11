@@ -7,6 +7,7 @@ export const STORAGE_KEY_DEFAULT_DIRECTORY = "defaultDirectory";
 export const STORAGE_KEY_LOCALE = "locale";
 export const STORAGE_KEY_SIDEBAR_PLAYLIST_EXPANDED = "sidebar_playlist_expanded";
 export const STORAGE_KEY_PLAYER_VOLUME = "player_volume";
+export const STORAGE_KEY_PLAY_MODE = "play_mode";
 
 /* ---------- 搜索历史 ---------- */
 /** 单模式（本地/在线）最多保留条数 */

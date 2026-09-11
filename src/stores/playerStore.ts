@@ -10,6 +10,7 @@ import type {
 } from "@/types/model";
 import { PlayMode } from "@/types/model";
 import { i18n } from "@/i18n";
+import { STORAGE_KEY_PLAY_MODE } from "@/constants";
 import { parseErrorMessage } from "@/utils/errorUtils";
 import { joinPathSegment } from "@/utils/pathUtils";
 import { getLocalMusicDisplayInfo } from "@/utils/songUtils";
@@ -47,6 +48,14 @@ function getLocalTrackKey(file: MusicFile): string {
   return file.relative_path || file.file_name;
 }
 
+/** 读取持久化的播放模式；值不可识别（改过 localStorage、旧版本遗留）时回到顺序播放。 */
+function readStoredPlayMode(): PlayMode {
+  const stored = localStorage.getItem(STORAGE_KEY_PLAY_MODE);
+  return Object.values(PlayMode).includes(stored as PlayMode)
+    ? (stored as PlayMode)
+    : PlayMode.SEQUENTIAL;
+}
+
 interface PlaybackEndedPayload {
   position_ms: number;
   duration_ms: number;
@@ -76,7 +85,9 @@ export const usePlayerStore = defineStore("player", () => {
   const onlineServiceStore = useOnlineServiceStore();
   const playlistStore = usePlaylistStore();
 
-  const playMode = ref<PlayMode>(PlayMode.SEQUENTIAL);
+  // 播放模式跨会话保留。原来每次启动都退回「顺序播放」，
+  // 习惯随机或单曲循环的用户每次都得重新点一遍。
+  const playMode = ref<PlayMode>(readStoredPlayMode());
 
   const currentMusic = ref<MusicFile | null>(null);
   const currentOnlineSong = ref<SongInfo | null>(null);
@@ -865,6 +876,7 @@ export const usePlayerStore = defineStore("player", () => {
     const currentIndex = modes.indexOf(playMode.value);
     const nextIndex = (currentIndex + 1) % modes.length;
     playMode.value = modes[nextIndex];
+    localStorage.setItem(STORAGE_KEY_PLAY_MODE, playMode.value);
     resetShuffleHistory();
 
     const modeKey =
