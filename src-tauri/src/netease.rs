@@ -1402,3 +1402,174 @@ pub async fn get_song_lyric(id: String) -> Result<String, String> {
 
     Ok(content)
 }
+
+/// 针对本地运行中的 sidecar 的实测。
+///
+/// 默认忽略，因为它依赖 localhost:3000 上有一个正在运行的 sidecar，
+/// 而 CI 没有。手动运行：
+///
+/// ```text
+/// cd src-tauri && cargo test --lib live_sidecar -- --ignored --nocapture
+/// ```
+///
+/// 这组测试的价值在于：单测里的 fixture 是手写的，只能证明解析器
+/// 对「我以为的响应结构」正确；这里验证的是真实响应。
+#[cfg(test)]
+mod live_sidecar_tests {
+    use super::*;
+
+    /// 周杰伦，各接口通用的样本 id。
+    const ARTIST_ID: &str = "6452";
+    /// 热歌榜，200 首，匿名可访问。
+    const PLAYLIST_ID: &str = "3778678";
+    /// 张悬《神的游戏》，9 首。
+    const ALBUM_ID: &str = "32311";
+
+    #[tokio::test]
+    #[ignore = "需要 localhost:3000 上有 sidecar 在运行"]
+    async fn searches_return_parsed_entities() {
+        let playlists = search_online_playlists("周杰伦".into(), Some(1), Some(5))
+            .await
+            .expect("playlist search");
+        assert!(!playlists.playlists.is_empty());
+        assert!(playlists.total > 0);
+        // 解析出的实体必须带有可用字段，而不是空壳
+        assert!(playlists.playlists.iter().all(|p| !p.id.is_empty()));
+        assert!(playlists.playlists.iter().any(|p| !p.cover_url.is_empty()));
+
+        let albums = search_online_albums("周杰伦".into(), Some(1), Some(5))
+            .await
+            .expect("album search");
+        assert!(!albums.albums.is_empty());
+        assert!(albums.albums.iter().any(|a| !a.artist.is_empty()));
+
+        let artists = search_online_artists("周杰伦".into(), Some(1), Some(5))
+            .await
+            .expect("artist search");
+        assert!(!artists.artists.is_empty());
+        assert!(artists.artists.iter().any(|a| !a.pic_url.is_empty()));
+    }
+
+    #[tokio::test]
+    #[ignore = "需要 localhost:3000 上有 sidecar 在运行"]
+    async fn toplist_returns_playlist_shaped_entities() {
+        let result = get_toplist().await.expect("toplist");
+        assert!(result.toplists.len() > 10);
+        let first = &result.toplists[0];
+        assert!(!first.id.is_empty());
+        assert!(!first.name.is_empty());
+        assert!(first.track_count > 0);
+    }
+
+    #[tokio::test]
+    #[ignore = "需要 localhost:3000 上有 sidecar 在运行"]
+    async fn playlist_detail_and_tracks_agree_on_has_more() {
+        let detail = get_playlist_detail(PLAYLIST_ID.into())
+            .await
+            .expect("playlist detail");
+        assert_eq!(detail.playlist.name, "热歌榜");
+        assert!(detail.playlist.track_count > 0);
+
+        // 首屏按后端每页上限取满
+        let first = get_playlist_tracks(
+            PLAYLIST_ID.into(),
+            Some(0),
+            Some(PLAYLIST_TRACKS_PAGE_SIZE),
+            Some(detail.playlist.track_count),
+        )
+        .await
+        .expect("playlist tracks");
+        assert!(!first.songs.is_empty());
+        assert!(first.songs.iter().all(|s| !s.id.is_empty()));
+
+        // has_more 必须与 trackCount 一致：取满 200 首的热歌榜不应声称还有更多
+        let loaded = first.songs.len() as u32;
+        assert_eq!(first.has_more, loaded < detail.playlist.track_count);
+
+        // 再取一页必须是不同的曲目，证明 offset 生效
+        let second = get_playlist_tracks(
+            PLAYLIST_ID.into(),
+            Some(loaded),
+            Some(PLAYLIST_TRACKS_PAGE_SIZE),
+            Some(detail.playlist.track_count),
+        )
+        .await
+        .expect("playlist tracks page 2");
+        if !second.songs.is_empty() {
+            assert_ne!(first.songs[0].id, second.songs[0].id);
+        }
+    }
+
+    #[tokio::test]
+    #[ignore = "需要 localhost:3000 上有 sidecar 在运行"]
+    async fn album_detail_returns_full_track_list() {
+        let detail = get_album_detail(ALBUM_ID.into()).await.expect("album");
+        assert_eq!(detail.album.name, "神的游戏");
+        assert!(!detail.album.artist.is_empty());
+        assert!(detail.album.publish_time > 0);
+        // /album 一次性返回完整曲目，条数应与 size 一致
+        assert_eq!(detail.songs.len() as u32, detail.album.size);
+    }
+
+    #[tokio::test]
+    #[ignore = "需要 localhost:3000 上有 sidecar 在运行"]
+    async fn artist_endpoints_support_pagination_and_detail() {
+        let detail = get_artist_detail(ARTIST_ID.into())
+            .await
+            .expect("artist detail");
+        assert_eq!(detail.artist.name, "周杰伦");
+        assert!(!detail.artist.pic_url.is_empty());
+        assert!(detail.album_count > 0);
+        assert!(!detail.description.is_empty());
+
+        let first = get_artist_songs(ARTIST_ID.into(), Some(1), Some(30), Some("hot".into()))
+            .await
+            .expect("artist songs");
+        assert_eq!(first.songs.len(), 30);
+        assert!(first.total > 30);
+        assert!(first.has_more);
+
+        // offset 随机访问必须真的换了一批歌
+        let second = get_artist_songs(ARTIST_ID.into(), Some(2), Some(30), Some("hot".into()))
+            .await
+            .expect("artist songs page 2");
+        assert_ne!(first.songs[0].id, second.songs[0].id);
+
+        // order=time 应给出不同的首曲
+        let by_time = get_artist_songs(ARTIST_ID.into(), Some(1), Some(30), Some("time".into()))
+            .await
+            .expect("artist songs by time");
+        assert_ne!(first.songs[0].id, by_time.songs[0].id);
+
+        let albums = get_artist_albums(ARTIST_ID.into(), Some(1), Some(30))
+            .await
+            .expect("artist albums");
+        assert!(!albums.albums.is_empty());
+        assert!(albums.albums.iter().any(|a| !a.artist.is_empty()));
+    }
+
+    /// 可播性标记必须在真实数据上产生区分度：
+    /// 若全部为 true，说明 fee 字段没有被正确读到，置灰功能形同虚设。
+    #[tokio::test]
+    #[ignore = "需要 localhost:3000 上有 sidecar 在运行"]
+    async fn playable_flag_discriminates_on_real_data() {
+        let detail = get_playlist_detail(PLAYLIST_ID.into())
+            .await
+            .expect("playlist detail");
+        let tracks = get_playlist_tracks(
+            PLAYLIST_ID.into(),
+            Some(0),
+            Some(PLAYLIST_TRACKS_PAGE_SIZE),
+            Some(detail.playlist.track_count),
+        )
+        .await
+        .expect("playlist tracks");
+
+        let with_fee = tracks.songs.iter().filter(|s| s.playable.is_some()).count();
+        assert!(with_fee > 0, "fee 字段未被解析，playable 全为 None");
+        assert!(
+            tracks.songs.iter().any(|s| s.playable == Some(true)),
+            "应存在可播放曲目"
+        );
+    }
+}
