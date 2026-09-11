@@ -105,9 +105,11 @@ async function handleSearch(keyword: string, scope: SearchScope) {
       // 只搜索当前激活的 tab，不向四个端点扇出。
       await onlineStore.searchActiveTab(kw);
     } catch (error) {
+      // 这里原本把 error.message 拼在提示后面，但那是 sidecar 的技术串
+      // （"Online service is unavailable"）——中文界面下混进一句英文，
+      // 且与前半句语义重复。具体原因走 console。
       console.error("Online service unavailable before search:", error);
-      const detail = error instanceof Error ? error.message : String(error);
-      ElMessage.error(`${t("onlineService.unavailable")}: ${detail}`);
+      ElMessage.error(t("onlineService.unavailable"));
     }
   } else {
     onlineStore.resetResults();

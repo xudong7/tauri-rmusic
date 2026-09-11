@@ -7,6 +7,7 @@ export const STORAGE_KEY_DEFAULT_DIRECTORY = "defaultDirectory";
 export const STORAGE_KEY_LOCALE = "locale";
 export const STORAGE_KEY_SIDEBAR_PLAYLIST_EXPANDED = "sidebar_playlist_expanded";
 export const STORAGE_KEY_PLAYER_VOLUME = "player_volume";
+export const STORAGE_KEY_PLAY_MODE = "play_mode";
 
 /* ---------- 搜索历史 ---------- */
 /** 单模式（本地/在线）最多保留条数 */
@@ -28,6 +29,12 @@ export const VIRTUAL_LIST_THRESHOLD = 50;
 
 /** 虚拟滚动预渲染条数（可视区上下各多渲染，减少快速滚动空白） */
 export const VIRTUAL_LIST_OVERSCAN = 10;
+
+/**
+ * 播放队列行高，对应 .queue-item 的 min-height（队列条目文本单行截断，
+ * 高度因此是固定的）。虚拟滚动要求行高精确，否则滚动位置会累积漂移。
+ */
+export const QUEUE_ROW_HEIGHT = 46;
 
 /* ---------- 封面实体网格（歌单 / 专辑 / 排行榜） ---------- */
 /**

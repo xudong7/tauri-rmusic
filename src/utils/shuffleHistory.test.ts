@@ -200,3 +200,66 @@ describe("stepShuffle", () => {
     expect(result.cursor).toBe(0);
   });
 });
+
+describe("stepShuffle excludedKeys", () => {
+  // 跳过不可播曲目时的关键场景：history 已覆盖整个队列（听了一轮之后的
+  // 常态），前进分支因此落到「除当前曲目外全都可以」的兜底候选集。
+  // 这个集合里包含刚试过并失败的那些，没有 excludedKeys 就会原样返回 a，
+  // 调用方于是在坏曲目上反复重抽，明明还有 c 能放却报「没有可播放的歌曲」。
+  it("does not re-pick a failed key from the fallback candidate pool", () => {
+    const input = {
+      direction: 1,
+      history: ["a", "b", "c", "d"],
+      cursor: 3,
+      currentKey: "d",
+      availableKeys: keys("a", "b", "c", "d"),
+      random: alwaysFirst,
+    };
+
+    // 未排除时按 alwaysFirst 会挑中 a —— 正是刚失败的那一首
+    const withoutExclusion = stepShuffle(input);
+    expect(withoutExclusion.key).toBe("a");
+
+    // 排除 a、b 之后应当落到 c
+    const result = stepShuffle({ ...input, excludedKeys: keys("a", "b") });
+    expect(result.key).toBe("c");
+  });
+
+  it("returns null rather than a tried key when nothing else is left", () => {
+    const result = stepShuffle({
+      direction: 1,
+      history: ["a", "b"],
+      cursor: 1,
+      currentKey: "b",
+      availableKeys: keys("a", "b"),
+      excludedKeys: keys("a", "b"),
+    });
+    expect(result.key).toBeNull();
+  });
+
+  it("also excludes tried keys when walking backward", () => {
+    const result = stepShuffle({
+      direction: -1,
+      history: ["a", "b", "c"],
+      cursor: 2,
+      currentKey: "c",
+      availableKeys: keys("a", "b", "c"),
+      excludedKeys: keys("b"),
+    });
+    expect(result.key).toBe("a");
+  });
+
+  it("still prefers unvisited keys over the fallback pool", () => {
+    const result = stepShuffle({
+      direction: 1,
+      history: ["a", "b"],
+      cursor: 1,
+      currentKey: "b",
+      availableKeys: keys("a", "b", "c", "d"),
+      excludedKeys: keys("c"),
+      random: alwaysFirst,
+    });
+    // c 被排除，未听过的只剩 d，应选中 d 而不是回落到 a
+    expect(result.key).toBe("d");
+  });
+});

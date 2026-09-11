@@ -377,7 +377,7 @@
   flex: 1;
 }
 
-.immersive-progress .progress-slider ::deep(.el-slider__runway) {
+.immersive-progress .progress-slider :deep(.el-slider__runway) {
   height: 3px;
   background-color: var(--immersive-progress-track);
   border-radius: var(--app-radius-full, 9999px);
@@ -386,20 +386,20 @@
     background-color 0.2s ease;
 }
 
-.immersive-progress .progress-slider ::deep(.el-slider__bar) {
+.immersive-progress .progress-slider :deep(.el-slider__bar) {
   height: 100%;
   background: color-mix(in srgb, var(--immersive-accent) 88%, #fff);
   border-radius: var(--app-radius-full, 9999px);
 }
 
-.immersive-progress .progress-slider ::deep(.el-slider__button-wrapper) {
+.immersive-progress .progress-slider :deep(.el-slider__button-wrapper) {
   top: 50%;
   width: 22px;
   height: 22px;
   transform: translate(-50%, -50%);
 }
 
-.immersive-progress .progress-slider ::deep(.el-slider__button) {
+.immersive-progress .progress-slider :deep(.el-slider__button) {
   width: var(--app-slider-thumb-size);
   height: var(--app-slider-thumb-size);
   box-sizing: border-box;
@@ -414,14 +414,14 @@
     box-shadow 0.18s ease;
 }
 
-.immersive-progress .progress-slider:hover ::deep(.el-slider__runway) {
+.immersive-progress .progress-slider:hover :deep(.el-slider__runway) {
   height: 4px;
   background-color: color-mix(in srgb, var(--immersive-text-primary) 30%, transparent);
 }
 
-.immersive-progress .progress-slider:hover ::deep(.el-slider__button),
-.immersive-progress .progress-slider ::deep(.el-slider__button:hover),
-.immersive-progress .progress-slider ::deep(.el-slider__button.dragging) {
+.immersive-progress .progress-slider:hover :deep(.el-slider__button),
+.immersive-progress .progress-slider :deep(.el-slider__button:hover),
+.immersive-progress .progress-slider :deep(.el-slider__button.dragging) {
   transform: scale(1.18);
   box-shadow:
     0 2px 8px rgba(0, 0, 0, 0.28),

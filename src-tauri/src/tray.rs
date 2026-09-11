@@ -9,6 +9,11 @@ use tokio::sync::broadcast::Sender;
 use crate::music::MusicState;
 use crate::service;
 
+/// 托盘退出时留给前端 flush 歌单的窗口。
+/// 歌单落盘是本地 JSON 写入，正常情况下远小于这个值；留得宽裕是为了避免
+/// 打断一次正常的保存，代价只是 webview 假死时多等这一会儿。
+const FRONTEND_QUIT_GRACE_MS: u64 = 3_000;
+
 pub fn quit_app(app: &AppHandle) {
     if let Err(e) = app.save_window_state(StateFlags::all()) {
         eprintln!("Failed to save window state: {}", e);
@@ -89,9 +94,23 @@ pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
                     let _ = window.show();
                     let _ = window.set_focus();
                 }
+                // 前端要先 flush 歌单再退出，所以这里先发事件等它。
+                // 但 emit 只是把消息投递出去，webview 正在重载或已崩溃时它照样
+                // 返回 Ok，而没有任何人处理——原来的 `if let Err` 兜底因此永远
+                // 不会触发，用户会发现在托盘里点 Quit 完全没反应，且没有别的
+                // 退出入口。改成定时兜底：窗口期内没退出就无条件退出。
+                let handle = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    tokio::time::sleep(std::time::Duration::from_millis(
+                        FRONTEND_QUIT_GRACE_MS,
+                    ))
+                    .await;
+                    // 前端已正常退出时这里不会有任何机会执行；若执行了，
+                    // shutdown_service 是幂等的（内部 take()）。
+                    quit_app(&handle);
+                });
                 if let Err(e) = app.emit("tray-quit", ()) {
                     eprintln!("Failed to emit tray quit event: {}", e);
-                    quit_app(app);
                 }
             }
             _ => {}

@@ -5,6 +5,7 @@ import { PLAYLIST_SAVE_DEBOUNCE_MS } from "@/constants";
 import type { Playlist, PlaylistItem } from "@/types/model";
 import { readPlaylists, writePlaylists } from "@/api/commands/playlist";
 import { i18n } from "@/i18n";
+import { parseErrorMessage } from "@/utils/errorUtils";
 
 function generateId(): string {
   return `pl_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -29,7 +30,11 @@ export const usePlaylistStore = defineStore("playlist", () => {
       hasLoadedPlaylists.value = true;
     } catch (e) {
       console.error("[playlist] load failed:", e);
-      ElMessage.error(`${i18n.global.t("errors.unknownError")}: ${e}`);
+      // 前缀要具体：parseErrorMessage 自己就会在无法识别时返回「未知错误」，
+      // 沿用通用的 unknownError 当标签会出现「未知错误: 未知错误」。
+      ElMessage.error(
+        `${i18n.global.t("errors.loadPlaylistsFailed")}: ${parseErrorMessage(e)}`
+      );
       hasLoadedPlaylists.value = true;
     }
   }
@@ -64,7 +69,9 @@ export const usePlaylistStore = defineStore("playlist", () => {
       } catch (e) {
         hasPendingSave = true;
         console.error("[playlist] save failed:", e);
-        ElMessage.error(`${i18n.global.t("errors.unknownError")}: ${e}`);
+        ElMessage.error(
+          `${i18n.global.t("errors.savePlaylistsFailed")}: ${parseErrorMessage(e)}`
+        );
       }
     })();
 
@@ -78,7 +85,9 @@ export const usePlaylistStore = defineStore("playlist", () => {
   function createPlaylist(name: string): Playlist {
     const list: Playlist = {
       id: generateId(),
-      name: name.trim() || "新建播放列表",
+      // 兜底名要跟随界面语言：写死中文的话英文界面下也会建出「新建播放列表」，
+      // 而且因为它非空，之后不会再走 playlist.unnamed 那条兜底。
+      name: name.trim() || i18n.global.t("playlist.newPlaylist"),
       items: [],
       createdAt: Date.now(),
     };

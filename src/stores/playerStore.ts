@@ -10,9 +10,18 @@ import type {
 } from "@/types/model";
 import { PlayMode } from "@/types/model";
 import { i18n } from "@/i18n";
+import { STORAGE_KEY_PLAY_MODE } from "@/constants";
+import { parseErrorMessage } from "@/utils/errorUtils";
 import { joinPathSegment } from "@/utils/pathUtils";
 import { getLocalMusicDisplayInfo } from "@/utils/songUtils";
-import { getPlaybackStep, getSequentialIndex } from "@/utils/playbackQueue";
+import {
+  getPlaybackStep,
+  getSequentialIndex,
+  playFromQueueWithSkip,
+  MAX_CONSECUTIVE_SKIPS,
+  type PlaybackAttempt,
+  type SkipResult,
+} from "@/utils/playbackQueue";
 import { alignShuffleCursor, stepShuffle } from "@/utils/shuffleHistory";
 import {
   handleEvent,
@@ -37,6 +46,14 @@ function debugPlaybackLog(message: string) {
 
 function getLocalTrackKey(file: MusicFile): string {
   return file.relative_path || file.file_name;
+}
+
+/** 读取持久化的播放模式；值不可识别（改过 localStorage、旧版本遗留）时回到顺序播放。 */
+function readStoredPlayMode(): PlayMode {
+  const stored = localStorage.getItem(STORAGE_KEY_PLAY_MODE);
+  return Object.values(PlayMode).includes(stored as PlayMode)
+    ? (stored as PlayMode)
+    : PlayMode.SEQUENTIAL;
 }
 
 interface PlaybackEndedPayload {
@@ -68,7 +85,9 @@ export const usePlayerStore = defineStore("player", () => {
   const onlineServiceStore = useOnlineServiceStore();
   const playlistStore = usePlaylistStore();
 
-  const playMode = ref<PlayMode>(PlayMode.SEQUENTIAL);
+  // 播放模式跨会话保留。原来每次启动都退回「顺序播放」，
+  // 习惯随机或单曲循环的用户每次都得重新点一遍。
+  const playMode = ref<PlayMode>(readStoredPlayMode());
 
   const currentMusic = ref<MusicFile | null>(null);
   const currentOnlineSong = ref<SongInfo | null>(null);
@@ -393,7 +412,10 @@ export const usePlayerStore = defineStore("player", () => {
     playbackClock.stop();
   }
 
-  async function playMusic(music: MusicFile, options?: PlayLocalOptions) {
+  async function playMusic(
+    music: MusicFile,
+    options?: PlayLocalOptions
+  ): Promise<PlaybackAttempt> {
     const requestId = beginPlaybackRequest();
     try {
       if (options?.fromPlaylistId) {
@@ -415,33 +437,40 @@ export const usePlayerStore = defineStore("player", () => {
       currentOnlineSong.value = null;
       playbackPhase.value = "buffering";
       await preparePlaybackRequest(requestId);
-      if (!isCurrentPlaybackRequest(requestId)) return;
+      if (!isCurrentPlaybackRequest(requestId)) return "aborted";
 
       const fullPath = joinPathSegment(localStore.currentDirectory, music.file_name);
       const playResult = await playTrack({ type: "local", path: fullPath }, requestId);
-      if (!isCurrentPlaybackRequest(requestId)) return;
+      if (!isCurrentPlaybackRequest(requestId)) return "aborted";
       currentBackendTrackId.value = playResult.track_id;
       updateProgressFromBackend(playResult);
 
-      if (!completePlaybackRequest(requestId)) return;
+      if (!completePlaybackRequest(requestId)) return "aborted";
       isPlaying.value = true;
       startPlayTimeTracking();
 
       debugPlaybackLog(`[播放控制] 本地音乐播放成功: ${music.file_name}`);
+      return "played";
     } catch (error) {
-      if (!isCurrentPlaybackRequest(requestId)) return;
+      if (!isCurrentPlaybackRequest(requestId)) return "aborted";
       if (isSupersededPlaybackRequest(error)) {
         debugPlaybackLog("[播放控制] 播放请求已被更新请求替代");
         failPlaybackRequest(requestId);
-        return;
+        return "aborted";
       }
       console.error("[播放控制] 播放本地音乐失败:", error);
-      ElMessage.error(`${i18n.global.t("errors.playFailed")}: ${error}`);
+      ElMessage.error(
+        `${i18n.global.t("errors.playFailed")}: ${parseErrorMessage(error)}`
+      );
       failPlaybackRequest(requestId);
+      return "failed";
     }
   }
 
-  async function playOnlineSong(song: SongInfo, options?: PlayOnlineOptions) {
+  async function playOnlineSong(
+    song: SongInfo,
+    options?: PlayOnlineOptions
+  ): Promise<PlaybackAttempt> {
     if (
       currentOnlineSong.value?.id === song.id &&
       isPlaying.value &&
@@ -450,7 +479,7 @@ export const usePlayerStore = defineStore("player", () => {
       playbackQueue.applyOnlinePlaybackContext(song, options);
       void playbackQueue.prefetchNextOnlineSong(song);
       debugPlaybackLog("[播放控制] 歌曲正在播放，忽略重复请求");
-      return;
+      return "played";
     }
 
     const requestId = beginPlaybackRequest();
@@ -466,9 +495,21 @@ export const usePlayerStore = defineStore("player", () => {
       currentLocalQueue.value = [];
       playbackPhase.value = "resolving";
       await preparePlaybackRequest(requestId);
-      if (!isCurrentPlaybackRequest(requestId)) return;
-      await onlineServiceStore.ensureStarted();
-      if (!isCurrentPlaybackRequest(requestId)) return;
+      if (!isCurrentPlaybackRequest(requestId)) return "aborted";
+      try {
+        await onlineServiceStore.ensureStarted();
+      } catch (serviceError) {
+        // 单独处理：这是在线播放最常见的失败原因，值得一句能指导下一步的
+        // 文案（去点头部的服务状态圆点）。丢给通用兜底只会显示成
+        // "播放失败: 未知错误"。返回 aborted 而不是 failed，因为服务没恢复
+        // 之前试剩下的曲目只会把同一句提示重复六遍，还会反复触发重连。
+        console.error("[播放控制] 在线服务不可用:", serviceError);
+        if (!isCurrentPlaybackRequest(requestId)) return "aborted";
+        ElMessage.error(i18n.global.t("onlineService.unavailable"));
+        failPlaybackRequest(requestId);
+        return "aborted";
+      }
+      if (!isCurrentPlaybackRequest(requestId)) return "aborted";
 
       const playResult = await playNeteaseSong({
         id: song.id,
@@ -476,7 +517,7 @@ export const usePlayerStore = defineStore("player", () => {
         artist: song.artists.join(", "),
         picUrl: song.pic_url || undefined,
       });
-      if (!isCurrentPlaybackRequest(requestId)) return;
+      if (!isCurrentPlaybackRequest(requestId)) return "aborted";
 
       debugPlaybackLog("[播放控制] 获取到播放URL，准备播放");
       playbackPhase.value = "buffering";
@@ -488,11 +529,11 @@ export const usePlayerStore = defineStore("player", () => {
         },
         requestId
       );
-      if (!isCurrentPlaybackRequest(requestId)) return;
+      if (!isCurrentPlaybackRequest(requestId)) return "aborted";
       currentBackendTrackId.value = startResult.track_id;
       updateProgressFromBackend(startResult);
 
-      if (!completePlaybackRequest(requestId)) return;
+      if (!completePlaybackRequest(requestId)) return "aborted";
       isPlaying.value = true;
       startPlayTimeTracking();
 
@@ -501,30 +542,39 @@ export const usePlayerStore = defineStore("player", () => {
       }
       debugPlaybackLog(`[播放控制] 在线歌曲播放成功: ${song.name}`);
       void playbackQueue.prefetchNextOnlineSong(song);
+      return "played";
     } catch (error) {
-      if (!isCurrentPlaybackRequest(requestId)) return;
+      if (!isCurrentPlaybackRequest(requestId)) return "aborted";
       if (isSupersededPlaybackRequest(error)) {
         debugPlaybackLog("[播放控制] 在线播放请求已被更新请求替代");
         failPlaybackRequest(requestId);
-        return;
+        return "aborted";
       }
       console.error("[播放控制] 播放在线歌曲失败:", error);
-      ElMessage.error(`${i18n.global.t("errors.playFailedOnline")}: ${error}`);
+      ElMessage.error(
+        `${i18n.global.t("errors.playFailedOnline")}: ${parseErrorMessage(error)}`
+      );
       failPlaybackRequest(requestId);
+      return "failed";
     }
   }
 
-  async function playFromPlaylist(playlistId: string, index: number) {
+  async function playFromPlaylist(
+    playlistId: string,
+    index: number
+  ): Promise<PlaybackAttempt> {
     const list = playlistStore.getPlaylist(playlistId);
-    if (!list || index < 0 || index >= list.items.length) return;
+    if (!list || index < 0 || index >= list.items.length) return "failed";
     const item = list.items[index];
     if (item.type === "local") {
       const file = localMusicByFileName.value.get(item.file_name);
-      if (file) await playMusic(file, { fromPlaylistId: playlistId });
-      else ElMessage.warning(i18n.global.t("messages.noLocalMusic"));
-    } else {
-      await playOnlineSong(item.song, { fromPlaylistId: playlistId });
+      if (!file) {
+        ElMessage.warning(i18n.global.t("messages.noLocalMusic"));
+        return "failed";
+      }
+      return playMusic(file, { fromPlaylistId: playlistId });
     }
+    return playOnlineSong(item.song, { fromPlaylistId: playlistId });
   }
 
   async function playQueueItem(index: number) {
@@ -568,13 +618,15 @@ export const usePlayerStore = defineStore("player", () => {
       }
     } catch (error) {
       console.error("[播放控制] 切换播放状态失败:", error);
-      ElMessage.error(`${i18n.global.t("errors.togglePlayFailed")}: ${error}`);
+      ElMessage.error(
+        `${i18n.global.t("errors.togglePlayFailed")}: ${parseErrorMessage(error)}`
+      );
     }
   }
 
   interface ShuffleTarget {
     key: string;
-    play: () => Promise<void>;
+    play: () => Promise<PlaybackAttempt>;
   }
 
   function alignShuffleHistory(contextKey: string, currentKey: string | null) {
@@ -649,20 +701,60 @@ export const usePlayerStore = defineStore("player", () => {
     if (targets.length === 0) return;
     alignShuffleHistory(contextKey, currentKey);
 
-    const step = stepShuffle({
-      direction,
-      history: shuffleHistory,
-      cursor: shuffleCursor,
-      currentKey,
-      availableKeys: new Set(targets.map((target) => target.key)),
-    });
+    // 随机模式同样要跳过放不出来的曲目，否则一首坏的就能让随机播放停住。
+    // attempted 记录本次已试过的 key 并交给 stepShuffle 排除——只靠
+    // 「选中的 key 会被记进 history」是不够的，原因见 excludedKeys 的注释。
+    const attempted = new Set<string>();
+    let skipped = 0;
 
-    shuffleHistory = step.history;
-    shuffleCursor = step.cursor;
+    while (skipped <= MAX_CONSECUTIVE_SKIPS) {
+      const step = stepShuffle({
+        direction,
+        history: shuffleHistory,
+        cursor: shuffleCursor,
+        currentKey,
+        availableKeys: new Set(targets.map((target) => target.key)),
+        excludedKeys: attempted,
+      });
 
-    if (step.key === null) return;
-    const target = targets.find((item) => item.key === step.key);
-    if (target) await target.play();
+      shuffleHistory = step.history;
+      shuffleCursor = step.cursor;
+
+      if (step.key === null) break;
+      const target = targets.find((item) => item.key === step.key);
+      if (!target) break;
+
+      attempted.add(step.key);
+      const result = await target.play();
+      if (result === "played") {
+        if (skipped > 0) {
+          ElMessage.warning(
+            i18n.global.t("messages.skippedUnplayable", { count: skipped })
+          );
+        }
+        return;
+      }
+      if (result === "aborted") return;
+      skipped += 1;
+    }
+    // 一首都没试过（队列里除了当前曲目没有别的可选）时保持静默，
+    // 与 stepShuffle 原本返回 null 的语义一致。
+    if (skipped > 0) ElMessage.error(i18n.global.t("errors.noPlayableTrack"));
+  }
+
+  function reportSkipResult(result: SkipResult) {
+    // 已被中止：要么有更新的播放请求接手、要么原因已经就地提示过，
+    // 两种情况都不该再补一句。
+    if (result.aborted) return;
+    if (result.played) {
+      if (result.skipped > 0) {
+        ElMessage.warning(
+          i18n.global.t("messages.skippedUnplayable", { count: result.skipped })
+        );
+      }
+      return;
+    }
+    ElMessage.error(i18n.global.t("errors.noPlayableTrack"));
   }
 
   async function playNextOrPreviousMusic(step: number) {
@@ -676,7 +768,8 @@ export const usePlayerStore = defineStore("player", () => {
       debugPlaybackLog(`[播放控制] 准备播放${direction}一首歌曲`);
 
       if (currentPlaylistId.value) {
-        const list = playlistStore.getPlaylist(currentPlaylistId.value);
+        const playlistId = currentPlaylistId.value;
+        const list = playlistStore.getPlaylist(playlistId);
         if (list && list.items.length > 0) {
           let currentIndex = -1;
           for (let i = 0; i < list.items.length; i++) {
@@ -691,8 +784,14 @@ export const usePlayerStore = defineStore("player", () => {
             }
           }
           if (currentIndex === -1) currentIndex = 0;
-          const nextIndex = getSequentialIndex(currentIndex, step, list.items.length);
-          await playFromPlaylist(currentPlaylistId.value, nextIndex);
+          reportSkipResult(
+            await playFromQueueWithSkip(
+              list.items.length,
+              getSequentialIndex(currentIndex, step, list.items.length),
+              step,
+              (index) => playFromPlaylist(playlistId, index)
+            )
+          );
           return;
         }
         currentPlaylistId.value = null;
@@ -715,9 +814,14 @@ export const usePlayerStore = defineStore("player", () => {
         );
         if (currentIndex === -1) currentIndex = 0;
 
-        const nextIndex = getSequentialIndex(currentIndex, step, queue.length);
-
-        await playMusic(queue[nextIndex], { queue });
+        reportSkipResult(
+          await playFromQueueWithSkip(
+            queue.length,
+            getSequentialIndex(currentIndex, step, queue.length),
+            step,
+            (index) => playMusic(queue[index], { queue })
+          )
+        );
       } else if (currentOnlineSong.value) {
         const queue = playbackQueue.getActiveOnlineQueue();
         if (queue.length === 0) {
@@ -730,13 +834,20 @@ export const usePlayerStore = defineStore("player", () => {
         );
         if (currentIndex === -1) currentIndex = 0;
 
-        const nextIndex = getSequentialIndex(currentIndex, step, queue.length);
-
-        await playOnlineSong(queue[nextIndex], { queue });
+        reportSkipResult(
+          await playFromQueueWithSkip(
+            queue.length,
+            getSequentialIndex(currentIndex, step, queue.length),
+            step,
+            (index) => playOnlineSong(queue[index], { queue })
+          )
+        );
       }
     } catch (error) {
       console.error(`[播放控制] 播放${step > 0 ? "下" : "上"}一首失败:`, error);
-      ElMessage.error(`${i18n.global.t("errors.switchFailed")}: ${error}`);
+      ElMessage.error(
+        `${i18n.global.t("errors.switchFailed")}: ${parseErrorMessage(error)}`
+      );
     }
   }
 
@@ -765,6 +876,7 @@ export const usePlayerStore = defineStore("player", () => {
     const currentIndex = modes.indexOf(playMode.value);
     const nextIndex = (currentIndex + 1) % modes.length;
     playMode.value = modes[nextIndex];
+    localStorage.setItem(STORAGE_KEY_PLAY_MODE, playMode.value);
     resetShuffleHistory();
 
     const modeKey =

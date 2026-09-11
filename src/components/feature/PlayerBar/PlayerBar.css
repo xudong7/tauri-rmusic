@@ -157,7 +157,10 @@ html.dark .player-bar {
     transform var(--app-control-transition);
 }
 
-.player-controls .control-btn:hover {
+/* 排除 .play-btn：它是实心主色按钮，hover 时只做抬升与光晕，
+   底色必须保持主色。若不排除，这条 :hover 的选择器特异性(0,3,0)高于
+   下方 .play-btn 的(0,2,0)，会让实心圆底在悬停瞬间塌成透明的浅色块。 */
+.player-controls .control-btn:not(.play-btn):hover {
   background: var(--app-icon-button-hover-bg) !important;
   border-color: var(--app-button-border) !important;
   color: var(--app-icon-button-hover-color) !important;
@@ -234,7 +237,7 @@ html.dark .player-bar {
   flex: 1;
 }
 
-.player-progress ::deep(.el-slider__runway) {
+.player-progress :deep(.el-slider__runway) {
   height: 3px;
   background: var(--app-slider-track-bg);
   border-radius: var(--app-radius-full, 9999px);
@@ -243,20 +246,20 @@ html.dark .player-bar {
     background-color 0.2s ease;
 }
 
-.player-progress ::deep(.el-slider__bar) {
+.player-progress :deep(.el-slider__bar) {
   height: 100%;
   border-radius: var(--app-radius-full, 9999px);
   background: var(--app-slider-fill-bg);
 }
 
-.player-progress ::deep(.el-slider__button-wrapper) {
+.player-progress :deep(.el-slider__button-wrapper) {
   top: 50%;
   width: 22px;
   height: 22px;
   transform: translate(-50%, -50%);
 }
 
-.player-progress ::deep(.el-slider__button) {
+.player-progress :deep(.el-slider__button) {
   width: var(--app-slider-thumb-size);
   height: var(--app-slider-thumb-size);
   box-sizing: border-box;
@@ -269,13 +272,13 @@ html.dark .player-bar {
     box-shadow 0.18s ease;
 }
 
-.player-progress:hover ::deep(.el-slider__runway) {
+.player-progress:hover :deep(.el-slider__runway) {
   height: 4px;
 }
 
-.player-progress:hover ::deep(.el-slider__button),
-.player-progress ::deep(.el-slider__button:hover),
-.player-progress ::deep(.el-slider__button.dragging) {
+.player-progress:hover :deep(.el-slider__button),
+.player-progress :deep(.el-slider__button:hover),
+.player-progress :deep(.el-slider__button.dragging) {
   transform: scale(1.18);
   box-shadow:
     0 2px 8px rgba(0, 0, 0, 0.18),
@@ -371,24 +374,24 @@ html.dark .volume-speaker-icon {
   min-width: 0;
 }
 
-.volume-bar .volume-slider-h ::deep(.el-slider__runway) {
+.volume-bar .volume-slider-h :deep(.el-slider__runway) {
   height: 3px;
   border-radius: var(--app-radius-full, 9999px);
   background: var(--app-slider-track-bg);
 }
 
-.volume-bar .volume-slider-h ::deep(.el-slider__bar) {
+.volume-bar .volume-slider-h :deep(.el-slider__bar) {
   height: 100%;
   border-radius: var(--app-radius-full, 9999px);
   background: var(--app-slider-fill-bg);
 }
 
-.volume-bar .volume-slider-h ::deep(.el-slider__button-wrapper) {
+.volume-bar .volume-slider-h :deep(.el-slider__button-wrapper) {
   top: 50%;
   transform: translate(-50%, -50%);
 }
 
-.volume-bar .volume-slider-h ::deep(.el-slider__button) {
+.volume-bar .volume-slider-h :deep(.el-slider__button) {
   width: var(--app-slider-thumb-size);
   height: var(--app-slider-thumb-size);
   border: 1px solid var(--app-slider-thumb-border);
@@ -400,8 +403,8 @@ html.dark .volume-speaker-icon {
     box-shadow 0.2s ease;
 }
 
-.volume-bar .volume-slider-h ::deep(.el-slider:hover .el-slider__button),
-.volume-bar .volume-slider-h ::deep(.el-slider__button:hover) {
+.volume-bar .volume-slider-h :deep(.el-slider:hover .el-slider__button),
+.volume-bar .volume-slider-h :deep(.el-slider__button:hover) {
   transform: scale(1.15);
   box-shadow:
     var(--app-slider-thumb-shadow),

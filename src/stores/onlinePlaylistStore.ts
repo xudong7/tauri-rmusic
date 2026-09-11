@@ -3,6 +3,7 @@ import { defineStore } from "pinia";
 import { ElMessage } from "element-plus";
 import type { PlaylistInfo, SongInfo } from "@/types/model";
 import { i18n } from "@/i18n";
+import { parseErrorMessage } from "@/utils/errorUtils";
 import { PLAYLIST_TRACKS_PAGE_SIZE } from "@/constants";
 import { getPlaylistDetail, getPlaylistTracks, getToplist } from "@/api/commands/netease";
 
@@ -31,7 +32,9 @@ export const useOnlinePlaylistStore = defineStore("onlinePlaylist", () => {
     } catch (error) {
       if (requestId !== toplistRequestId) return;
       console.error("加载排行榜失败:", error);
-      ElMessage.error(`${i18n.global.t("errors.loadToplistFailed")}: ${error}`);
+      ElMessage.error(
+        `${i18n.global.t("errors.loadToplistFailed")}: ${parseErrorMessage(error)}`
+      );
     } finally {
       if (requestId === toplistRequestId) isToplistLoading.value = false;
     }
@@ -63,7 +66,9 @@ export const useOnlinePlaylistStore = defineStore("onlinePlaylist", () => {
       if (requestId !== detailRequestId) return;
       detail.value = null;
       console.error("加载歌单失败:", error);
-      ElMessage.error(`${i18n.global.t("errors.loadPlaylistFailed")}: ${error}`);
+      ElMessage.error(
+        `${i18n.global.t("errors.loadPlaylistFailed")}: ${parseErrorMessage(error)}`
+      );
     } finally {
       if (requestId === detailRequestId) isDetailLoading.value = false;
     }
@@ -103,7 +108,9 @@ export const useOnlinePlaylistStore = defineStore("onlinePlaylist", () => {
     } catch (error) {
       if (requestId !== tracksRequestId) return;
       console.error("加载歌单曲目失败:", error);
-      ElMessage.error(`${i18n.global.t("errors.loadPlaylistFailed")}: ${error}`);
+      ElMessage.error(
+        `${i18n.global.t("errors.loadPlaylistFailed")}: ${parseErrorMessage(error)}`
+      );
     } finally {
       if (requestId === tracksRequestId) isLoadingMoreTracks.value = false;
     }

@@ -19,6 +19,7 @@ import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { useOnlineServiceStore } from "@/stores/onlineServiceStore";
 import { enable, isEnabled, disable } from "@tauri-apps/plugin-autostart";
 import { setLocale, getLocale, type LocaleKey } from "@/i18n";
+import { parseErrorMessage } from "@/utils/errorUtils";
 import {
   clearOnlineAudioCache,
   getOnlineAudioCachePath,
@@ -111,7 +112,7 @@ async function handleClearOnlineCache() {
     await refreshOnlineCacheSize();
     ElMessage.success(t("messages.cacheCleared"));
   } catch (error) {
-    ElMessage.error(`${t("errors.clearCacheFailed")}: ${error}`);
+    ElMessage.error(`${t("errors.clearCacheFailed")}: ${parseErrorMessage(error)}`);
   } finally {
     clearingCache.value = false;
   }

@@ -102,13 +102,14 @@ pub fn run() {
             }
 
             // Get the main window - use "main" as the default window label
-            app.get_webview_window("main")
-                .and_then(|w| {
-                    // Restore the window state if it exists
-                    w.restore_state(StateFlags::all()).ok()?;
-                    Some(w)
-                })
-                .expect("failed to get main window");
+            if let Some(window) = app.get_webview_window("main") {
+                // 恢复失败只应被忽略，不能升级成 panic：release 下 panic = "abort"，
+                // 一旦保存的窗口坐标落在已断开的显示器上（restore_state 内部的
+                // set_position 返回 Err），进程会在建窗之前直接死掉且无法自愈。
+                if let Err(e) = window.restore_state(StateFlags::all()) {
+                    eprintln!("Failed to restore window state: {}", e);
+                }
+            }
 
             Ok(())
         })
@@ -160,6 +161,27 @@ pub fn run() {
         .manage(music.current_track_id)
         .manage(PlaybackRequestIdState::default())
         .manage(ActiveProgressiveDownload::default())
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            if let tauri::RunEvent::Exit = event {
+                shutdown_sidecar_on_exit(app_handle);
+            }
+        });
+}
+
+/// 进程退出前收掉 sidecar。
+///
+/// 这是唯一覆盖全部退出路径的位置：`tray::quit_app` 只在托盘菜单里被调用，
+/// 而 Cmd+Q（默认菜单的原生 quit）、关闭最后一个窗口都不经过它。sidecar 是
+/// 独立进程，tauri-plugin-shell 的 CommandChild 也没有 Drop 实现，所以漏掉的
+/// 路径会在 3000 端口留下一个孤儿 HTTP 服务：下次启动的新 sidecar 绑定端口
+/// 失败退出，请求却打到残留进程上，行为和状态都不可控。
+fn shutdown_sidecar_on_exit(app_handle: &tauri::AppHandle) {
+    let Some(process) = app_handle.try_state::<OnlineServiceProcess>() else {
+        return;
+    };
+    if let Err(e) = service::shutdown_service(process.inner()) {
+        eprintln!("Failed to shutdown sidecar on exit: {}", e);
+    }
 }
