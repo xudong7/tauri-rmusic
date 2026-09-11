@@ -35,6 +35,12 @@ import "element-plus/es/components/skeleton/style/css";
 import "element-plus/es/components/slider/style/css";
 import "element-plus/es/components/switch/style/css";
 import "element-plus/es/components/tooltip/style/css";
+// Element Plus 深色变量表。逐组件引入 style/css 只带浅色变量，
+// 缺了这份，深色主题下 el-segmented 悬停、el-skeleton 高光、popconfirm
+// 描边等会退回浅色默认值（近白块）。
+// 必须排在 themes.css 之前：两者都是 html.dark 特异度，靠顺序决定胜负，
+// 放前面才能让 themes.css 里的自定义配色覆盖 EP 默认值。
+import "element-plus/theme-chalk/dark/css-vars.css";
 // 导入全局主题样式
 import "./assets/styles/themes.css";
 import "./assets/styles/message.css";
