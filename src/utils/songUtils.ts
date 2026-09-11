@@ -51,6 +51,38 @@ export function formatDuration(ms: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
+/**
+ * 按 locale 压缩大数字，用于播放量、曲目数等。
+ * 交给 Intl 而不是自己拼「万/亿」：中文得到 1.2万，英文得到 12K。
+ */
+export function formatCompactNumber(value: number, locale = "zh-CN"): string {
+  if (!Number.isFinite(value) || value <= 0) return "0";
+  try {
+    return new Intl.NumberFormat(locale, {
+      notation: "compact",
+      maximumFractionDigits: 1,
+    }).format(value);
+  } catch {
+    return String(value);
+  }
+}
+
+/** 毫秒时间戳 → 本地化日期（仅年月日）。无效或缺失时返回空串，由调用方决定是否渲染。 */
+export function formatPublishDate(ms: number, locale = "zh-CN"): string {
+  if (!ms || ms <= 0) return "";
+  const date = new Date(ms);
+  if (Number.isNaN(date.getTime())) return "";
+  try {
+    return new Intl.DateTimeFormat(locale, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
+  } catch {
+    return "";
+  }
+}
+
 /** 与后端 file.rs 一致的文件名清理（用于判断是否已下载） */
 function sanitizeFilename(name: string): string {
   return name.replace(/[\\/:*?"<>|]/g, "_");

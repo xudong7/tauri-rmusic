@@ -23,9 +23,16 @@ const props = withDefaults(
     isPlaying: boolean;
     loading: boolean;
     totalCount: number;
+    /**
+     * 是否还有下一页。显式传入时以它为准——部分接口（如歌手歌曲、
+     * 歌单曲目）不返回可用的总数，此时 totalCount 为 0，
+     * 沿用 `length >= totalCount` 会导致 load-more 永不触发。
+     */
+    hasMore?: boolean;
     showTitle?: boolean;
   }>(),
   {
+    hasMore: undefined,
     showTitle: true,
   }
 );
@@ -39,7 +46,12 @@ const emit = defineEmits([
 ]);
 
 function requestLoadMore() {
-  if (props.loading || props.onlineSongs.length >= props.totalCount) return;
+  if (props.loading) return;
+  if (props.hasMore !== undefined) {
+    if (!props.hasMore) return;
+  } else if (props.onlineSongs.length >= props.totalCount) {
+    return;
+  }
   emit("load-more");
 }
 
@@ -57,6 +69,9 @@ function toTrackRow(song: SongInfo, sourceIndex: number): TrackRowModel {
     sourceIndex,
     isCurrent: isCurrentSong(song),
     isPlaying: props.isPlaying,
+    // playable === false 表示匿名状态下无版权或需会员：置灰而不是让用户
+    // 点击后才吃到报错。undefined 表示未知，按可播处理。
+    disabled: song.playable === false,
   };
 }
 
