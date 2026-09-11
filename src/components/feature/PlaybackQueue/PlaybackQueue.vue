@@ -102,11 +102,17 @@ function handlePanelKeydown(event: KeyboardEvent) {
         </button>
       </header>
 
+      <!-- tabindex 让滚动容器本身可聚焦：虚拟化之后只有可视窗口内的行在
+           DOM 里，键盘用户没法 Tab 到窗口之外的行，也就没有任何用键盘
+           滚动这个列表的手段。聚焦容器后方向键/PageDown 可以滚动，
+           新进入窗口的行随即变得可 Tab。 -->
       <div
         v-if="items.length && useVirtual"
         v-bind="containerProps"
         class="queue-list"
         data-render-mode="virtual"
+        tabindex="0"
+        :aria-label="t('playerBar.queue')"
       >
         <div v-bind="wrapperProps" class="queue-rows" role="list">
           <button
