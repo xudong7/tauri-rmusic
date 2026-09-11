@@ -108,7 +108,8 @@ async function handleSearch(keyword: string, scope: SearchScope) {
   if (kw) {
     try {
       await onlineServiceStore.ensureStarted();
-      await onlineStore.searchOnlineMusic(kw);
+      // 只搜索当前激活的 tab，不向四个端点扇出。
+      await onlineStore.searchActiveTab(kw);
     } catch (error) {
       console.error("Online service unavailable before search:", error);
       const detail = error instanceof Error ? error.message : String(error);
