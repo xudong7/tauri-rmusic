@@ -5,6 +5,7 @@ import type {
   ArtistDetailResult,
   ArtistSearchResult,
   ArtistSongsResult,
+  ArtistSongsPage,
   OnlineServiceStatus,
   PlaylistDetailResult,
   PlaylistSearchResult,
@@ -88,7 +89,7 @@ export async function getArtistSongs(args: {
   page: number;
   pagesize: number;
   order: "hot" | "time";
-}): Promise<ArtistSongsResult> {
+}): Promise<ArtistSongsPage> {
   return await invokeCommand("get_artist_songs", args);
 }
 

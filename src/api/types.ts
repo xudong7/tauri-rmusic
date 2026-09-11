@@ -5,6 +5,7 @@ import type {
   ArtistDetailResult,
   ArtistSearchResult,
   ArtistSongsResult,
+  ArtistSongsPage,
   MusicFile,
   Playlist,
   PlaylistDetailResult,
@@ -128,7 +129,7 @@ export interface TauriCommandResultMap {
   get_toplist: ToplistResult;
   get_artist_albums: ArtistAlbumResult;
   get_artist_detail: ArtistDetailResult;
-  get_artist_songs: ArtistSongsResult;
+  get_artist_songs: ArtistSongsPage;
   get_artist_top_songs: ArtistSongsResult;
   get_default_music_dir: string;
   get_song_lyric: string;

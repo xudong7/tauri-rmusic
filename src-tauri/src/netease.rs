@@ -98,6 +98,13 @@ pub struct ArtistDetailResult {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct ArtistSongsPage {
+    pub songs: Vec<SongInfo>,
+    pub total: u32,
+    pub has_more: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 struct SearchRequest {
     pub keywords: String,
     pub page: u32,
@@ -154,6 +161,15 @@ const HTTP_RESPONSE_HEADERS_TIMEOUT: Duration = Duration::from_secs(15);
 const JSON_RESPONSE_BODY_TIMEOUT: Duration = Duration::from_secs(15);
 const TRANSIENT_REQUEST_RETRY_DELAYS: [Duration; 2] =
     [Duration::from_millis(250), Duration::from_millis(700)];
+
+/// /cloudsearch 的 type 参数：同一端点按实体类型返回不同结果集。
+const CLOUDSEARCH_TYPE_ALBUM: u32 = 10;
+const CLOUDSEARCH_TYPE_ARTIST: u32 = 100;
+const CLOUDSEARCH_TYPE_PLAYLIST: u32 = 1000;
+
+/// 歌单曲目每页条数。实测 /playlist/detail 对 <=200 首的歌单会一次性返回全部
+/// 曲目，因此前端首屏按此上限一次取满即可覆盖绝大多数歌单。
+const PLAYLIST_TRACKS_PAGE_SIZE: u32 = 200;
 
 static DEFAULT_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
 
@@ -547,6 +563,20 @@ fn build_paged_url(local_api: &str, path: &str, id: &str, offset: u32, limit: u3
     )
 }
 
+/// 构造歌手全部歌曲 URL。`order` 为 `hot` 或 `time`。
+fn build_artist_songs_url(
+    local_api: &str,
+    id: &str,
+    offset: u32,
+    limit: u32,
+    order: &str,
+) -> String {
+    format!(
+        "{}/artist/songs?id={}&limit={}&offset={}&order={}",
+        local_api, id, limit, offset, order
+    )
+}
+
 /// 由「已取条数」与「总数」推导是否还有下一页。
 /// 总数未知（0）时不声称还有更多，避免无意义的翻页请求。
 fn has_more_after(loaded: usize, total: u32) -> bool {
@@ -626,6 +656,34 @@ mod tests {
             build_paged_url(LOCAL_API_BASE, "/playlist/track/all", "3778678", 200, 200),
             "http://localhost:3000/playlist/track/all?id=3778678&limit=200&offset=200"
         );
+    }
+
+    #[test]
+    fn artist_album_url_uses_the_same_paging_contract() {
+        assert_eq!(
+            build_paged_url(LOCAL_API_BASE, "/artist/album", "6452", 30, 30),
+            "http://localhost:3000/artist/album?id=6452&limit=30&offset=30"
+        );
+    }
+
+    #[test]
+    fn artist_songs_url_carries_the_sort_order() {
+        assert_eq!(
+            build_artist_songs_url(LOCAL_API_BASE, "6452", 0, 30, "hot"),
+            "http://localhost:3000/artist/songs?id=6452&limit=30&offset=0&order=hot"
+        );
+        assert_eq!(
+            build_artist_songs_url(LOCAL_API_BASE, "6452", 30, 30, "time"),
+            "http://localhost:3000/artist/songs?id=6452&limit=30&offset=30&order=time"
+        );
+    }
+
+    #[test]
+    fn cloudsearch_type_constants_match_the_documented_values() {
+        // 这三个值直接决定拿回的是哪种实体，写错会静默返回错误类型的数据。
+        assert_eq!(CLOUDSEARCH_TYPE_ALBUM, 10);
+        assert_eq!(CLOUDSEARCH_TYPE_ARTIST, 100);
+        assert_eq!(CLOUDSEARCH_TYPE_PLAYLIST, 1000);
     }
 
     /// 回归测试：多字节文本按字节切片会 panic。
@@ -946,6 +1004,256 @@ pub async fn get_artist_top_songs(
         artist,
         total: songs.len() as u32,
         songs,
+    })
+}
+
+/* ---------- 封面实体：歌单 / 专辑 / 排行榜 / 歌手 ---------- */
+
+/// 搜索在线歌单。走 /cloudsearch type=1000，匿名可用。
+#[tauri::command]
+pub async fn search_online_playlists(
+    keywords: String,
+    page: Option<u32>,
+    pagesize: Option<u32>,
+) -> Result<PlaylistSearchResult, String> {
+    let client = get_client()?;
+    let url = build_cloudsearch_typed_url(
+        LOCAL_API_BASE,
+        &keywords,
+        CLOUDSEARCH_TYPE_PLAYLIST,
+        page.unwrap_or(1),
+        pagesize.unwrap_or(30),
+    );
+    let json = fetch_json_ok(client, url).await?;
+    let result = &json["result"];
+
+    Ok(PlaylistSearchResult {
+        playlists: result["playlists"]
+            .as_array()
+            .map(|arr| arr.iter().filter_map(parse_playlist).collect())
+            .unwrap_or_default(),
+        total: result["playlistCount"].as_u64().unwrap_or(0) as u32,
+    })
+}
+
+/// 搜索在线专辑。走 /cloudsearch type=10。
+#[tauri::command]
+pub async fn search_online_albums(
+    keywords: String,
+    page: Option<u32>,
+    pagesize: Option<u32>,
+) -> Result<AlbumSearchResult, String> {
+    let client = get_client()?;
+    let url = build_cloudsearch_typed_url(
+        LOCAL_API_BASE,
+        &keywords,
+        CLOUDSEARCH_TYPE_ALBUM,
+        page.unwrap_or(1),
+        pagesize.unwrap_or(30),
+    );
+    let json = fetch_json_ok(client, url).await?;
+    let result = &json["result"];
+
+    Ok(AlbumSearchResult {
+        albums: result["albums"]
+            .as_array()
+            .map(|arr| arr.iter().filter_map(parse_album).collect())
+            .unwrap_or_default(),
+        total: result["albumCount"].as_u64().unwrap_or(0) as u32,
+    })
+}
+
+/// 搜索在线歌手（分页）。
+///
+/// 走 /cloudsearch type=100 而非 /search type=1018：后者返回
+/// `result.artist.artists[]`（单数 artist 包一层）且无分页计数，
+/// 而 type=100 返回扁平的 `result.artists[]` 与 `artistCount`，
+/// 与其余搜索接口形态一致。
+///
+/// 注：search_online_mix 仍使用 /search type=1018 提供歌手条，
+/// 那条路径供 PlayerBar/ImmersiveView 做「点击歌手名跳转」的快速命中，
+/// 不经此处。
+#[tauri::command]
+pub async fn search_online_artists(
+    keywords: String,
+    page: Option<u32>,
+    pagesize: Option<u32>,
+) -> Result<ArtistSearchResult, String> {
+    let client = get_client()?;
+    let url = build_cloudsearch_typed_url(
+        LOCAL_API_BASE,
+        &keywords,
+        CLOUDSEARCH_TYPE_ARTIST,
+        page.unwrap_or(1),
+        pagesize.unwrap_or(30),
+    );
+    let json = fetch_json_ok(client, url).await?;
+    let result = &json["result"];
+
+    Ok(ArtistSearchResult {
+        artists: result["artists"]
+            .as_array()
+            .map(|arr| arr.iter().filter_map(parse_artist).collect())
+            .unwrap_or_default(),
+        total: result["artistCount"].as_u64().unwrap_or(0) as u32,
+    })
+}
+
+/// 获取歌单元信息。与曲目分开，避免翻页时重复拉取元数据。
+#[tauri::command]
+pub async fn get_playlist_detail(id: String) -> Result<PlaylistDetailResult, String> {
+    let client = get_client()?;
+    let url = format!("{}/playlist/detail?id={}", LOCAL_API_BASE, id);
+    let json = fetch_json_ok(client, url).await?;
+
+    let playlist = parse_playlist(&json["playlist"])
+        .ok_or_else(|| "Playlist not found in response".to_string())?;
+    Ok(PlaylistDetailResult { playlist })
+}
+
+/// 获取歌单曲目（分页）。
+///
+/// `/playlist/track/all` 不返回总数，因此 `has_more` 由调用方传入的
+/// `track_count`（来自 get_playlist_detail）与本次已取条数推导，
+/// 前端无需自行维护两者的同步。
+#[tauri::command]
+pub async fn get_playlist_tracks(
+    id: String,
+    offset: Option<u32>,
+    limit: Option<u32>,
+    track_count: Option<u32>,
+) -> Result<PlaylistTracksResult, String> {
+    let client = get_client()?;
+    let offset = offset.unwrap_or(0);
+    let limit = limit.unwrap_or(PLAYLIST_TRACKS_PAGE_SIZE);
+    let url = build_paged_url(LOCAL_API_BASE, "/playlist/track/all", &id, offset, limit);
+    let json = fetch_json_ok(client, url).await?;
+
+    let songs = parse_songs_array(&json["songs"]);
+    let has_more = match track_count {
+        Some(total) => has_more_after(offset as usize + songs.len(), total),
+        // 调用方没给总数时按「取满了就还有下一页」保守估计。
+        None => songs.len() >= limit as usize,
+    };
+
+    Ok(PlaylistTracksResult { songs, has_more })
+}
+
+/// 获取榜单列表。/toplist 返回的实体与歌单同构，详情直接复用歌单详情。
+#[tauri::command]
+pub async fn get_toplist() -> Result<ToplistResult, String> {
+    let client = get_client()?;
+    let url = format!("{}/toplist", LOCAL_API_BASE);
+    let json = fetch_json_ok(client, url).await?;
+
+    Ok(ToplistResult {
+        toplists: json["list"]
+            .as_array()
+            .map(|arr| arr.iter().filter_map(parse_playlist).collect())
+            .unwrap_or_default(),
+    })
+}
+
+/// 获取专辑详情与全部曲目。
+///
+/// `/album` 一次性返回完整 songs[]，且专辑曲目数有界（通常 <= 50），
+/// 因此不做分页——分页在这里只是仪式感，只会引入 bug。
+#[tauri::command]
+pub async fn get_album_detail(id: String) -> Result<AlbumDetailResult, String> {
+    let client = get_client()?;
+    let url = format!("{}/album?id={}", LOCAL_API_BASE, id);
+    let json = fetch_json_ok(client, url).await?;
+
+    let album =
+        parse_album(&json["album"]).ok_or_else(|| "Album not found in response".to_string())?;
+    Ok(AlbumDetailResult {
+        album,
+        songs: parse_songs_array(&json["songs"]),
+    })
+}
+
+/// 获取歌手专辑（分页）。响应字段是 `hotAlbums`，且不返回总数，
+/// 只有 `more` 布尔值。
+#[tauri::command]
+pub async fn get_artist_albums(
+    id: String,
+    page: Option<u32>,
+    pagesize: Option<u32>,
+) -> Result<ArtistAlbumResult, String> {
+    let client = get_client()?;
+    let pagesize = pagesize.unwrap_or(30);
+    let offset = page.unwrap_or(1).saturating_sub(1) * pagesize;
+    let url = build_paged_url(LOCAL_API_BASE, "/artist/album", &id, offset, pagesize);
+    let json = fetch_json_ok(client, url).await?;
+
+    Ok(ArtistAlbumResult {
+        albums: json["hotAlbums"]
+            .as_array()
+            .map(|arr| arr.iter().filter_map(parse_album).collect())
+            .unwrap_or_default(),
+        has_more: json["more"].as_bool().unwrap_or(false),
+    })
+}
+
+/// 获取歌手简介与作品数。注意数据嵌在 `data.artist` 下（多一层 data）。
+#[tauri::command]
+pub async fn get_artist_detail(id: String) -> Result<ArtistDetailResult, String> {
+    let client = get_client()?;
+    let url = format!("{}/artist/detail?id={}", LOCAL_API_BASE, id);
+    let json = fetch_json_ok(client, url).await?;
+
+    let artist_value = &json["data"]["artist"];
+    let artist =
+        parse_artist(artist_value).ok_or_else(|| "Artist not found in response".to_string())?;
+
+    Ok(ArtistDetailResult {
+        artist,
+        description: artist_value["briefDesc"]
+            .as_str()
+            .or_else(|| artist_value["description"].as_str())
+            .unwrap_or("")
+            .to_string(),
+        album_count: artist_value["albumSize"].as_u64().unwrap_or(0) as u32,
+        music_count: artist_value["musicSize"].as_u64().unwrap_or(0) as u32,
+    })
+}
+
+/// 获取歌手全部歌曲（分页，可按热度或时间排序）。
+///
+/// 替代 /artist/top/song：后者只返回热门 50 首且无法翻页，
+/// 是 artistStore.loadMoreArtistSongs 长期为空实现的根因。
+///
+/// 刻意不在此返回歌手信息：翻页时重复拉取是纯浪费，
+/// 歌手信息由 get_artist_detail 单独取一次。
+#[tauri::command]
+pub async fn get_artist_songs(
+    id: String,
+    page: Option<u32>,
+    pagesize: Option<u32>,
+    order: Option<String>,
+) -> Result<ArtistSongsPage, String> {
+    let client = get_client()?;
+    let pagesize = pagesize.unwrap_or(30);
+    let offset = page.unwrap_or(1).saturating_sub(1) * pagesize;
+    let order = match order.as_deref() {
+        Some("time") => "time",
+        _ => "hot",
+    };
+
+    let url = build_artist_songs_url(LOCAL_API_BASE, &id, offset, pagesize, order);
+    let json = fetch_json_ok(client, url).await?;
+
+    let songs = parse_songs_array(&json["songs"]);
+    let total = json["total"].as_u64().unwrap_or(0) as u32;
+    // `more` 是该接口给出的权威信号；缺失时回落到总数比较。
+    let has_more = json["more"]
+        .as_bool()
+        .unwrap_or_else(|| has_more_after(offset as usize + songs.len(), total));
+
+    Ok(ArtistSongsPage {
+        songs,
+        total,
+        has_more,
     })
 }
 

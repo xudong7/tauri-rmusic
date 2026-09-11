@@ -91,6 +91,13 @@ export interface ArtistAlbumResult {
   has_more: boolean;
 }
 
+/** 歌手歌曲分页。不含歌手信息——那由 getArtistDetail 单独取一次。 */
+export interface ArtistSongsPage {
+  songs: SongInfo[];
+  total: number;
+  has_more: boolean;
+}
+
 export interface ArtistDetailResult {
   artist: ArtistInfo;
   description: string;
