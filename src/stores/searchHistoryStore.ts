@@ -1,4 +1,4 @@
-import { computed, ref } from "vue";
+import { ref } from "vue";
 import { defineStore } from "pinia";
 import { SEARCH_HISTORY_MAX_ITEMS, STORAGE_KEY_SEARCH_HISTORY } from "@/constants";
 import { ViewMode } from "@/types/model";
@@ -41,9 +41,6 @@ function toKey(mode: ViewMode): HistoryKey {
 export const useSearchHistoryStore = defineStore("searchHistory", () => {
   const data = ref<Record<HistoryKey, string[]>>(loadFromStorage());
 
-  const localHistory = computed(() => data.value.local);
-  const onlineHistory = computed(() => data.value.online);
-
   function getHistory(mode: ViewMode): string[] {
     return data.value[toKey(mode)];
   }
@@ -74,8 +71,6 @@ export const useSearchHistoryStore = defineStore("searchHistory", () => {
   }
 
   return {
-    localHistory,
-    onlineHistory,
     getHistory,
     add,
     remove,

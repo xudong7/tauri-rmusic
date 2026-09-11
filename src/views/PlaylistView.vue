@@ -170,7 +170,6 @@ import { usePlaylistStore } from "@/stores/playlistStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useViewStore } from "@/stores/viewStore";
-import { ViewMode } from "@/types/model";
 import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
 import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
 import TrackList from "@/components/feature/TrackList/TrackList.vue";
@@ -425,15 +424,6 @@ function removeAt(index: number) {
   if (!playlist.value) return;
   playlistStore.removeFromPlaylist(playlist.value.id, index);
 }
-
-// 进入页面时设置视图模式
-watch(
-  playlistId,
-  (id) => {
-    if (id && id !== "new") viewStore.setViewMode(ViewMode.PLAYLIST);
-  },
-  { immediate: true }
-);
 
 watch(editingName, (v) => {
   if (v) nextTick(() => nameInputRef.value?.focus());

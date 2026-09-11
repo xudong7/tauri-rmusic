@@ -51,7 +51,6 @@ import type {
   PlaylistInfo,
   SongInfo,
 } from "@/types/model";
-import { ViewMode } from "@/types/model";
 import { MAX_GRID_ITEMS } from "@/constants";
 import { formatCompactNumber } from "@/utils/songUtils";
 import { useOnlineMusicStore } from "@/stores/onlineMusicStore";
@@ -180,7 +179,6 @@ function playOnlineSongFromSearch(song: SongInfo) {
 
 onMounted(() => {
   // 进入在线音乐页面时设置视图模式；不重置搜索结果，切换本地/设置再回来仍保留上次搜索
-  viewStore.setViewMode(ViewMode.ONLINE);
   viewStore.setLastOnlinePath("/online");
 });
 </script>
