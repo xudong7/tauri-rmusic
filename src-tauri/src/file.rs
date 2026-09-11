@@ -921,7 +921,7 @@ fn music_dir_from_library_root(root_dir: &Path) -> PathBuf {
 
 /// import music files from a directory into the default music directory
 #[tauri::command]
-pub fn import_music(
+pub async fn import_music(
     app_handle: AppHandle,
     files: Vec<String>,
     default_directory: Option<String>,
@@ -936,7 +936,18 @@ pub fn import_music(
             .map_err(|e| format!("无法获取应用目录: {}", e))?
     };
     let music_dir = music_dir_from_library_root(&base_dir);
-    create_dir_all(&music_dir).map_err(|e| format!("create music dir error: {}", e))?;
+
+    // 拷贝整个目录可能持续数分钟，必须离开主线程：非 async 的 command 由 Tauri
+    // 在 webview 的 IPC 回调里内联执行，期间事件循环不转——窗口不重绘、拖不动，
+    // Windows 上会直接显示"未响应"。scan_files / load_cached_music_files 都走了
+    // spawn_blocking，只有这里漏了。
+    tokio::task::spawn_blocking(move || import_music_blocking(&music_dir, files))
+        .await
+        .map_err(|e| format!("import music task failed: {}", e))?
+}
+
+fn import_music_blocking(music_dir: &Path, files: Vec<String>) -> Result<String, String> {
+    create_dir_all(music_dir).map_err(|e| format!("create music dir error: {}", e))?;
 
     let mut imported_count = 0;
     let mut failed_files = Vec::new();
