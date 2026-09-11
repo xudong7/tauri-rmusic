@@ -80,6 +80,20 @@ html {
   --el-color-primary-light-8: rgba(122, 155, 181, 0.15);
   --el-color-primary-dark-2: #4a6b81;
 
+  /* 键盘焦点环。主色本身(#7a9bb5)在浅色背景上只有 2.75:1，
+     达不到非文本元素要求的 3:1，所以取更深一档的 hover 色。
+     三个主题下实测：浅色 3.39:1 / 深色 5.21:1 / 暖色 4.33:1。 */
+  --app-focus-ring: var(--el-color-primary-hover);
+  /* Element Plus 的按钮焦点环默认取 --el-color-primary-light-5(#c2d3e0，1.45:1)，
+     几乎看不见，这里对齐到同一枚令牌。 */
+  --el-button-outline-color: var(--app-focus-ring);
+
+  /* 次要文字。EP 默认 #909399 在 #f8f8f9 上只有 2.90:1，而它被用在
+     播放时间、歌手名、曲目副标题等 11-12px 的小字上。暖色主题早已单独
+     调成 #716b65(4.67:1)，这里给浅色主题补上同等处理。
+     深色主题不受影响——EP 深色变量表的 html.dark 特异度更高。 */
+  --el-text-color-secondary: #6b7280;
+
   /* 侧边栏宽度（供 Message 等在主内容区内居中） */
   --sidebar-width: var(--app-sidebar-width);
 
@@ -668,8 +682,18 @@ html.theme-warm ::-webkit-scrollbar-thumb:hover {
 button:focus-visible,
 [role="button"]:focus-visible,
 a:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--el-color-primary) 72%, transparent);
+  outline: 2px solid var(--app-focus-ring);
   outline-offset: 2px;
+}
+
+/* el-slider 的滑块是带 tabindex 的 role="slider" div，EP 只给它设了
+   outline: none（.el-slider__button-wrapper），自身没有任何 :focus 样式。
+   不补这一条，键盘用户看不出焦点在进度条还是音量条上。
+   圆角是为了跟圆形滑块对齐——outline 默认跟随方盒轮廓。 */
+[role="slider"]:focus-visible {
+  outline: 2px solid var(--app-focus-ring);
+  outline-offset: 3px;
+  border-radius: var(--app-radius-full);
 }
 
 @media (prefers-reduced-motion: reduce) {
