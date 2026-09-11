@@ -5,6 +5,7 @@ import { PLAYLIST_SAVE_DEBOUNCE_MS } from "@/constants";
 import type { Playlist, PlaylistItem } from "@/types/model";
 import { readPlaylists, writePlaylists } from "@/api/commands/playlist";
 import { i18n } from "@/i18n";
+import { parseErrorMessage } from "@/utils/errorUtils";
 
 function generateId(): string {
   return `pl_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -29,7 +30,7 @@ export const usePlaylistStore = defineStore("playlist", () => {
       hasLoadedPlaylists.value = true;
     } catch (e) {
       console.error("[playlist] load failed:", e);
-      ElMessage.error(`${i18n.global.t("errors.unknownError")}: ${e}`);
+      ElMessage.error(`${i18n.global.t("errors.unknownError")}: ${parseErrorMessage(e)}`);
       hasLoadedPlaylists.value = true;
     }
   }
@@ -64,7 +65,9 @@ export const usePlaylistStore = defineStore("playlist", () => {
       } catch (e) {
         hasPendingSave = true;
         console.error("[playlist] save failed:", e);
-        ElMessage.error(`${i18n.global.t("errors.unknownError")}: ${e}`);
+        ElMessage.error(
+          `${i18n.global.t("errors.unknownError")}: ${parseErrorMessage(e)}`
+        );
       }
     })();
 

@@ -4,6 +4,7 @@ import { ElMessage } from "element-plus";
 import { STORAGE_KEY_DEFAULT_DIRECTORY } from "@/constants";
 import type { MusicFile } from "@/types/model";
 import { i18n } from "@/i18n";
+import { parseErrorMessage } from "@/utils/errorUtils";
 import { getDefaultMusicDir, loadCachedMusicFiles, scanFiles } from "@/api/commands/file";
 import { joinPathSegment } from "@/utils/pathUtils";
 
@@ -78,7 +79,9 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
     } catch (error) {
       if (requestId !== latestLoadRequestId) return;
       console.error("加载音乐文件失败:", error);
-      ElMessage.error(`${i18n.global.t("errors.loadMusicFailed")}: ${error}`);
+      ElMessage.error(
+        `${i18n.global.t("errors.loadMusicFailed")}: ${parseErrorMessage(error)}`
+      );
     } finally {
       if (requestId === latestLoadRequestId && !restoredCachedFiles) {
         isLoading.value = false;
@@ -98,7 +101,9 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
     } catch (error) {
       if (requestId !== latestLoadRequestId) return;
       console.error("刷新音乐文件失败:", error);
-      ElMessage.error(`${i18n.global.t("errors.loadMusicFailed")}: ${error}`);
+      ElMessage.error(
+        `${i18n.global.t("errors.loadMusicFailed")}: ${parseErrorMessage(error)}`
+      );
     } finally {
       if (requestId === latestLoadRequestId) {
         isLoading.value = false;
@@ -133,7 +138,9 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
       ElMessage.success(i18n.global.t("messages.setDirSuccess"));
     } catch (error) {
       console.error("设置默认目录失败:", error);
-      ElMessage.error(`${i18n.global.t("errors.setDirFailed")}: ${error}`);
+      ElMessage.error(
+        `${i18n.global.t("errors.setDirFailed")}: ${parseErrorMessage(error)}`
+      );
     }
   }
 
@@ -154,7 +161,9 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
       }
     } catch (error) {
       console.error("重置默认目录失败:", error);
-      ElMessage.error(`${i18n.global.t("errors.resetDirFailed")}: ${error}`);
+      ElMessage.error(
+        `${i18n.global.t("errors.resetDirFailed")}: ${parseErrorMessage(error)}`
+      );
     }
   }
 

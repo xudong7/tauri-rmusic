@@ -2,7 +2,12 @@ import { i18n } from "@/i18n";
 import { TauriCommandError } from "@/api/client";
 
 /**
- * 解析错误并返回用户友好的错误消息
+ * 解析错误并返回用户友好的错误消息。
+ *
+ * 无法识别时不再回落到原始 message：那里通常是 Rust 侧的英文串
+ * （`Empty song URL`、`Data array is empty`）或带类名前缀的技术描述
+ * （`TauriCommandError: API request error: HTTP 502`）。这些对用户没有
+ * 意义，中文界面下还会混进一段英文。原文改写进 console 供排查。
  */
 export function parseErrorMessage(error: unknown): string {
   if (error instanceof TauriCommandError) {
@@ -46,13 +51,10 @@ export function parseErrorMessage(error: unknown): string {
       return i18n.global.t("errors.fileSystemError");
     }
 
-    // 返回原始消息（如果无法识别）
-    return message;
+    console.warn("[error] 未识别的命令错误，已折叠为通用文案:", error);
+    return i18n.global.t("errors.unknownError");
   }
 
-  if (error instanceof Error) {
-    return error.message;
-  }
-
+  console.warn("[error] 非命令错误，已折叠为通用文案:", error);
   return i18n.global.t("errors.unknownError");
 }

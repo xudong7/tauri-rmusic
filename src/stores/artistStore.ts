@@ -3,6 +3,7 @@ import { defineStore } from "pinia";
 import { ElMessage } from "element-plus";
 import type { AlbumInfo, ArtistInfo, SongInfo } from "@/types/model";
 import { i18n } from "@/i18n";
+import { parseErrorMessage } from "@/utils/errorUtils";
 import {
   getArtistAlbums,
   getArtistDetail,
@@ -137,7 +138,9 @@ export const useArtistStore = defineStore("artist", () => {
     } catch (error) {
       if (requestId !== songsRequestId) return;
       console.error("加载歌手歌曲失败:", error);
-      ElMessage.error(`${i18n.global.t("errors.searchFailed")}: ${error}`);
+      ElMessage.error(
+        `${i18n.global.t("errors.searchFailed")}: ${parseErrorMessage(error)}`
+      );
     } finally {
       if (requestId === songsRequestId) isArtistLoading.value = false;
     }
@@ -170,7 +173,9 @@ export const useArtistStore = defineStore("artist", () => {
     } catch (error) {
       if (requestId !== albumsRequestId) return;
       console.error("加载歌手专辑失败:", error);
-      ElMessage.error(`${i18n.global.t("errors.loadArtistAlbumsFailed")}: ${error}`);
+      ElMessage.error(
+        `${i18n.global.t("errors.loadArtistAlbumsFailed")}: ${parseErrorMessage(error)}`
+      );
     } finally {
       if (requestId === albumsRequestId) isAlbumsLoading.value = false;
     }

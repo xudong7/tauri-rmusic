@@ -3,6 +3,7 @@ import { defineStore } from "pinia";
 import { ElMessage } from "element-plus";
 import type { AlbumInfo, SongInfo } from "@/types/model";
 import { i18n } from "@/i18n";
+import { parseErrorMessage } from "@/utils/errorUtils";
 import { getAlbumDetail } from "@/api/commands/netease";
 
 /**
@@ -31,7 +32,9 @@ export const useOnlineAlbumStore = defineStore("onlineAlbum", () => {
     } catch (error) {
       if (currentRequestId !== requestId) return;
       console.error("加载专辑失败:", error);
-      ElMessage.error(`${i18n.global.t("errors.loadAlbumFailed")}: ${error}`);
+      ElMessage.error(
+        `${i18n.global.t("errors.loadAlbumFailed")}: ${parseErrorMessage(error)}`
+      );
     } finally {
       if (currentRequestId === requestId) isLoading.value = false;
     }

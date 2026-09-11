@@ -10,6 +10,7 @@ import type {
 } from "@/types/model";
 import { PlayMode } from "@/types/model";
 import { i18n } from "@/i18n";
+import { parseErrorMessage } from "@/utils/errorUtils";
 import { joinPathSegment } from "@/utils/pathUtils";
 import { getLocalMusicDisplayInfo } from "@/utils/songUtils";
 import {
@@ -447,7 +448,9 @@ export const usePlayerStore = defineStore("player", () => {
         return "superseded";
       }
       console.error("[播放控制] 播放本地音乐失败:", error);
-      ElMessage.error(`${i18n.global.t("errors.playFailed")}: ${error}`);
+      ElMessage.error(
+        `${i18n.global.t("errors.playFailed")}: ${parseErrorMessage(error)}`
+      );
       failPlaybackRequest(requestId);
       return "failed";
     }
@@ -525,7 +528,9 @@ export const usePlayerStore = defineStore("player", () => {
         return "superseded";
       }
       console.error("[播放控制] 播放在线歌曲失败:", error);
-      ElMessage.error(`${i18n.global.t("errors.playFailedOnline")}: ${error}`);
+      ElMessage.error(
+        `${i18n.global.t("errors.playFailedOnline")}: ${parseErrorMessage(error)}`
+      );
       failPlaybackRequest(requestId);
       return "failed";
     }
@@ -590,7 +595,9 @@ export const usePlayerStore = defineStore("player", () => {
       }
     } catch (error) {
       console.error("[播放控制] 切换播放状态失败:", error);
-      ElMessage.error(`${i18n.global.t("errors.togglePlayFailed")}: ${error}`);
+      ElMessage.error(
+        `${i18n.global.t("errors.togglePlayFailed")}: ${parseErrorMessage(error)}`
+      );
     }
   }
 
@@ -808,7 +815,9 @@ export const usePlayerStore = defineStore("player", () => {
       }
     } catch (error) {
       console.error(`[播放控制] 播放${step > 0 ? "下" : "上"}一首失败:`, error);
-      ElMessage.error(`${i18n.global.t("errors.switchFailed")}: ${error}`);
+      ElMessage.error(
+        `${i18n.global.t("errors.switchFailed")}: ${parseErrorMessage(error)}`
+      );
     }
   }
 

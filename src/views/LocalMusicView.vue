@@ -24,6 +24,7 @@ import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import MusicList from "@/components/feature/MusicList/MusicList.vue";
 import { importMusic as importMusicCommand } from "@/api/commands/file";
+import { parseErrorMessage } from "@/utils/errorUtils";
 import type { MusicFile } from "@/types/model";
 
 const { t } = useI18n();
@@ -70,7 +71,7 @@ async function importMusic() {
     } catch (error) {
       loadingMessage.close();
       ElMessage({
-        message: `${t("import.failed")}: ${error}`,
+        message: `${t("import.failed")}: ${parseErrorMessage(error)}`,
         type: "error",
         duration: 5000,
         showClose: true,

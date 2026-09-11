@@ -10,6 +10,7 @@ import type {
   SongInfo,
 } from "@/types/model";
 import { i18n } from "@/i18n";
+import { parseErrorMessage } from "@/utils/errorUtils";
 import { MAX_GRID_ITEMS } from "@/constants";
 import {
   searchOnlineAlbums,
@@ -81,7 +82,9 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
 
   function reportSearchError(error: unknown) {
     console.error("在线搜索失败:", error);
-    ElMessage.error(`${i18n.global.t("errors.searchFailed")}: ${error}`);
+    ElMessage.error(
+      `${i18n.global.t("errors.searchFailed")}: ${parseErrorMessage(error)}`
+    );
   }
 
   /** 网格类 tab 达到软上限后不再翻页，由视图提示用户细化搜索。 */
