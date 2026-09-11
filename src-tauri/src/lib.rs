@@ -102,13 +102,14 @@ pub fn run() {
             }
 
             // Get the main window - use "main" as the default window label
-            app.get_webview_window("main")
-                .and_then(|w| {
-                    // Restore the window state if it exists
-                    w.restore_state(StateFlags::all()).ok()?;
-                    Some(w)
-                })
-                .expect("failed to get main window");
+            if let Some(window) = app.get_webview_window("main") {
+                // 恢复失败只应被忽略，不能升级成 panic：release 下 panic = "abort"，
+                // 一旦保存的窗口坐标落在已断开的显示器上（restore_state 内部的
+                // set_position 返回 Err），进程会在建窗之前直接死掉且无法自愈。
+                if let Err(e) = window.restore_state(StateFlags::all()) {
+                    eprintln!("Failed to restore window state: {}", e);
+                }
+            }
 
             Ok(())
         })
