@@ -13,6 +13,7 @@ import { i18n } from "@/i18n";
 import { joinPathSegment } from "@/utils/pathUtils";
 import { getLocalMusicDisplayInfo } from "@/utils/songUtils";
 import { getPlaybackStep, getSequentialIndex } from "@/utils/playbackQueue";
+import { alignShuffleCursor, stepShuffle } from "@/utils/shuffleHistory";
 import {
   handleEvent,
   playNeteaseSong,
@@ -60,8 +61,6 @@ interface PlayLocalOptions {
   fromPlaylistId?: string;
   queue?: MusicFile[];
 }
-
-const MAX_SHUFFLE_HISTORY_SIZE = 200;
 
 export const usePlayerStore = defineStore("player", () => {
   const viewStore = useViewStore();
@@ -113,13 +112,7 @@ export const usePlayerStore = defineStore("player", () => {
   const hasCurrentTrack = computed(
     () => currentMusic.value !== null || currentOnlineSong.value !== null
   );
-  const localMusicByFileName = computed(() => {
-    const map = new Map<string, MusicFile>();
-    for (const file of localStore.musicFiles) {
-      map.set(file.file_name, file);
-    }
-    return map;
-  });
+  const localMusicByFileName = computed(() => localStore.musicFilesByName);
 
   const currentTrackDuration = computed(() => {
     if (currentTrackDurationMs.value > 0) return currentTrackDurationMs.value;
@@ -585,21 +578,15 @@ export const usePlayerStore = defineStore("player", () => {
   }
 
   function alignShuffleHistory(contextKey: string, currentKey: string | null) {
-    if (shuffleContextKey !== contextKey) {
-      shuffleContextKey = contextKey;
-      shuffleHistory = currentKey ? [currentKey] : [];
-      shuffleCursor = shuffleHistory.length - 1;
-      return;
-    }
-
-    if (!currentKey || shuffleHistory[shuffleCursor] === currentKey) return;
-    const previousIndex = shuffleHistory.lastIndexOf(currentKey);
-    if (previousIndex >= 0) {
-      shuffleCursor = previousIndex;
-    } else {
-      shuffleHistory = [currentKey];
-      shuffleCursor = 0;
-    }
+    const contextChanged = shuffleContextKey !== contextKey;
+    shuffleContextKey = contextKey;
+    const next = alignShuffleCursor(
+      { history: shuffleHistory, cursor: shuffleCursor },
+      contextChanged,
+      currentKey
+    );
+    shuffleHistory = next.history;
+    shuffleCursor = next.cursor;
   }
 
   function getShuffleTargets(): {
@@ -662,45 +649,19 @@ export const usePlayerStore = defineStore("player", () => {
     if (targets.length === 0) return;
     alignShuffleHistory(contextKey, currentKey);
 
-    let targetKey: string | null = null;
-    if (direction < 0) {
-      while (shuffleCursor > 0) {
-        shuffleCursor--;
-        const candidate = shuffleHistory[shuffleCursor];
-        if (targets.some((target) => target.key === candidate)) {
-          targetKey = candidate;
-          break;
-        }
-      }
-    } else if (shuffleCursor < shuffleHistory.length - 1) {
-      while (shuffleCursor < shuffleHistory.length - 1) {
-        shuffleCursor++;
-        const candidate = shuffleHistory[shuffleCursor];
-        if (targets.some((target) => target.key === candidate)) {
-          targetKey = candidate;
-          break;
-        }
-      }
-    } else {
-      const visited = new Set(shuffleHistory);
-      let candidates = targets.filter(
-        (target) => target.key !== currentKey && !visited.has(target.key)
-      );
-      if (candidates.length === 0) {
-        candidates = targets.filter((target) => target.key !== currentKey);
-      }
-      if (candidates.length === 0) return;
+    const step = stepShuffle({
+      direction,
+      history: shuffleHistory,
+      cursor: shuffleCursor,
+      currentKey,
+      availableKeys: new Set(targets.map((target) => target.key)),
+    });
 
-      targetKey = candidates[Math.floor(Math.random() * candidates.length)].key;
-      shuffleHistory = shuffleHistory.slice(0, shuffleCursor + 1);
-      shuffleHistory.push(targetKey);
-      if (shuffleHistory.length > MAX_SHUFFLE_HISTORY_SIZE) {
-        shuffleHistory.shift();
-      }
-      shuffleCursor = shuffleHistory.length - 1;
-    }
+    shuffleHistory = step.history;
+    shuffleCursor = step.cursor;
 
-    const target = targets.find((item) => item.key === targetKey);
+    if (step.key === null) return;
+    const target = targets.find((item) => item.key === step.key);
     if (target) await target.play();
   }
 

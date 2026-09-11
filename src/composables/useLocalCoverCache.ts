@@ -86,18 +86,10 @@ export function useLocalCoverCache<T>(options: UseLocalCoverCacheOptions<T>) {
     return coverByKey[key] ?? "";
   }
 
-  function clear() {
-    queue.length = 0;
-    pendingKeys.clear();
-    cacheOrder.clear();
-    for (const key of Object.keys(coverByKey)) delete coverByKey[key];
-  }
-
   return {
     coverByKey,
     getCover,
     schedule,
     scheduleMany,
-    clear,
   };
 }

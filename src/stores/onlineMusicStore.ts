@@ -57,15 +57,12 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
 
   // 歌手 tab
   const artistResults = ref<ArtistInfo[]>([]);
-  const artistResultsTotal = ref(0);
 
   // 专辑 tab
   const albumResults = ref<AlbumInfo[]>([]);
-  const albumResultsTotal = ref(0);
 
   // 歌单 tab
   const playlistResults = ref<PlaylistInfo[]>([]);
-  const playlistResultsTotal = ref(0);
 
   const tabMeta = ref<Record<OnlineSearchTab, TabMeta>>({
     song: createTabMeta(),
@@ -147,7 +144,6 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
       if (page === 1) artistResults.value = result.artists;
       else artistResults.value.push(...result.artists);
 
-      artistResultsTotal.value = result.total;
       meta.total = result.total;
       meta.page = page;
       meta.hasMore = gridHasMore(artistResults.value.length, result.total);
@@ -179,7 +175,6 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
       if (page === 1) albumResults.value = result.albums;
       else albumResults.value.push(...result.albums);
 
-      albumResultsTotal.value = result.total;
       meta.total = result.total;
       meta.page = page;
       meta.hasMore = gridHasMore(albumResults.value.length, result.total);
@@ -211,7 +206,6 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
       if (page === 1) playlistResults.value = result.playlists;
       else playlistResults.value.push(...result.playlists);
 
-      playlistResultsTotal.value = result.total;
       meta.total = result.total;
       meta.page = page;
       meta.hasMore = gridHasMore(playlistResults.value.length, result.total);
@@ -267,11 +261,8 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
     onlineSongsTotal.value = 0;
     onlineArtists.value = [];
     artistResults.value = [];
-    artistResultsTotal.value = 0;
     albumResults.value = [];
-    albumResultsTotal.value = 0;
     playlistResults.value = [];
-    playlistResultsTotal.value = 0;
     searchKeyword.value = "";
 
     for (const tab of Object.keys(tabMeta.value) as OnlineSearchTab[]) {
@@ -288,11 +279,8 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
     onlineSongsTotal,
     onlineArtists,
     artistResults,
-    artistResultsTotal,
     albumResults,
-    albumResultsTotal,
     playlistResults,
-    playlistResultsTotal,
     tabMeta,
     searchActiveTab,
     setTab,

@@ -97,20 +97,6 @@ export function getExpectedDownloadFileName(song: {
   return `${sanitizeFilename(artist)} - ${sanitizeFilename(song.name)}.mp3`;
 }
 
-/** 判断在线歌曲是否已在本地（musicFiles 中存在同名文件） */
-export function isSongDownloaded(
-  song: { name: string; artists: string[] },
-  musicFiles: { file_name: string }[]
-): boolean {
-  const expected = getExpectedDownloadFileName(song);
-  return musicFiles.some(
-    (f) =>
-      f.file_name === expected ||
-      f.file_name.endsWith("/" + expected) ||
-      f.file_name.endsWith("\\" + expected)
-  );
-}
-
 /** 在 musicFiles 中查找与在线歌曲对应的本地 file_name，用于添加到播放列表 */
 export function getLocalFileNameForSong(
   song: { name: string; artists: string[] },

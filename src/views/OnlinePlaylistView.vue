@@ -56,7 +56,6 @@ import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import { ArrowLeft } from "@element-plus/icons-vue";
 import type { SongInfo } from "@/types/model";
-import { ViewMode } from "@/types/model";
 import { formatCompactNumber } from "@/utils/songUtils";
 import { useOnlinePlaylistStore } from "@/stores/onlinePlaylistStore";
 import { usePlayerStore } from "@/stores/playerStore";
@@ -99,7 +98,6 @@ function goBack() {
 function load() {
   const id = String(route.params.id || "");
   if (!id) return;
-  viewStore.setViewMode(ViewMode.ONLINE);
   viewStore.setLastOnlinePath(route.fullPath);
   void store.loadDetail(id);
 }

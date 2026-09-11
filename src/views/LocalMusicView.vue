@@ -22,20 +22,15 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { ElMessage } from "element-plus";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { usePlayerStore } from "@/stores/playerStore";
-import { useViewStore } from "@/stores/viewStore";
 import MusicList from "@/components/feature/MusicList/MusicList.vue";
-import { ViewMode } from "@/types/model";
 import { importMusic as importMusicCommand } from "@/api/commands/file";
 import type { MusicFile } from "@/types/model";
 
 const { t } = useI18n();
 const localStore = useLocalMusicStore();
 const playerStore = usePlayerStore();
-const viewStore = useViewStore();
 
-onMounted(() => {
-  viewStore.setViewMode(ViewMode.LOCAL);
-});
+onMounted(() => {});
 
 function playLocalMusic(music: MusicFile) {
   void playerStore.playMusic(music, { queue: localStore.filteredMusicFiles });

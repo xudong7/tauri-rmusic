@@ -73,7 +73,6 @@ import { useViewStore } from "@/stores/viewStore";
 import OnlineMusicList from "@/components/feature/OnlineMusicList/OnlineMusicList.vue";
 import EntityGrid from "@/components/feature/EntityGrid/EntityGrid.vue";
 import type { EntityCardModel } from "@/components/feature/EntityGrid/types";
-import { ViewMode } from "@/types/model";
 import { useOnlinePlaylistActions } from "@/composables/useOnlinePlaylistActions";
 import type { AlbumInfo, SongInfo } from "@/types/model";
 import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
@@ -152,7 +151,6 @@ function load() {
   }
 
   // 进入歌手页也属于在线模式，记录路径以便从本地/设置返回时恢复歌手页
-  viewStore.setViewMode(ViewMode.ONLINE);
   viewStore.setLastOnlinePath(route.fullPath);
   artistStore.loadArtist(id);
 }
