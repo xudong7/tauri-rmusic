@@ -568,7 +568,7 @@ async fn progressive_online_file(
         temp_cleanup.disarm();
         set_progressive_download_state(&shared, downloaded, total, true, None);
         drop(download_guard);
-        prune_online_audio_cache(app_handle)?;
+        prune_online_audio_cache(app_handle);
         return Ok((cache_path, shared));
     }
 
@@ -612,7 +612,7 @@ async fn progressive_online_file(
         match result {
             Ok(final_size) => {
                 set_progressive_download_state(&background_shared, final_size, total, true, None);
-                let _ = prune_online_audio_cache(&background_app_handle);
+                prune_online_audio_cache(&background_app_handle);
             }
             Err(error) => {
                 let _ = tokio::fs::remove_file(&background_tmp_path).await;
@@ -636,14 +636,16 @@ fn online_cache_entries(app_handle: &AppHandle) -> Result<Vec<(PathBuf, u64, u64
     let mut entries = Vec::new();
 
     for entry in fs::read_dir(cache_dir).map_err(|e| format!("read online cache dir: {}", e))? {
-        let entry = entry.map_err(|e| format!("read online cache entry: {}", e))?;
+        // 单个条目读取失败就跳过，不要让整次修剪失败：并发的修剪/提交
+        // 随时可能删掉我们正要 stat 的文件。
+        let Ok(entry) = entry else { continue };
         let path = entry.path();
         if path.extension().and_then(|ext| ext.to_str()) != Some("audio") {
             continue;
         }
-        let metadata = entry
-            .metadata()
-            .map_err(|e| format!("read online cache metadata: {}", e))?;
+        let Ok(metadata) = entry.metadata() else {
+            continue;
+        };
         let age_ms = metadata
             .accessed()
             .or_else(|_| metadata.modified())
@@ -657,6 +659,39 @@ fn online_cache_entries(app_handle: &AppHandle) -> Result<Vec<(PathBuf, u64, u64
     Ok(entries)
 }
 
+/// 超过这个时长的 .tmp 文件视为下载中途崩溃（或进程被强杀）留下的残骸。
+///
+/// 临时文件名里带 pid，正常完成的下载会在提交时删除它；由于 release
+/// 配置了 panic = "abort"，进程崩溃时清理守卫不会运行，因此必须靠过期
+/// 时间来回收。
+const STALE_TEMP_FILE_AGE: Duration = Duration::from_secs(60 * 60);
+
+fn sweep_stale_temp_files(cache_dir: &Path) {
+    let Ok(dir) = fs::read_dir(cache_dir) else {
+        return;
+    };
+    let now = SystemTime::now();
+    for entry in dir.flatten() {
+        let path = entry.path();
+        if path.extension().and_then(|ext| ext.to_str()) != Some("tmp") {
+            continue;
+        }
+        let Ok(metadata) = entry.metadata() else {
+            continue;
+        };
+        let Ok(modified) = metadata.modified() else {
+            continue;
+        };
+        let is_stale = now
+            .duration_since(modified)
+            .map(|age| age > STALE_TEMP_FILE_AGE)
+            .unwrap_or(false);
+        if is_stale {
+            let _ = fs::remove_file(&path);
+        }
+    }
+}
+
 fn is_clearable_online_cache_artifact(path: &Path) -> bool {
     matches!(
         path.extension().and_then(|ext| ext.to_str()),
@@ -664,8 +699,30 @@ fn is_clearable_online_cache_artifact(path: &Path) -> bool {
     )
 }
 
-fn prune_online_audio_cache(app_handle: &AppHandle) -> Result<(), String> {
-    let mut entries = online_cache_entries(app_handle)?;
+/// 修剪在线音频缓存。
+///
+/// 刻意不返回 Result：它位于播放与下载的关键路径上，而修剪失败是完全
+/// 无害的（下次再做即可）。早先它返回错误且调用点用 `?` 传播，导致
+/// 一首其实已经完整缓存的歌，会因为并发修剪恰好删掉某个正在统计的文件
+/// 而报播放失败。
+fn prune_online_audio_cache(app_handle: &AppHandle) {
+    let cache_dir = match online_cache_dir(app_handle) {
+        Ok(dir) => dir,
+        Err(error) => {
+            eprintln!("skip online cache prune: {error}");
+            return;
+        }
+    };
+
+    sweep_stale_temp_files(&cache_dir);
+
+    let mut entries = match online_cache_entries(app_handle) {
+        Ok(entries) => entries,
+        Err(error) => {
+            eprintln!("skip online cache prune: {error}");
+            return;
+        }
+    };
     entries.sort_by_key(|(_, _, age_ms)| *age_ms);
 
     let mut total_size: u64 = entries.iter().map(|(_, size, _)| *size).sum();
@@ -678,8 +735,6 @@ fn prune_online_audio_cache(app_handle: &AppHandle) -> Result<(), String> {
             total_size = total_size.saturating_sub(size);
         }
     }
-
-    Ok(())
 }
 
 async fn cached_online_file(
@@ -749,7 +804,7 @@ async fn cached_online_file(
     }
     result?;
 
-    prune_online_audio_cache(app_handle)?;
+    prune_online_audio_cache(app_handle);
     Ok(cache_path)
 }
 
