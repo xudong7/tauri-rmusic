@@ -113,9 +113,10 @@ html.dark .player-bar {
   outline-offset: 1px;
 }
 
+/* 悬停只用颜色变化标示可点击。下划线在点击后鼠标仍停留时会一直挂着，
+   看起来像"点出了下划线"，因此不使用。 */
 .artist-link:hover {
   color: var(--el-color-primary);
-  text-decoration: underline;
 }
 
 /* 中间：控制在上、进度在下，始终占据播放器视觉中心 */

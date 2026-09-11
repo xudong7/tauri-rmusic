@@ -280,9 +280,9 @@
   outline-offset: 3px;
 }
 
+/* 同 PlayerBar：只用颜色变化标示可点击 */
 .song-artist .artist-part.artist-link:hover {
   color: var(--el-color-primary);
-  text-decoration: underline;
 }
 
 /* 控制按钮 */
