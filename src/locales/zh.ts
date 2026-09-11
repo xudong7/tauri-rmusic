@@ -185,6 +185,7 @@ export default {
     playModeSwitch: "已切换到{mode}模式",
     cacheCleared: "缓存已清理",
     pathCopied: "路径已复制",
+    skippedUnplayable: "已跳过 {count} 首无法播放的歌曲",
   },
   errors: {
     loadMusicFailed: "加载音乐文件失败",
@@ -194,6 +195,7 @@ export default {
     fileAlreadyExists: "文件已存在，无需重复下载",
     fileAlreadyExistsWithPath: "文件已存在: {fileName}",
     switchFailed: "切换歌曲失败",
+    noPlayableTrack: "没有可播放的歌曲",
     togglePlayFailed: "切换播放状态失败",
     searchFailed: "在线搜索失败",
     loadPlaylistFailed: "加载歌单失败",

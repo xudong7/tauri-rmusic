@@ -185,6 +185,7 @@ export default {
     playModeSwitch: "Switched to {mode}",
     cacheCleared: "Cache cleared",
     pathCopied: "Path copied",
+    skippedUnplayable: "Skipped {count} unavailable track(s)",
   },
   errors: {
     loadMusicFailed: "Failed to load music files",
@@ -194,6 +195,7 @@ export default {
     fileAlreadyExists: "File already exists, no need to download again",
     fileAlreadyExistsWithPath: "File already exists: {fileName}",
     switchFailed: "Failed to switch song",
+    noPlayableTrack: "No playable tracks",
     togglePlayFailed: "Failed to toggle play",
     searchFailed: "Online search failed",
     loadPlaylistFailed: "Failed to load playlist",
