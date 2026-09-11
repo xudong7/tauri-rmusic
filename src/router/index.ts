@@ -13,7 +13,6 @@ const Settings = () => import("@/views/SettingsView.vue");
 const PlaylistView = () => import("@/views/PlaylistView.vue");
 const OnlinePlaylist = () => import("@/views/OnlinePlaylistView.vue");
 const OnlineAlbum = () => import("@/views/OnlineAlbumView.vue");
-const Toplist = () => import("@/views/ToplistView.vue");
 
 const routes = [
   {
@@ -59,11 +58,6 @@ const routes = [
     path: "/online/album/:id",
     name: "OnlineAlbum",
     component: OnlineAlbum,
-  },
-  {
-    path: "/toplist",
-    name: "Toplist",
-    component: Toplist,
   },
   {
     path: "/settings",

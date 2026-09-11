@@ -95,13 +95,18 @@ export interface ArtistSongsPage {
 
 export interface ArtistDetailResult {
   artist: ArtistInfo;
-  description: string;
   album_count: number;
   music_count: number;
 }
 
 /** 在线搜索的分类页签 */
 export type OnlineSearchTab = "song" | "artist" | "album" | "playlist";
+
+/**
+ * 在线页面的页签。比 OnlineSearchTab 多一个「排行榜」——
+ * 榜单是浏览入口而非搜索结果类型，因此不进搜索 store 的分页状态。
+ */
+export type OnlineTab = OnlineSearchTab | "toplist";
 
 // 搜索结果模型
 export interface SearchResult {

@@ -2,15 +2,7 @@
 import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
-import {
-  Folder,
-  Search,
-  Setting,
-  Plus,
-  List,
-  ArrowDown,
-  Trophy,
-} from "@element-plus/icons-vue";
+import { Folder, Search, Setting, Plus, List, ArrowDown } from "@element-plus/icons-vue";
 import { STORAGE_KEY_SIDEBAR_PLAYLIST_EXPANDED } from "@/constants";
 import { useViewStore } from "@/stores/viewStore";
 import { usePlaylistStore } from "@/stores/playlistStore";
@@ -48,7 +40,6 @@ function togglePlaylistSection() {
 const navItems = [
   { path: "/", name: "LocalMusic", labelKey: "common.localMusic", icon: Folder },
   { path: "/online", name: "OnlineMusic", labelKey: "common.onlineSearch", icon: Search },
-  { path: "/toplist", name: "Toplist", labelKey: "toplist.title", icon: Trophy },
   { path: "/settings", name: "Settings", labelKey: "common.settings", icon: Setting },
 ];
 

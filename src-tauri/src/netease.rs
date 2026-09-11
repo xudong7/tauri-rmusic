@@ -89,7 +89,7 @@ pub struct ArtistAlbumResult {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ArtistDetailResult {
     pub artist: ArtistInfo,
-    pub description: String,
+    /// 注：刻意不带歌手简介。该字段往往被截断，展示不完整不如不展示。
     pub album_count: u32,
     pub music_count: u32,
 }
@@ -1179,11 +1179,6 @@ pub async fn get_artist_detail(id: String) -> Result<ArtistDetailResult, String>
 
     Ok(ArtistDetailResult {
         artist,
-        description: artist_value["briefDesc"]
-            .as_str()
-            .or_else(|| artist_value["description"].as_str())
-            .unwrap_or("")
-            .to_string(),
         album_count: artist_value["albumSize"].as_u64().unwrap_or(0) as u32,
         music_count: artist_value["musicSize"].as_u64().unwrap_or(0) as u32,
     })
@@ -1491,7 +1486,7 @@ mod live_sidecar_tests {
         assert_eq!(detail.artist.name, "周杰伦");
         assert!(!detail.artist.pic_url.is_empty());
         assert!(detail.album_count > 0);
-        assert!(!detail.description.is_empty());
+        assert!(detail.music_count > 0);
 
         let first = get_artist_songs(ARTIST_ID.into(), Some(1), Some(30), Some("hot".into()))
             .await

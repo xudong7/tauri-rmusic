@@ -113,6 +113,7 @@ export default {
     tabArtist: "Artists",
     tabAlbum: "Albums",
     tabPlaylist: "Playlists",
+    tabToplist: "Charts",
     summarySong: "{count} songs",
     summaryArtist: "{count} artists",
     summaryAlbum: "{count} albums",
@@ -130,7 +131,6 @@ export default {
     backToSearch: "Back to search",
     open: "Open artist: {name}",
     albums: "Albums",
-    description: "About",
     hotSongs: "Popular songs",
     allSongs: "All songs",
     albumCount: "{count} albums",
@@ -153,9 +153,7 @@ export default {
     notFound: "This album is unavailable or was deleted",
   },
   toplist: {
-    title: "Charts",
     empty: "Charts are unavailable right now",
-    refresh: "Refresh",
   },
   playerBar: {
     noSong: "No song selected",

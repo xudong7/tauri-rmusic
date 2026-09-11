@@ -113,6 +113,7 @@ export default {
     tabArtist: "歌手",
     tabAlbum: "专辑",
     tabPlaylist: "歌单",
+    tabToplist: "排行榜",
     summarySong: "{count} 首单曲",
     summaryArtist: "{count} 位歌手",
     summaryAlbum: "{count} 张专辑",
@@ -130,7 +131,6 @@ export default {
     backToSearch: "返回搜索",
     open: "查看歌手：{name}",
     albums: "专辑",
-    description: "歌手简介",
     hotSongs: "热门歌曲",
     allSongs: "全部歌曲",
     albumCount: "{count} 张专辑",
@@ -153,9 +153,7 @@ export default {
     notFound: "专辑不存在或已被删除",
   },
   toplist: {
-    title: "排行榜",
     empty: "排行榜暂时不可用",
-    refresh: "刷新",
   },
   playerBar: {
     noSong: "未选择歌曲",

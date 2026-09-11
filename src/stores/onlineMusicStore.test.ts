@@ -194,6 +194,28 @@ describe("onlineMusicStore", () => {
     expect(store.tabMeta.playlist.loadedKeyword).toBe("");
   });
 
+  it("switches off the toplist tab when a search is started from it", async () => {
+    // 排行榜是浏览入口而非搜索结果类型；从该页签发起搜索应落到单曲
+    api.searchOnlineMix.mockResolvedValue({ songs: [song("1")], artists: [], total: 1 });
+
+    const store = useOnlineMusicStore();
+    store.setTab("toplist");
+    expect(store.activeTab).toBe("toplist");
+
+    await store.searchActiveTab("jay");
+
+    expect(store.activeTab).toBe("song");
+    expect(api.searchOnlineMix).toHaveBeenCalledTimes(1);
+  });
+
+  it("treats the toplist tab as having nothing to paginate", () => {
+    const store = useOnlineMusicStore();
+    store.setTab("toplist");
+    // 不应因为榜单页签而误发搜索请求或越界访问 tabMeta
+    store.loadMoreActiveTab();
+    expect(api.searchOnlineMix).not.toHaveBeenCalled();
+  });
+
   it("surfaces a failure without leaving the tab stuck loading", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     api.searchOnlineAlbums.mockRejectedValue(new Error("boom"));

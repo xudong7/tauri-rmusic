@@ -21,7 +21,6 @@ export const useArtistStore = defineStore("artist", () => {
   const artistSongsTotal = ref(0);
   const artistSongsHasMore = ref(false);
   const currentArtist = ref<ArtistInfo | null>(null);
-  const artistDescription = ref("");
   const artistAlbumCount = ref(0);
   const artistMusicCount = ref(0);
   const isArtistLoading = ref(false);
@@ -66,13 +65,12 @@ export const useArtistStore = defineStore("artist", () => {
       const res = await getArtistDetail({ id: artistId });
       if (requestId !== detailRequestId) return;
       mergeArtist(res.artist, artistId);
-      artistDescription.value = res.description;
       artistAlbumCount.value = res.album_count;
       artistMusicCount.value = res.music_count;
     } catch (error) {
-      // 简介拿不到不应影响歌曲列表，静默降级
+      // 作品数拿不到不应影响歌曲列表，静默降级
       if (requestId !== detailRequestId) return;
-      console.error("加载歌手简介失败:", error);
+      console.error("加载歌手信息失败:", error);
     }
   }
 
@@ -196,7 +194,6 @@ export const useArtistStore = defineStore("artist", () => {
     artistSongsTotal,
     artistSongsHasMore,
     currentArtist,
-    artistDescription,
     artistAlbumCount,
     artistMusicCount,
     isArtistLoading,

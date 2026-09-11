@@ -22,13 +22,13 @@
     <EntityGrid
       v-else
       :items="gridItems"
-      :loading="onlineStore.tabMeta[onlineStore.activeTab].loading"
+      :loading="gridLoading"
       @activate="handleCardActivate"
       @nearEnd="onlineStore.loadMoreActiveTab"
     >
       <template #loading><el-skeleton :rows="5" animated /></template>
       <template #empty>
-        <el-empty :description="t('onlineMusic.empty')" />
+        <el-empty :description="emptyDescription" />
       </template>
       <template #footer>
         <p v-if="showRefineHint" class="online-music-view__refine">
@@ -47,6 +47,7 @@ import type {
   AlbumInfo,
   ArtistInfo,
   OnlineSearchTab,
+  OnlineTab,
   PlaylistInfo,
   SongInfo,
 } from "@/types/model";
@@ -54,6 +55,7 @@ import { ViewMode } from "@/types/model";
 import { MAX_GRID_ITEMS } from "@/constants";
 import { formatCompactNumber } from "@/utils/songUtils";
 import { useOnlineMusicStore } from "@/stores/onlineMusicStore";
+import { useOnlinePlaylistStore } from "@/stores/onlinePlaylistStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useViewStore } from "@/stores/viewStore";
 import OnlineMusicList from "@/components/feature/OnlineMusicList/OnlineMusicList.vue";
@@ -65,6 +67,7 @@ import { useOnlinePlaylistActions } from "@/composables/useOnlinePlaylistActions
 const { t, locale } = useI18n();
 const router = useRouter();
 const onlineStore = useOnlineMusicStore();
+const playlistStore = useOnlinePlaylistStore();
 const playerStore = usePlayerStore();
 const viewStore = useViewStore();
 const { downloadOnlineSong, addOnlineSongToPlaylist } = useOnlinePlaylistActions();
@@ -74,13 +77,31 @@ const tabOptions = computed(() => [
   { label: t("onlineMusic.tabArtist"), value: "artist" },
   { label: t("onlineMusic.tabAlbum"), value: "album" },
   { label: t("onlineMusic.tabPlaylist"), value: "playlist" },
+  { label: t("onlineMusic.tabToplist"), value: "toplist" },
 ]);
 
 // 可写 computed：切换 tab 交给 store（由此决定是否需要补发请求）。
 const activeTabModel = computed({
   get: () => onlineStore.activeTab,
-  set: (tab: string) => onlineStore.setTab(tab as OnlineSearchTab),
+  set: (tab: string) => {
+    const next = tab as OnlineTab;
+    onlineStore.setTab(next);
+    // 榜单数据在另一个 store，首次进入时加载
+    if (next === "toplist" && playlistStore.toplists.length === 0) {
+      void playlistStore.loadToplist();
+    }
+  },
 });
+
+const gridLoading = computed(() =>
+  onlineStore.activeTab === "toplist"
+    ? playlistStore.isToplistLoading
+    : onlineStore.tabMeta[onlineStore.activeTab as OnlineSearchTab].loading
+);
+
+const emptyDescription = computed(() =>
+  onlineStore.activeTab === "toplist" ? t("toplist.empty") : t("onlineMusic.empty")
+);
 
 function playlistCard(item: PlaylistInfo): EntityCardModel {
   return {
@@ -113,18 +134,31 @@ function artistCard(item: ArtistInfo): EntityCardModel {
   };
 }
 
+function toplistCard(item: PlaylistInfo): EntityCardModel {
+  return {
+    key: item.id,
+    kind: "playlist",
+    title: item.name,
+    metaLabel: formatCompactNumber(item.play_count, locale.value),
+    coverUrl: item.cover_url,
+    badge: item.update_frequency || undefined,
+  };
+}
+
 const gridItems = computed<EntityCardModel[]>(() => {
   const tab = onlineStore.activeTab;
   if (tab === "artist") return onlineStore.artistResults.map(artistCard);
   if (tab === "album") return onlineStore.albumResults.map(albumCard);
   if (tab === "playlist") return onlineStore.playlistResults.map(playlistCard);
+  if (tab === "toplist") return playlistStore.toplists.map(toplistCard);
   return [];
 });
 
 /** 触顶后不再翻页，提示用户细化关键词，而不是静默停止加载。 */
 const showRefineHint = computed(() => {
   const tab = onlineStore.activeTab;
-  const meta = onlineStore.tabMeta[tab];
+  if (tab === "toplist") return false;
+  const meta = onlineStore.tabMeta[tab as OnlineSearchTab];
   if (meta.hasMore) return false;
   const loaded = gridItems.value.length;
   return loaded >= MAX_GRID_ITEMS && loaded < meta.total;

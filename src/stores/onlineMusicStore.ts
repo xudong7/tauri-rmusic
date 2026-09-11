@@ -1,10 +1,11 @@
-import { computed, ref } from "vue";
+import { ref } from "vue";
 import { defineStore } from "pinia";
 import { ElMessage } from "element-plus";
 import type {
   AlbumInfo,
   ArtistInfo,
   OnlineSearchTab,
+  OnlineTab,
   PlaylistInfo,
   SongInfo,
 } from "@/types/model";
@@ -37,7 +38,7 @@ function createTabMeta(): TabMeta {
 }
 
 export const useOnlineMusicStore = defineStore("onlineMusic", () => {
-  const activeTab = ref<OnlineSearchTab>("song");
+  const activeTab = ref<OnlineTab>("song");
   const searchKeyword = ref("");
 
   // 单曲 tab
@@ -76,10 +77,6 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
     album: 0,
     playlist: 0,
   };
-
-  const isSearchLoading = computed(() => tabMeta.value[activeTab.value].loading);
-  const activeTabTotal = computed(() => tabMeta.value[activeTab.value].total);
-  const activeTabHasMore = computed(() => tabMeta.value[activeTab.value].hasMore);
 
   function reportSearchError(error: unknown) {
     console.error("在线搜索失败:", error);
@@ -236,13 +233,17 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
 
   /** 搜索框的唯一入口：只打当前 tab 的端点，不四处扇出。 */
   async function searchActiveTab(keyword: string) {
+    // 排行榜不是搜索结果；从该页签发起搜索时切回单曲
+    if (activeTab.value === "toplist") activeTab.value = "song";
     searchKeyword.value = keyword;
-    await searchTab(activeTab.value, keyword, 1);
+    await searchTab(activeTab.value as OnlineSearchTab, keyword, 1);
   }
 
   /** 切换 tab：仅当该 tab 尚未加载当前关键词时才发请求。 */
-  function setTab(tab: OnlineSearchTab) {
+  function setTab(tab: OnlineTab) {
     activeTab.value = tab;
+    // 榜单的数据由视图自行加载（它在另一个 store 里）
+    if (tab === "toplist") return;
     const meta = tabMeta.value[tab];
     if (searchKeyword.value && meta.loadedKeyword !== searchKeyword.value) {
       void searchTab(tab, searchKeyword.value, 1);
@@ -250,7 +251,8 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
   }
 
   function loadMoreActiveTab() {
-    const tab = activeTab.value;
+    if (activeTab.value === "toplist") return;
+    const tab = activeTab.value as OnlineSearchTab;
     const meta = tabMeta.value[tab];
     if (meta.loading || !meta.hasMore) return;
     void searchTab(tab, meta.loadedKeyword || searchKeyword.value, meta.page + 1);
@@ -288,9 +290,6 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
     playlistResults,
     playlistResultsTotal,
     tabMeta,
-    isSearchLoading,
-    activeTabTotal,
-    activeTabHasMore,
     searchActiveTab,
     setTab,
     loadMoreActiveTab,

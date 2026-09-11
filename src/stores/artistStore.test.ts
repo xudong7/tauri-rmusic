@@ -31,7 +31,6 @@ function songs(ids: string[]): SongInfo[] {
 
 const detail = {
   artist: artist("周杰伦"),
-  description: "简介",
   album_count: 44,
   music_count: 568,
 };
@@ -58,7 +57,7 @@ describe("artistStore", () => {
     expect(api.getArtistDetail).toHaveBeenCalledTimes(1);
     expect(api.getArtistAlbums).toHaveBeenCalledTimes(1);
     expect(store.currentArtist?.name).toBe("周杰伦");
-    expect(store.artistDescription).toBe("简介");
+    expect(store.artistAlbumCount).toBe(44);
     expect(store.artistSongsHasMore).toBe(true);
   });
 

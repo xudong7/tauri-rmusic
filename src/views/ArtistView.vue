@@ -18,14 +18,9 @@
       </template>
     </PageHeader>
 
-    <!-- 简介与计数放在 header 之外：PageHeader 的 title/after-title 是同一行
-         flex，把长文本塞进 after-title 会把标题挤成省略号。 -->
-    <div v-if="countsLabel || artistStore.artistDescription" class="artist-view__meta">
-      <p v-if="countsLabel" class="artist-view__counts">{{ countsLabel }}</p>
-      <p v-if="artistStore.artistDescription" class="artist-view__desc">
-        {{ artistStore.artistDescription }}
-      </p>
-    </div>
+    <!-- 计数放在 header 之外：PageHeader 的 title/after-title 是同一行 flex，
+         把额外内容塞进 after-title 会挤占标题空间。 -->
+    <p v-if="countsLabel" class="artist-view__counts">{{ countsLabel }}</p>
 
     <div class="artist-view__tabs">
       <el-segmented v-model="activeTab" :options="tabOptions" />
@@ -176,27 +171,9 @@ watch(() => route.fullPath, load, { immediate: true });
   flex-shrink: 0;
 }
 
-.artist-view__meta {
-  flex-shrink: 0;
-  padding: 0 4px 12px;
-}
-
-.artist-view__desc {
-  margin: 4px 0 0;
-  max-width: 720px;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--el-text-color-secondary);
-  /* 简介往往很长，两行截断，避免把列表挤下去 */
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
 .artist-view__counts {
-  margin: 0;
+  flex-shrink: 0;
+  margin: 0 4px 12px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
 }
