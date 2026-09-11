@@ -24,6 +24,90 @@ export interface SongInfo {
   file_hash: string; // 文件哈希值，用于播放
 }
 
+// 在线歌单（/toplist、/cloudsearch?type=1000、/playlist/detail 共用）
+export interface PlaylistInfo {
+  id: string;
+  name: string;
+  cover_url: string;
+  track_count: number;
+  play_count: number;
+  creator: string;
+  description: string;
+  update_frequency: string;
+}
+
+// 在线专辑（/album、/artist/album、/cloudsearch?type=10 共用）
+export interface AlbumInfo {
+  id: string;
+  name: string;
+  pic_url: string;
+  size: number;
+  artist: string;
+  publish_time: number; // 毫秒时间戳，由前端按 locale 格式化
+  company: string;
+}
+
+export interface PlaylistSearchResult {
+  playlists: PlaylistInfo[];
+  total: number;
+}
+
+export interface AlbumSearchResult {
+  albums: AlbumInfo[];
+  total: number;
+}
+
+export interface ArtistSearchResult {
+  artists: ArtistInfo[];
+  total: number;
+}
+
+export interface PlaylistDetailResult {
+  playlist: PlaylistInfo;
+}
+
+export interface PlaylistTracksResult {
+  songs: SongInfo[];
+  /** 由后端依据歌单 trackCount 推导，前端无需自行对齐 */
+  has_more: boolean;
+}
+
+export interface ToplistResult {
+  toplists: PlaylistInfo[];
+}
+
+export interface AlbumDetailResult {
+  album: AlbumInfo;
+  songs: SongInfo[];
+}
+
+export interface ArtistAlbumResult {
+  albums: AlbumInfo[];
+  has_more: boolean;
+}
+
+/** 歌手歌曲分页。不含歌手信息——那由 getArtistDetail 单独取一次。 */
+export interface ArtistSongsPage {
+  songs: SongInfo[];
+  total: number;
+  has_more: boolean;
+}
+
+export interface ArtistDetailResult {
+  artist: ArtistInfo;
+  album_count: number;
+  music_count: number;
+}
+
+/** 在线搜索的分类页签 */
+export type OnlineSearchTab = "song" | "artist" | "album" | "playlist";
+
+/**
+ * 在线页面的页签。比 OnlineSearchTab 多一个「排行榜」——
+ * 榜单是浏览入口而非搜索结果类型，因此不进搜索 store 的分页状态。
+ */
+export type OnlineTab = OnlineSearchTab | "toplist";
+
 // 搜索结果模型
 export interface SearchResult {
   songs: SongInfo[];

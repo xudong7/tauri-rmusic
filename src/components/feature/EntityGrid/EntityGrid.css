@@ -1,0 +1,37 @@
+.entity-grid {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.entity-grid__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.entity-grid__items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 18px 16px;
+  padding: 4px 4px 20px;
+  box-sizing: border-box;
+}
+
+.entity-grid__state {
+  flex: 1;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 840px) {
+  .entity-grid__items {
+    grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+    gap: 14px 12px;
+  }
+}

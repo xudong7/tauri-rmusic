@@ -8,8 +8,11 @@ use music::{
     Music, MusicState, PlaybackRequestIdState,
 };
 use netease::{
-    check_online_service_status, get_artist_top_songs, get_song_cover, get_song_lyric,
-    get_song_url, play_netease_song, search_online_mix, search_songs,
+    check_online_service_status, get_album_detail, get_artist_albums, get_artist_detail,
+    get_artist_songs, get_artist_top_songs, get_playlist_detail, get_playlist_tracks,
+    get_song_cover, get_song_lyric, get_song_url, get_toplist, play_netease_song,
+    search_online_albums, search_online_artists, search_online_mix, search_online_playlists,
+    search_songs,
 };
 use playlist::{read_playlists, write_playlists};
 use service::{ensure_online_service, restart_online_service, OnlineServiceProcess};
@@ -127,6 +130,16 @@ pub fn run() {
             restart_online_service,
             search_songs,
             search_online_mix,
+            search_online_playlists,
+            search_online_albums,
+            search_online_artists,
+            get_playlist_detail,
+            get_playlist_tracks,
+            get_album_detail,
+            get_toplist,
+            get_artist_albums,
+            get_artist_detail,
+            get_artist_songs,
             get_artist_top_songs,
             import_music,
             get_song_url,

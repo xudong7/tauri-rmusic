@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { Collection, Headset, User } from "@element-plus/icons-vue";
+import { Collection, Headset, List, User } from "@element-plus/icons-vue";
 
-type CoverVariant = "track" | "artist" | "album";
+type CoverVariant = "track" | "artist" | "album" | "playlist";
 
 const props = withDefaults(
   defineProps<{
@@ -15,6 +15,8 @@ const props = withDefaults(
     lazy?: boolean;
     fit?: "cover" | "contain";
     variant?: CoverVariant;
+    /** 宽度撑满父容器并保持 1:1，用于卡片网格。开启时忽略 size。 */
+    fluid?: boolean;
   }>(),
   {
     alt: "cover",
@@ -25,16 +27,27 @@ const props = withDefaults(
     lazy: true,
     fit: "cover",
     variant: "track",
+    fluid: false,
   }
 );
 
 const hasError = ref(false);
 
-const boxStyle = computed(() => ({
-  width: `${props.size}px`,
-  height: `${props.size}px`,
-  borderRadius: `${props.radius}px`,
-}));
+const boxStyle = computed(() => {
+  if (props.fluid) {
+    return {
+      width: "100%",
+      height: "auto",
+      aspectRatio: "1 / 1",
+      borderRadius: `${props.radius}px`,
+    };
+  }
+  return {
+    width: `${props.size}px`,
+    height: `${props.size}px`,
+    borderRadius: `${props.radius}px`,
+  };
+});
 
 const imageStyle = computed(() => ({
   objectFit: props.fit,
@@ -50,6 +63,7 @@ const shouldShowImage = computed(() => Boolean(imageSrc.value));
 const placeholderIcon = computed(() => {
   if (props.variant === "artist") return User;
   if (props.variant === "album") return Collection;
+  if (props.variant === "playlist") return List;
   return Headset;
 });
 

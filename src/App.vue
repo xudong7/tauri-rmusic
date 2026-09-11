@@ -50,9 +50,13 @@ const router = useRouter();
 let isQuitting = false;
 let stopOnlineScopeWatch: WatchStopHandle | null = null;
 
+// 在线相关的路由必须全部列在这里：未映射会返回 null，导致搜索框消失、
+// 在线服务状态灯隐藏，并且下方 watch 会停掉服务健康轮询。
+const ONLINE_ROUTE_NAMES = ["OnlineMusic", "Artist", "OnlinePlaylist", "OnlineAlbum"];
+
 const searchScope = computed<SearchScope | null>(() => {
   if (route.name === "LocalMusic") return "local";
-  if (route.name === "OnlineMusic" || route.name === "Artist") return "online";
+  if (ONLINE_ROUTE_NAMES.includes(String(route.name))) return "online";
   if (route.name === "Playlist" || route.name === "PlaylistNew") return "playlist";
   return null;
 });
@@ -98,7 +102,8 @@ async function handleSearch(keyword: string, scope: SearchScope) {
   if (kw) {
     try {
       await onlineServiceStore.ensureStarted();
-      await onlineStore.searchOnlineMusic(kw);
+      // 只搜索当前激活的 tab，不向四个端点扇出。
+      await onlineStore.searchActiveTab(kw);
     } catch (error) {
       console.error("Online service unavailable before search:", error);
       const detail = error instanceof Error ? error.message : String(error);

@@ -28,3 +28,26 @@ export const VIRTUAL_LIST_THRESHOLD = 50;
 
 /** 虚拟滚动预渲染条数（可视区上下各多渲染，减少快速滚动空白） */
 export const VIRTUAL_LIST_OVERSCAN = 10;
+
+/* ---------- 封面实体网格（歌单 / 专辑 / 排行榜） ---------- */
+/**
+ * 网格条数软上限。超出后不再加载，改为提示用户细化搜索。
+ * 这是刻意的产品取舍：用上限换掉手写二维虚拟化的复杂度与风险。
+ *
+ * 每页条数不在这里：它只被 onlineMusicStore 用于分页请求，
+ * 属于该 store 的内部细节（见其 GRID_SEARCH_PAGE_SIZE）。
+ */
+export const MAX_GRID_ITEMS = 200;
+
+/** 网格触底加载阈值（px），与 TrackList 默认值保持一致 */
+export const GRID_NEAR_END_THRESHOLD = 220;
+
+/* ---------- 在线歌单 ---------- */
+/**
+ * 歌单曲目首屏拉取条数。实测 /playlist/detail 对 <=200 首的歌单会一次性返回
+ * 全部曲目，因此按此上限首屏取满即可覆盖绝大多数歌单。
+ *
+ * 这同时规避了播放队列的快照问题：usePlaybackQueue 会复制传入数组，
+ * 若首屏只取 20 首，播放第 3 首时队列里就只有 20 首。
+ */
+export const PLAYLIST_TRACKS_PAGE_SIZE = 200;

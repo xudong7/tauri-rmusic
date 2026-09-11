@@ -1,5 +1,5 @@
 import type { ArtistInfo } from "@/types/model";
-import { searchOnlineMix } from "@/api/commands/netease";
+import { searchOnlineArtists } from "@/api/commands/netease";
 
 type ResolveInput = {
   /** 优先从当前歌手/搜索结果中匹配，避免额外请求 */
@@ -15,7 +15,10 @@ function pickByName(name: string, list: ArtistInfo[] | undefined): ArtistInfo | 
 /**
  * 通过歌手名解析歌手信息（包含 id），用于跳转 Artist 页面。
  * - 先从已有候选（currentArtist/onlineArtists）匹配
- * - 再兜底调用一次 search_online_mix 获取 artist id
+ * - 再兜底调用一次 search_online_artists 获取 artist id
+ *
+ * 这里用 search_online_artists 而非 search_online_mix：后者会并发请求
+ * 歌曲与歌手两个端点，而此处只需要一个歌手 id。
  */
 export async function resolveArtistByName(
   name: string,
@@ -27,11 +30,10 @@ export async function resolveArtistByName(
   if (candidate?.id) return candidate;
 
   try {
-    const res = await searchOnlineMix({
+    const res = await searchOnlineArtists({
       keywords: name,
       page: 1,
       pagesize: 1,
-      artistLimit: 1,
     });
     const artist = res?.artists?.[0];
     return artist?.id ? artist : null;

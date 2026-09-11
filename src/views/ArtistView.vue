@@ -18,25 +18,52 @@
       </template>
     </PageHeader>
 
+    <!-- 计数放在 header 之外：PageHeader 的 title/after-title 是同一行 flex，
+         把额外内容塞进 after-title 会挤占标题空间。 -->
+    <p v-if="countsLabel" class="artist-view__counts">{{ countsLabel }}</p>
+
+    <div class="artist-view__tabs">
+      <el-segmented v-model="activeTab" :options="tabOptions" />
+    </div>
+
     <OnlineMusicList
+      v-if="activeTab === 'songs'"
       :onlineSongs="artistStore.artistSongs"
-      :onlineArtists="[]"
       :currentSong="playerStore.currentOnlineSong"
       :isPlaying="playerStore.isPlaying"
       :loading="artistStore.isArtistLoading"
       :totalCount="artistStore.artistSongsTotal"
+      :hasMore="artistStore.artistSongsHasMore"
       :showTitle="false"
       @play="playArtistSong"
       @toggle-current="playerStore.togglePlay"
       @download="downloadOnlineSong"
       @load-more="artistStore.loadMoreArtistSongs"
       @add-to-playlist="addOnlineSongToPlaylist"
-    />
+    >
+      <template #loading><el-skeleton :rows="6" animated /></template>
+      <template #empty>
+        <el-empty :description="t('musicList.empty')" />
+      </template>
+    </OnlineMusicList>
+
+    <EntityGrid
+      v-else
+      :items="albumCards"
+      :loading="artistStore.isAlbumsLoading"
+      @activate="openAlbum"
+      @nearEnd="artistStore.loadMoreArtistAlbums"
+    >
+      <template #loading><el-skeleton :rows="5" animated /></template>
+      <template #empty>
+        <el-empty :description="t('onlineAlbum.empty')" />
+      </template>
+    </EntityGrid>
   </PageLayout>
 </template>
 
 <script setup lang="ts">
-import { watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { ArrowLeft } from "@element-plus/icons-vue";
@@ -44,14 +71,17 @@ import { useArtistStore } from "@/stores/artistStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useViewStore } from "@/stores/viewStore";
 import OnlineMusicList from "@/components/feature/OnlineMusicList/OnlineMusicList.vue";
+import EntityGrid from "@/components/feature/EntityGrid/EntityGrid.vue";
+import type { EntityCardModel } from "@/components/feature/EntityGrid/types";
 import { ViewMode } from "@/types/model";
 import { useOnlinePlaylistActions } from "@/composables/useOnlinePlaylistActions";
-import type { SongInfo } from "@/types/model";
+import type { AlbumInfo, SongInfo } from "@/types/model";
 import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
 import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
+import { formatPublishDate } from "@/utils/songUtils";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const artistStore = useArtistStore();
@@ -59,8 +89,41 @@ const playerStore = usePlayerStore();
 const viewStore = useViewStore();
 const { downloadOnlineSong, addOnlineSongToPlaylist } = useOnlinePlaylistActions();
 
+const activeTab = ref<"songs" | "albums">("songs");
+
+const tabOptions = computed(() => [
+  { label: t("artist.hotSongs"), value: "songs" },
+  { label: t("artist.albums"), value: "albums" },
+]);
+
+const countsLabel = computed(() => {
+  const parts: string[] = [];
+  if (artistStore.artistMusicCount > 0) {
+    parts.push(t("artist.songCount", { count: artistStore.artistMusicCount }));
+  }
+  if (artistStore.artistAlbumCount > 0) {
+    parts.push(t("artist.albumCount", { count: artistStore.artistAlbumCount }));
+  }
+  return parts.join(" · ");
+});
+
+const albumCards = computed<EntityCardModel[]>(() =>
+  artistStore.artistAlbums.map((album: AlbumInfo) => ({
+    key: album.id,
+    kind: "album",
+    title: album.name,
+    subtitle: formatPublishDate(album.publish_time, locale.value) || undefined,
+    metaLabel: t("onlineAlbum.songCount", { count: album.size }),
+    coverUrl: album.pic_url,
+  }))
+);
+
 function playArtistSong(song: SongInfo) {
   void playerStore.playOnlineSong(song, { queue: artistStore.artistSongs });
+}
+
+function openAlbum(card: EntityCardModel) {
+  router.push({ name: "OnlineAlbum", params: { id: card.key } });
 }
 
 function getQueryString(v: unknown): string {
@@ -91,7 +154,7 @@ function load() {
   // 进入歌手页也属于在线模式，记录路径以便从本地/设置返回时恢复歌手页
   viewStore.setViewMode(ViewMode.ONLINE);
   viewStore.setLastOnlinePath(route.fullPath);
-  artistStore.loadArtistSongs(id);
+  artistStore.loadArtist(id);
 }
 
 watch(() => route.fullPath, load, { immediate: true });
@@ -100,6 +163,18 @@ watch(() => route.fullPath, load, { immediate: true });
 <style scoped>
 .artist-view {
   overflow: hidden;
+}
+
+.artist-view__tabs {
+  padding: 0 4px 12px;
+  flex-shrink: 0;
+}
+
+.artist-view__counts {
+  flex-shrink: 0;
+  margin: 0 4px 12px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 
 .back-to-search {
