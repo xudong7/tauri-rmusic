@@ -236,13 +236,7 @@ const playlist = computed(() =>
 );
 
 const displayName = computed(() => playlist.value?.name ?? t("playlist.unnamed"));
-const localMusicByFileName = computed(() => {
-  const map = new Map<string, MusicFile>();
-  for (const file of localStore.musicFiles) {
-    map.set(file.file_name, file);
-  }
-  return map;
-});
+const localMusicByFileName = computed(() => localStore.musicFilesByName);
 
 watch(
   () => playlist.value?.items.length ?? 0,

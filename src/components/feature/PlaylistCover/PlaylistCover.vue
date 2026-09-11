@@ -23,12 +23,9 @@ const localStore = useLocalMusicStore();
 const localMusic = computed<MusicFile | null>(() => {
   if (props.item?.type !== "local") return null;
   const fileName = props.item.file_name;
-  return (
-    localStore.musicFiles.find((file) => file.file_name === fileName) ?? {
-      id: -1,
-      file_name: fileName,
-    }
-  );
+  // 走 store 的索引而非 musicFiles.find：本组件在侧边栏按歌单数循环渲染，
+  // 线性查找会让每次渲染退化成「歌单数 × 曲库大小」。
+  return localStore.musicFilesByName.get(fileName) ?? { id: -1, file_name: fileName };
 });
 
 const onlineSong = computed(() =>

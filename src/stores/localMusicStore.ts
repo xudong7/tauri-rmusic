@@ -35,6 +35,21 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
     );
   });
 
+  /**
+   * 按文件名索引曲库。
+   *
+   * 放在 store 而不是各调用点各建一份：playerStore 与 PlaylistView 原先
+   * 各写了一遍同样的 Map，而 PlaylistCover 用的是线性 find —— 它在侧边栏
+   * 按歌单数循环渲染，于是每次渲染都是「歌单数 × 曲库大小」次比较。
+   */
+  const musicFilesByName = computed(() => {
+    const map = new Map<string, MusicFile>();
+    for (const file of musicFiles.value) {
+      map.set(file.file_name, file);
+    }
+    return map;
+  });
+
   async function loadMusicFiles(path?: string, options?: { restoreCache?: boolean }) {
     const requestId = ++latestLoadRequestId;
     let restoredCachedFiles = false;
@@ -176,6 +191,7 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
 
   return {
     musicFiles,
+    musicFilesByName,
     filteredMusicFiles,
     searchKeyword,
     currentDirectory,

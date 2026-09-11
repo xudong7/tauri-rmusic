@@ -112,13 +112,7 @@ export const usePlayerStore = defineStore("player", () => {
   const hasCurrentTrack = computed(
     () => currentMusic.value !== null || currentOnlineSong.value !== null
   );
-  const localMusicByFileName = computed(() => {
-    const map = new Map<string, MusicFile>();
-    for (const file of localStore.musicFiles) {
-      map.set(file.file_name, file);
-    }
-    return map;
-  });
+  const localMusicByFileName = computed(() => localStore.musicFilesByName);
 
   const currentTrackDuration = computed(() => {
     if (currentTrackDurationMs.value > 0) return currentTrackDurationMs.value;
