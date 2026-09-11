@@ -45,9 +45,13 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
   const onlineSongs = ref<SongInfo[]>([]);
   const onlineSongsTotal = ref(0);
   /**
-   * 歌手条。除单曲搜索结果外，PlayerBar 与 ImmersiveView 也依赖它做
-   * 「点击正在播放歌曲的歌手名」的快速跳转（见 useArtistNavigation），
-   * 因此单曲 tab 必须继续填充它。
+   * 单曲搜索顺带取回的歌手候选。界面上已不再展示（歌手有自己的 tab），
+   * 这里保留是为了喂给 PlayerBar / ImmersiveView 的「点击歌手名跳转」——
+   * 见 useArtistNavigation / resolveArtistByName，它优先从这份缓存里按名字
+   * 命中歌手 id，命中不了才发请求。
+   *
+   * 代价为零：search_online_mix 用 tokio::join! 并发取歌曲与歌手，
+   * 并不增加等待时间。删掉它会让播放栏的歌手跳转每次都多一次往返。
    */
   const onlineArtists = ref<ArtistInfo[]>([]);
 

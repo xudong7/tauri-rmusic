@@ -28,7 +28,6 @@
 
     <OnlineMusicList
       :onlineSongs="store.songs"
-      :onlineArtists="[]"
       :currentSong="playerStore.currentOnlineSong"
       :isPlaying="playerStore.isPlaying"
       :loading="store.isDetailLoading || store.isLoadingMoreTracks"

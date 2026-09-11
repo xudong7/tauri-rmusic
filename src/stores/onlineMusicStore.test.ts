@@ -83,8 +83,9 @@ describe("onlineMusicStore", () => {
     expect(store.onlineSongs).toHaveLength(1);
   });
 
-  it("keeps artist strip populated on the song tab", async () => {
-    // PlayerBar / ImmersiveView 依赖 onlineArtists 做歌手名跳转
+  it("keeps the artist cache warm for the player bar jump", async () => {
+    // 歌手条已不再展示，但 PlayerBar / ImmersiveView 仍靠这份缓存
+    // 把「正在播放歌曲的歌手名」解析成 id，命中不了就要多发一次请求。
     api.searchOnlineMix.mockResolvedValue({
       songs: [song("1")],
       artists: [artist("9")],

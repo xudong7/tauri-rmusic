@@ -29,7 +29,6 @@
     <OnlineMusicList
       v-if="activeTab === 'songs'"
       :onlineSongs="artistStore.artistSongs"
-      :onlineArtists="[]"
       :currentSong="playerStore.currentOnlineSong"
       :isPlaying="playerStore.isPlaying"
       :loading="artistStore.isArtistLoading"

@@ -7,11 +7,11 @@
     <OnlineMusicList
       v-if="onlineStore.activeTab === 'song'"
       :onlineSongs="onlineStore.onlineSongs"
-      :onlineArtists="onlineStore.onlineArtists"
       :currentSong="playerStore.currentOnlineSong"
       :isPlaying="playerStore.isPlaying"
       :loading="onlineStore.tabMeta.song.loading"
       :totalCount="onlineStore.onlineSongsTotal"
+      :showTitle="false"
       @play="playOnlineSongFromSearch"
       @toggle-current="playerStore.togglePlay"
       @download="downloadOnlineSong"
