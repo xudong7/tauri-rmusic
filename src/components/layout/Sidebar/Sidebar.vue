@@ -2,7 +2,15 @@
 import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { Folder, Search, Setting, Plus, List, ArrowDown } from "@element-plus/icons-vue";
+import {
+  Folder,
+  Search,
+  Setting,
+  Plus,
+  List,
+  ArrowDown,
+  Trophy,
+} from "@element-plus/icons-vue";
 import { STORAGE_KEY_SIDEBAR_PLAYLIST_EXPANDED } from "@/constants";
 import { useViewStore } from "@/stores/viewStore";
 import { usePlaylistStore } from "@/stores/playlistStore";
@@ -40,12 +48,17 @@ function togglePlaylistSection() {
 const navItems = [
   { path: "/", name: "LocalMusic", labelKey: "common.localMusic", icon: Folder },
   { path: "/online", name: "OnlineMusic", labelKey: "common.onlineSearch", icon: Search },
+  { path: "/toplist", name: "Toplist", labelKey: "toplist.title", icon: Trophy },
   { path: "/settings", name: "Settings", labelKey: "common.settings", icon: Setting },
 ];
 
+// 在线相关路由归属「在线音乐」这一项高亮。这里是显式名单而非前缀匹配，
+// 新增在线页面时必须同步补充，否则导航不会高亮。
+const ONLINE_NAV_ROUTE_NAMES = ["OnlineMusic", "Artist", "OnlinePlaylist", "OnlineAlbum"];
+
 function isActive(item: (typeof navItems)[0]) {
   if (item.name === "OnlineMusic") {
-    return route.name === "OnlineMusic" || route.name === "Artist";
+    return ONLINE_NAV_ROUTE_NAMES.includes(String(route.name));
   }
   return route.name === item.name;
 }

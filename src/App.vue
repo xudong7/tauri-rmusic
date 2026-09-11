@@ -50,9 +50,19 @@ const router = useRouter();
 let isQuitting = false;
 let stopOnlineScopeWatch: WatchStopHandle | null = null;
 
+// 在线相关的路由必须全部列在这里：未映射会返回 null，导致搜索框消失、
+// 在线服务状态灯隐藏，并且下方 watch 会停掉服务健康轮询。
+const ONLINE_ROUTE_NAMES = [
+  "OnlineMusic",
+  "Artist",
+  "OnlinePlaylist",
+  "OnlineAlbum",
+  "Toplist",
+];
+
 const searchScope = computed<SearchScope | null>(() => {
   if (route.name === "LocalMusic") return "local";
-  if (route.name === "OnlineMusic" || route.name === "Artist") return "online";
+  if (ONLINE_ROUTE_NAMES.includes(String(route.name))) return "online";
   if (route.name === "Playlist" || route.name === "PlaylistNew") return "playlist";
   return null;
 });

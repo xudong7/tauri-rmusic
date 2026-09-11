@@ -11,6 +11,9 @@ const OnlineMusic = () => import("@/views/OnlineMusicView.vue");
 const Artist = () => import("@/views/ArtistView.vue");
 const Settings = () => import("@/views/SettingsView.vue");
 const PlaylistView = () => import("@/views/PlaylistView.vue");
+const OnlinePlaylist = () => import("@/views/OnlinePlaylistView.vue");
+const OnlineAlbum = () => import("@/views/OnlineAlbumView.vue");
+const Toplist = () => import("@/views/ToplistView.vue");
 
 const routes = [
   {
@@ -46,6 +49,21 @@ const routes = [
     path: "/artist/:id",
     name: "Artist",
     component: Artist,
+  },
+  {
+    path: "/online/playlist/:id",
+    name: "OnlinePlaylist",
+    component: OnlinePlaylist,
+  },
+  {
+    path: "/online/album/:id",
+    name: "OnlineAlbum",
+    component: OnlineAlbum,
+  },
+  {
+    path: "/toplist",
+    name: "Toplist",
+    component: Toplist,
   },
   {
     path: "/settings",

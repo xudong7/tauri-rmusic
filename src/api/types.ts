@@ -1,12 +1,21 @@
 import type {
+  AlbumDetailResult,
+  AlbumSearchResult,
+  ArtistAlbumResult,
+  ArtistDetailResult,
+  ArtistSearchResult,
   ArtistSongsResult,
   MusicFile,
   Playlist,
+  PlaylistDetailResult,
   PlaybackSource,
+  PlaylistSearchResult,
+  PlaylistTracksResult,
   PlayStartResult,
   PlaySongResult,
   OnlineServiceStatus,
   SearchMixResult,
+  ToplistResult,
 } from "@/types/model";
 
 export type HandleEventAction = "pause" | "recovery" | "volume";
@@ -59,6 +68,28 @@ export interface TauriCommandParamsMap {
     songLimit?: number;
     artistLimit?: number;
   };
+  search_online_playlists: { keywords: string; page: number; pagesize: number };
+  search_online_albums: { keywords: string; page: number; pagesize: number };
+  search_online_artists: { keywords: string; page: number; pagesize: number };
+  get_playlist_detail: { id: string };
+  // trackCount 由调用方的 get_playlist_detail 提供，后端据此推导 has_more，
+  // 避免翻页时重复请求歌单元数据。
+  get_playlist_tracks: {
+    id: string;
+    offset: number;
+    limit: number;
+    trackCount: number;
+  };
+  get_album_detail: { id: string };
+  get_toplist: void;
+  get_artist_albums: { id: string; page: number; pagesize: number };
+  get_artist_detail: { id: string };
+  get_artist_songs: {
+    id: string;
+    page: number;
+    pagesize: number;
+    order: "hot" | "time";
+  };
   get_artist_top_songs: { id: string; limit: number };
   get_default_music_dir: void;
   get_song_lyric: { id: string };
@@ -88,6 +119,16 @@ export interface TauriCommandResultMap {
   play_netease_song: PlaySongResult;
   download_music: string;
   search_online_mix: SearchMixResult;
+  search_online_playlists: PlaylistSearchResult;
+  search_online_albums: AlbumSearchResult;
+  search_online_artists: ArtistSearchResult;
+  get_playlist_detail: PlaylistDetailResult;
+  get_playlist_tracks: PlaylistTracksResult;
+  get_album_detail: AlbumDetailResult;
+  get_toplist: ToplistResult;
+  get_artist_albums: ArtistAlbumResult;
+  get_artist_detail: ArtistDetailResult;
+  get_artist_songs: ArtistSongsResult;
   get_artist_top_songs: ArtistSongsResult;
   get_default_music_dir: string;
   get_song_lyric: string;

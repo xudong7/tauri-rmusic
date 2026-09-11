@@ -22,7 +22,84 @@ export interface SongInfo {
   duration: number; // 持续时间（毫秒）
   pic_url: string; // 图片URL
   file_hash: string; // 文件哈希值，用于播放
+  /**
+   * 当前（匿名）状态下是否可播放，由后端依据 fee 字段推导。
+   * undefined 表示未知，此时不应当作不可播处理。
+   */
+  playable?: boolean;
 }
+
+// 在线歌单（/toplist、/cloudsearch?type=1000、/playlist/detail 共用）
+export interface PlaylistInfo {
+  id: string;
+  name: string;
+  cover_url: string;
+  track_count: number;
+  play_count: number;
+  creator: string;
+  description: string;
+  update_frequency: string;
+}
+
+// 在线专辑（/album、/artist/album、/cloudsearch?type=10 共用）
+export interface AlbumInfo {
+  id: string;
+  name: string;
+  pic_url: string;
+  size: number;
+  artist: string;
+  publish_time: number; // 毫秒时间戳，由前端按 locale 格式化
+  company: string;
+}
+
+export interface PlaylistSearchResult {
+  playlists: PlaylistInfo[];
+  total: number;
+}
+
+export interface AlbumSearchResult {
+  albums: AlbumInfo[];
+  total: number;
+}
+
+export interface ArtistSearchResult {
+  artists: ArtistInfo[];
+  total: number;
+}
+
+export interface PlaylistDetailResult {
+  playlist: PlaylistInfo;
+}
+
+export interface PlaylistTracksResult {
+  songs: SongInfo[];
+  /** 由后端依据歌单 trackCount 推导，前端无需自行对齐 */
+  has_more: boolean;
+}
+
+export interface ToplistResult {
+  toplists: PlaylistInfo[];
+}
+
+export interface AlbumDetailResult {
+  album: AlbumInfo;
+  songs: SongInfo[];
+}
+
+export interface ArtistAlbumResult {
+  albums: AlbumInfo[];
+  has_more: boolean;
+}
+
+export interface ArtistDetailResult {
+  artist: ArtistInfo;
+  description: string;
+  album_count: number;
+  music_count: number;
+}
+
+/** 在线搜索的分类页签 */
+export type OnlineSearchTab = "song" | "artist" | "album" | "playlist";
 
 // 搜索结果模型
 export interface SearchResult {
