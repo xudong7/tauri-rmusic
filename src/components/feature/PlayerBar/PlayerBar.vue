@@ -6,9 +6,6 @@ import {
   VideoPause,
   ArrowLeft,
   ArrowRight,
-  Sort,
-  Refresh,
-  RefreshRight,
   Tickets,
 } from "@element-plus/icons-vue";
 import {
@@ -18,10 +15,12 @@ import {
   type SongInfo,
 } from "@/types/model";
 import { formatDuration, getLocalMusicDisplayInfo } from "@/utils/songUtils";
+import { playModeIcon, playModeLabelKey } from "@/utils/playModeUtils";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import { useArtistNavigation } from "@/composables/useArtistNavigation";
 import { useCoverLoader } from "@/composables/useCoverLoader";
 import { usePlaybackProgressSlider } from "@/composables/usePlaybackProgressSlider";
+import { useVolumeMute } from "@/composables/usePlaybackVolume";
 import { useArtistStore } from "@/stores/artistStore";
 import { useOnlineMusicStore } from "@/stores/onlineMusicStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
@@ -59,14 +58,12 @@ const artistStore = useArtistStore();
 const onlineStore = useOnlineMusicStore();
 const localStore = useLocalMusicStore();
 const volumeSliderValue = ref(props.volume);
-const lastAudibleVolume = ref(props.volume > 0 ? props.volume : 50);
 const showRemainingTime = ref(false);
 
 watch(
   () => props.volume,
   (value) => {
     if (value !== volumeSliderValue.value) volumeSliderValue.value = value;
-    if (value > 0) lastAudibleVolume.value = value;
   }
 );
 
@@ -76,9 +73,10 @@ function handleVolumeChange(value: number | number[]) {
   emit("volume-change", nextValue);
 }
 
-function toggleMute() {
-  handleVolumeChange(props.volume > 0 ? 0 : lastAudibleVolume.value);
-}
+const { toggleMute } = useVolumeMute({
+  currentVolume: () => props.volume,
+  onChange: handleVolumeChange,
+});
 
 const currentSongName = computed(() => {
   void locale.value;
@@ -124,27 +122,8 @@ const { coverUrl } = useCoverLoader({
   getDefaultDirectory: () => localStore.getDefaultDirectory(),
 });
 
-const playModeIcon = computed(() => {
-  switch (props.playMode) {
-    case PlayMode.REPEAT_ONE:
-      return RefreshRight;
-    case PlayMode.RANDOM:
-      return Refresh;
-    default:
-      return Sort;
-  }
-});
-
-const playModeTooltip = computed(() => {
-  switch (props.playMode) {
-    case PlayMode.REPEAT_ONE:
-      return t("playerBar.repeatOne");
-    case PlayMode.RANDOM:
-      return t("playerBar.random");
-    default:
-      return t("playerBar.sequential");
-  }
-});
+const currentPlayModeIcon = computed(() => playModeIcon(props.playMode));
+const playModeTooltip = computed(() => t(playModeLabelKey(props.playMode)));
 
 // 进入沉浸模式
 function enterImmersiveMode() {
@@ -306,7 +285,7 @@ const {
             class="play-mode-btn app-icon-button"
             :class="{ 'is-active': playMode !== PlayMode.SEQUENTIAL }"
             circle
-            :icon="playModeIcon"
+            :icon="currentPlayModeIcon"
             @click="emit('toggle-play-mode')"
           />
         </el-tooltip>
