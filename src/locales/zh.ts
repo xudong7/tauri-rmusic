@@ -199,6 +199,8 @@ export default {
     togglePlayFailed: "切换播放状态失败",
     searchFailed: "在线搜索失败",
     loadPlaylistFailed: "加载歌单失败",
+    loadPlaylistsFailed: "加载播放列表失败",
+    savePlaylistsFailed: "保存播放列表失败",
     loadAlbumFailed: "加载专辑失败",
     loadToplistFailed: "加载排行榜失败",
     loadArtistAlbumsFailed: "加载歌手专辑失败",

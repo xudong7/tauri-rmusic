@@ -30,7 +30,11 @@ export const usePlaylistStore = defineStore("playlist", () => {
       hasLoadedPlaylists.value = true;
     } catch (e) {
       console.error("[playlist] load failed:", e);
-      ElMessage.error(`${i18n.global.t("errors.unknownError")}: ${parseErrorMessage(e)}`);
+      // 前缀要具体：parseErrorMessage 自己就会在无法识别时返回「未知错误」，
+      // 沿用通用的 unknownError 当标签会出现「未知错误: 未知错误」。
+      ElMessage.error(
+        `${i18n.global.t("errors.loadPlaylistsFailed")}: ${parseErrorMessage(e)}`
+      );
       hasLoadedPlaylists.value = true;
     }
   }
@@ -66,7 +70,7 @@ export const usePlaylistStore = defineStore("playlist", () => {
         hasPendingSave = true;
         console.error("[playlist] save failed:", e);
         ElMessage.error(
-          `${i18n.global.t("errors.unknownError")}: ${parseErrorMessage(e)}`
+          `${i18n.global.t("errors.savePlaylistsFailed")}: ${parseErrorMessage(e)}`
         );
       }
     })();

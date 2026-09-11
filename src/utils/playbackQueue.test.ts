@@ -59,7 +59,7 @@ describe("playFromQueueWithSkip", () => {
   it("plays the target immediately when it is available", async () => {
     const { playAt, calls } = makePlayAt(new Set());
     const result = await playFromQueueWithSkip(5, 2, 1, playAt);
-    expect(result).toEqual({ played: true, skipped: 0, superseded: false });
+    expect(result).toEqual({ played: true, skipped: 0, aborted: false });
     expect(calls).toEqual([2]);
   });
 
@@ -94,7 +94,7 @@ describe("playFromQueueWithSkip", () => {
     expect(result).toEqual({
       played: false,
       skipped: MAX_CONSECUTIVE_SKIPS + 1,
-      superseded: false,
+      aborted: false,
     });
     expect(calls).toHaveLength(MAX_CONSECUTIVE_SKIPS + 1);
   });
@@ -108,12 +108,12 @@ describe("playFromQueueWithSkip", () => {
     expect(calls).toEqual([0]);
   });
 
-  // 有更新的播放请求接管时，自动续播必须立刻停手，否则会和用户
-  // 刚点的操作抢播放器。
-  it("stops immediately when the attempt is superseded", async () => {
-    const playAt = vi.fn(async (): Promise<PlaybackAttempt> => "superseded");
+  // aborted 的两种来源（更新的播放请求接管、失败原因已就地提示过）都必须
+  // 立刻停手：继续要么和用户刚点的操作抢播放器，要么把同一句提示重复多遍。
+  it("stops immediately when the attempt is aborted", async () => {
+    const playAt = vi.fn(async (): Promise<PlaybackAttempt> => "aborted");
     const result = await playFromQueueWithSkip(10, 0, 1, playAt);
-    expect(result).toEqual({ played: false, skipped: 0, superseded: true });
+    expect(result).toEqual({ played: false, skipped: 0, aborted: true });
     expect(playAt).toHaveBeenCalledTimes(1);
   });
 });

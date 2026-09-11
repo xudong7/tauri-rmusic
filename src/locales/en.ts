@@ -199,6 +199,8 @@ export default {
     togglePlayFailed: "Failed to toggle play",
     searchFailed: "Online search failed",
     loadPlaylistFailed: "Failed to load playlist",
+    loadPlaylistsFailed: "Failed to load playlists",
+    savePlaylistsFailed: "Failed to save playlists",
     loadAlbumFailed: "Failed to load album",
     loadToplistFailed: "Failed to load charts",
     loadArtistAlbumsFailed: "Failed to load artist albums",

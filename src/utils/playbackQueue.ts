@@ -30,11 +30,14 @@ export function getPlaybackStep(options: {
 /**
  * 一次播放尝试的结果。
  *
- * superseded 与 failed 必须分开：「已作废」说明有更新的播放请求接管了，
- * 自动续播要立刻停手，否则会和用户刚点的操作抢播放器；failed 才是
- * 「这首放不出来」，可以继续往后找。
+ * aborted 与 failed 必须分开：failed 是「这首放不出来」，可以继续往后找；
+ * aborted 是「立刻停止整条链，且不要再报任何错误」，两种情况：
+ *
+ *   - 有更新的播放请求接管了 —— 继续会和用户刚点的操作抢播放器；
+ *   - 失败原因已经就地提示过 —— 例如在线服务不可用，继续试剩下的曲目
+ *     只会把同一句提示重复六遍，还会反复触发服务重连。
  */
-export type PlaybackAttempt = "played" | "failed" | "superseded";
+export type PlaybackAttempt = "played" | "failed" | "aborted";
 
 /**
  * 自动续播时连续跳过多少首不可播曲目就放弃。
@@ -48,8 +51,8 @@ export interface SkipResult {
   played: boolean;
   /** 本次共跳过多少首不可播曲目 */
   skipped: number;
-  /** 中途被更新的播放请求取代，调用方不应再报任何错误 */
-  superseded: boolean;
+  /** 中途被中止（见 PlaybackAttempt.aborted），调用方不应再报任何错误 */
+  aborted: boolean;
 }
 
 /**
@@ -73,11 +76,11 @@ export async function playFromQueueWithSkip(
   while (!attempted.has(index)) {
     attempted.add(index);
     const result = await playAt(index);
-    if (result === "played") return { played: true, skipped, superseded: false };
-    if (result === "superseded") return { played: false, skipped, superseded: true };
+    if (result === "played") return { played: true, skipped, aborted: false };
+    if (result === "aborted") return { played: false, skipped, aborted: true };
     skipped += 1;
     if (skipped > MAX_CONSECUTIVE_SKIPS) break;
     index = getSequentialIndex(index, step, length);
   }
-  return { played: false, skipped, superseded: false };
+  return { played: false, skipped, aborted: false };
 }
