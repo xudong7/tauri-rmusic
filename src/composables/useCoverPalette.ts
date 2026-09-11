@@ -63,7 +63,7 @@ function calculateAverageBrightness(img: HTMLImageElement): number | null {
   return count > 0 ? totalBrightness / count / 255 : null;
 }
 
-export function useCoverBrightness(imageUrl: Ref<string>) {
+export function useCoverPalette(imageUrl: Ref<string>) {
   const state = ref<CoverBrightnessState>({
     brightness: 0.7,
     isAnalyzing: false,

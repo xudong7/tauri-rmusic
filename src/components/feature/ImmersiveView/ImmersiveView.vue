@@ -14,7 +14,7 @@ import {
 } from "@element-plus/icons-vue";
 import type { SongInfo, MusicFile, PlayMode } from "@/types/model";
 import LyricView from "@/components/feature/LyricView/LyricView.vue";
-import { useCoverBrightness } from "@/composables/useCoverBrightness";
+import { useCoverPalette } from "@/composables/useCoverPalette";
 import { useCoverLoader } from "@/composables/useCoverLoader";
 import { useArtistNavigation } from "@/composables/useArtistNavigation";
 import { usePlaybackProgressSlider } from "@/composables/usePlaybackProgressSlider";
@@ -81,7 +81,7 @@ const { coverUrl: currentCoverUrl } = useCoverLoader({
   currentOnlineSong: () => props.currentSong,
   getDefaultDirectory: () => localStore.getDefaultDirectory(),
 });
-const { brightness: imageAnalysisState } = useCoverBrightness(currentCoverUrl);
+const { brightness: imageAnalysisState } = useCoverPalette(currentCoverUrl);
 
 // 当前歌曲标题
 const songTitle = computed(() => {
