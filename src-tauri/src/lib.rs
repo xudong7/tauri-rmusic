@@ -5,7 +5,7 @@ use file::{
 use music::{
     clear_online_audio_cache, get_online_audio_cache_path, get_online_audio_cache_size,
     get_playback_state, play_track, prefetch_netease_song, prepare_playback_request, seek_to,
-    Music, MusicState, PlaybackRequestIdState,
+    ActiveProgressiveDownload, Music, MusicState, PlaybackRequestIdState,
 };
 use netease::{
     check_online_service_status, get_album_detail, get_artist_albums, get_artist_detail,
@@ -159,6 +159,7 @@ pub fn run() {
         .manage(music.current_duration_ms)
         .manage(music.current_track_id)
         .manage(PlaybackRequestIdState::default())
+        .manage(ActiveProgressiveDownload::default())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

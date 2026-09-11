@@ -84,6 +84,63 @@ struct ProgressiveDownloadState {
 
 type SharedProgressiveDownloadState = Arc<(StdMutex<ProgressiveDownloadState>, Condvar)>;
 
+/// 当前正在播放的在线音频的下载进度。
+///
+/// 供 `seek_to` 判断目标位置的数据是否已经落盘。在线音频的 `Read` 在数据
+/// 未到位时会阻塞在 Condvar 上，而它跑在实时音频线程里：一旦 seek 到尚未
+/// 下载的位置，该线程就会卡住，随后切歌时的 `Sink::clear()`（内部等待音源
+/// 结束）会在持有 sink 锁的情况下无限期等待，表现为进度条冻结、
+/// 上一首/下一首失效。
+///
+/// 本地音源没有这个概念，此时为 None。
+#[derive(Default)]
+pub struct ActiveProgressiveDownload(StdMutex<Option<SharedProgressiveDownloadState>>);
+
+impl ActiveProgressiveDownload {
+    fn set(&self, state: Option<SharedProgressiveDownloadState>) {
+        if let Ok(mut guard) = self.0.lock() {
+            *guard = state;
+        }
+    }
+
+    fn get(&self) -> Option<SharedProgressiveDownloadState> {
+        self.0.lock().ok().and_then(|guard| guard.clone())
+    }
+}
+
+/// seek 允许落在已下载区间之外的余量。
+///
+/// 字节偏移是按 `total / duration` 线性估算的，而实际音频含标签头且可能是
+/// 变码率，因此留出一段余量，避免把合法的 seek 误判为越界。
+const SEEK_FRONTIER_MARGIN_MS: u64 = 2_000;
+
+/// 判断目标播放位置的数据是否已经下载到位。
+///
+/// 返回 false 表示应当拒绝这次 seek —— 放行会让实时音频线程阻塞。
+/// 信息不足时一律放行，保持改动前的行为，不因估算不准而拒绝正常操作。
+fn seek_within_downloaded(
+    downloaded: u64,
+    total: Option<u64>,
+    complete: bool,
+    position_ms: u64,
+    duration_ms: u64,
+) -> bool {
+    if complete {
+        return true;
+    }
+    // 没有 Content-Length 就无从估算，交给既有的阻塞路径处理
+    let (Some(total), true) = (total, duration_ms > 0) else {
+        return true;
+    };
+    if total == 0 {
+        return true;
+    }
+
+    // downloaded 字节大致对应的播放时长
+    let available_ms = downloaded.saturating_mul(duration_ms) / total;
+    position_ms <= available_ms.saturating_sub(SEEK_FRONTIER_MARGIN_MS)
+}
+
 struct ProgressiveFileReader {
     file: File,
     state: SharedProgressiveDownloadState,
@@ -762,6 +819,7 @@ pub async fn play_track(
     duration: tauri::State<'_, PlaybackDurationState>,
     track_id: tauri::State<'_, PlaybackTrackIdState>,
     request_state: tauri::State<'_, PlaybackRequestIdState>,
+    active_download: tauri::State<'_, ActiveProgressiveDownload>,
     source: PlaybackSource,
     request_id: u64,
 ) -> Result<PlayStartResult, String> {
@@ -781,6 +839,9 @@ pub async fn play_track(
                 request_id,
             )
             .await?;
+            // 本地音源没有下载进度可言，清掉上一首在线曲目留下的记录，
+            // 否则 seek_to 会拿旧曲目的前沿来判断当前这首
+            active_download.set(None);
         }
         PlaybackSource::Online { url, cache_key } => {
             let resolved_url = if url.trim().is_empty() {
@@ -798,7 +859,7 @@ pub async fn play_track(
             .await?;
             ensure_playback_request_current(Some((&request_state, request_id)))?;
             let (decoded_source, duration_ms) =
-                decode_progressive_file(&source_path, download_state)?;
+                decode_progressive_file(&source_path, Arc::clone(&download_state))?;
             ensure_playback_request_current(Some((&request_state, request_id)))?;
             replace_sink_source(
                 decoded_source,
@@ -809,6 +870,9 @@ pub async fn play_track(
                 request_id,
             )
             .await?;
+            // 登记在替换成功之后：被取代的请求不应覆盖当前播放曲目的进度，
+            // 否则 seek_to 会拿另一首的下载前沿来判断。
+            active_download.set(Some(download_state));
         }
     }
     let next_track_id = {
@@ -882,6 +946,7 @@ pub struct SeekResult {
 pub async fn seek_to(
     sink: tauri::State<'_, Arc<Mutex<Sink>>>,
     duration: tauri::State<'_, PlaybackDurationState>,
+    active_download: tauri::State<'_, ActiveProgressiveDownload>,
     position_ms: u64,
 ) -> Result<SeekResult, String> {
     let actual_duration = *duration.0.lock().await;
@@ -891,6 +956,25 @@ pub async fn seek_to(
             should_play_next: true,
         });
     }
+
+    // 目标位置的数据可能还没下载到。此时必须拒绝：放行会让实时音频线程
+    // 阻塞在 Read 上，而它卡住之后，下一次切歌的 Sink::clear() 会在持有
+    // sink 锁的情况下无限期等待 —— 表现为进度条冻结、切歌失效。
+    // 返回 success:false 而不是报错：这是正常的用户操作被数据进度挡下。
+    if let Some(state) = active_download.get() {
+        let (downloaded, total, complete) = match state.0.lock() {
+            Ok(guard) => (guard.downloaded, guard.total, guard.complete),
+            // 锁中毒说明后台下载线程 panic 了，不值得再冒险放行
+            Err(_) => (0, None, false),
+        };
+        if !seek_within_downloaded(downloaded, total, complete, position_ms, actual_duration) {
+            return Ok(SeekResult {
+                success: false,
+                should_play_next: false,
+            });
+        }
+    }
+
     let sink = sink.lock().await;
     let duration = Duration::from_millis(position_ms);
     sink.try_seek(duration)
@@ -904,6 +988,87 @@ pub async fn seek_to(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn seek_allowed_anywhere_once_download_completed() {
+        // 已完整下载：随便跳
+        assert!(seek_within_downloaded(
+            1000,
+            Some(1000),
+            true,
+            300_000,
+            300_000
+        ));
+    }
+
+    #[test]
+    fn seek_beyond_downloaded_frontier_is_refused() {
+        // 10 分钟的曲目下了 1/10（约 60 秒），跳到第 5 分钟必然阻塞
+        let total = 10_000_000u64;
+        assert!(!seek_within_downloaded(
+            total / 10,
+            Some(total),
+            false,
+            300_000,
+            600_000
+        ));
+    }
+
+    #[test]
+    fn seek_just_behind_the_frontier_is_allowed() {
+        // 下到 120 秒处，跳到 100 秒应当放行（留有余量，不会误判）
+        let total = 10_000_000u64;
+        let downloaded = total * 120 / 600;
+        assert!(seek_within_downloaded(
+            downloaded,
+            Some(total),
+            false,
+            100_000,
+            600_000
+        ));
+    }
+
+    #[test]
+    fn seek_is_refused_inside_the_safety_margin() {
+        // 下到 120 秒处，跳到 119 秒 —— 落在 2 秒余量内，保守拒绝
+        let total = 10_000_000u64;
+        let downloaded = total * 120 / 600;
+        assert!(!seek_within_downloaded(
+            downloaded,
+            Some(total),
+            false,
+            119_000,
+            600_000
+        ));
+    }
+
+    #[test]
+    fn seek_is_allowed_when_the_frontier_cannot_be_estimated() {
+        // 没有 Content-Length：无从判断，放行（保持改动前的行为）
+        assert!(seek_within_downloaded(1024, None, false, 300_000, 600_000));
+        // 时长未知：同样无法换算
+        assert!(seek_within_downloaded(
+            1024,
+            Some(10_000_000),
+            false,
+            300_000,
+            0
+        ));
+        // 空文件
+        assert!(seek_within_downloaded(0, Some(0), false, 1, 600_000));
+    }
+
+    #[test]
+    fn seek_to_zero_is_always_allowed_before_completion() {
+        // 刚开播时下载量很小，但回到开头不该被挡
+        assert!(seek_within_downloaded(
+            0,
+            Some(10_000_000),
+            false,
+            0,
+            600_000
+        ));
+    }
 
     #[test]
     fn unique_temp_path_stays_next_to_target_and_changes_name() {
