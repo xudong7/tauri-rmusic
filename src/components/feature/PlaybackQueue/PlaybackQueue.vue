@@ -3,6 +3,8 @@ import { computed, nextTick, onMounted, ref } from "vue";
 import { Close, Headset, VideoPause, VideoPlay } from "@element-plus/icons-vue";
 import { useI18n } from "vue-i18n";
 import type { PlaybackQueueItem } from "@/types/model";
+import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
+import { QUEUE_ROW_HEIGHT } from "@/constants";
 
 const { t } = useI18n();
 const props = defineProps<{
@@ -16,17 +18,35 @@ const emit = defineEmits<{
 }>();
 
 const panelRef = ref<HTMLElement | null>(null);
-const currentPosition = computed(() => {
-  const index = props.items.findIndex((item) => item.isCurrent);
-  return index >= 0 ? index + 1 : 0;
-});
+const currentIndex = computed(() => props.items.findIndex((item) => item.isCurrent));
+const currentPosition = computed(() =>
+  currentIndex.value >= 0 ? currentIndex.value + 1 : 0
+);
+
+// 没有显式队列时，playbackQueueItems 会退化成整个本地曲库，
+// 裸 v-for 会在一次 patch 里建出成千上万个节点。行高固定，适合虚拟化。
+const itemsRef = computed(() => props.items);
+const { useVirtual, virtualList, scrollTo, containerProps, wrapperProps } =
+  useVirtualListWhenLong<PlaybackQueueItem>({
+    source: itemsRef,
+    itemHeight: QUEUE_ROW_HEIGHT,
+  });
 
 onMounted(async () => {
   await nextTick();
   panelRef.value?.focus();
-  panelRef.value?.querySelector<HTMLElement>(".is-current")?.scrollIntoView({
-    block: "center",
-  });
+  if (currentIndex.value < 0) return;
+  if (!useVirtual.value) {
+    panelRef.value?.querySelector<HTMLElement>(".is-current")?.scrollIntoView({
+      block: "center",
+    });
+    return;
+  }
+  // 虚拟化后当前曲目通常不在 DOM 里，scrollIntoView 会静默失效，必须按索引滚。
+  // scrollTo 把目标行对齐到容器顶部，这里减去半屏，保持与上面 block:"center" 一致。
+  const viewportHeight = containerProps.ref.value?.clientHeight ?? 0;
+  const half = Math.floor(viewportHeight / QUEUE_ROW_HEIGHT / 2);
+  scrollTo(Math.max(0, currentIndex.value - half));
 });
 
 function handlePanelKeydown(event: KeyboardEvent) {
@@ -82,29 +102,67 @@ function handlePanelKeydown(event: KeyboardEvent) {
         </button>
       </header>
 
-      <div v-if="items.length" class="queue-list">
-        <button
-          v-for="item in items"
-          :key="item.key"
-          type="button"
-          class="queue-item"
-          :class="{ 'is-current': item.isCurrent }"
-          :disabled="item.disabled"
-          :aria-current="item.isCurrent ? 'true' : undefined"
-          @click="emit('play', item.sourceIndex)"
-        >
-          <span class="queue-item-index">
-            <el-icon v-if="item.isCurrent">
-              <VideoPause v-if="isPlaying" />
-              <VideoPlay v-else />
-            </el-icon>
-            <span v-else>{{ item.sourceIndex + 1 }}</span>
-          </span>
-          <span class="queue-item-main">
-            <strong>{{ item.title }}</strong>
-            <span>{{ item.artist }}</span>
-          </span>
-        </button>
+      <div
+        v-if="items.length && useVirtual"
+        v-bind="containerProps"
+        class="queue-list"
+        data-render-mode="virtual"
+      >
+        <div v-bind="wrapperProps" class="queue-rows" role="list">
+          <button
+            v-for="{ data: item } in virtualList"
+            :key="item.key"
+            type="button"
+            class="queue-item"
+            :class="{ 'is-current': item.isCurrent }"
+            :style="{
+              height: `${QUEUE_ROW_HEIGHT}px`,
+              minHeight: `${QUEUE_ROW_HEIGHT}px`,
+            }"
+            :disabled="item.disabled"
+            :aria-current="item.isCurrent ? 'true' : undefined"
+            @click="emit('play', item.sourceIndex)"
+          >
+            <span class="queue-item-index">
+              <el-icon v-if="item.isCurrent">
+                <VideoPause v-if="isPlaying" />
+                <VideoPlay v-else />
+              </el-icon>
+              <span v-else>{{ item.sourceIndex + 1 }}</span>
+            </span>
+            <span class="queue-item-main">
+              <strong>{{ item.title }}</strong>
+              <span>{{ item.artist }}</span>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div v-else-if="items.length" class="queue-list" data-render-mode="standard">
+        <div class="queue-rows" role="list">
+          <button
+            v-for="item in items"
+            :key="item.key"
+            type="button"
+            class="queue-item"
+            :class="{ 'is-current': item.isCurrent }"
+            :disabled="item.disabled"
+            :aria-current="item.isCurrent ? 'true' : undefined"
+            @click="emit('play', item.sourceIndex)"
+          >
+            <span class="queue-item-index">
+              <el-icon v-if="item.isCurrent">
+                <VideoPause v-if="isPlaying" />
+                <VideoPlay v-else />
+              </el-icon>
+              <span v-else>{{ item.sourceIndex + 1 }}</span>
+            </span>
+            <span class="queue-item-main">
+              <strong>{{ item.title }}</strong>
+              <span>{{ item.artist }}</span>
+            </span>
+          </button>
+        </div>
       </div>
 
       <div v-else class="queue-empty">
@@ -189,9 +247,19 @@ function handlePanelKeydown(event: KeyboardEvent) {
 .queue-list {
   flex: 1;
   min-height: 0;
-  padding: 6px;
+  overflow-x: hidden;
   overflow-y: auto;
+  /* 与 TrackList / EntityGrid 保持一致：内容从不可滚动变为可滚动时，
+     预留的滚动条槽位能避免整列横向跳动。 */
+  scrollbar-gutter: stable;
   scroll-padding-block: 8px;
+}
+
+/* 内边距放在包裹层而非滚动容器上：虚拟滚动用 scrollTop 算行偏移，
+   容器上的 padding 会让每行实际位置与计算值差一个固定量。 */
+.queue-rows {
+  padding: 6px;
+  box-sizing: border-box;
 }
 
 .queue-item {

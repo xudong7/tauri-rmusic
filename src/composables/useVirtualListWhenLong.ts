@@ -32,6 +32,7 @@ export function useVirtualListWhenLong<T>(options: UseVirtualListWhenLongOptions
   const useVirtual = computed(() => unref(source).length > threshold);
   const {
     list: virtualList,
+    scrollTo,
     containerProps,
     wrapperProps,
   } = useVirtualList(source, {
@@ -44,6 +45,12 @@ export function useVirtualListWhenLong<T>(options: UseVirtualListWhenLongOptions
     useVirtual,
     /** 虚拟列表可见项（仅当 useVirtual 为 true 时使用） */
     virtualList,
+    /**
+     * 滚动到指定下标。
+     * 启用虚拟滚动后，目标行可能根本不在 DOM 里，此时 scrollIntoView 找不到
+     * 元素；任何"定位到第 N 项"的需求都必须走这里。
+     */
+    scrollTo,
     /** 绑定到滚动容器的 props */
     containerProps,
     /** 绑定到列表包裹层的 props */
