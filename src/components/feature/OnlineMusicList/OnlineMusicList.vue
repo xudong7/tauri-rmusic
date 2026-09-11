@@ -82,11 +82,18 @@ function handleAddToPlaylist(command: string, row: SongInfo) {
       @toggle-current="emit('toggle-current')"
       @near-end="requestLoadMore"
     >
+      <!-- 透传父组件的同名插槽，未提供时回退到通用文案。
+           歌单/专辑/歌手页各自传入了更准确的空状态（如「歌单不存在或已被删除」），
+           不透传的话这些提示会被这里的内容静默取代。 -->
       <template #loading>
-        <el-skeleton :rows="5" animated />
+        <slot name="loading">
+          <el-skeleton :rows="5" animated />
+        </slot>
       </template>
       <template #empty>
-        <el-empty :description="t('onlineMusic.empty')" />
+        <slot name="empty">
+          <el-empty :description="t('onlineMusic.empty')" />
+        </slot>
       </template>
       <template #actions="{ item }">
         <el-tooltip :content="t('common.download')" placement="top">
