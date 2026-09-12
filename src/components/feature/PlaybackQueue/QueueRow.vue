@@ -124,7 +124,7 @@ const emit = defineEmits<{ play: [] }>();
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -133,7 +133,7 @@ const emit = defineEmits<{ play: [] }>();
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--el-text-color-secondary);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 /* 分隔点跟着歌手走：整段歌手被截没时，孤零零一个点反而像是坏掉了 */

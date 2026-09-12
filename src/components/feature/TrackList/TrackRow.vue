@@ -45,7 +45,6 @@ function handleActivate() {
   <div
     class="track-row"
     :class="{
-      'track-row--online': item.source === 'online',
       'is-current': item.isCurrent && !selectionMode,
       'is-selected': selected,
       'is-disabled': item.disabled,
@@ -62,18 +61,23 @@ function handleActivate() {
     @keydown.enter.self.prevent="handleRowClick"
     @keydown.space.self.prevent="handleRowClick"
   >
-    <div class="track-row__play">
-      <el-checkbox
-        v-if="selectionMode"
-        :model-value="selected"
-        :aria-label="item.title"
-        @click.stop
-        @change="emit('toggleSelect', item)"
-      />
+    <!-- 封面兼作播放控件。播放键原先单独占最左侧一格，把封面挤离了行首，
+         整行因此不是左对齐的；挪到封面上之后行首就是封面，也不需要再为
+         那一格留出列宽。 -->
+    <div class="track-row__cover">
+      <CoverImage :src="resolvedCoverUrl" alt="" :size="40" :radius="7" />
+      <div v-if="selectionMode" class="track-row__cover-check">
+        <el-checkbox
+          :model-value="selected"
+          :aria-label="item.title"
+          @click.stop
+          @change="emit('toggleSelect', item)"
+        />
+      </div>
       <button
         v-else
         type="button"
-        class="track-row__play-button"
+        class="track-row__cover-play"
         :class="{ 'is-current': item.isCurrent }"
         :disabled="item.disabled"
         :aria-label="item.title"
@@ -88,17 +92,22 @@ function handleActivate() {
       </button>
     </div>
 
-    <div class="track-row__cover">
-      <CoverImage :src="resolvedCoverUrl" alt="" :size="34" :radius="6" />
-    </div>
-
+    <!-- 操作按钮并进这一列并右对齐：它们原先是网格最后一列，离歌名很远，
+         挪进来之后与歌名同属一块，右对齐贴住本列末尾。 -->
     <div class="track-row__main">
-      <div class="track-row__title" :class="{ 'is-playing': item.isCurrent }">
-        {{ item.title }}
+      <div class="track-row__text">
+        <div class="track-row__title" :class="{ 'is-playing': item.isCurrent }">
+          {{ item.title }}
+        </div>
+        <div class="track-row__meta">
+          {{ item.artist
+          }}<span v-if="item.album" class="track-row__meta-album">
+            · {{ item.album }}</span
+          >
+        </div>
       </div>
-      <div class="track-row__meta">
-        {{ item.artist
-        }}<span v-if="item.album" class="track-row__meta-album"> · {{ item.album }}</span>
+      <div v-if="$slots.actions && !selectionMode" class="track-row__actions" @click.stop>
+        <slot name="actions" :item="item" />
       </div>
     </div>
 
@@ -108,10 +117,6 @@ function handleActivate() {
 
     <div v-if="item.durationLabel" class="track-row__duration">
       {{ item.durationLabel }}
-    </div>
-
-    <div v-if="$slots.actions && !selectionMode" class="track-row__actions" @click.stop>
-      <slot name="actions" :item="item" />
     </div>
   </div>
 </template>
@@ -123,7 +128,9 @@ function handleActivate() {
   margin-bottom: 0;
   padding: var(--app-track-row-padding-y) var(--app-track-row-padding-x);
   display: grid;
-  grid-template-columns: 36px 34px minmax(180px, 1fr) minmax(140px, 220px) 48px 34px;
+  /* 封面 40 + 主列 + 专辑 + 时长。操作按钮不再是独立列，所以在线曲目也
+     不需要更宽的最后一列，.track-row--online 那个变体一并去掉。 */
+  grid-template-columns: 40px minmax(180px, 1fr) minmax(140px, 220px) 48px;
   align-items: center;
   gap: var(--app-track-row-gap);
   box-sizing: border-box;
@@ -170,46 +177,69 @@ function handleActivate() {
   opacity: 0.5;
 }
 
-.track-row__play,
-.track-row__cover,
-.track-row__album,
-.track-row__duration,
-.track-row__actions {
-  flex-shrink: 0;
-}
-
-.track-row__play {
-  grid-column: 1;
-}
-
 .track-row__cover {
-  grid-column: 2;
+  grid-column: 1;
+  position: relative;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: var(--app-radius-sm);
+}
+
+/* 覆盖在封面上的播放键与选择框。容器 overflow: hidden，遮罩自然被裁成
+   封面那圈圆角；遮罩也给白色图标兜底，浅色封面下不会看不见。 */
+.track-row__cover-play,
+.track-row__cover-check {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.44);
+}
+
+.track-row__cover-play {
+  padding: 0;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--app-control-transition);
+}
+
+/* 悬停/聚焦才浮出，当前曲目常驻——与队列面板把播放态叠在封面上一致 */
+.track-row:hover .track-row__cover-play,
+.track-row:focus-within .track-row__cover-play,
+.track-row__cover-play.is-current {
+  opacity: 1;
+}
+
+.track-row__cover-play:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 2px;
 }
 
 .track-row__main {
-  grid-column: 3;
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.track-row__text {
+  flex: 1;
+  min-width: 0;
 }
 
 .track-row__album {
-  grid-column: 4;
+  grid-column: 3;
   width: clamp(140px, 20vw, 260px);
   overflow: hidden;
   color: var(--el-text-color-secondary);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.track-row__cover {
-  width: 34px;
-  height: 34px;
-  overflow: hidden;
-  border-radius: var(--app-radius-sm);
-}
-
-.track-row__main {
-  flex: 1;
-  min-width: 0;
 }
 
 .track-row__title,
@@ -224,12 +254,12 @@ function handleActivate() {
   display: none;
 }
 
-/* 字号与行高都跟着队列行对齐（13/11，行距约 19px）。
-   行高必须显式给：默认 leading 下两行加起来约 40px，会把行高顶到 56px，
-   50px 的行高就落不了地。参考图实测行距 19.1px，1.3 正好对上。 */
+/* 行高由封面撑出来（40 + 上下内边距各 8 = 56），文字只需不超即可。
+   显式给 1.3 的行高：默认 leading 下两行约 40px，会让行高对不上
+   虚拟滚动用的 LIST_ROW_HEIGHT。参考图实测文字行距 20px。 */
 .track-row__title {
   color: var(--el-text-color-primary);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   line-height: 1.3;
 }
@@ -242,12 +272,12 @@ function handleActivate() {
 .track-row__meta {
   margin-top: 2px;
   color: var(--el-text-color-secondary);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.3;
 }
 
 .track-row__duration {
-  grid-column: 5;
+  grid-column: 4;
   min-width: 40px;
   color: var(--el-text-color-secondary);
   font-size: 12px;
@@ -256,18 +286,14 @@ function handleActivate() {
 }
 
 .track-row__actions {
-  grid-column: 6;
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--app-control-transition);
-}
-
-.track-row--online {
-  grid-template-columns: 36px 44px minmax(180px, 1fr) minmax(140px, 220px) 48px 76px;
 }
 
 .track-row:hover .track-row__actions,
@@ -297,46 +323,8 @@ function handleActivate() {
   background: var(--app-icon-button-hover-bg);
 }
 
-.track-row__play-button {
-  position: relative;
-  width: var(--list-row-btn-size);
-  height: var(--list-row-btn-size);
-  padding: 0;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: var(--app-radius-full);
-  color: var(--el-text-color-secondary);
-  background: transparent;
-  cursor: pointer;
-  font: inherit;
-  transition:
-    color var(--app-control-transition),
-    background var(--app-control-transition),
-    transform var(--app-control-transition);
-}
-
-.track-row__play-button:hover,
-.track-row__play-button:focus-visible,
-.track-row__play-button.is-current {
-  color: var(--el-color-primary);
-  background: var(--app-icon-button-hover-bg);
-  outline: none;
-}
-
-/* 序号去掉后，这一格默认是空的，悬停或键盘聚焦时才浮出播放键。
-   当前曲目例外——均衡器/播放图标常驻，作为「正在播这首」的标记，
-   与队列面板把播放态叠在封面上是同一个意思。 */
 .track-row__play-icon {
-  position: absolute;
-  opacity: 0;
-  font-size: 15px;
-}
-
-.track-row:hover .track-row__play-icon,
-.track-row:focus-within .track-row__play-icon,
-.track-row__play-button.is-current .track-row__play-icon {
-  opacity: 1;
+  font-size: 18px;
 }
 
 .track-row__equalizer {
@@ -377,7 +365,8 @@ function handleActivate() {
 }
 
 @media (hover: none) {
-  .track-row__actions {
+  .track-row__actions,
+  .track-row__cover-play {
     opacity: 1;
     pointer-events: auto;
   }
@@ -389,19 +378,11 @@ function handleActivate() {
   }
 
   .track-row {
-    grid-template-columns: 36px 44px minmax(0, 1fr) 48px 34px;
-  }
-
-  .track-row.track-row--online {
-    grid-template-columns: 36px 44px minmax(0, 1fr) 48px 76px;
+    grid-template-columns: 40px minmax(0, 1fr) 48px;
   }
 
   .track-row__duration {
-    grid-column: 4;
-  }
-
-  .track-row__actions {
-    grid-column: 5;
+    grid-column: 3;
   }
 
   .track-row__meta-album {
@@ -411,14 +392,8 @@ function handleActivate() {
 
 @media (max-width: 840px) {
   .track-row {
-    grid-template-columns: 32px 44px minmax(0, 1fr) 44px 32px;
+    grid-template-columns: 40px minmax(0, 1fr) 44px;
     gap: 10px;
-    padding-right: 8px;
-    padding-left: 8px;
-  }
-
-  .track-row.track-row--online {
-    grid-template-columns: 32px 44px minmax(0, 1fr) 44px 76px;
   }
 }
 

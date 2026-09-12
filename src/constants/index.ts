@@ -26,7 +26,7 @@ export const DEFAULT_COVER_URL = "/icon.png";
  * 必须与 CSS 的 --app-track-row-height 一致（那里还含上下各 8px 内边距，
  * 实际边框盒高度 = 这个值），否则滚动位置会随行数累积漂移。
  */
-export const LIST_ROW_HEIGHT = 50;
+export const LIST_ROW_HEIGHT = 56;
 
 /** 超过该数量时启用虚拟滚动，避免大量 DOM 导致卡顿 */
 export const VIRTUAL_LIST_THRESHOLD = 50;
@@ -41,10 +41,10 @@ export const VIRTUAL_LIST_OVERSCAN = 10;
  * 与 LIST_ROW_HEIGHT 相同，队列行和主页列表行看起来才是同一套语言：
  * 封面 34 + 上下内边距各 8。参考图实测两者行距都是 57.7px ÷ 1.15。
  */
-export const QUEUE_ROW_HEIGHT = 50;
+export const QUEUE_ROW_HEIGHT = 56;
 
-/** 队列行封面尺寸，与主页列表保持一致（参考图实测 40px ÷ 1.15） */
-export const QUEUE_COVER_SIZE = 34;
+/** 队列行封面尺寸，与主页列表保持一致 */
+export const QUEUE_COVER_SIZE = 40;
 
 /** 队列行封面圆角。CSS 读不到 TS 常量，所以这个值由模板同时喂给
  *  CoverImage 的 :radius 和封面容器的 borderRadius，保证两处不会写岔。 */

@@ -97,10 +97,9 @@ html {
   --list-header-btn-padding: 4px 8px;
   --list-header-icon-size: 16px;
   --list-row-btn-size: 34px;
-  /* 行高 = 封面 34 + 上下内边距各 8。字号与行高收紧后两行文字约 33px，
-     不再把行撑高。须与 LIST_ROW_HEIGHT 对齐，那个是虚拟滚动的行高，
-     两者对不上滚动位置会累积漂移。 */
-  --app-track-row-height: 50px;
+  /* 行高 = 封面 40 + 上下内边距各 8。须与 LIST_ROW_HEIGHT 对齐，
+     那个是虚拟滚动的行高，两者对不上滚动位置会累积漂移。 */
+  --app-track-row-height: 56px;
   --app-track-row-gap: 12px;
   --app-track-row-padding-x: 8px;
   --app-track-row-padding-y: 8px;
