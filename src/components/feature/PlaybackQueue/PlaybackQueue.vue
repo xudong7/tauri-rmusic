@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from "vue";
-import { Close, Headset, VideoPause, VideoPlay } from "@element-plus/icons-vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { Close, Headset } from "@element-plus/icons-vue";
 import { useI18n } from "vue-i18n";
 import type { PlaybackQueueItem } from "@/types/model";
 import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
+import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
+import { useLocalMusicStore } from "@/stores/localMusicStore";
+import QueueRow from "./QueueRow.vue";
 import { QUEUE_ROW_HEIGHT } from "@/constants";
 
 const { t } = useI18n();
@@ -31,6 +34,40 @@ const { useVirtual, virtualList, scrollTo, containerProps, wrapperProps } =
     source: itemsRef,
     itemHeight: QUEUE_ROW_HEIGHT,
   });
+
+/** 实际渲染出来的行：虚拟滚动下是可视窗口，否则是全部 */
+const renderedItems = computed(() =>
+  useVirtual.value ? virtualList.value.map(({ data }) => data) : props.items
+);
+
+// 虚拟化和普通渲染只差绑定与数据源，合成一层，免得行标记写两份。
+// 两份的代价不是洁癖：任何一行的改动都要同步两次，漏一次就会出现
+// 「队列短的时候对、长的时候不对」这种按长度变化的诡异 bug。
+const containerBindings = computed(() => (useVirtual.value ? containerProps : {}));
+const wrapperBindings = computed(() => (useVirtual.value ? wrapperProps : {}));
+
+const localMusicStore = useLocalMusicStore();
+const { getCover, scheduleMany: scheduleCoverLoads } =
+  useLocalCoverCache<PlaybackQueueItem>({
+    // 缓存键取文件名而不是行 key：播放列表模式下行 key 含 sourceIndex，
+    // 列表一重排同一首歌就换了 key，缓存会白做。
+    getKey: (item) => item.coverFileName ?? item.key,
+    getFileName: (item) => item.coverFileName ?? "",
+    getDefaultDirectory: () => localMusicStore.getDefaultDirectory(),
+  });
+
+// 只给渲染出来的行排封面。队列在无显式队列时会退化成整个本地曲库，
+// 全量调度等于一次性排上千次 IPC。
+watch(
+  renderedItems,
+  (items) => scheduleCoverLoads(items.filter((item) => item.coverFileName)),
+  { immediate: true }
+);
+
+function resolveCover(item: PlaybackQueueItem): string {
+  if (item.coverUrl) return item.coverUrl;
+  return item.coverFileName ? getCover(item) : "";
+}
 
 onMounted(async () => {
   await nextTick();
@@ -105,69 +142,25 @@ function handlePanelKeydown(event: KeyboardEvent) {
       <!-- tabindex 让滚动容器本身可聚焦：虚拟化之后只有可视窗口内的行在
            DOM 里，键盘用户没法 Tab 到窗口之外的行，也就没有任何用键盘
            滚动这个列表的手段。聚焦容器后方向键/PageDown 可以滚动，
-           新进入窗口的行随即变得可 Tab。 -->
+           新进入窗口的行随即变得可 Tab。
+           普通渲染时不给 tabindex，免得容器变成一个多余的 Tab 落点。 -->
       <div
-        v-if="items.length && useVirtual"
-        v-bind="containerProps"
+        v-if="items.length"
+        v-bind="containerBindings"
         class="queue-list"
-        data-render-mode="virtual"
-        tabindex="0"
+        :data-render-mode="useVirtual ? 'virtual' : 'standard'"
+        :tabindex="useVirtual ? 0 : undefined"
         :aria-label="t('playerBar.queue')"
       >
-        <div v-bind="wrapperProps" class="queue-rows" role="list">
-          <button
-            v-for="{ data: item } in virtualList"
+        <div v-bind="wrapperBindings" class="queue-rows" role="list">
+          <QueueRow
+            v-for="item in renderedItems"
             :key="item.key"
-            type="button"
-            class="queue-item"
-            :class="{ 'is-current': item.isCurrent }"
-            :style="{
-              height: `${QUEUE_ROW_HEIGHT}px`,
-              minHeight: `${QUEUE_ROW_HEIGHT}px`,
-            }"
-            :disabled="item.disabled"
-            :aria-current="item.isCurrent ? 'true' : undefined"
-            @click="emit('play', item.sourceIndex)"
-          >
-            <span class="queue-item-index">
-              <el-icon v-if="item.isCurrent">
-                <VideoPause v-if="isPlaying" />
-                <VideoPlay v-else />
-              </el-icon>
-              <span v-else>{{ item.sourceIndex + 1 }}</span>
-            </span>
-            <span class="queue-item-main">
-              <strong>{{ item.title }}</strong>
-              <span>{{ item.artist }}</span>
-            </span>
-          </button>
-        </div>
-      </div>
-
-      <div v-else-if="items.length" class="queue-list" data-render-mode="standard">
-        <div class="queue-rows" role="list">
-          <button
-            v-for="item in items"
-            :key="item.key"
-            type="button"
-            class="queue-item"
-            :class="{ 'is-current': item.isCurrent }"
-            :disabled="item.disabled"
-            :aria-current="item.isCurrent ? 'true' : undefined"
-            @click="emit('play', item.sourceIndex)"
-          >
-            <span class="queue-item-index">
-              <el-icon v-if="item.isCurrent">
-                <VideoPause v-if="isPlaying" />
-                <VideoPlay v-else />
-              </el-icon>
-              <span v-else>{{ item.sourceIndex + 1 }}</span>
-            </span>
-            <span class="queue-item-main">
-              <strong>{{ item.title }}</strong>
-              <span>{{ item.artist }}</span>
-            </span>
-          </button>
+            :item="item"
+            :is-playing="isPlaying"
+            :cover-url="resolveCover(item)"
+            @play="emit('play', item.sourceIndex)"
+          />
         </div>
       </div>
 
@@ -268,68 +261,9 @@ function handlePanelKeydown(event: KeyboardEvent) {
   box-sizing: border-box;
 }
 
-.queue-item {
-  width: 100%;
-  min-height: 46px;
-  padding: 6px 8px;
-  display: grid;
-  grid-template-columns: 26px minmax(0, 1fr);
-  align-items: center;
-  gap: 8px;
-  border: 0;
-  border-radius: var(--app-radius-md);
-  color: inherit;
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-}
-
-.queue-item:hover,
-.queue-item:focus-visible {
-  background: var(--hover-bg-color);
-  outline: none;
-}
-
-.queue-item.is-current {
-  color: var(--el-color-primary);
-  background: var(--active-item-bg);
-}
-
-.queue-item:disabled {
-  opacity: 0.48;
-  cursor: default;
-}
-
-.queue-item-index {
-  color: var(--el-text-color-secondary);
-  font-size: 11px;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-
-.queue-item-main {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.queue-item-main strong,
-.queue-item-main span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.queue-item-main strong {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.queue-item-main span {
-  color: var(--el-text-color-secondary);
-  font-size: 11px;
-}
+/* 行的样式（.queue-item 及其内部）都在 QueueRow.vue 自己的 scoped 里：
+   scoped CSS 的作用域标记只落在本组件模板渲染出的元素上，子组件内部的
+   元素匹配不到这里的规则。 */
 
 .queue-empty {
   flex: 1;

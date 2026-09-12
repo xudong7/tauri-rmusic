@@ -31,10 +31,19 @@ export const VIRTUAL_LIST_THRESHOLD = 50;
 export const VIRTUAL_LIST_OVERSCAN = 10;
 
 /**
- * 播放队列行高，对应 .queue-item 的 min-height（队列条目文本单行截断，
- * 高度因此是固定的）。虚拟滚动要求行高精确，否则滚动位置会累积漂移。
+ * 播放队列行高，对应 .queue-item 的高度（队列条目文本单行截断，高度因此固定）。
+ * 虚拟滚动要求行高精确，否则滚动位置会累积漂移。
+ *
+ * 50 是照参考图队列量出来的：行间距 57.75px，除以该截图的标度 1.15。
  */
-export const QUEUE_ROW_HEIGHT = 46;
+export const QUEUE_ROW_HEIGHT = 50;
+
+/** 队列行封面尺寸，同样来自参考图：封面 40px ÷ 1.15 */
+export const QUEUE_COVER_SIZE = 34;
+
+/** 队列行封面圆角。CSS 读不到 TS 常量，所以这个值由模板同时喂给
+ *  CoverImage 的 :radius 和封面容器的 borderRadius，保证两处不会写岔。 */
+export const QUEUE_COVER_RADIUS = 6;
 
 /* ---------- 封面实体网格（歌单 / 专辑 / 排行榜） ---------- */
 /**

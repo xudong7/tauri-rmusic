@@ -1,9 +1,22 @@
+import { createPinia } from "pinia";
 import { mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { i18n } from "@/i18n";
 import { QUEUE_ROW_HEIGHT, VIRTUAL_LIST_THRESHOLD } from "@/constants";
 import PlaybackQueue from "./PlaybackQueue.vue";
 import type { PlaybackQueueItem } from "@/types/model";
+
+// 队列要读本地封面，会用到 localMusicStore 取默认目录
+vi.mock("@/stores/localMusicStore", () => ({
+  useLocalMusicStore: () => ({ getDefaultDirectory: () => "/music" }),
+}));
+
+// 封面缓存换成 spy，好在外面看「到底给多少行排了加载」。
+// vi.mock 的工厂会被提升到 import 之前，所以 spy 必须用 vi.hoisted 一起提。
+const { scheduleCoverLoads } = vi.hoisted(() => ({ scheduleCoverLoads: vi.fn() }));
+vi.mock("@/composables/useLocalCoverCache", () => ({
+  useLocalCoverCache: () => ({ getCover: () => "", scheduleMany: scheduleCoverLoads }),
+}));
 
 /** jsdom 里元素没有任何尺寸，虚拟列表会算出 0 行容量而渲染空列表。
  *  两个属性分属不同的原型，都要 stub：useElementSize 挂载时读
@@ -36,7 +49,7 @@ function queue(count: number): PlaybackQueueItem[] {
 async function mountQueue(items: PlaybackQueueItem[]) {
   const wrapper = mount(PlaybackQueue, {
     props: { items, title: "", isPlaying: false },
-    global: { plugins: [i18n] },
+    global: { plugins: [createPinia(), i18n] },
   });
   await wrapper.vm.$nextTick();
   return wrapper;
@@ -69,5 +82,64 @@ describe("PlaybackQueue", () => {
     const wrapper = await mountQueue([]);
     expect(wrapper.find(".queue-empty").exists()).toBe(true);
     expect(wrapper.find(".queue-list").exists()).toBe(false);
+  });
+
+  // 两种渲染模式的行标记现在是同一份（QueueRow），这条钉住它没有退化：
+  // 行数对、封面在、序号列已按参考图去掉。
+  it("每行渲染封面，且不再有序号列", async () => {
+    const wrapper = await mountQueue(queue(3));
+
+    expect(wrapper.findAll(".queue-item-cover")).toHaveLength(3);
+    expect(wrapper.findAll(".queue-item-index")).toHaveLength(0);
+  });
+
+  it("在线曲目直接用 pic_url，不排队异步加载", async () => {
+    const wrapper = await mountQueue([
+      {
+        key: "online:1",
+        title: "Track",
+        artist: "Artist",
+        sourceIndex: 0,
+        isCurrent: false,
+        coverUrl: "https://example.com/cover.jpg",
+      },
+    ]);
+
+    expect(wrapper.get(".queue-item-cover img").attributes("src")).toBe(
+      "https://example.com/cover.jpg"
+    );
+  });
+
+  // 播放/暂停原先挂在序号列上，序号列取消后改挂封面叠层
+  it("当前曲目在封面叠层上显示播放状态", async () => {
+    const playing = await mountQueue([{ ...queue(1)[0], isCurrent: true }]);
+    expect(playing.find(".queue-item-state").exists()).toBe(true);
+
+    const idle = await mountQueue([queue(1)[0]]);
+    expect(idle.find(".queue-item-state").exists()).toBe(false);
+  });
+
+  // 本地封面要经 IPC 逐个取。没有显式队列时 queue 会退化成整个本地曲库，
+  // 一旦给全量排加载，打开队列面板就会排上千次 IPC。这条盯住「只排可见行」。
+  it("虚拟滚动时只给可视窗口内的行排封面加载", async () => {
+    stubViewportHeight();
+    scheduleCoverLoads.mockClear();
+    const items = queue(2000).map((item, index) => ({
+      ...item,
+      coverFileName: `track-${index}.mp3`,
+    }));
+
+    await mountQueue(items);
+
+    // 去重：可视窗口变化会让 watcher 多次触发，各次列表是重叠的，
+    // 直接累加会把同一行算好几遍。
+    const scheduled = new Set(
+      scheduleCoverLoads.mock.calls.flatMap(([list]) =>
+        (list as PlaybackQueueItem[]).map((item) => item.coverFileName)
+      )
+    );
+    expect(scheduled.size).toBeGreaterThan(0);
+    // 可视 10 行 + 上下各 overscan 10 行
+    expect(scheduled.size).toBeLessThanOrEqual(VIEWPORT_ROWS + 2 * 10);
   });
 });

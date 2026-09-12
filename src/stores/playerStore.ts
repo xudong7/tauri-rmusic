@@ -169,6 +169,7 @@ export const usePlayerStore = defineStore("player", () => {
             artist: item.song.artists.join(", "),
             sourceIndex,
             isCurrent: currentOnlineSong.value?.id === item.song.id,
+            coverUrl: item.song.pic_url,
           };
         }
         const file = localMusicByFileName.value.get(item.file_name);
@@ -183,6 +184,7 @@ export const usePlayerStore = defineStore("player", () => {
           sourceIndex,
           isCurrent: currentMusic.value?.file_name === item.file_name,
           disabled: !file,
+          coverFileName: item.file_name,
         };
       });
     }
@@ -202,6 +204,7 @@ export const usePlayerStore = defineStore("player", () => {
           artist: display.artist,
           sourceIndex,
           isCurrent: getLocalTrackKey(file) === getLocalTrackKey(currentMusic.value!),
+          coverFileName: file.file_name,
         };
       });
     }
@@ -212,6 +215,7 @@ export const usePlayerStore = defineStore("player", () => {
       artist: song.artists.join(", "),
       sourceIndex,
       isCurrent: currentOnlineSong.value?.id === song.id,
+      coverUrl: song.pic_url,
     }));
   });
 
