@@ -88,13 +88,13 @@ function handleListKeydown(event: KeyboardEvent) {
       <slot name="empty" />
     </div>
 
+    <!-- 格数必须与 TrackRow 的网格一致：多一格空 span 就会把「歌曲」推到
+         歌名右边 52px。这里只有 4 格——封面、歌名、专辑、时长。 -->
     <div v-if="items.length > 0" class="track-list__columns" aria-hidden="true">
-      <span />
       <span />
       <span class="track-list__column-song">{{ columnLabels.song }}</span>
       <span class="track-list__column-album">{{ columnLabels.album }}</span>
       <span class="track-list__column-duration">{{ columnLabels.duration }}</span>
-      <span />
     </div>
 
     <div
@@ -167,20 +167,29 @@ function handleListKeydown(event: KeyboardEvent) {
   scrollbar-gutter: stable;
 }
 
+/* 行与列头都不再限宽居中：整块贴着内容区左边缘，与页面标题同一条竖线；
+   窗口拉宽时多出来的宽度落进主列（歌名那一格），也就是标题后面的空白。
+   过去这里有一条 max-width + margin-inline: auto，把列表居中成一条 1080px
+   的窄带，两侧各留一大块空白，和页面标题完全对不上。 */
 .track-list__rows {
   width: 100%;
   padding: 0 4px 12px;
   box-sizing: border-box;
-  margin-inline: auto;
 }
 
 .track-list__columns {
-  width: calc(100% - 8px);
+  /* 列头不在滚动容器里，宽度要自己扣两笔才与行的网格区同宽同起点：
+       · 4px —— 滚动条槽位（下面的滚动容器有 scrollbar-gutter: stable，
+         实宽取自 themes.css 的 ::-webkit-scrollbar）
+       · 4px —— 行的容器内边距（.track-list__rows 左右各 4px）
+       · 再左移 4px 把那两个内边距补回来，让两者的左边缘重合
+     两笔都算上，右对齐的时长才会与行里的时长落在同一条竖线上。 */
+  width: calc(100% - 12px);
+  margin-left: 4px;
   min-height: 32px;
-  margin-inline: auto;
   padding: 0 var(--app-track-row-padding-x);
   display: grid;
-  grid-template-columns: 36px 44px minmax(180px, 1fr) minmax(140px, 220px) 48px 34px;
+  grid-template-columns: var(--app-track-grid);
   align-items: center;
   gap: var(--app-track-row-gap);
   box-sizing: border-box;
@@ -192,24 +201,9 @@ function handleListKeydown(event: KeyboardEvent) {
 }
 
 .track-list__column-duration {
+  /* 与行里的时长同理：钉住最后一格，别依赖自动排列 */
+  grid-column: -1;
   text-align: right;
-}
-
-.track-list--reading .track-list__rows {
-  max-width: var(--app-list-reading-width);
-}
-
-.track-list--reading .track-list__columns {
-  max-width: var(--app-list-reading-width);
-}
-
-.track-list--online .track-list__rows {
-  max-width: var(--app-online-list-width);
-}
-
-.track-list--online .track-list__columns {
-  max-width: var(--app-online-list-width);
-  grid-template-columns: 36px 44px minmax(180px, 1fr) minmax(140px, 220px) 48px 76px;
 }
 
 .track-list__state {
@@ -220,32 +214,12 @@ function handleListKeydown(event: KeyboardEvent) {
   justify-content: center;
 }
 
+/* 窄屏只隐藏专辑这一格的内容。列数收窄与 gap 都由 --app-track-grid /
+   --app-track-row-gap 的断点覆写统一给出（themes.css），这里再写一遍网格
+   就是第二处需要同步的地方——列头与行当初就是这么错开的。 */
 @media (max-width: 1100px) {
-  .track-list__columns {
-    grid-template-columns: 36px 44px minmax(0, 1fr) 48px 34px;
-  }
-
-  .track-list--online .track-list__columns {
-    grid-template-columns: 36px 44px minmax(0, 1fr) 48px 76px;
-  }
-
   .track-list__column-album {
     display: none;
-  }
-
-  .track-list__column-duration {
-    grid-column: 4;
-  }
-}
-
-@media (max-width: 840px) {
-  .track-list__columns {
-    grid-template-columns: 32px 44px minmax(0, 1fr) 44px 32px;
-    gap: 10px;
-  }
-
-  .track-list--online .track-list__columns {
-    grid-template-columns: 32px 44px minmax(0, 1fr) 44px 76px;
   }
 }
 </style>

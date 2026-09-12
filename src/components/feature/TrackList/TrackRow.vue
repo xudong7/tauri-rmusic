@@ -134,8 +134,11 @@ function handleActivate() {
   padding: var(--app-track-row-padding-y) var(--app-track-row-padding-x);
   display: grid;
   /* 封面 40 + 主列 + 专辑 + 时长。操作按钮不再是独立列，所以在线曲目也
-     不需要更宽的最后一列，.track-row--online 那个变体一并去掉。 */
-  grid-template-columns: 40px minmax(180px, 1fr) minmax(140px, 220px) 48px;
+     不需要更宽的最后一列，.track-row--online 那个变体一并去掉。
+
+     网格从 --app-track-grid 来，窄屏变体也由那个 token 的断点覆写给出：
+     列头（TrackList）必须逐格一致，两边各写一份迟早会错开。 */
+  grid-template-columns: var(--app-track-grid);
   align-items: center;
   gap: var(--app-track-row-gap);
   box-sizing: border-box;
@@ -258,8 +261,13 @@ function handleActivate() {
 }
 
 .track-row__album {
-  grid-column: 3;
-  width: clamp(140px, 20vw, 260px);
+  /* 倒数第二格。写死 3 / 4 的话，窄屏列数收窄到 3 之后就得再来一条媒体查询
+     把它改回来——那正是列头与行错位的成因，这里用相对线号一次说清。 */
+  grid-column: -2;
+  /* 填满格子即可。原先这里另写了一个 clamp(140px, 20vw, 260px)，比轨道
+     (minmax(140px, 220px)) 还宽，最多溢出 40px——盖过 12px 的 gap 之后压进
+     时长那一格。宽度该由轨道决定，不该由格子里的元素再定一次。 */
+  width: 100%;
   overflow: hidden;
   color: var(--el-text-color-secondary);
   font-size: 12px;
@@ -302,7 +310,9 @@ function handleActivate() {
 }
 
 .track-row__duration {
-  grid-column: 4;
+  /* 最后一格。曲目没有专辑信息时 .track-row__album 根本不渲染（v-if），
+     靠自动排列会让时长顶到专辑那格——必须钉住。 */
+  grid-column: -1;
   min-width: 40px;
   color: var(--el-text-color-secondary);
   font-size: 12px;
@@ -359,28 +369,15 @@ function handleActivate() {
   }
 }
 
+/* 窄屏只处理内容显隐：列数收窄与 gap 都来自 --app-track-grid /
+   --app-track-row-gap 的断点覆写（themes.css），这里不再重复一遍网格。 */
 @media (max-width: 1100px) {
   .track-row__album {
     display: none;
   }
 
-  .track-row {
-    grid-template-columns: 40px minmax(0, 1fr) 48px;
-  }
-
-  .track-row__duration {
-    grid-column: 3;
-  }
-
   .track-row__meta-album {
     display: inline;
-  }
-}
-
-@media (max-width: 840px) {
-  .track-row {
-    grid-template-columns: 40px minmax(0, 1fr) 44px;
-    gap: 10px;
   }
 }
 
