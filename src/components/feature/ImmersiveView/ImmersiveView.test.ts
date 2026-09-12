@@ -42,32 +42,21 @@ async function mountImmersiveView() {
 }
 
 describe("ImmersiveView 退出入口", () => {
-  it("顶部 chevron 与左下角折角各提供一个退出入口", async () => {
-    const wrapper = await mountImmersiveView();
-
-    expect(wrapper.find(".back-btn").exists()).toBe(true);
-    expect(wrapper.find(".corner-exit-btn").exists()).toBe(true);
-  });
-
-  it("两个入口点击后都 emit exit", async () => {
+  it("点击返回按钮 emit exit", async () => {
     const wrapper = await mountImmersiveView();
 
     await wrapper.get(".back-btn").trigger("click");
-    await wrapper.get(".corner-exit-btn").trigger("click");
 
-    expect(wrapper.emitted("exit")).toHaveLength(2);
+    expect(wrapper.emitted("exit")).toHaveLength(1);
   });
 
-  // el-tooltip 经 ElOnlyChild 把事件与 aria 属性合并到子节点上，而不是套一层
-  // wrapper。这条断言把这个约定钉住：一旦 tooltip 变成外层 <span>，折角按钮的
-  // 绝对定位包含块就会从 .immersive-view 变成那个 span，左下角按钮会跑位。
-  it("折角入口是原生 button，未被 tooltip 包一层，且有可访问名", async () => {
+  // 图标按钮没有文本，el-tooltip 给的是 aria-describedby（描述）而不是名称，
+  // 必须靠 aria-label 补上，否则读屏只会念出一个没有名字的「按钮」。
+  it("返回按钮带可访问名", async () => {
     const wrapper = await mountImmersiveView();
-    const button = wrapper.get(".corner-exit-btn");
 
-    expect(button.element.tagName).toBe("BUTTON");
-    expect(button.element.parentElement?.className).toContain("immersive-view");
-    expect(button.attributes("aria-label")).toBe(i18n.global.t("common.back"));
-    expect(button.find("svg").exists()).toBe(true);
+    expect(wrapper.get(".back-btn").attributes("aria-label")).toBe(
+      i18n.global.t("common.back")
+    );
   });
 });

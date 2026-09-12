@@ -17,11 +17,17 @@
   --immersive-cover-size: clamp(270px, min(32vw, 52vh), 380px);
   --immersive-lyrics-height: clamp(260px, 42vh, 390px);
   --immersive-titlebar-height: 44px;
-  /* macOS 原生红黄绿按钮的占位宽度。
-     推导：tauri.macos.conf.json 里 trafficLightPosition.x = 12，
-     三个按钮各 12px、间隔 8px → 12 + 3×12 + 2×8 = 64px，再留 14px 间隙。
+  --immersive-exit-btn-size: 28px;
+  /* macOS 原生红黄绿按钮的几何，实机截图实测得来。
+     截图与 CSS 像素是 1:1（播放按钮 56px 正好占 56 像素，可据此标定），
+     所以下面这些数可以直接原样写进 CSS：
+       · 左边缘距窗口左边 12px（trafficLightPosition.x = 12）
+       · 三个按钮各 14px、相邻中心间距 23px
+         → 最右边缘落在 12 + 14 + 23 + 23 = 72px
+       · 垂直中心距窗口顶边 11.5px（trafficLightPosition.y = 14）
      原生按钮由 AppKit 绘制、永远盖在 webview 之上，z-index 压不住，只能让位。 */
   --immersive-mac-traffic-lights-width: 78px;
+  --immersive-mac-traffic-lights-center-y: 11.5px;
   --immersive-control-surface: rgba(10, 16, 20, 0.26);
   --immersive-control-surface-hover: color-mix(
     in srgb,
@@ -116,10 +122,21 @@
   pointer-events: none;
 }
 
-/* macOS 上原生窗口按钮在左上角，返回键跟着挪过去紧挨其后；
-   其余平台没有红黄绿，保持 left: 20px 原位。 */
+/* macOS 上原生窗口按钮在左上角，返回键跟着挪过去并与红黄绿同心。
+   其余平台没有红黄绿，保持 left: 20px / top: 12px 原位。
+
+   按钮在 mac 上压到 23px 是被迫的：要让一个圆形按钮与红绿灯同心，
+   直径不能超过「中心距顶边」的两倍（2 × 11.5），否则顶部会越过窗口上缘，
+   被 .immersive-view 的 overflow: hidden 削平，hover 时圆角变成平口。
+   只有外框缩水，里面的图标字号不变，字形大小与非 mac 一致。 */
+.immersive-view.is-mac-platform {
+  --immersive-exit-btn-size: 23px;
+}
+
 .immersive-view.is-mac-platform .top-section {
-  top: 10px;
+  top: calc(
+    var(--immersive-mac-traffic-lights-center-y) - var(--immersive-exit-btn-size) / 2
+  );
   left: var(--immersive-mac-traffic-lights-width);
   right: 18px;
   justify-content: flex-start;
@@ -131,8 +148,8 @@
   background: transparent !important;
   border: 1px solid transparent !important;
   color: var(--immersive-top-control) !important;
-  width: 28px;
-  height: 28px;
+  width: var(--immersive-exit-btn-size);
+  height: var(--immersive-exit-btn-size);
   border-radius: var(--app-radius-full) !important;
   box-shadow: none;
   transition:
@@ -152,56 +169,6 @@
 .back-btn:active {
   background: rgba(255, 255, 255, 0.14) !important;
   color: #fff !important;
-}
-
-/* 左下角折角退出入口 —— 与顶部 chevron 功能等价，只是位置不同。
-   用原生 <button>：useWindowDrag 的 NO_DRAG_SELECTOR 已包含 "button"，
-   无需额外加 data-no-drag。 */
-.corner-exit-btn {
-  position: absolute;
-  left: 20px;
-  bottom: 20px;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: var(--app-radius-full);
-  background: transparent;
-  color: var(--immersive-top-control);
-  cursor: pointer;
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease;
-}
-
-.corner-exit-btn:hover {
-  background: var(--immersive-control-surface);
-  border-color: var(--immersive-control-border);
-  color: var(--immersive-text-primary);
-}
-
-/* 按下时借控制按钮的主色混合，与顶部 chevron 的 :active 观感一致，
-   但不写死白色 —— 浅色封面下 uses-dark-foreground 会把 token 整体翻成深色。 */
-.corner-exit-btn:active {
-  background: var(--immersive-control-surface-hover);
-  border-color: var(--immersive-control-border);
-  color: var(--immersive-text-primary);
-}
-
-.corner-exit-btn:focus-visible {
-  outline: 2px solid currentColor;
-  outline-offset: 3px;
-}
-
-.corner-exit-btn svg {
-  display: block;
-  width: 16px;
-  height: 16px;
 }
 
 /* 窗口控制按钮 */
@@ -598,11 +565,6 @@
   .immersive-view {
     --immersive-cover-size: clamp(150px, 28vh, 188px);
     --immersive-lyrics-height: clamp(112px, 22vh, 150px);
-  }
-
-  .immersive-view.is-mac-platform .top-section {
-    top: 10px;
-    right: 18px;
   }
 
   .content-section {

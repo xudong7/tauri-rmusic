@@ -179,10 +179,13 @@ const overlayStyle = computed(() => {
 
     <div class="top-section">
       <el-tooltip :content="t('common.back')" placement="bottom" effect="dark">
+        <!-- 只有图标没有文本，el-tooltip 给的 aria-describedby 是「描述」不是
+             「名称」，所以要显式补 aria-label，否则读屏只念得出一个「按钮」。 -->
         <el-button
           data-no-drag
           @click="emit('exit')"
           :icon="ArrowDown"
+          :aria-label="t('common.back')"
           circle
           class="back-btn"
         />
@@ -205,35 +208,6 @@ const overlayStyle = computed(() => {
         </el-tooltip>
       </div>
     </div>
-
-    <!-- 左下角折角退出入口：与顶部 chevron 等价。
-         放在 content-section 之前，是为了让键盘用户更早 Tab 到退出，
-         视觉位置由绝对定位决定，不受 DOM 顺序影响。 -->
-    <el-tooltip :content="t('common.back')" placement="top" effect="dark">
-      <button
-        type="button"
-        class="corner-exit-btn"
-        :aria-label="t('common.back')"
-        @click="emit('exit')"
-      >
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M3.5 20.5V7.5A4 4 0 0 1 7.5 3.5H20.5"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-          <path
-            d="M9 20.5V14a4 4 0 0 1 4-4h7.5"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-      </button>
-    </el-tooltip>
 
     <div class="content-section">
       <!-- 左侧：封面 + 歌曲信息 + 控制 -->
