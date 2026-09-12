@@ -201,8 +201,9 @@ function handleListKeydown(event: KeyboardEvent) {
 }
 
 .track-list__column-duration {
-  /* 与行里的时长同理：钉住最后一格，别依赖自动排列 */
-  grid-column: -1;
+  /* 与行里的时长同理：钉住最后一格，且必须写成线到线的区间。
+     单个 -1 是最后一条线，会让这一格落到显式网格之外，凭空多出一格。 */
+  grid-column: -2 / -1;
   text-align: right;
 }
 

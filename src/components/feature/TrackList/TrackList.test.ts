@@ -69,6 +69,30 @@ describe("TrackList", () => {
       expect(cells).toHaveLength(tracks);
     });
 
+    // 这一条守的是一个没有报错、也测不出布局的错误：
+    // grid-column: -1 是「最后一条网格线」，不是「最后一格」。拿它当起始线，
+    // 元素就落在显式网格之外，浏览器为它新生成一格——整行右移一格，专辑挤进
+    // 时长那格，列头却不会跟着动。jsdom 不算布局，只有真浏览器能看出来，
+    // 所以退而求其次：从源码层面禁止裸负线号。
+    it("网格定位不写裸负线号，要用线到线的区间", () => {
+      const sources = import.meta.glob("../../**/*.{vue,css}", {
+        query: "?raw",
+        import: "default",
+        eager: true,
+      }) as Record<string, string>;
+
+      const offenders: string[] = [];
+      for (const [file, text] of Object.entries(sources)) {
+        // 注释里会原样引用这些写法，先去掉再找
+        const css = text.replace(/\/\*[\s\S]*?\*\//g, "");
+        for (const match of css.matchAll(/grid-(?:column|row)(?:-start)?:\s*-\d+\s*;/g)) {
+          offenders.push(`${file}: ${match[0]}`);
+        }
+      }
+
+      expect(offenders).toEqual([]);
+    });
+
     it("两边都读同一个 token，不各写一份", () => {
       for (const [file, source] of [
         ["TrackRow.vue", trackRowSource],

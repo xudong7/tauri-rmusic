@@ -256,9 +256,11 @@ function handleActivate() {
 }
 
 .track-row__album {
-  /* 倒数第二格。写死 3 / 4 的话，窄屏列数收窄到 3 之后就得再来一条媒体查询
-     把它改回来——那正是列头与行错位的成因，这里用相对线号一次说清。 */
-  grid-column: -2;
+  /* 倒数第二格。必须写成 -3 / -2（起线 / 止线）这样的区间，不能只给一个
+     grid-column: -2：负数是「从显式网格末尾倒数第几条线」，单独一个负线号
+     作起始线，元素就落在显式网格之外，浏览器会为它新生成一格——整行因此
+     右移一格，专辑挤进时长那格，而列头不会跟着动。 */
+  grid-column: -3 / -2;
   /* 填满格子即可。原先这里另写了一个 clamp(140px, 20vw, 260px)，比轨道
      (minmax(140px, 220px)) 还宽，最多溢出 40px——盖过 12px 的 gap 之后压进
      时长那一格。宽度该由轨道决定，不该由格子里的元素再定一次。 */
@@ -301,9 +303,10 @@ function handleActivate() {
 }
 
 .track-row__duration {
-  /* 最后一格。曲目没有专辑信息时 .track-row__album 根本不渲染（v-if），
-     靠自动排列会让时长顶到专辑那格——必须钉住。 */
-  grid-column: -1;
+  /* 最后一格，同样要写成线到线的区间（理由见上面 .track-row__album）。
+     另外曲目没有专辑信息时 .track-row__album 根本不渲染（v-if），靠自动排列
+     会让时长顶到专辑那格，所以这里必须钉死。 */
+  grid-column: -2 / -1;
   min-width: 40px;
   color: var(--el-text-color-secondary);
   font-size: 12px;
