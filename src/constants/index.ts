@@ -34,9 +34,10 @@ export const VIRTUAL_LIST_OVERSCAN = 10;
  * 播放队列行高，对应 .queue-item 的高度（队列条目文本单行截断，高度因此固定）。
  * 虚拟滚动要求行高精确，否则滚动位置会累积漂移。
  *
- * 50 是照参考图队列量出来的：行间距 57.75px，除以该截图的标度 1.15。
+ * 行高由封面撑出来：34 + 上下内边距各 6 = 46，正好对上 CSS 里的
+ * padding: 6px 8px。曲目信息并成一行后，文字不再是决定高度的那个。
  */
-export const QUEUE_ROW_HEIGHT = 50;
+export const QUEUE_ROW_HEIGHT = 46;
 
 /** 队列行封面尺寸，同样来自参考图：封面 40px ÷ 1.15 */
 export const QUEUE_COVER_SIZE = 34;

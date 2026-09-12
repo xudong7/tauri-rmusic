@@ -46,9 +46,9 @@ function queue(count: number): PlaybackQueueItem[] {
 
 /** 可视范围由 useVirtualList 的 watch 计算，是 pre-flush watcher，
  *  必须等到 nextTick 之后行才会出现在 DOM 里。 */
-async function mountQueue(items: PlaybackQueueItem[]) {
+async function mountQueue(items: PlaybackQueueItem[], title = "") {
   const wrapper = mount(PlaybackQueue, {
-    props: { items, title: "", isPlaying: false },
+    props: { items, title, isPlaying: false },
     global: { plugins: [createPinia(), i18n] },
   });
   await wrapper.vm.$nextTick();
@@ -117,6 +117,24 @@ describe("PlaybackQueue", () => {
 
     const idle = await mountQueue([queue(1)[0]]);
     expect(idle.find(".queue-item-state").exists()).toBe(false);
+  });
+
+  it("标题栏只显示队列来源，不再显示位置计数", async () => {
+    const wrapper = await mountQueue(queue(26), "曲库");
+
+    expect(wrapper.get(".queue-heading p").text()).toBe("曲库");
+  });
+
+  // 歌名与歌手现在同处一行，靠 .queue-item-main 的 flex 排布。
+  // jsdom 量不到布局，只能钉住结构：两段必须是同一个容器的子元素，
+  // 且歌手带自己的类名——分隔点挂在 .queue-item-artist 的 ::before 上。
+  it("歌名与歌手排在同一个容器里", async () => {
+    const main = (await mountQueue(queue(1))).get(".queue-item-main");
+    const [title, artist] = Array.from(main.element.children);
+
+    expect(main.element.children).toHaveLength(2);
+    expect(title.tagName).toBe("STRONG");
+    expect(artist.className).toContain("queue-item-artist");
   });
 
   // 本地封面要经 IPC 逐个取。没有显式队列时 queue 会退化成整个本地曲库，

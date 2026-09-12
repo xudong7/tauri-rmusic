@@ -51,7 +51,7 @@ const emit = defineEmits<{ play: [] }>();
     </span>
     <span class="queue-item-main">
       <strong>{{ item.title }}</strong>
-      <span>{{ item.artist }}</span>
+      <span class="queue-item-artist">{{ item.artist }}</span>
     </span>
   </button>
 </template>
@@ -109,27 +109,34 @@ const emit = defineEmits<{ play: [] }>();
   font-size: 15px;
 }
 
+/* 歌名与歌手排成一行。两段都允许收缩并各自省略：长标题先让位，
+   短标题时长歌手才截断。整行 nowrap，不需要横向滚动。 */
 .queue-item-main {
   min-width: 0;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.queue-item-main strong,
-.queue-item-main span {
-  overflow: hidden;
-  text-overflow: ellipsis;
+  align-items: baseline;
   white-space: nowrap;
+  overflow: hidden;
 }
 
 .queue-item-main strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 13px;
   font-weight: 600;
 }
 
-.queue-item-main span {
+.queue-item-artist {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--el-text-color-secondary);
   font-size: 11px;
+}
+
+/* 分隔点跟着歌手走：整段歌手被截没时，孤零零一个点反而像是坏掉了 */
+.queue-item-artist::before {
+  content: " · ";
 }
 </style>

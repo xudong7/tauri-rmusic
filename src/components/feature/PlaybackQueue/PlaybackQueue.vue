@@ -22,9 +22,6 @@ const emit = defineEmits<{
 
 const panelRef = ref<HTMLElement | null>(null);
 const currentIndex = computed(() => props.items.findIndex((item) => item.isCurrent));
-const currentPosition = computed(() =>
-  currentIndex.value >= 0 ? currentIndex.value + 1 : 0
-);
 
 // 没有显式队列时，playbackQueueItems 会退化成整个本地曲库，
 // 裸 v-for 会在一次 patch 里建出成千上万个节点。行高固定，适合虚拟化。
@@ -124,10 +121,7 @@ function handlePanelKeydown(event: KeyboardEvent) {
       <header class="queue-header">
         <div class="queue-heading">
           <h2>{{ t("playerBar.queue") }}</h2>
-          <p>
-            {{ title || t("playerBar.currentQueue") }}
-            <span v-if="items.length">· {{ currentPosition }}/{{ items.length }}</span>
-          </p>
+          <p>{{ title || t("playerBar.currentQueue") }}</p>
         </div>
         <button
           type="button"
@@ -183,7 +177,9 @@ function handlePanelKeydown(event: KeyboardEvent) {
 }
 
 .queue-panel {
-  width: min(350px, calc(100vw - 32px));
+  /* 420px 来自参考图：面板占 848→1320，除以该截图标度 1.15 约 410px。
+     曲目信息改成一行后更依赖宽度，350px 会把长标题挤没。 */
+  width: min(420px, calc(100vw - 32px));
   height: 100%;
   display: flex;
   flex-direction: column;
