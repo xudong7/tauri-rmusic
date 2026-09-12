@@ -19,6 +19,7 @@ import PlaybackQueue from "./components/feature/PlaybackQueue/PlaybackQueue.vue"
 import ImmersiveView from "./components/feature/ImmersiveView/ImmersiveView.vue";
 import type { SearchScope } from "./types/model";
 import { useAppKeyboardShortcuts } from "./composables/useAppKeyboardShortcuts";
+import { usePlaybackQueueRouteReset } from "./composables/usePlaybackQueueRouteReset";
 import { useStorageThemeSync } from "./composables/useStorageThemeSync";
 import { useTrayPlaybackEvents } from "./composables/useTrayPlaybackEvents";
 import { useWindowSizeConstraints } from "./composables/useWindowSizeConstraints";
@@ -73,6 +74,8 @@ const keyboardShortcuts = useAppKeyboardShortcuts({
 const themeSync = useStorageThemeSync({
   setThemeWithoutSave: themeStore.setThemeWithoutSave,
 });
+// 不带返回值：内部那个 watcher 挂在当前组件的 scope 上，随卸载自动停
+usePlaybackQueueRouteReset();
 const trayEvents = useTrayPlaybackEvents({
   onPrevious: () => playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1)),
   onNext: () => playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1)),
