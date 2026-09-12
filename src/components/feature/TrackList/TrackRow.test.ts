@@ -25,6 +25,18 @@ describe("TrackRow", () => {
     expect(wrapper.classes()).toContain("is-current");
   });
 
+  // 序号已全项目取消（队列面板先去掉，这里跟着对齐）。封面 + 歌名/歌手
+  // 已经足够识别曲目，列头另有 x/y 交代位置，序号只剩视觉噪音。
+  // 用 sourceIndex 非 0 的曲目，确保断的不是「碰巧没渲染」。
+  it("不再渲染序号", () => {
+    const wrapper = mount(TrackRow, {
+      props: { item: { ...item, sourceIndex: 7, isCurrent: false, isPlaying: false } },
+    });
+
+    expect(wrapper.find(".track-row__index").exists()).toBe(false);
+    expect(wrapper.find(".track-row__play").text()).toBe("");
+  });
+
   it("emits activate from the play control", async () => {
     const wrapper = mount(TrackRow, { props: { item } });
     await wrapper.find("button").trigger("click");

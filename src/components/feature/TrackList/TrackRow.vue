@@ -85,9 +85,6 @@ function handleActivate() {
           <i />
         </span>
         <el-icon v-else class="track-row__play-icon"><CaretRight /></el-icon>
-        <span v-if="!item.isCurrent" class="track-row__index">{{
-          item.sourceIndex + 1
-        }}</span>
       </button>
     </div>
 
@@ -308,8 +305,6 @@ function handleActivate() {
   background: transparent;
   cursor: pointer;
   font: inherit;
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
   transition:
     color var(--app-control-transition),
     background var(--app-control-transition),
@@ -324,6 +319,9 @@ function handleActivate() {
   outline: none;
 }
 
+/* 序号去掉后，这一格默认是空的，悬停或键盘聚焦时才浮出播放键。
+   当前曲目例外——均衡器/播放图标常驻，作为「正在播这首」的标记，
+   与队列面板把播放态叠在封面上是同一个意思。 */
 .track-row__play-icon {
   position: absolute;
   opacity: 0;
@@ -334,11 +332,6 @@ function handleActivate() {
 .track-row:focus-within .track-row__play-icon,
 .track-row__play-button.is-current .track-row__play-icon {
   opacity: 1;
-}
-
-.track-row:hover .track-row__index,
-.track-row:focus-within .track-row__index {
-  opacity: 0;
 }
 
 .track-row__equalizer {
