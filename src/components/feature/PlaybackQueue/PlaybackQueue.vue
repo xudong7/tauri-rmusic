@@ -83,38 +83,24 @@ onMounted(async () => {
   scrollTo(Math.max(0, currentIndex.value - half));
 });
 
+/**
+ * 只处理 Escape。原先还把 Tab 圈在面板里，那是模态对话框的做法；
+ * 现在面板是停靠式的，主页列表要能继续用，Tab 就该能走出去。
+ */
 function handlePanelKeydown(event: KeyboardEvent) {
-  if (event.key === "Escape") {
-    emit("close");
-    return;
-  }
-  if (event.key !== "Tab" || !panelRef.value) return;
-  const focusable = Array.from(
-    panelRef.value.querySelectorAll<HTMLElement>(
-      'button:not(:disabled), [href], [tabindex]:not([tabindex="-1"])'
-    )
-  );
-  if (!focusable.length) return;
-  const first = focusable[0];
-  const last = focusable[focusable.length - 1];
-  if (event.shiftKey && document.activeElement === first) {
-    event.preventDefault();
-    last.focus();
-  } else if (!event.shiftKey && document.activeElement === last) {
-    event.preventDefault();
-    first.focus();
-  }
+  if (event.key === "Escape") emit("close");
 }
 </script>
 
 <template>
-  <div class="queue-layer" @click.self="emit('close')">
+  <div class="queue-layer">
+    <!-- 不加 aria-modal：面板打开时主页照常可滚动可点击，宣称模态会让读屏
+         把下面的内容当成惰性的，与实际行为相反。 -->
     <aside
       ref="panelRef"
       class="queue-panel"
       tabindex="-1"
       role="dialog"
-      aria-modal="true"
       :aria-label="t('playerBar.queue')"
       @keydown="handlePanelKeydown"
     >
@@ -167,13 +153,16 @@ function handlePanelKeydown(event: KeyboardEvent) {
 </template>
 
 <style scoped>
+/* 停靠式面板，不是模态遮罩：这一层只负责把面板摆到右侧，本身不吃指针事件，
+   也不铺遮罩。主页列表因此照常可以滚动、可以点歌——面板打开的是一块
+   额外空间，不是把下面的内容锁住。 */
 .queue-layer {
   position: fixed;
   inset: var(--app-header-height) 0 var(--app-player-height) 0;
   z-index: 180;
   display: flex;
   justify-content: flex-end;
-  background: var(--app-overlay-scrim);
+  pointer-events: none;
 }
 
 .queue-panel {
@@ -181,6 +170,8 @@ function handlePanelKeydown(event: KeyboardEvent) {
      曲目信息改成一行后更依赖宽度，350px 会把长标题挤没。 */
   width: min(420px, calc(100vw - 32px));
   height: 100%;
+  /* 上层整层不吃指针事件，只有面板自己吃 */
+  pointer-events: auto;
   display: flex;
   flex-direction: column;
   color: var(--el-text-color-primary);

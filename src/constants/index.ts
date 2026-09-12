@@ -21,8 +21,12 @@ export const PLAYLIST_SAVE_DEBOUNCE_MS = 300;
 /** 默认封面图路径（对应 public/icon.png） */
 export const DEFAULT_COVER_URL = "/icon.png";
 
-/** 列表行高（与 CSS .list-row min-height + margin-bottom 一致），用于虚拟滚动计算 */
-export const LIST_ROW_HEIGHT = 64;
+/**
+ * 列表行高，用于虚拟滚动计算。
+ * 必须与 CSS 的 --app-track-row-height 一致（那里还含上下各 8px 内边距，
+ * 实际边框盒高度 = 这个值），否则滚动位置会随行数累积漂移。
+ */
+export const LIST_ROW_HEIGHT = 50;
 
 /** 超过该数量时启用虚拟滚动，避免大量 DOM 导致卡顿 */
 export const VIRTUAL_LIST_THRESHOLD = 50;
@@ -34,12 +38,12 @@ export const VIRTUAL_LIST_OVERSCAN = 10;
  * 播放队列行高，对应 .queue-item 的高度（队列条目文本单行截断，高度因此固定）。
  * 虚拟滚动要求行高精确，否则滚动位置会累积漂移。
  *
- * 行高由封面撑出来：34 + 上下内边距各 6 = 46，正好对上 CSS 里的
- * padding: 6px 8px。曲目信息并成一行后，文字不再是决定高度的那个。
+ * 与 LIST_ROW_HEIGHT 相同，队列行和主页列表行看起来才是同一套语言：
+ * 封面 34 + 上下内边距各 8。参考图实测两者行距都是 57.7px ÷ 1.15。
  */
-export const QUEUE_ROW_HEIGHT = 46;
+export const QUEUE_ROW_HEIGHT = 50;
 
-/** 队列行封面尺寸，同样来自参考图：封面 40px ÷ 1.15 */
+/** 队列行封面尺寸，与主页列表保持一致（参考图实测 40px ÷ 1.15） */
 export const QUEUE_COVER_SIZE = 34;
 
 /** 队列行封面圆角。CSS 读不到 TS 常量，所以这个值由模板同时喂给

@@ -68,7 +68,6 @@ html {
   --app-surface-shadow: 0 1px 2px rgba(15, 23, 42, 0.025);
   --app-subtle-surface: rgba(255, 255, 255, 0.54);
   --app-overlay-panel-bg: #ffffff;
-  --app-overlay-scrim: rgba(15, 23, 42, 0.08);
   --app-overlay-panel-shadow: -18px 0 50px rgba(15, 23, 42, 0.14);
 
   /* 主色 */
@@ -98,7 +97,10 @@ html {
   --list-header-btn-padding: 4px 8px;
   --list-header-icon-size: 16px;
   --list-row-btn-size: 34px;
-  --app-track-row-height: 64px;
+  /* 行高 = 封面 34 + 上下内边距各 8。字号与行高收紧后两行文字约 33px，
+     不再把行撑高。须与 LIST_ROW_HEIGHT 对齐，那个是虚拟滚动的行高，
+     两者对不上滚动位置会累积漂移。 */
+  --app-track-row-height: 50px;
   --app-track-row-gap: 12px;
   --app-track-row-padding-x: 8px;
   --app-track-row-padding-y: 8px;
@@ -227,7 +229,6 @@ html.dark {
   --app-surface-shadow: none;
   --app-subtle-surface: rgba(255, 255, 255, 0.025);
   --app-overlay-panel-bg: #1a1a1a;
-  --app-overlay-scrim: rgba(0, 0, 0, 0.22);
   --app-overlay-panel-shadow: -20px 0 54px rgba(0, 0, 0, 0.36);
   --hover-bg-color: rgba(255, 255, 255, 0.04);
   --active-item-bg: rgba(106, 158, 200, 0.1);
@@ -316,7 +317,6 @@ html.theme-warm {
   --app-header-border: rgba(61, 56, 50, 0.1);
   --app-header-shadow: 0 1px 3px rgba(61, 56, 50, 0.06);
   --app-overlay-panel-bg: #fffdfb;
-  --app-overlay-scrim: rgba(61, 56, 50, 0.1);
   --app-overlay-panel-shadow: -18px 0 50px rgba(61, 56, 50, 0.16);
 
   /* 侧栏：与主区同色系 */

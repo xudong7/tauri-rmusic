@@ -89,7 +89,7 @@ function handleActivate() {
     </div>
 
     <div class="track-row__cover">
-      <CoverImage :src="resolvedCoverUrl" alt="" :size="44" :radius="7" />
+      <CoverImage :src="resolvedCoverUrl" alt="" :size="34" :radius="6" />
     </div>
 
     <div class="track-row__main">
@@ -123,7 +123,7 @@ function handleActivate() {
   margin-bottom: 0;
   padding: var(--app-track-row-padding-y) var(--app-track-row-padding-x);
   display: grid;
-  grid-template-columns: 36px 44px minmax(180px, 1fr) minmax(140px, 220px) 48px 34px;
+  grid-template-columns: 36px 34px minmax(180px, 1fr) minmax(140px, 220px) 48px 34px;
   align-items: center;
   gap: var(--app-track-row-gap);
   box-sizing: border-box;
@@ -201,8 +201,8 @@ function handleActivate() {
 }
 
 .track-row__cover {
-  width: 44px;
-  height: 44px;
+  width: 34px;
+  height: 34px;
   overflow: hidden;
   border-radius: var(--app-radius-sm);
 }
@@ -224,10 +224,14 @@ function handleActivate() {
   display: none;
 }
 
+/* 字号与行高都跟着队列行对齐（13/11，行距约 19px）。
+   行高必须显式给：默认 leading 下两行加起来约 40px，会把行高顶到 56px，
+   50px 的行高就落不了地。参考图实测行距 19.1px，1.3 正好对上。 */
 .track-row__title {
   color: var(--el-text-color-primary);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
+  line-height: 1.3;
 }
 
 .track-row__title.is-playing {
@@ -236,9 +240,10 @@ function handleActivate() {
 }
 
 .track-row__meta {
-  margin-top: 3px;
+  margin-top: 2px;
   color: var(--el-text-color-secondary);
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 1.3;
 }
 
 .track-row__duration {

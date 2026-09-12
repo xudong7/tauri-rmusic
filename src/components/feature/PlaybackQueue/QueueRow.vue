@@ -59,7 +59,8 @@ const emit = defineEmits<{ play: [] }>();
 <style scoped>
 .queue-item {
   width: 100%;
-  padding: 6px 8px;
+  /* 上下 8px 与主页列表行一致：34px 封面 + 16px 内边距 = 50px 行高 */
+  padding: 8px;
   display: grid;
   /* 只有封面和文字两列：序号列已按参考图去掉 */
   grid-template-columns: auto minmax(0, 1fr);

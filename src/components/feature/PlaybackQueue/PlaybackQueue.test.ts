@@ -119,6 +119,23 @@ describe("PlaybackQueue", () => {
     expect(idle.find(".queue-item-state").exists()).toBe(false);
   });
 
+  // 面板现在是停靠式的：打开时主页列表照常可滚动可点击。宣称 aria-modal
+  // 会让读屏把下面的内容当成惰性的，与实际行为正相反。
+  it("面板不声明为模态", async () => {
+    const panel = (await mountQueue(queue(3))).get(".queue-panel");
+
+    expect(panel.attributes("role")).toBe("dialog");
+    expect(panel.attributes("aria-modal")).toBeUndefined();
+  });
+
+  it("Escape 关闭面板", async () => {
+    const wrapper = await mountQueue(queue(3));
+
+    await wrapper.get(".queue-panel").trigger("keydown", { key: "Escape" });
+
+    expect(wrapper.emitted("close")).toHaveLength(1);
+  });
+
   it("标题栏只显示队列来源，不再显示位置计数", async () => {
     const wrapper = await mountQueue(queue(26), "曲库");
 
