@@ -4,12 +4,12 @@ import { useI18n } from "vue-i18n";
 import {
   Close,
   Clock,
-  Delete,
   FullScreen,
   Minus,
   ScaleToOriginal,
   Search,
 } from "@element-plus/icons-vue";
+import TrashIcon from "@/components/base/icons/TrashIcon.vue";
 import { ViewMode, type SearchScope } from "@/types/model";
 import { useWindowControls } from "@/composables/useWindowControls";
 import { useWindowDrag } from "@/composables/useWindowDrag";
@@ -223,7 +223,7 @@ onUnmounted(() => {
                   class="search-history-clear-btn"
                   @click="clearHistory"
                 >
-                  <el-icon><Delete /></el-icon>
+                  <el-icon><TrashIcon /></el-icon>
                   <span>{{ t("search.clearHistory") }}</span>
                 </button>
               </div>
