@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { Upload, Plus, CircleCheck } from "@element-plus/icons-vue";
+import { Upload, Plus, Check } from "@element-plus/icons-vue";
 import type { MusicFile } from "@/types/model";
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { ElMessage } from "element-plus";
@@ -257,7 +257,7 @@ function scheduleVisibleCovers(items: TrackRowModel[]) {
             <el-button
               link
               size="small"
-              :icon="CircleCheck"
+              :icon="Check"
               type="primary"
               class="header-action-btn app-icon-button"
               @click="toggleSelectionMode"

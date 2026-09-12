@@ -78,7 +78,7 @@
               <el-button
                 link
                 size="small"
-                :icon="CircleCheck"
+                :icon="Check"
                 type="primary"
                 class="header-action-btn app-icon-button"
                 @click="toggleSelectionMode"
@@ -155,14 +155,7 @@ import { ref, computed, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
 import { useI18n } from "vue-i18n";
-import {
-  Minus,
-  Delete,
-  EditPen,
-  CircleCheck,
-  Folder,
-  Search,
-} from "@element-plus/icons-vue";
+import { Minus, Delete, EditPen, Check, Folder, Search } from "@element-plus/icons-vue";
 import PlayIcon from "@/components/base/icons/PlayIcon.vue";
 import type { PlaylistItem, MusicFile, SongInfo } from "@/types/model";
 import { formatDuration, getLocalMusicDisplayInfo } from "@/utils/songUtils";

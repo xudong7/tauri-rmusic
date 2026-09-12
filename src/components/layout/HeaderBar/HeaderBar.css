@@ -286,10 +286,9 @@ html.dark .search-history-item:focus-within {
   outline-offset: 2px;
 }
 
+/* 与全项目一致：悬停只让图标亮起来，不浮出底色方块 */
 .service-status:hover {
-  background: var(--app-icon-button-hover-bg);
-  border-color: var(--app-button-border);
-  transform: translateY(-1px);
+  color: var(--app-icon-button-hover-color);
 }
 
 .service-status-dot {

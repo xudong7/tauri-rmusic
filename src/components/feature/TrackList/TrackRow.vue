@@ -331,10 +331,9 @@ function handleActivate() {
     box-shadow var(--app-control-transition);
 }
 
+/* 与全项目一致：悬停只让图标亮起来，不浮出底色方块 */
 :deep(.track-row__actions .el-button:hover) {
   color: var(--app-icon-button-hover-color);
-  border-color: var(--app-button-border);
-  background: var(--app-icon-button-hover-bg);
 }
 
 .track-row__play-icon {

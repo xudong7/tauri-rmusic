@@ -370,37 +370,30 @@ html.theme-warm {
 }
 
 /* ---------- 共享图标按钮 ---------- */
+/* 只图标的按钮不套底色、描边和阴影，悬停只让图标自己亮起来。
+   三者缺一不可：底色其实是近乎透明的白，真正勾出那个圆圈的是浅描边和
+   那层 1px 投影——只清底色的话，圈还在。
+   带文字的按钮走 .el-button 自己的样式，不受这里影响。 */
 .app-icon-button.el-button {
   width: var(--app-icon-btn-md);
   height: var(--app-icon-btn-md);
   min-width: var(--app-icon-btn-md);
   padding: 0;
-  border: 1px solid var(--app-button-border);
+  border: 1px solid transparent;
   border-radius: var(--app-radius-full);
   color: var(--app-icon-button-color);
-  background: var(--app-button-bg);
-  box-shadow: var(--app-button-shadow);
-  transition:
-    color var(--app-control-transition),
-    background var(--app-control-transition),
-    border-color var(--app-control-transition),
-    box-shadow var(--app-control-transition),
-    transform var(--app-control-transition);
+  background: transparent;
+  box-shadow: none;
+  transition: color var(--app-control-transition);
 }
 
 .app-icon-button.el-button:not(:disabled):hover,
 .app-icon-button.el-button:not(:disabled):focus-visible {
   color: var(--app-icon-button-hover-color);
-  background: var(--app-icon-button-hover-bg);
-  border-color: color-mix(in srgb, var(--el-color-primary) 28%, var(--app-button-border));
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-  transform: translateY(-1px);
-}
-
-.app-icon-button.el-button:not(:disabled):active {
-  background: var(--app-button-active-bg);
-  box-shadow: var(--app-button-shadow);
-  transform: translateY(0);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  transform: none;
 }
 
 .app-icon-button--primary.el-button {
@@ -587,26 +580,31 @@ html.theme-warm {
 }
 
 /* ---------- 应用级控件类：供复杂组件复用 ---------- */
+/* 同一个类的非 el-button 版本（原生 button 也挂这个类）。
+   规矩与上面一致：无底色、无描边、无阴影，悬停只亮图标。
+   !important 保留——这个类会落到非 el-button 的元素上，那边没有 EP 的
+   样式兜底，去掉的话容易被子级样式意外覆盖。
+
+   注意：这条 !important 同样会盖掉 --primary / --danger 变体的底色，
+   因为那两条没带 !important（!important 压特异性，多写一个 .el-button 也
+   没用）。所以「播放全部」这类纯图标的强调按钮目前也是无底色的——这与
+   「图标按钮不套底色」一致。若哪天要让它们恢复实心，得先给那两条加上
+   !important 或把这里的透明底收窄到 :not() 之外。 */
 .app-icon-button {
   width: var(--app-icon-btn-md);
   height: var(--app-icon-btn-md);
   padding: 0;
   border: 1px solid transparent !important;
   border-radius: var(--app-radius-full) !important;
-  background: var(--app-icon-button-bg) !important;
+  background: transparent !important;
   color: var(--app-icon-button-color) !important;
-  transition:
-    background var(--app-control-transition),
-    border-color var(--app-control-transition),
-    color var(--app-control-transition),
-    transform var(--app-control-transition);
+  transition: color var(--app-control-transition);
 }
 
 .app-icon-button:not(.is-disabled):hover {
-  background: var(--app-icon-button-hover-bg) !important;
-  border-color: var(--app-button-border) !important;
+  background: transparent !important;
+  border-color: transparent !important;
   color: var(--app-icon-button-hover-color) !important;
-  transform: translateY(-1px);
 }
 
 .app-play-button {

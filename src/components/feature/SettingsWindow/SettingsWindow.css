@@ -194,9 +194,9 @@
   color: var(--el-text-color-secondary);
 }
 
+/* 与全项目一致：悬停只让图标亮起来，不浮出底色方块 */
 .path-copy:hover {
   color: var(--el-color-primary);
-  background: var(--app-icon-button-hover-bg);
 }
 
 .settings-about .about-content {
