@@ -201,14 +201,21 @@ onUnmounted(() => {
           <router-view />
         </div>
       </div>
-      <PlaybackQueue
-        v-if="viewStore.showPlaybackQueue"
-        :items="playerStore.playbackQueueItems"
-        :title="playerStore.playbackQueueTitle"
-        :is-playing="playerStore.isPlaying"
-        @close="closePlaybackQueue"
-        @play="playerStore.playQueueItem"
-      />
+      <!-- 过渡类名（.queue-enter-* / .queue-leave-*）写在 PlaybackQueue.vue 自己的
+           scoped 样式里，不在这里：那边最后一个复合选择器会自动带上 [data-v-*]，
+           才压得过 .queue-panel 自己声明的 pointer-events。
+           不加 :key —— BaseTransition 靠 isSameVNodeType 复用正在离场的节点，
+           key 一变会同时存在两个面板。 -->
+      <Transition name="queue">
+        <PlaybackQueue
+          v-if="viewStore.showPlaybackQueue"
+          :items="playerStore.playbackQueueItems"
+          :title="playerStore.playbackQueueTitle"
+          :is-playing="playerStore.isPlaying"
+          @close="closePlaybackQueue"
+          @play="playerStore.playQueueItem"
+        />
+      </Transition>
       <PlayerBar
         :currentMusic="playerStore.currentMusic"
         :currentOnlineSong="playerStore.currentOnlineSong"

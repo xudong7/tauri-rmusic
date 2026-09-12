@@ -253,16 +253,54 @@ function handlePanelKeydown(event: KeyboardEvent) {
   font-size: 13px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .queue-panel {
-    animation: queue-slide-in 180ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
+/* ---------- 进出场 ----------
+   App.vue 用 <Transition name="queue"> 包住本组件，下面这些类名由那边加上来，
+   但规则留在这里：scoped 会给最后一个复合选择器补上 [data-v-*]，正好压过
+   .queue-panel 自己那条声明；放进 App.vue 的全局块里就只是同特异性拼源码
+   顺序，组件哪天改成异步加载就会翻盘。
+
+   原先是一条挂载时跑一次的 CSS animation（queue-slide-in），删掉是必须的
+   而不是顺手清理：动画的优先级高于普通 transition 会盖掉滑动，而且它在
+   .queue-panel 上、Vue 等的是根的 transition，animationend 会被
+   e.target === el 过滤掉，两套机制各说各话。 */
+
+/* 淡出必须写在根元素 .queue-layer 上。Vue 判断退场结束读的是过渡根元素自己的
+   transition：只写在下层 .queue-panel 上的话，它解析不出过渡类型就当场摘节点，
+   滑动根本播不完。根的 transition 里只列 opacity——列上不会变的属性会让每次
+   退场都退化成等超时，而不是由 transitionend 触发。 */
+.queue-layer.queue-enter-active {
+  transition: opacity var(--app-motion-enter) var(--app-motion-ease-out);
 }
 
-@keyframes queue-slide-in {
-  from {
-    opacity: 0;
-    transform: translateX(22px);
-  }
+.queue-layer.queue-leave-active {
+  transition: opacity var(--app-motion-leave) var(--app-motion-ease-in);
+}
+
+/* 面板本体横滑。时长与曲线必须与根用同一组 token：根的 -active 类一摘，
+   这里整条 transition 声明就跟着消失，正在跑的滑动会被掐断直接跳到终值——
+   进场时根已经完全不透明，掐断是看得见的。 */
+.queue-enter-active .queue-panel {
+  transition: transform var(--app-motion-enter) var(--app-motion-ease-out);
+}
+
+.queue-leave-active .queue-panel {
+  transition: transform var(--app-motion-leave) var(--app-motion-ease-in);
+}
+
+.queue-enter-from,
+.queue-leave-to {
+  opacity: 0;
+}
+
+.queue-enter-from .queue-panel,
+.queue-leave-to .queue-panel {
+  transform: translateX(22px);
+}
+
+/* 收起途中面板已经没用了，别再让它吃掉 140ms 的点击。
+   挂 -leave-active 而不是 -leave-to：后者要等两帧 rAF 才加上，会漏掉开头。
+   三重选择器是为了压过 .queue-panel 自己的 pointer-events: auto。 */
+.queue-layer.queue-leave-active .queue-panel {
+  pointer-events: none;
 }
 </style>
