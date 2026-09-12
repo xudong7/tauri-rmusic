@@ -45,6 +45,57 @@
   user-select: none;
 }
 
+/* ---------- 进出场 ----------
+   App.vue 用 <Transition name="immersive"> 包住本组件。
+
+   整个视图只做淡入淡出，不加 scale：红黄绿按钮的几何是实机标定的
+   （见下面 --immersive-mac-traffic-lights-* 的推导），动画期间缩放会让返回键
+   与原生按钮错位；整屏 scale 还会在四边露出底下的应用。
+
+   根只列 opacity：列上不会变的属性会让每次退场退化成等超时，而不是由
+   transitionend 触发。 */
+.immersive-view.immersive-enter-active {
+  transition: opacity var(--app-motion-enter) var(--app-motion-ease-out);
+}
+
+.immersive-view.immersive-leave-active {
+  transition: opacity var(--app-motion-leave) var(--app-motion-ease-in);
+}
+
+.immersive-enter-from,
+.immersive-leave-to {
+  opacity: 0;
+}
+
+/* 内容随整页一起浮上来。时长必须与根同 token：根的 -active 类一摘，这条
+   transition 声明就消失，正在跑的位移会被掐断跳到终值——进场时根已经
+   完全不透明，掐断是看得见的。
+   因此这里不能给 transition-delay：根 200ms，内容「延迟 40ms + 200ms」
+   就超出根，会在 200ms 被截断。错峰好看，但代价是这个失配，不做。 */
+.immersive-enter-active .content-section {
+  transition:
+    opacity var(--app-motion-enter) var(--app-motion-ease-out),
+    transform var(--app-motion-enter) var(--app-motion-ease-out);
+}
+
+.immersive-enter-from .content-section {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+/* 退场只淡出、不再位移：用户这时已经不看内容了，多一层运动只会拖慢感知。 */
+
+/* 退场期间把整棵子树的命中测试关掉。只在根上写 pointer-events: none 不够——
+   pointer-events 虽然可继承，但 .immersive-titlebar-drag-region 显式声明了
+   auto，它的 @mousedown 会真的调 currentWindow.startDragging()：退场那 140ms
+   里点一下顶栏就会拖出一个幽灵窗口。
+   !important 在这里是必需的：`*` 只拿到 (0,2,0)，与那条声明打平，其余看顺序。
+   挂 -leave-active 而不是 -leave-to：后者要等两帧 rAF 才加上，会漏掉开头。 */
+.immersive-view.immersive-leave-active,
+.immersive-view.immersive-leave-active * {
+  pointer-events: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .background-cover {
     filter: none !important;

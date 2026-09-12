@@ -235,21 +235,25 @@ onUnmounted(() => {
         @seek="playerStore.seekToPosition"
       />
 
-      <ImmersiveView
-        v-if="viewStore.showImmersiveMode"
-        :currentSong="playerStore.currentOnlineSong"
-        :currentMusic="playerStore.currentMusic"
-        :isPlaying="playerStore.isPlaying"
-        :currentTime="playerStore.currentPlayTime"
-        :currentTrackDuration="playerStore.currentTrackDuration"
-        :playMode="playerStore.playMode"
-        @toggle-play="playerStore.togglePlay"
-        @next="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1))"
-        @previous="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1))"
-        @exit="playerStore.exitImmersive"
-        @seek="playerStore.seekToPosition"
-        @toggle-play-mode="playerStore.togglePlayMode"
-      />
+      <!-- 过渡类名写在 ImmersiveView.css（scoped）里，理由同上面的队列。
+           同样不加 :key。 -->
+      <Transition name="immersive">
+        <ImmersiveView
+          v-if="viewStore.showImmersiveMode"
+          :currentSong="playerStore.currentOnlineSong"
+          :currentMusic="playerStore.currentMusic"
+          :isPlaying="playerStore.isPlaying"
+          :currentTime="playerStore.currentPlayTime"
+          :currentTrackDuration="playerStore.currentTrackDuration"
+          :playMode="playerStore.playMode"
+          @toggle-play="playerStore.togglePlay"
+          @next="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1))"
+          @previous="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1))"
+          @exit="playerStore.exitImmersive"
+          @seek="playerStore.seekToPosition"
+          @toggle-play-mode="playerStore.togglePlayMode"
+        />
+      </Transition>
     </div>
   </el-config-provider>
 </template>
