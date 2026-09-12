@@ -115,7 +115,6 @@ html {
   /* 网格右边缘到行尾的空档。时长列不贴边靠它；行盒本身仍铺满整行，
      底色与悬停不受影响。 */
   --app-track-end-gap: 80px;
-  --app-list-reading-width: 1080px;
 
   /* 按钮与控件：macOS / Apple Music 风格 */
   --app-button-height: 32px;

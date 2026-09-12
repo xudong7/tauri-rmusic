@@ -10,8 +10,10 @@
   padding: 0 0 24px;
 }
 
+/* 不限宽：外层 .app-page 是竖向 flex 容器，本元素作为 flex 子项默认就横向
+   拉满，因此这里不再需要显式宽度——之前那行 min(100%, 1080px) 正是设置页
+   拉伸后右侧空出一大块、而列表页已经铺满的原因。 */
 .settings-section {
-  width: min(100%, var(--app-list-reading-width));
   margin: 0 0 22px;
   padding: 0;
   display: flex;
