@@ -1,5 +1,5 @@
 <template>
-  <PageLayout class="online-playlist-view" max-width="wide">
+  <PageLayout class="online-playlist-view">
     <template v-if="store.detail">
       <PageHeader :title="store.detail.name" :subtitle="subtitle">
         <template #before-title>

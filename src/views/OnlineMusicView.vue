@@ -1,5 +1,5 @@
 <template>
-  <PageLayout class="online-music-view" max-width="wide">
+  <PageLayout class="online-music-view">
     <div class="online-music-view__tabs">
       <el-segmented v-model="activeTabModel" :options="tabOptions" />
     </div>

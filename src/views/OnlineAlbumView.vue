@@ -1,5 +1,5 @@
 <template>
-  <PageLayout class="online-album-view" max-width="wide">
+  <PageLayout class="online-album-view">
     <PageHeader v-if="store.album" :title="store.album.name" :subtitle="subtitle">
       <template #before-title>
         <CoverImage

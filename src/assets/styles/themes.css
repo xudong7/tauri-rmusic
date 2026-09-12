@@ -45,8 +45,6 @@ html {
   --app-content-padding-compact: 16px;
 
   /* 页面骨架 */
-  --app-page-max-width: 1280px;
-  --app-page-wide-max-width: 1440px;
   --app-page-header-height: 56px;
   --app-page-header-gap: 10px;
   --app-page-title-size: 24px;
