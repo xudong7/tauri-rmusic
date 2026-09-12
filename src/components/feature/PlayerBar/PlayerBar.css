@@ -147,52 +147,44 @@ html.dark .player-bar {
   min-height: 38px;
 }
 
+/* 次级控制键都是裸图标：没有底色也没有描边，悬停只让图标自己亮起来。
+   参考图就是这么处理的——整条播放栏里只有播放键是实心圆，其余图标直接
+   落在栏上，各坐一个淡色圆圈会显得每个图标都被框住。 */
 .player-controls .control-btn {
   width: var(--app-icon-btn-md);
   height: var(--app-icon-btn-md);
   padding: 0;
-  background: var(--app-icon-button-bg) !important;
+  background: transparent !important;
   border: 1px solid transparent !important;
   color: var(--app-icon-button-color) !important;
   font-size: 18px;
   opacity: 1;
   transition:
-    background var(--app-control-transition),
-    border-color var(--app-control-transition),
     color var(--app-control-transition),
-    transform var(--app-control-transition);
+    transform var(--app-control-transition),
+    box-shadow var(--app-control-transition);
 }
 
-/* 排除 .play-btn：它是实心主色按钮，hover 时只做抬升与光晕，
-   底色必须保持主色。若不排除，这条 :hover 的选择器特异性(0,4,0)高于
-   下方 .play-btn 的(0,2,0)，会让实心圆底在悬停瞬间塌成透明的浅色块。
-   （:not() 自身不加特异性，但它的参数算，.play-btn 贡献一个类。）
+/* 排除 .play-btn：它是实心主色按钮，悬停只做抬升与光晕，底色要保持主色。
+   排除 .play-mode-btn：它可能是激活态，激活色归下面 .is-active 管，
+   被这条命中会让高亮在悬停瞬间退成普通图标色。
 
-   同样排除 .play-mode-btn：它可能是激活态，激活底色归下面 .is-active 管，
-   被这条命中会让高亮在悬停瞬间塌成普通按钮。它的悬停观感在下方单独写。 */
+   底色去掉之后这套排除只剩「颜色」一个属性要争，比原先争底色时简单多了。 */
 .player-controls .control-btn:not(.play-btn):not(.play-mode-btn):hover {
-  background: var(--app-icon-button-hover-bg) !important;
-  border-color: var(--app-button-border) !important;
   color: var(--app-icon-button-hover-color) !important;
-  transform: translateY(-1px);
 }
 
 /* 播放顺序按钮的悬停：观感与上一条一致，只是被排除后要单写一份 */
 .player-controls .control-btn.play-mode-btn:hover {
-  background: var(--app-icon-button-hover-bg) !important;
-  border-color: var(--app-button-border) !important;
   color: var(--app-icon-button-hover-color) !important;
-  transform: translateY(-1px);
 }
 
-/* 播放顺序的激活态：顺序/随机/单曲循环里只有「顺序播放」是常态，
-   所以它是唯一带高亮的按钮。
-   第二条选择器多一个 :hover，特异性 (0,5,0) 稳稳压过上面那条悬停规则
-   (0,4,0)，不依赖源码顺序，避免以后调整文件顺序时高亮又被盖掉。 */
+/* 播放顺序的激活态：常规列表里只有「顺序播放」是常态，所以它是唯一带色的。
+   第二条选择器多一个 :hover，特异性 (0,5,0) 压过上面那条悬停规则 (0,4,0)，
+   不依赖源码顺序。 */
 .player-controls .control-btn.play-mode-btn.is-active,
 .player-controls .control-btn.play-mode-btn.is-active:hover {
   color: var(--el-color-primary) !important;
-  background: var(--active-item-bg) !important;
 }
 
 .player-controls .control-btn:disabled {
@@ -330,24 +322,21 @@ html.dark .player-bar {
 }
 
 /* .play-mode-btn 已挪进控制行，跟着 .control-btn 走，不再需要单独定尺寸 */
+/* 与次级控制键同一条规矩：裸图标，悬停只亮图标 */
 .queue-btn {
   width: var(--app-icon-btn-md);
   min-width: var(--app-icon-btn-md);
   height: var(--app-icon-btn-md);
   padding: 0;
   border: 1px solid transparent !important;
-  background: var(--app-icon-button-bg) !important;
+  background: transparent !important;
   color: var(--app-icon-button-color) !important;
   transition:
-    background var(--app-control-transition),
-    border-color var(--app-control-transition),
     color var(--app-control-transition),
     transform var(--app-control-transition);
 }
 
 .queue-btn:hover {
-  background: var(--app-icon-button-hover-bg) !important;
-  border-color: var(--app-button-border) !important;
   color: var(--app-icon-button-hover-color) !important;
 }
 
