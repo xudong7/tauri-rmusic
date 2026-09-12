@@ -1,13 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import {
-  VideoPlay,
-  VideoPause,
-  ArrowLeft,
-  ArrowRight,
-  Tickets,
-} from "@element-plus/icons-vue";
+import { VideoPlay, VideoPause, ArrowLeft, ArrowRight } from "@element-plus/icons-vue";
 import {
   PlayMode,
   type MusicFile,
@@ -322,11 +316,23 @@ const {
         <el-button
           class="queue-btn app-icon-button"
           circle
-          :icon="Tickets"
           :disabled="!currentMusic && !currentOnlineSong"
           :aria-label="t('playerBar.queue')"
           @click="emit('toggle-queue')"
-        />
+        >
+          <!-- 播放列表图标：上面两条通栏横线，第三条短一截，右下角补一个播放三角。
+              照参考图临摹，Element Plus 里没有对应图标，所以自己画。
+              尺寸在 CSS 里控制（.queue-icon），不跟 el-icon 的 font-size 走。 -->
+          <svg class="queue-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M3 4h18M3 11h18M3 18h9"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+            <path d="M15 14.2 21 18l-6 3.8Z" fill="currentColor" />
+          </svg>
+        </el-button>
       </el-tooltip>
     </div>
   </div>

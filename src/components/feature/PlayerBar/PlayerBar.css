@@ -351,6 +351,15 @@ html.dark .player-bar {
   color: var(--app-icon-button-hover-color) !important;
 }
 
+/* 队列图标是自己画的，不走 el-icon，所以尺寸在这里定，不跟 font-size 走。
+   字形约占 viewBox 的四分之三，16px 的元素渲染出约 12px 的可见笔画；
+   Element Plus 那些图标在 1024 视窗里四周留白更多，两者观感才对得上。 */
+.queue-btn .queue-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
 /* 音量：图标常驻，滑块悬停或聚焦时从图标上方浮出。
    参考图里音量只有一个图标，因为常驻滑块要占一百多像素，会把播放键挤出
    控制行中心。浮层完全不参与布局，所以左侧顺序键与右侧音量键各占 32px，
@@ -384,9 +393,10 @@ html.dark .player-bar {
   bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
-  /* 这段 padding 是「悬停桥」：没有它，鼠标从图标移向滑块的途中会经过一个
-     既不属于图标也不属于滑块的空隙，:hover 断开、浮层闪烁。 */
-  padding-bottom: 10px;
+  /* 这段 padding 兼两用：一是给下方那个箭头留出探出的空间，二是当「悬停桥」——
+     没有它，鼠标从图标移向滑块的途中会经过一段既不属于图标也不属于滑块的
+     空隙，:hover 断开、浮层闪烁。14px 减掉箭头探出的 7px，剩下约 7px 空隙。 */
+  padding-bottom: 14px;
   opacity: 0;
   visibility: hidden;
   transition:
@@ -412,6 +422,30 @@ html.dark .player-bar {
   backdrop-filter: blur(var(--app-glass-blur));
   -webkit-backdrop-filter: blur(var(--app-glass-blur));
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  /* 给下面的箭头做定位基准 */
+  position: relative;
+}
+
+/* 底部箭头：把浮层和它指着的音量键连起来，否则整块面板像是凭空悬浮的。
+   做法是旋转 45° 的正方形，只留右下两条边描边，另外两条边与面板重合，
+   视觉上就长成了一体。
+   定位基准是**内边距盒**而不是边框盒（绝对定位的包含块定义如此），面板那
+   1px 描边会让 bottom 整体上移一格，所以这里用 -6px：正方形边长 10px，
+   bottom:-6px 时其中心正好压在面板下边缘上，旋转后半个菱形（10×√2÷2 ≈ 7px）
+   探到外面，刚好落进 14px 的悬停桥里。
+   background: inherit 直接沿用面板材质，换主题时不必同步改颜色。 */
+.volume-popup-inner::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  transform: translateX(-50%) rotate(45deg);
+  border-right: 1px solid var(--app-header-border);
+  border-bottom: 1px solid var(--app-header-border);
+  border-bottom-right-radius: 2px;
+  background: inherit;
 }
 
 /* 横向滑块 */

@@ -96,6 +96,19 @@ describe("PlayerBar", () => {
     expect(wrapper.findAll(".player-right > *")).toHaveLength(1);
   });
 
+  // 图标是照参考图自绘的，不是 Element Plus 组件，所以不走 el-icon，
+  // 尺寸由 .queue-icon 在 CSS 里定。这条把「自绘」这个前提钉住。
+  it("队列键用自绘的播放列表图标", () => {
+    const wrapper = mountBar();
+    const icon = wrapper.find(".queue-btn svg.queue-icon");
+
+    expect(icon.exists()).toBe(true);
+    expect(icon.attributes("viewBox")).toBe("0 0 24 24");
+    // 三条横线合在一条 path 里，右下角的播放三角是另一条
+    expect(icon.findAll("path")).toHaveLength(2);
+    expect(icon.attributes("aria-hidden")).toBe("true");
+  });
+
   it("点音量图标静音，滑块随之归零", async () => {
     const wrapper = mountBar(70);
 
