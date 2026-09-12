@@ -102,8 +102,13 @@ html {
   --app-track-row-padding-y: 8px;
   /* 行与列头共用这一份网格。两边各写一份是列头与行错位的根因：行上删掉序号列
      时列头那份没人跟着改，歌名就对不上「歌曲」这个标题（错了整整 52px）。
-     没有断点变体（见下面的说明），组件里也不要再写 grid-template-columns。 */
-  --app-track-grid: 40px minmax(180px, 1fr) minmax(140px, 220px) 48px;
+     没有断点变体（见下面的说明），组件里也不要再写 grid-template-columns。
+
+     歌名列封顶 500px 而不是 1fr：这里没有 fr 轨道，四列都到各自上限就停住，
+     余下的宽度留在网格之外——也就是行尾的空白（行的底色照旧铺满整行）。
+     若是 1fr，歌名列会把整行的余量吃光，专辑与时长被一路推到最右边贴着
+     窗口边；时长是最后一格，它右边缘就是行右边缘，只能靠"网格不铺满"左移。 */
+  --app-track-grid: 40px minmax(180px, 500px) minmax(140px, 220px) 48px;
   --app-list-reading-width: 1080px;
 
   /* 按钮与控件：macOS / Apple Music 风格 */
