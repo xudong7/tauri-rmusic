@@ -164,13 +164,35 @@ html.dark .player-bar {
 }
 
 /* 排除 .play-btn：它是实心主色按钮，hover 时只做抬升与光晕，
-   底色必须保持主色。若不排除，这条 :hover 的选择器特异性(0,3,0)高于
-   下方 .play-btn 的(0,2,0)，会让实心圆底在悬停瞬间塌成透明的浅色块。 */
-.player-controls .control-btn:not(.play-btn):hover {
+   底色必须保持主色。若不排除，这条 :hover 的选择器特异性(0,4,0)高于
+   下方 .play-btn 的(0,2,0)，会让实心圆底在悬停瞬间塌成透明的浅色块。
+   （:not() 自身不加特异性，但它的参数算，.play-btn 贡献一个类。）
+
+   同样排除 .play-mode-btn：它可能是激活态，激活底色归下面 .is-active 管，
+   被这条命中会让高亮在悬停瞬间塌成普通按钮。它的悬停观感在下方单独写。 */
+.player-controls .control-btn:not(.play-btn):not(.play-mode-btn):hover {
   background: var(--app-icon-button-hover-bg) !important;
   border-color: var(--app-button-border) !important;
   color: var(--app-icon-button-hover-color) !important;
   transform: translateY(-1px);
+}
+
+/* 播放顺序按钮的悬停：观感与上一条一致，只是被排除后要单写一份 */
+.player-controls .control-btn.play-mode-btn:hover {
+  background: var(--app-icon-button-hover-bg) !important;
+  border-color: var(--app-button-border) !important;
+  color: var(--app-icon-button-hover-color) !important;
+  transform: translateY(-1px);
+}
+
+/* 播放顺序的激活态：顺序/随机/单曲循环里只有「顺序播放」是常态，
+   所以它是唯一带高亮的按钮。
+   第二条选择器多一个 :hover，特异性 (0,5,0) 稳稳压过上面那条悬停规则
+   (0,4,0)，不依赖源码顺序，避免以后调整文件顺序时高亮又被盖掉。 */
+.player-controls .control-btn.play-mode-btn.is-active,
+.player-controls .control-btn.play-mode-btn.is-active:hover {
+  color: var(--el-color-primary) !important;
+  background: var(--active-item-bg) !important;
 }
 
 .player-controls .control-btn:disabled {
@@ -299,23 +321,15 @@ html.dark .player-bar {
     0 0 0 2px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
 }
 
-/* 右侧：播放模式 + 内联音量条 */
+/* 右侧：只剩播放队列 */
 .player-right {
   display: flex;
   align-items: center;
-  gap: 18px;
   min-width: 0;
   justify-content: flex-end;
 }
 
-.player-tool-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 0 0 auto;
-}
-
-.play-mode-btn,
+/* .play-mode-btn 已挪进控制行，跟着 .control-btn 走，不再需要单独定尺寸 */
 .queue-btn {
   width: var(--app-icon-btn-md);
   min-width: var(--app-icon-btn-md);
@@ -331,81 +345,98 @@ html.dark .player-bar {
     transform var(--app-control-transition);
 }
 
-.play-mode-btn:hover,
 .queue-btn:hover {
   background: var(--app-icon-button-hover-bg) !important;
   border-color: var(--app-button-border) !important;
   color: var(--app-icon-button-hover-color) !important;
 }
 
-.play-mode-btn.is-active {
-  color: var(--el-color-primary) !important;
-  background: var(--active-item-bg) !important;
-}
-
-/* 内联音量条：扬声器图标 + 横向轨道，常驻播放条 */
-.volume-bar {
+/* 音量：图标常驻，滑块悬停或聚焦时从图标上方浮出。
+   参考图里音量只有一个图标，因为常驻滑块要占一百多像素，会把播放键挤出
+   控制行中心。浮层完全不参与布局，所以左侧顺序键与右侧音量键各占 32px，
+   左右对称——这正是参考图能让播放键居中的原因。 */
+.volume-control {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex: 1;
-  min-width: 0;
-  max-width: 120px;
+  flex: 0 0 auto;
 }
 
+/* 这个键是原生 <button>，不是 el-button，所以隔壁几个键靠
+   .app-icon-button.el-button 拿到的圆角、手型光标和内容居中它一样都没有，
+   必须自己补齐——少一条它就是个 32px 的方块，紧挨着圆形的上一首/下一首。 */
 .volume-speaker-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  color: var(--el-text-color-secondary);
-  padding: 0;
-  border: 0;
-  background: transparent;
+  border-radius: var(--app-radius-full);
   cursor: pointer;
 }
 
-.volume-speaker-icon:hover,
-.volume-speaker-icon:focus-visible {
-  color: var(--el-color-primary);
-  outline: none;
-}
-
 .volume-speaker-icon svg {
-  width: 100%;
-  height: 100%;
+  display: block;
+  width: 18px;
+  height: 18px;
 }
 
-html.dark .volume-speaker-icon {
-  color: rgba(255, 255, 255, 0.7);
+.volume-popup {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  /* 这段 padding 是「悬停桥」：没有它，鼠标从图标移向滑块的途中会经过一个
+     既不属于图标也不属于滑块的空隙，:hover 断开、浮层闪烁。 */
+  padding-bottom: 10px;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.16s ease,
+    visibility 0.16s ease;
+}
+
+/* :focus-within 让键盘也能用：焦点落在音量键上时浮层出现，滑块随之变为可聚焦，
+   再按 Tab 就能进去。visibility: hidden 的元素本就不可聚焦，顺序天然是对的。 */
+.volume-control:hover .volume-popup,
+.volume-control:focus-within .volume-popup {
+  opacity: 1;
+  visibility: visible;
+}
+
+.volume-popup-inner {
+  box-sizing: border-box;
+  width: 132px;
+  padding: 4px 14px;
+  border: 1px solid var(--app-header-border);
+  border-radius: var(--app-radius-md);
+  background: var(--player-glass-bg);
+  backdrop-filter: blur(var(--app-glass-blur));
+  -webkit-backdrop-filter: blur(var(--app-glass-blur));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
 }
 
 /* 横向滑块 */
-.volume-bar .volume-slider-h {
-  flex: 1;
-  min-width: 0;
+.volume-popup .volume-slider-h {
+  width: 100%;
 }
 
-.volume-bar .volume-slider-h :deep(.el-slider__runway) {
+.volume-popup .volume-slider-h :deep(.el-slider__runway) {
   height: 3px;
   border-radius: var(--app-radius-full, 9999px);
   background: var(--app-slider-track-bg);
 }
 
-.volume-bar .volume-slider-h :deep(.el-slider__bar) {
+.volume-popup .volume-slider-h :deep(.el-slider__bar) {
   height: 100%;
   border-radius: var(--app-radius-full, 9999px);
   background: var(--app-slider-fill-bg);
 }
 
-.volume-bar .volume-slider-h :deep(.el-slider__button-wrapper) {
+.volume-popup .volume-slider-h :deep(.el-slider__button-wrapper) {
   top: 50%;
   transform: translate(-50%, -50%);
 }
 
-.volume-bar .volume-slider-h :deep(.el-slider__button) {
+.volume-popup .volume-slider-h :deep(.el-slider__button) {
   width: var(--app-slider-thumb-size);
   height: var(--app-slider-thumb-size);
   border: 1px solid var(--app-slider-thumb-border);
@@ -417,8 +448,8 @@ html.dark .volume-speaker-icon {
     box-shadow 0.2s ease;
 }
 
-.volume-bar .volume-slider-h :deep(.el-slider:hover .el-slider__button),
-.volume-bar .volume-slider-h :deep(.el-slider__button:hover) {
+.volume-popup .volume-slider-h :deep(.el-slider:hover .el-slider__button),
+.volume-popup .volume-slider-h :deep(.el-slider__button:hover) {
   transform: scale(1.15);
   box-shadow:
     var(--app-slider-thumb-shadow),
@@ -440,10 +471,6 @@ html.dark .volume-speaker-icon {
   .player-progress {
     max-width: 420px;
   }
-
-  .volume-bar {
-    max-width: 90px;
-  }
 }
 
 @media (max-width: 780px) {
@@ -455,20 +482,6 @@ html.dark .volume-speaker-icon {
 
   .player-left {
     gap: 8px;
-  }
-
-  .player-right {
-    gap: 12px;
-  }
-
-  .player-tool-group {
-    gap: 6px;
-  }
-
-  .volume-bar {
-    display: flex;
-    gap: 6px;
-    max-width: 76px;
   }
 
   .player-progress {
@@ -484,10 +497,6 @@ html.dark .volume-speaker-icon {
 @media (max-width: 768px) {
   .player-bar {
     grid-template-columns: minmax(124px, 1fr) minmax(250px, 1.6fr) minmax(104px, 0.9fr);
-  }
-
-  .volume-bar {
-    max-width: 68px;
   }
 
   .player-progress .time-display {

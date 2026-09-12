@@ -158,6 +158,7 @@ export default {
     sequential: "Sequential",
     random: "Shuffle",
     repeatOne: "Repeat One",
+    volume: "Volume",
   },
   lyric: {
     noLyric: "No lyrics",
