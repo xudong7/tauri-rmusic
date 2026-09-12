@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from "vue";
-import { Close, Headset } from "@element-plus/icons-vue";
+import { Headset } from "@element-plus/icons-vue";
 import { useI18n } from "vue-i18n";
 import type { PlaybackQueueItem } from "@/types/model";
 import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
@@ -109,14 +109,6 @@ function handlePanelKeydown(event: KeyboardEvent) {
           <h2>{{ t("playerBar.queue") }}</h2>
           <p>{{ title || t("playerBar.currentQueue") }}</p>
         </div>
-        <button
-          type="button"
-          class="queue-close app-header-icon-button"
-          :aria-label="t('common.close')"
-          @click="emit('close')"
-        >
-          <el-icon><Close /></el-icon>
-        </button>
       </header>
 
       <!-- tabindex 让滚动容器本身可聚焦：虚拟化之后只有可视窗口内的行在
@@ -176,18 +168,18 @@ function handlePanelKeydown(event: KeyboardEvent) {
   flex-direction: column;
   color: var(--el-text-color-primary);
   background: var(--app-overlay-panel-bg);
+  /* 面板是停靠式的一块，不是浮起来的浮层，所以不打投影；
+     与主页的分界交给这条左边框。 */
   border-left: 1px solid var(--app-surface-border);
-  box-shadow: var(--app-overlay-panel-shadow);
   outline: none;
 }
 
+/* 只剩标题一块，不再需要两端对齐 */
 .queue-header {
   min-height: 64px;
-  padding: 10px 12px 9px 16px;
+  padding: 10px 16px 9px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
   border-bottom: 1px solid var(--app-surface-border);
 }
 
@@ -212,22 +204,6 @@ function handlePanelKeydown(event: KeyboardEvent) {
   margin-top: 4px;
   color: var(--el-text-color-secondary);
   font-size: 12px;
-}
-
-.queue-close {
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  border: 0;
-  border-radius: var(--app-radius-full);
-  color: var(--el-text-color-regular);
-  background: transparent;
-  cursor: pointer;
-}
-
-.queue-close:hover {
-  color: var(--el-color-primary);
-  background: var(--hover-bg-color);
 }
 
 .queue-list {
