@@ -127,12 +127,15 @@ function handleActivate() {
   min-height: var(--app-track-row-height);
   margin-bottom: 0;
   padding: var(--app-track-row-padding-y) var(--app-track-row-padding-x);
+  /* 右侧再多留一段空档，网格因此不贴行尾——时长是最后一格，它的右边缘就是
+     网格的右边缘，不留空档就顶到行尾了。行盒仍铺满整行，底色/悬停/条纹不变。 */
+  padding-right: calc(var(--app-track-row-padding-x) + var(--app-track-end-gap));
   display: grid;
   /* 封面 40 + 主列 + 专辑 + 时长。操作按钮不再是独立列，所以在线曲目也
      不需要更宽的最后一列，.track-row--online 那个变体一并去掉。
 
-     网格从 --app-track-grid 来，窄屏变体也由那个 token 的断点覆写给出：
-     列头（TrackList）必须逐格一致，两边各写一份迟早会错开。 */
+     网格从 --app-track-grid 来，没有断点变体；列头（TrackList）读同一份，
+     两边各写一份迟早会错开——这里曾经就差了一格。 */
   grid-template-columns: var(--app-track-grid);
   align-items: center;
   gap: var(--app-track-row-gap);
@@ -261,9 +264,9 @@ function handleActivate() {
      作起始线，元素就落在显式网格之外，浏览器会为它新生成一格——整行因此
      右移一格，专辑挤进时长那格，而列头不会跟着动。 */
   grid-column: -3 / -2;
-  /* 填满格子即可。原先这里另写了一个 clamp(140px, 20vw, 260px)，比轨道
-     (minmax(140px, 220px)) 还宽，最多溢出 40px——盖过 12px 的 gap 之后压进
-     时长那一格。宽度该由轨道决定，不该由格子里的元素再定一次。 */
+  /* 填满格子即可。宽度由轨道（minmax(140px, 0.45fr)）决定，格子里的元素
+     不要再自己定一次——这里原先另写了一个 clamp(140px, 20vw, 260px)，比轨道
+     还宽，最多溢出 40px，盖过 12px 的 gap 之后压进时长那一格。 */
   width: 100%;
   overflow: hidden;
   color: var(--el-text-color-secondary);

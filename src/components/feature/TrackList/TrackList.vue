@@ -168,8 +168,9 @@ function handleListKeydown(event: KeyboardEvent) {
 }
 
 /* 行与列头都不再限宽居中：整块贴着内容区左边缘，与页面标题同一条竖线。
-   行盒仍然铺满整行（底色、悬停、条纹照旧横贯），但里面的网格有上限——
-   四列到顶即止，余量成为行尾空白，窗口拉宽时变长的只有那块空白。
+   行盒铺满整行（底色、悬停、条纹照旧横贯），里面的网格也铺满，只在右侧
+   留出 --app-track-end-gap 的空档，让时长列不贴边；窗口拉宽时由歌名与专辑
+   两列分掉新增的宽度。
    过去这里有一条 max-width + margin-inline: auto，把列表居中成一条 1080px
    的窄带，两侧各留一大块空白，和页面标题完全对不上。 */
 .track-list__rows {
@@ -188,7 +189,9 @@ function handleListKeydown(event: KeyboardEvent) {
   width: calc(100% - 12px);
   margin-left: 4px;
   min-height: 32px;
-  padding: 0 var(--app-track-row-padding-x);
+  /* 右侧空档必须与行里那笔一模一样，否则「时长」这个标题对不上列里的数字 */
+  padding: 0 calc(var(--app-track-row-padding-x) + var(--app-track-end-gap)) 0
+    var(--app-track-row-padding-x);
   display: grid;
   grid-template-columns: var(--app-track-grid);
   align-items: center;
