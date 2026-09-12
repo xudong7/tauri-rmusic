@@ -6,6 +6,7 @@ import {
   VideoPause,
   ArrowLeft,
   ArrowRight,
+  ArrowDown,
   Headset,
   Minus,
   FullScreen,
@@ -177,11 +178,11 @@ const overlayStyle = computed(() => {
     ></div>
 
     <div class="top-section">
-      <el-tooltip :content="t('common.close')" placement="bottom" effect="dark">
+      <el-tooltip :content="t('common.back')" placement="bottom" effect="dark">
         <el-button
           data-no-drag
           @click="emit('exit')"
-          :icon="ScaleToOriginal"
+          :icon="ArrowDown"
           circle
           class="back-btn"
         />
@@ -204,6 +205,35 @@ const overlayStyle = computed(() => {
         </el-tooltip>
       </div>
     </div>
+
+    <!-- 左下角折角退出入口：与顶部 chevron 等价。
+         放在 content-section 之前，是为了让键盘用户更早 Tab 到退出，
+         视觉位置由绝对定位决定，不受 DOM 顺序影响。 -->
+    <el-tooltip :content="t('common.back')" placement="top" effect="dark">
+      <button
+        type="button"
+        class="corner-exit-btn"
+        :aria-label="t('common.back')"
+        @click="emit('exit')"
+      >
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M3.5 20.5V7.5A4 4 0 0 1 7.5 3.5H20.5"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M9 20.5V14a4 4 0 0 1 4-4h7.5"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+    </el-tooltip>
 
     <div class="content-section">
       <!-- 左侧：封面 + 歌曲信息 + 控制 -->

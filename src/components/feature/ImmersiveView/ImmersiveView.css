@@ -17,6 +17,11 @@
   --immersive-cover-size: clamp(270px, min(32vw, 52vh), 380px);
   --immersive-lyrics-height: clamp(260px, 42vh, 390px);
   --immersive-titlebar-height: 44px;
+  /* macOS 原生红黄绿按钮的占位宽度。
+     推导：tauri.macos.conf.json 里 trafficLightPosition.x = 12，
+     三个按钮各 12px、间隔 8px → 12 + 3×12 + 2×8 = 64px，再留 14px 间隙。
+     原生按钮由 AppKit 绘制、永远盖在 webview 之上，z-index 压不住，只能让位。 */
+  --immersive-mac-traffic-lights-width: 78px;
   --immersive-control-surface: rgba(10, 16, 20, 0.26);
   --immersive-control-surface-hover: color-mix(
     in srgb,
@@ -111,11 +116,13 @@
   pointer-events: none;
 }
 
+/* macOS 上原生窗口按钮在左上角，返回键跟着挪过去紧挨其后；
+   其余平台没有红黄绿，保持 left: 20px 原位。 */
 .immersive-view.is-mac-platform .top-section {
   top: 10px;
-  left: 20px;
+  left: var(--immersive-mac-traffic-lights-width);
   right: 18px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 /* 返回按钮 */
@@ -145,6 +152,56 @@
 .back-btn:active {
   background: rgba(255, 255, 255, 0.14) !important;
   color: #fff !important;
+}
+
+/* 左下角折角退出入口 —— 与顶部 chevron 功能等价，只是位置不同。
+   用原生 <button>：useWindowDrag 的 NO_DRAG_SELECTOR 已包含 "button"，
+   无需额外加 data-no-drag。 */
+.corner-exit-btn {
+  position: absolute;
+  left: 20px;
+  bottom: 20px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--app-radius-full);
+  background: transparent;
+  color: var(--immersive-top-control);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.corner-exit-btn:hover {
+  background: var(--immersive-control-surface);
+  border-color: var(--immersive-control-border);
+  color: var(--immersive-text-primary);
+}
+
+/* 按下时借控制按钮的主色混合，与顶部 chevron 的 :active 观感一致，
+   但不写死白色 —— 浅色封面下 uses-dark-foreground 会把 token 整体翻成深色。 */
+.corner-exit-btn:active {
+  background: var(--immersive-control-surface-hover);
+  border-color: var(--immersive-control-border);
+  color: var(--immersive-text-primary);
+}
+
+.corner-exit-btn:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+.corner-exit-btn svg {
+  display: block;
+  width: 16px;
+  height: 16px;
 }
 
 /* 窗口控制按钮 */
