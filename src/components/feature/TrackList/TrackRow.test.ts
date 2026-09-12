@@ -57,6 +57,27 @@ describe("TrackRow", () => {
     expect(wrapper.find(".track-row__actions .act").exists()).toBe(true);
   });
 
+  // 播放键图标必须与队列面板、播放栏同族（VideoPlay，带圈），不能是裸三角。
+  // 这里原先用 CaretRight，路径是 "M384 192v640l384-320z"，一个纯三角，
+  // 和带圈的 VideoPlay 摆在同一屏里明显不是一套。
+  // 带圈的路径里有半径 448 的圆弧，裸三角没有——以此区分。
+  it("播放键用带圈的 VideoPlay，不是裸三角", () => {
+    const wrapper = mount(TrackRow, {
+      props: { item: { ...item, isCurrent: false, isPlaying: false } },
+    });
+    const d = wrapper.get(".track-row__play-icon path").attributes("d") ?? "";
+
+    expect(d).toContain("a448 448");
+  });
+
+  it("播放中出跳动条，否则出播放键", () => {
+    const playing = mount(TrackRow, { props: { item } });
+    expect(playing.find(".playing-bars").exists()).toBe(true);
+
+    const paused = mount(TrackRow, { props: { item: { ...item, isPlaying: false } } });
+    expect(paused.find(".playing-bars").exists()).toBe(false);
+  });
+
   it("emits activate from the play control", async () => {
     const wrapper = mount(TrackRow, { props: { item } });
     await wrapper.find("button").trigger("click");

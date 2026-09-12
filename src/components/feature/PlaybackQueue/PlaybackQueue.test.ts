@@ -46,9 +46,9 @@ function queue(count: number): PlaybackQueueItem[] {
 
 /** 可视范围由 useVirtualList 的 watch 计算，是 pre-flush watcher，
  *  必须等到 nextTick 之后行才会出现在 DOM 里。 */
-async function mountQueue(items: PlaybackQueueItem[], title = "") {
+async function mountQueue(items: PlaybackQueueItem[], title = "", isPlaying = false) {
   const wrapper = mount(PlaybackQueue, {
-    props: { items, title, isPlaying: false },
+    props: { items, title, isPlaying },
     global: { plugins: [createPinia(), i18n] },
   });
   await wrapper.vm.$nextTick();
@@ -110,10 +110,16 @@ describe("PlaybackQueue", () => {
     );
   });
 
-  // 播放/暂停原先挂在序号列上，序号列取消后改挂封面叠层
+  // 播放状态原先挂在序号列上，序号列取消后改挂封面叠层。
+  // 表达必须与曲库列表逐字一致：播放中出跳动条，否则出带圈的 VideoPlay。
   it("当前曲目在封面叠层上显示播放状态", async () => {
-    const playing = await mountQueue([{ ...queue(1)[0], isCurrent: true }]);
-    expect(playing.find(".queue-item-state").exists()).toBe(true);
+    const playing = await mountQueue([{ ...queue(1)[0], isCurrent: true }], "", true);
+    expect(playing.find(".queue-item-state .playing-bars").exists()).toBe(true);
+
+    const paused = await mountQueue([{ ...queue(1)[0], isCurrent: true }]);
+    expect(paused.find(".queue-item-state .playing-bars").exists()).toBe(false);
+    // 带圈的路径里有半径 448 的圆弧，裸三角没有
+    expect(paused.get(".queue-item-state path").attributes("d")).toContain("a448 448");
 
     const idle = await mountQueue([queue(1)[0]]);
     expect(idle.find(".queue-item-state").exists()).toBe(false);

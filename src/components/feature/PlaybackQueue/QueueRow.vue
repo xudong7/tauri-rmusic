@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { VideoPause, VideoPlay } from "@element-plus/icons-vue";
+import { VideoPlay } from "@element-plus/icons-vue";
 import type { PlaybackQueueItem } from "@/types/model";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
+import PlayingBars from "@/components/base/PlayingBars/PlayingBars.vue";
 import { QUEUE_COVER_RADIUS, QUEUE_COVER_SIZE, QUEUE_ROW_HEIGHT } from "@/constants";
 
 defineProps<{
@@ -40,13 +41,12 @@ const emit = defineEmits<{ play: [] }>();
         :size="QUEUE_COVER_SIZE"
         :radius="QUEUE_COVER_RADIUS"
       />
-      <!-- 当前曲目的播放/暂停原先在序号列，序号列取消后挪到封面上。
-           容器有 overflow: hidden，遮罩自然被裁成封面那圈圆角。 -->
+      <!-- 当前曲目的播放状态原先在序号列，序号列取消后挪到封面上。
+           容器有 overflow: hidden，遮罩自然被裁成封面那圈圆角。
+           这里的判断与曲库列表逐字一致：播放中出跳动条，否则出带圈的播放键。 -->
       <span v-if="item.isCurrent" class="queue-item-state">
-        <el-icon>
-          <VideoPause v-if="isPlaying" />
-          <VideoPlay v-else />
-        </el-icon>
+        <PlayingBars v-if="isPlaying" />
+        <el-icon v-else><VideoPlay /></el-icon>
       </span>
     </span>
     <span class="queue-item-main">

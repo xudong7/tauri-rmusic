@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { CaretRight } from "@element-plus/icons-vue";
+import { VideoPlay } from "@element-plus/icons-vue";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
+import PlayingBars from "@/components/base/PlayingBars/PlayingBars.vue";
 import type { TrackRowModel } from "./types";
 
 const props = withDefaults(
@@ -83,12 +84,11 @@ function handleActivate() {
         :aria-label="item.title"
         @click.stop="handleActivate()"
       >
-        <span v-if="item.isCurrent && item.isPlaying" class="track-row__equalizer">
-          <i />
-          <i />
-          <i />
-        </span>
-        <el-icon v-else class="track-row__play-icon"><CaretRight /></el-icon>
+        <!-- 播放/暂停的表达与队列面板逐字一致：播放中出跳动条，否则出播放键。
+             图标用 VideoPlay（带圈），与播放栏、沉浸页同一族——原先这里的
+             CaretRight 是一个裸三角，和队列里的带圈三角长得不一样。 -->
+        <PlayingBars v-if="item.isCurrent && item.isPlaying" />
+        <el-icon v-else class="track-row__play-icon"><VideoPlay /></el-icon>
       </button>
     </div>
 
@@ -327,43 +327,6 @@ function handleActivate() {
   font-size: 18px;
 }
 
-.track-row__equalizer {
-  width: 16px;
-  height: 15px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 2px;
-}
-
-.track-row__equalizer i {
-  width: 2px;
-  border-radius: var(--app-radius-full);
-  background: currentColor;
-  animation: track-equalizer 0.8s ease-in-out infinite alternate;
-}
-
-.track-row__equalizer i:nth-child(1) {
-  height: 8px;
-  animation-delay: -0.45s;
-}
-
-.track-row__equalizer i:nth-child(2) {
-  height: 14px;
-  animation-delay: -0.2s;
-}
-
-.track-row__equalizer i:nth-child(3) {
-  height: 10px;
-  animation-delay: -0.65s;
-}
-
-@keyframes track-equalizer {
-  to {
-    height: 4px;
-  }
-}
-
 @media (hover: none) {
   .track-row__actions,
   .track-row__cover-play {
@@ -397,9 +360,5 @@ function handleActivate() {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .track-row__equalizer i {
-    animation: none;
-  }
-}
+/* 降低动效时静止的那份由 PlayingBars 自己处理 */
 </style>
