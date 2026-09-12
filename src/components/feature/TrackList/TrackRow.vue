@@ -104,12 +104,7 @@ function handleActivate() {
         <div class="track-row__title" :class="{ 'is-playing': item.isCurrent }">
           {{ item.title }}
         </div>
-        <div class="track-row__meta">
-          {{ item.artist
-          }}<span v-if="item.album" class="track-row__meta-album">
-            · {{ item.album }}</span
-          >
-        </div>
+        <div class="track-row__meta">{{ item.artist }}</div>
       </div>
       <div v-if="$slots.actions && !selectionMode" class="track-row__actions" @click.stop>
         <slot name="actions" :item="item" />
@@ -283,10 +278,6 @@ function handleActivate() {
   letter-spacing: 0;
 }
 
-.track-row__meta-album {
-  display: none;
-}
-
 /* 行高由封面撑出来（40 + 上下内边距各 8 = 56），文字只需不超即可。
    显式给 1.3 的行高：默认 leading 下两行约 40px，会让行高对不上
    虚拟滚动用的 LIST_ROW_HEIGHT。参考图实测文字行距 20px。 */
@@ -369,17 +360,10 @@ function handleActivate() {
   }
 }
 
-/* 窄屏只处理内容显隐：列数收窄与 gap 都来自 --app-track-grid /
-   --app-track-row-gap 的断点覆写（themes.css），这里不再重复一遍网格。 */
-@media (max-width: 1100px) {
-  .track-row__album {
-    display: none;
-  }
-
-  .track-row__meta-album {
-    display: inline;
-  }
-}
+/* 没有窄屏变体：网格来自 --app-track-grid，任何窗口宽度下都放得下，
+   专辑列不必收起，行也就不会重排。
+   原先 1100px 以下会收起专辑列、改用 .track-row__meta-album 把专辑塞回
+   歌手那一行。既然专辑列常驻，那条补偿路径就没有存在意义了。 */
 
 /* 降低动效时静止的那份由 PlayingBars 自己处理 */
 </style>

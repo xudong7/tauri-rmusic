@@ -31,6 +31,7 @@ import { useOnlineServiceStore } from "./stores/onlineServiceStore";
 import { usePlayerStore } from "./stores/playerStore";
 import { usePlaylistStore } from "./stores/playlistStore";
 import { quitApp } from "./api/commands/system";
+import { WINDOW_MIN_HEIGHT, WINDOW_MIN_WIDTH } from "./constants";
 
 const { locale, t } = useI18n();
 const elementLocale = computed(() => (locale.value === "zh" ? zhCn : en));
@@ -63,8 +64,8 @@ const searchScope = computed<SearchScope | null>(() => {
 });
 
 const windowSizeConstraints = useWindowSizeConstraints({
-  minWidth: 760,
-  minHeight: 640,
+  minWidth: WINDOW_MIN_WIDTH,
+  minHeight: WINDOW_MIN_HEIGHT,
 });
 const keyboardShortcuts = useAppKeyboardShortcuts({
   onPrevious: () => playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1)),

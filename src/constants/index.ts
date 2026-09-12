@@ -17,6 +17,24 @@ export const SEARCH_HISTORY_MAX_ITEMS = 6;
 /** 防抖写入延迟（ms），避免连续多次写入后端 */
 export const PLAYLIST_SAVE_DEBOUNCE_MS = 300;
 
+/* ---------- 窗口 ---------- */
+/**
+ * 窗口可缩到的最小宽度。
+ *
+ * 900 的来由是列表网格：`--app-track-grid` 的最小宽度为
+ * 40+180+140+48 加三个 12px 间隙 = 444px，再加行内边距 16、容器内边距 8、
+ * 滚动条槽位 4，列表至少需要 472px；连同侧边栏 192 与内容区左右内边距 64，
+ * 窗口下限是 728px。取 900 是因为它同时高过 840px 那条断点（侧边栏与内容区
+ * 内边距会在那里收窄），这样任何宽度下布局都不重排，缩放时变的只有列表宽度
+ * 本身；900 时歌名列还有 272px。
+ *
+ * 必须与 src-tauri/tauri.conf.json、src-tauri/tauri.macos.conf.json 里的
+ * minWidth 保持一致：那两个是 OS 层的约束，这里在启动时再补一次（恢复上次
+ * 窗口尺寸时可能小于最小值）。两边对不上就会出现"能拖得更窄"的窗口。
+ */
+export const WINDOW_MIN_WIDTH = 900;
+export const WINDOW_MIN_HEIGHT = 640;
+
 /* ---------- 列表与虚拟滚动 ---------- */
 /** 默认封面图路径（对应 public/icon.png） */
 export const DEFAULT_COVER_URL = "/icon.png";

@@ -102,7 +102,7 @@ html {
   --app-track-row-padding-y: 8px;
   /* 行与列头共用这一份网格。两边各写一份是列头与行错位的根因：行上删掉序号列
      时列头那份没人跟着改，歌名就对不上「歌曲」这个标题（错了整整 52px）。
-     断点变体在下面统一给出，组件里不要再写 grid-template-columns 的媒体查询。 */
+     没有断点变体（见下面的说明），组件里也不要再写 grid-template-columns。 */
   --app-track-grid: 40px minmax(180px, 1fr) minmax(140px, 220px) 48px;
   --app-list-reading-width: 1080px;
 
@@ -152,20 +152,12 @@ html {
     0 1px 4px rgba(15, 23, 42, 0.16), 0 0 0 1px rgba(255, 255, 255, 0.55);
 }
 
-/* 列表网格的窄屏变体。列数在这里收窄，行与列头一起跟着变——组件里不再各自
-   覆写，也就不会再出现「行改了、列头没改」的错位。 */
-@media (max-width: 1100px) {
-  :root {
-    --app-track-grid: 40px minmax(0, 1fr) 48px;
-  }
-}
-
-@media (max-width: 840px) {
-  :root {
-    --app-track-grid: 40px minmax(0, 1fr) 44px;
-    --app-track-row-gap: 10px;
-  }
-}
+/* 列表网格没有断点变体，各宽度下只有上面这一份。
+   原先 1100px 以下会把专辑列整列收掉，可那是没必要地早：这份网格的最小宽度
+   是 40+180+140+48 加三个 12px 间隙 = 444px，加上行内边距 16、容器内边距 8、
+   滚动条槽位 4，列表共需 472px；而窗口的最小宽度（WINDOW_MIN_WIDTH = 900）
+   保证列表至少拿到 644px——专辑列一直放得下。
+   于是"不重排"这件事不再由断点保证，而是由窗口最小宽度保证。 */
 
 /* ---------- 亮色主题 ---------- */
 :root {

@@ -17,12 +17,20 @@ const item: TrackRowModel = {
 };
 
 describe("TrackRow", () => {
+  // 专辑只出现在专辑那一列，不再重复写进歌手行。
+  // 原先歌手行里还有一个 .track-row__meta-album，但它基线样式是 display: none、
+  // 只在 1100px 以下才显形（作为收起专辑列时的补偿）。旧断言用 text() 抓
+  // "Artist · Album"——text() 会把 display: none 的内容也算进去，所以它一直
+  // 在为一个用户根本看不见的节点背书。专辑列现在常驻，那条补偿路径已删除。
   it("renders normalized track information", () => {
     const wrapper = mount(TrackRow, { props: { item } });
+
     expect(wrapper.text()).toContain("Track title");
-    expect(wrapper.text()).toContain("Artist · Album");
     expect(wrapper.text()).toContain("3:20");
     expect(wrapper.classes()).toContain("is-current");
+
+    expect(wrapper.get(".track-row__meta").text()).toBe("Artist");
+    expect(wrapper.get(".track-row__album").text()).toBe("Album");
   });
 
   // 序号已全项目取消（队列面板先去掉，这里跟着对齐）。封面 + 歌名/歌手

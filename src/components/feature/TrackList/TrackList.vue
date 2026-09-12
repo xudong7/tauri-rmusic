@@ -214,12 +214,6 @@ function handleListKeydown(event: KeyboardEvent) {
   justify-content: center;
 }
 
-/* 窄屏只隐藏专辑这一格的内容。列数收窄与 gap 都由 --app-track-grid /
-   --app-track-row-gap 的断点覆写统一给出（themes.css），这里再写一遍网格
-   就是第二处需要同步的地方——列头与行当初就是这么错开的。 */
-@media (max-width: 1100px) {
-  .track-list__column-album {
-    display: none;
-  }
-}
+/* 没有窄屏变体：列头与行共用 --app-track-grid，那份网格在任何窗口宽度下都
+   放得下（见 themes.css 里的推导），所以缩窄不需要收起专辑列，也就不会重排。 */
 </style>
