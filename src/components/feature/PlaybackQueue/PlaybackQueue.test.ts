@@ -118,8 +118,8 @@ describe("PlaybackQueue", () => {
 
     const paused = await mountQueue([{ ...queue(1)[0], isCurrent: true }]);
     expect(paused.find(".queue-item-state .playing-bars").exists()).toBe(false);
-    // 带圈的路径里有半径 448 的圆弧，裸三角没有
-    expect(paused.get(".queue-item-state path").attributes("d")).toContain("a448 448");
+    // 无框图标：路径里没有任何圆弧命令，带圈的 VideoPlay 必有
+    expect(paused.get(".queue-item-state path").attributes("d")).not.toMatch(/[aA]\s*\d/);
 
     const idle = await mountQueue([queue(1)[0]]);
     expect(idle.find(".queue-item-state").exists()).toBe(false);

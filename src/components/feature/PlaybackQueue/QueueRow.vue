@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { VideoPlay } from "@element-plus/icons-vue";
 import type { PlaybackQueueItem } from "@/types/model";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import PlayingBars from "@/components/base/PlayingBars/PlayingBars.vue";
+import PlayIcon from "@/components/base/icons/PlayIcon.vue";
 import { QUEUE_COVER_RADIUS, QUEUE_COVER_SIZE, QUEUE_ROW_HEIGHT } from "@/constants";
 
 defineProps<{
@@ -46,7 +46,7 @@ const emit = defineEmits<{ play: [] }>();
            这里的判断与曲库列表逐字一致：播放中出跳动条，否则出带圈的播放键。 -->
       <span v-if="item.isCurrent" class="queue-item-state">
         <PlayingBars v-if="isPlaying" />
-        <el-icon v-else><VideoPlay /></el-icon>
+        <el-icon v-else><PlayIcon /></el-icon>
       </span>
     </span>
     <span class="queue-item-main">
@@ -99,15 +99,26 @@ const emit = defineEmits<{ play: [] }>();
   line-height: 0;
 }
 
+/* 播放态直接叠在封面上，不套底色方框——悬停反馈由曲库列表那边统一给。
+   没有底色托底，改用投影保证浅色封面上也看得见。 */
 .queue-item-state {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.46);
-  color: #fff;
-  font-size: 15px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 18px;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
+  transition:
+    color var(--app-control-transition),
+    filter var(--app-control-transition);
+}
+
+.queue-item:hover .queue-item-state {
+  color: #ffffff;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6))
+    drop-shadow(0 0 6px rgba(255, 255, 255, 0.6));
 }
 
 /* 歌名与歌手排成一行。两段都允许收缩并各自省略：长标题先让位，

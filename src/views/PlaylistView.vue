@@ -67,7 +67,7 @@
               <el-button
                 circle
                 size="small"
-                :icon="VideoPlay"
+                :icon="PlayIcon"
                 type="primary"
                 class="header-action-btn playlist-play-all app-icon-button app-icon-button--primary"
                 :disabled="!hasPlayableItems"
@@ -156,7 +156,6 @@ import { useRoute, useRouter } from "vue-router";
 import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
 import { useI18n } from "vue-i18n";
 import {
-  VideoPlay,
   Minus,
   Delete,
   EditPen,
@@ -164,6 +163,7 @@ import {
   Folder,
   Search,
 } from "@element-plus/icons-vue";
+import PlayIcon from "@/components/base/icons/PlayIcon.vue";
 import type { PlaylistItem, MusicFile, SongInfo } from "@/types/model";
 import { formatDuration, getLocalMusicDisplayInfo } from "@/utils/songUtils";
 import { usePlaylistStore } from "@/stores/playlistStore";

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { VideoPlay } from "@element-plus/icons-vue";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import PlayingBars from "@/components/base/PlayingBars/PlayingBars.vue";
+import PlayIcon from "@/components/base/icons/PlayIcon.vue";
 import type { TrackRowModel } from "./types";
 
 const props = withDefaults(
@@ -84,11 +84,11 @@ function handleActivate() {
         :aria-label="item.title"
         @click.stop="handleActivate()"
       >
-        <!-- 播放/暂停的表达与队列面板逐字一致：播放中出跳动条，否则出播放键。
-             图标用 VideoPlay（带圈），与播放栏、沉浸页同一族——原先这里的
-             CaretRight 是一个裸三角，和队列里的带圈三角长得不一样。 -->
+        <!-- 播放/暂停的表达与队列面板逐字一致：播放中出跳动条，否则出播放三角。
+             图标不带圈，全项目统一用 PlayIcon/PauseIcon——Element Plus 的
+             VideoPlay 会把三角套进圆圈里，叠在封面上就像多了个边框。 -->
         <PlayingBars v-if="item.isCurrent && item.isPlaying" />
-        <el-icon v-else class="track-row__play-icon"><VideoPlay /></el-icon>
+        <el-icon v-else class="track-row__play-icon"><PlayIcon /></el-icon>
       </button>
     </div>
 
@@ -186,25 +186,29 @@ function handleActivate() {
   border-radius: var(--app-radius-sm);
 }
 
-/* 覆盖在封面上的播放键与选择框。容器 overflow: hidden，遮罩自然被裁成
-   封面那圈圆角；遮罩也给白色图标兜底，浅色封面下不会看不见。 */
 .track-row__cover-play,
 .track-row__cover-check {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.44);
 }
 
+/* 播放三角直接叠在封面上，不套任何底色方框——悬停时的反馈就是它自己亮起来。
+   没有底色托底，改用投影保证浅色封面上也看得见。 */
 .track-row__cover-play {
   padding: 0;
   border: 0;
+  background: none;
   font: inherit;
   cursor: pointer;
+  color: rgba(255, 255, 255, 0.78);
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
   opacity: 0;
-  transition: opacity var(--app-control-transition);
+  transition:
+    opacity var(--app-control-transition),
+    color var(--app-control-transition),
+    filter var(--app-control-transition);
 }
 
 /* 悬停/聚焦才浮出，当前曲目常驻——与队列面板把播放态叠在封面上一致 */
@@ -214,9 +218,19 @@ function handleActivate() {
   opacity: 1;
 }
 
+/* 指针落到图标本身时「微微发亮」：颜色提到纯白，再补一层白色光晕 */
+.track-row__cover-play:hover,
 .track-row__cover-play:focus-visible {
-  outline: 2px solid var(--el-color-primary);
-  outline-offset: 2px;
+  color: #ffffff;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6))
+    drop-shadow(0 0 6px rgba(255, 255, 255, 0.6));
+  outline: none;
+}
+
+/* 选择框需要自己的底：它是个小方框轮廓，直接压在画面上会看不清 */
+.track-row__cover-check {
+  background: rgba(0, 0, 0, 0.44);
+  color: #fff;
 }
 
 .track-row__main {

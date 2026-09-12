@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { VideoPlay, VideoPause, ArrowLeft, ArrowRight } from "@element-plus/icons-vue";
+import { ArrowLeft, ArrowRight } from "@element-plus/icons-vue";
+import PlayIcon from "@/components/base/icons/PlayIcon.vue";
+import PauseIcon from "@/components/base/icons/PauseIcon.vue";
 import {
   PlayMode,
   type MusicFile,
@@ -225,7 +227,7 @@ const {
         >
           <el-button
             class="control-btn play-btn app-play-button"
-            :icon="isPlaying ? VideoPause : VideoPlay"
+            :icon="isPlaying ? PauseIcon : PlayIcon"
             :loading="isLoading"
             :disabled="!currentMusic && !currentOnlineSong"
             @click="emit('toggle-play')"

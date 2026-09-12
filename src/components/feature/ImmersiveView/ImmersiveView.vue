@@ -2,8 +2,6 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import {
-  VideoPlay,
-  VideoPause,
   ArrowLeft,
   ArrowRight,
   ArrowDown,
@@ -13,6 +11,8 @@ import {
   ScaleToOriginal,
   Close,
 } from "@element-plus/icons-vue";
+import PlayIcon from "@/components/base/icons/PlayIcon.vue";
+import PauseIcon from "@/components/base/icons/PauseIcon.vue";
 import type { SongInfo, MusicFile, PlayMode } from "@/types/model";
 import LyricView from "@/components/feature/LyricView/LyricView.vue";
 import { useCoverPalette } from "@/composables/useCoverPalette";
@@ -266,7 +266,7 @@ const overlayStyle = computed(() => {
             circle
             size="large"
             class="immersive-play-btn"
-            :icon="isPlaying ? VideoPause : VideoPlay"
+            :icon="isPlaying ? PauseIcon : PlayIcon"
             @click="emit('toggle-play')"
             type="primary"
           />
