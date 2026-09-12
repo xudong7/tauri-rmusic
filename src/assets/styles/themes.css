@@ -115,6 +115,15 @@ html {
   --app-play-btn-lg: 56px;
   --app-button-radius: var(--app-radius-full);
   --app-control-transition: 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  /* 整块界面的进出场（沉浸页、播放队列），与上面那条「控件状态过渡」分开：
+     控件过渡要短而中性，整块界面的进退场要能让眼睛跟得上。
+     进场减速、退场加速且更短——用户已经决定离开，拖久了只是挡着下一步操作。
+     上面那条不是 `180ms var(--app-motion-ease-out)` 的简写：改这里不该牵动
+     20 处控件过渡，两条各自独立。 */
+  --app-motion-enter: 200ms;
+  --app-motion-leave: 140ms;
+  --app-motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --app-motion-ease-in: cubic-bezier(0.55, 0, 1, 0.45);
   --app-button-bg: rgba(255, 255, 255, 0.58);
   --app-button-border: rgba(24, 33, 42, 0.08);
   --app-button-hover-bg: rgba(255, 255, 255, 0.9);
