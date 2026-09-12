@@ -129,7 +129,13 @@ html.dark .player-bar {
   gap: 1px;
   min-width: 0;
   height: 100%;
-  padding: 5px 0 4px;
+  /* 播放栏 80px 的垂直预算：
+       11(上) + 42(播放按钮) + 1(gap) + 20(进度行) + 6(下) = 80
+     上下不是对称值，因为要让两段留白视觉对等：按钮底边到进度条中心线是
+     1 + 20/2 = 11px，所以按钮上方也留 11px，剩下的 6px 才落到最下面。
+     改之前是 5/4，而进度行占 32px，内容溢出 4px 吃掉了 padding-bottom，
+     按钮顶上只剩 5px、离进度条却有 18px。详见 .progress-slider 的说明。 */
+  padding: 11px 0 6px;
   box-sizing: border-box;
 }
 
@@ -235,6 +241,14 @@ html.dark .player-bar {
 
 .player-progress .progress-slider {
   flex: 1;
+  /* EP 给 .el-slider 的默认高度是 32px，为的是容纳 20px 的圆形 thumb 和
+     36px 的 hover 热区。本项目已经把 thumb 缩到 8px、button-wrapper 缩到
+     22px，32px 就纯属多余了——它让中间栏内容变成 42 + 1 + 32 = 75px，而
+     80px 的播放栏扣掉 .player-center 的上下内边距只剩 71px，多出的 4px
+     会吃掉 padding-bottom，把播放按钮顶到紧贴栏顶。
+     压到 20px 只为让内容放得下；跑道在这 20px 里仍然是居中的，所以进度条
+     本身的位置没变（仍是 y=875），变的只有播放按钮。 */
+  height: 20px;
 }
 
 .player-progress :deep(.el-slider__runway) {
