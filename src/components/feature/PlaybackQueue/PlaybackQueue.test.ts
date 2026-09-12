@@ -160,6 +160,26 @@ describe("PlaybackQueue", () => {
     expect(artist.className).toContain("queue-item-artist");
   });
 
+  // 隔行底色由行自己的 index prop 决定（见 QueueRow），虚拟滚动下也是拿
+  // 真实下标算的，所以窗口即便从中间开始，纹路也不会随滚动漂移。
+  //
+  // 这里只能验到窗口从 0 开始那一种情形：jsdom 里 useVirtualList 不响应
+  // scroll，scrollTop 推不动窗口（实测推 5 行后首行仍是 Track 0）。
+  // 「滚动后的纹路」没有自动化覆盖。
+  it("虚拟滚动下的行仍按下标交替隔行底色", async () => {
+    stubViewportHeight();
+    const wrapper = await mountQueue(queue(2000));
+    const flags = wrapper
+      .findAll(".queue-item")
+      .map((row) => row.classes().includes("is-striped"));
+
+    expect(flags.length).toBeGreaterThan(0);
+    expect(flags[0]).toBe(true);
+    for (let i = 1; i < flags.length; i++) {
+      expect(flags[i]).not.toBe(flags[i - 1]);
+    }
+  });
+
   // 本地封面要经 IPC 逐个取。没有显式队列时 queue 会退化成整个本地曲库，
   // 一旦给全量排加载，打开队列面板就会排上千次 IPC。这条盯住「只排可见行」。
   it("虚拟滚动时只给可视窗口内的行排封面加载", async () => {

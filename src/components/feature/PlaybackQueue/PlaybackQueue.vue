@@ -32,9 +32,13 @@ const { useVirtual, virtualList, scrollTo, containerProps, wrapperProps } =
     itemHeight: QUEUE_ROW_HEIGHT,
   });
 
-/** 实际渲染出来的行：虚拟滚动下是可视窗口，否则是全部 */
-const renderedItems = computed(() =>
-  useVirtual.value ? virtualList.value.map(({ data }) => data) : props.items
+/** 实际渲染出来的行：虚拟滚动下是可视窗口，否则是全部。
+ *  连真实下标一起带出来——隔行底色靠它，而虚拟滚动下 DOM 里的位置
+ *  和真实下标对不上（:nth-child 会随滚动漂移）。 */
+const renderedRows = computed(() =>
+  useVirtual.value
+    ? virtualList.value.map(({ data, index }) => ({ item: data, index }))
+    : props.items.map((item, index) => ({ item, index }))
 );
 
 // 虚拟化和普通渲染只差绑定与数据源，合成一层，免得行标记写两份。
@@ -56,8 +60,9 @@ const { getCover, scheduleMany: scheduleCoverLoads } =
 // 只给渲染出来的行排封面。队列在无显式队列时会退化成整个本地曲库，
 // 全量调度等于一次性排上千次 IPC。
 watch(
-  renderedItems,
-  (items) => scheduleCoverLoads(items.filter((item) => item.coverFileName)),
+  renderedRows,
+  (rows) =>
+    scheduleCoverLoads(rows.map(({ item }) => item).filter((item) => item.coverFileName)),
   { immediate: true }
 );
 
@@ -126,12 +131,13 @@ function handlePanelKeydown(event: KeyboardEvent) {
       >
         <div v-bind="wrapperBindings" class="queue-rows" role="list">
           <QueueRow
-            v-for="item in renderedItems"
-            :key="item.key"
-            :item="item"
+            v-for="row in renderedRows"
+            :key="row.item.key"
+            :item="row.item"
+            :index="row.index"
             :is-playing="isPlaying"
-            :cover-url="resolveCover(item)"
-            @play="emit('play', item.sourceIndex)"
+            :cover-url="resolveCover(row.item)"
+            @play="emit('play', row.item.sourceIndex)"
           />
         </div>
       </div>

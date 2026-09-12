@@ -78,6 +78,16 @@ describe("TrackRow", () => {
     expect(paused.find(".playing-bars").exists()).toBe(false);
   });
 
+  // 隔行底色按下标的奇偶来，参考图里第一行就是带底色的那一种
+  it("按下标的奇偶决定隔行底色", () => {
+    expect(mount(TrackRow, { props: { item, index: 0 } }).classes()).toContain(
+      "is-striped"
+    );
+    expect(mount(TrackRow, { props: { item, index: 1 } }).classes()).not.toContain(
+      "is-striped"
+    );
+  });
+
   it("emits activate from the play control", async () => {
     const wrapper = mount(TrackRow, { props: { item } });
     await wrapper.find("button").trigger("click");

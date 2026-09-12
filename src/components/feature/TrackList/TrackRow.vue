@@ -8,11 +8,15 @@ import type { TrackRowModel } from "./types";
 const props = withDefaults(
   defineProps<{
     item: TrackRowModel;
+    /** 在源数组里的真实下标，用于隔行底色。
+        虚拟滚动下 DOM 里的位置和真实下标对不上，所以不能交给 :nth-child。 */
+    index?: number;
     selectionMode?: boolean;
     selected?: boolean;
     rowHeight?: number;
   }>(),
   {
+    index: 0,
     selectionMode: false,
     selected: false,
     rowHeight: undefined,
@@ -49,6 +53,7 @@ function handleActivate() {
       'is-current': item.isCurrent && !selectionMode,
       'is-selected': selected,
       'is-disabled': item.disabled,
+      'is-striped': props.index % 2 === 0,
     }"
     :style="
       rowHeight ? { height: `${rowHeight}px`, minHeight: `${rowHeight}px` } : undefined
@@ -140,6 +145,12 @@ function handleActivate() {
     background var(--app-control-transition),
     color var(--app-control-transition);
   outline: none;
+}
+
+/* 隔行底色。必须排在这一组的最前面：悬停、选中、聚焦与它特异性相同
+   （都是 0,2,0），靠源码顺序决定胜负，后面几条要能盖住它。 */
+.track-row.is-striped {
+  background: var(--app-row-stripe-bg);
 }
 
 .track-row:hover {

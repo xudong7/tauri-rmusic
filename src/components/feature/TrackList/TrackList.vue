@@ -107,9 +107,10 @@ function handleListKeydown(event: KeyboardEvent) {
     >
       <div v-bind="wrapperProps" class="track-list__rows" role="list">
         <TrackRow
-          v-for="{ data: item } in virtualList"
+          v-for="{ data: item, index } in virtualList"
           :key="item.key"
           :item="item"
+          :index="index"
           :selection-mode="selectionMode"
           :selected="selectedKeys.has(item.key)"
           :row-height="rowHeight"
@@ -132,9 +133,10 @@ function handleListKeydown(event: KeyboardEvent) {
     >
       <div class="track-list__rows" role="list">
         <TrackRow
-          v-for="item in items"
+          v-for="(item, index) in items"
           :key="item.key"
           :item="item"
+          :index="index"
           :selection-mode="selectionMode"
           :selected="selectedKeys.has(item.key)"
           @activate="handleActivate"

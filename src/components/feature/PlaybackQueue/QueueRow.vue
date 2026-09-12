@@ -5,12 +5,18 @@ import PlayingBars from "@/components/base/PlayingBars/PlayingBars.vue";
 import PlayIcon from "@/components/base/icons/PlayIcon.vue";
 import { QUEUE_COVER_RADIUS, QUEUE_COVER_SIZE, QUEUE_ROW_HEIGHT } from "@/constants";
 
-defineProps<{
-  item: PlaybackQueueItem;
-  isPlaying: boolean;
-  /** 封面地址由上层解析：本地封面要经 IPC 异步取，这里只管渲染 */
-  coverUrl: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    item: PlaybackQueueItem;
+    isPlaying: boolean;
+    /** 封面地址由上层解析：本地封面要经 IPC 异步取，这里只管渲染 */
+    coverUrl: string;
+    /** 在源数组里的真实下标，用于隔行底色。虚拟滚动下 DOM 里的位置和真实
+        下标对不上，所以不能交给 :nth-child。 */
+    index?: number;
+  }>(),
+  { index: 0 }
+);
 
 const emit = defineEmits<{ play: [] }>();
 </script>
@@ -19,7 +25,7 @@ const emit = defineEmits<{ play: [] }>();
   <button
     type="button"
     class="queue-item"
-    :class="{ 'is-current': item.isCurrent }"
+    :class="{ 'is-current': item.isCurrent, 'is-striped': props.index % 2 === 0 }"
     :style="{ height: `${QUEUE_ROW_HEIGHT}px`, minHeight: `${QUEUE_ROW_HEIGHT}px` }"
     :disabled="item.disabled"
     :aria-current="item.isCurrent ? 'true' : undefined"
@@ -72,6 +78,12 @@ const emit = defineEmits<{ play: [] }>();
   background: transparent;
   text-align: left;
   cursor: pointer;
+}
+
+/* 隔行底色，排在悬停与选中之前：三者特异性相同（0,2,0），
+   靠源码顺序决定胜负，后面几条必须能盖住它。 */
+.queue-item.is-striped {
+  background: var(--app-row-stripe-bg);
 }
 
 .queue-item:hover,
