@@ -15,7 +15,6 @@ export default {
     warm: "暖色",
     cancel: "取消",
     confirmDelete: "确定删除",
-    close: "关闭",
     download: "下载",
   },
   playlist: {
@@ -32,7 +31,6 @@ export default {
     alreadyInPlaylist: "该歌曲已在「{name}」中",
     downloadedAndAdded: "已下载并已添加到「{name}」",
     removeSelected: "从播放列表移除选中",
-    playAll: "播放全部",
     trackCount: "{count} 首歌曲",
     browseLibrary: "前往曲库",
     browseOnline: "在线搜索",
@@ -85,7 +83,6 @@ export default {
   },
   musicList: {
     title: "曲库",
-    import: "导入",
     importFolder: "从文件夹导入音乐",
     empty: "暂无音乐，点击「导入音乐」添加",
     multiSelect: "多选",
@@ -158,6 +155,7 @@ export default {
     sequential: "顺序播放",
     random: "随机播放",
     repeatOne: "单曲循环",
+    volume: "音量",
   },
   lyric: {
     noLyric: "暂无歌词",

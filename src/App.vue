@@ -19,6 +19,7 @@ import PlaybackQueue from "./components/feature/PlaybackQueue/PlaybackQueue.vue"
 import ImmersiveView from "./components/feature/ImmersiveView/ImmersiveView.vue";
 import type { SearchScope } from "./types/model";
 import { useAppKeyboardShortcuts } from "./composables/useAppKeyboardShortcuts";
+import { usePlaybackQueueRouteReset } from "./composables/usePlaybackQueueRouteReset";
 import { useStorageThemeSync } from "./composables/useStorageThemeSync";
 import { useTrayPlaybackEvents } from "./composables/useTrayPlaybackEvents";
 import { useWindowSizeConstraints } from "./composables/useWindowSizeConstraints";
@@ -30,6 +31,7 @@ import { useOnlineServiceStore } from "./stores/onlineServiceStore";
 import { usePlayerStore } from "./stores/playerStore";
 import { usePlaylistStore } from "./stores/playlistStore";
 import { quitApp } from "./api/commands/system";
+import { WINDOW_MIN_HEIGHT, WINDOW_MIN_WIDTH } from "./constants";
 
 const { locale, t } = useI18n();
 const elementLocale = computed(() => (locale.value === "zh" ? zhCn : en));
@@ -62,8 +64,8 @@ const searchScope = computed<SearchScope | null>(() => {
 });
 
 const windowSizeConstraints = useWindowSizeConstraints({
-  minWidth: 760,
-  minHeight: 640,
+  minWidth: WINDOW_MIN_WIDTH,
+  minHeight: WINDOW_MIN_HEIGHT,
 });
 const keyboardShortcuts = useAppKeyboardShortcuts({
   onPrevious: () => playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1)),
@@ -73,6 +75,8 @@ const keyboardShortcuts = useAppKeyboardShortcuts({
 const themeSync = useStorageThemeSync({
   setThemeWithoutSave: themeStore.setThemeWithoutSave,
 });
+// 不带返回值：内部那个 watcher 挂在当前组件的 scope 上，随卸载自动停
+usePlaybackQueueRouteReset();
 const trayEvents = useTrayPlaybackEvents({
   onPrevious: () => playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1)),
   onNext: () => playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1)),
@@ -198,14 +202,21 @@ onUnmounted(() => {
           <router-view />
         </div>
       </div>
-      <PlaybackQueue
-        v-if="viewStore.showPlaybackQueue"
-        :items="playerStore.playbackQueueItems"
-        :title="playerStore.playbackQueueTitle"
-        :is-playing="playerStore.isPlaying"
-        @close="closePlaybackQueue"
-        @play="playerStore.playQueueItem"
-      />
+      <!-- 过渡类名（.queue-enter-* / .queue-leave-*）写在 PlaybackQueue.vue 自己的
+           scoped 样式里，不在这里：那边最后一个复合选择器会自动带上 [data-v-*]，
+           才压得过 .queue-panel 自己声明的 pointer-events。
+           不加 :key —— BaseTransition 靠 isSameVNodeType 复用正在离场的节点，
+           key 一变会同时存在两个面板。 -->
+      <Transition name="queue">
+        <PlaybackQueue
+          v-if="viewStore.showPlaybackQueue"
+          :items="playerStore.playbackQueueItems"
+          :title="playerStore.playbackQueueTitle"
+          :is-playing="playerStore.isPlaying"
+          @close="closePlaybackQueue"
+          @play="playerStore.playQueueItem"
+        />
+      </Transition>
       <PlayerBar
         :currentMusic="playerStore.currentMusic"
         :currentOnlineSong="playerStore.currentOnlineSong"
@@ -225,21 +236,25 @@ onUnmounted(() => {
         @seek="playerStore.seekToPosition"
       />
 
-      <ImmersiveView
-        v-if="viewStore.showImmersiveMode"
-        :currentSong="playerStore.currentOnlineSong"
-        :currentMusic="playerStore.currentMusic"
-        :isPlaying="playerStore.isPlaying"
-        :currentTime="playerStore.currentPlayTime"
-        :currentTrackDuration="playerStore.currentTrackDuration"
-        :playMode="playerStore.playMode"
-        @toggle-play="playerStore.togglePlay"
-        @next="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1))"
-        @previous="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1))"
-        @exit="playerStore.exitImmersive"
-        @seek="playerStore.seekToPosition"
-        @toggle-play-mode="playerStore.togglePlayMode"
-      />
+      <!-- 过渡类名写在 ImmersiveView.css（scoped）里，理由同上面的队列。
+           同样不加 :key。 -->
+      <Transition name="immersive">
+        <ImmersiveView
+          v-if="viewStore.showImmersiveMode"
+          :currentSong="playerStore.currentOnlineSong"
+          :currentMusic="playerStore.currentMusic"
+          :isPlaying="playerStore.isPlaying"
+          :currentTime="playerStore.currentPlayTime"
+          :currentTrackDuration="playerStore.currentTrackDuration"
+          :playMode="playerStore.playMode"
+          @toggle-play="playerStore.togglePlay"
+          @next="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1))"
+          @previous="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1))"
+          @exit="playerStore.exitImmersive"
+          @seek="playerStore.seekToPosition"
+          @toggle-play-mode="playerStore.togglePlayMode"
+        />
+      </Transition>
     </div>
   </el-config-provider>
 </template>

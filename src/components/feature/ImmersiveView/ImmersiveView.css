@@ -17,6 +17,17 @@
   --immersive-cover-size: clamp(270px, min(32vw, 52vh), 380px);
   --immersive-lyrics-height: clamp(260px, 42vh, 390px);
   --immersive-titlebar-height: 44px;
+  --immersive-exit-btn-size: 28px;
+  /* macOS 原生红黄绿按钮的几何，实机截图实测得来。
+     截图与 CSS 像素是 1:1（播放按钮 56px 正好占 56 像素，可据此标定），
+     所以下面这些数可以直接原样写进 CSS：
+       · 左边缘距窗口左边 12px（trafficLightPosition.x = 12）
+       · 三个按钮各 14px、相邻中心间距 23px
+         → 最右边缘落在 12 + 14 + 23 + 23 = 72px
+       · 垂直中心距窗口顶边 11.5px（trafficLightPosition.y = 14）
+     原生按钮由 AppKit 绘制、永远盖在 webview 之上，z-index 压不住，只能让位。 */
+  --immersive-mac-traffic-lights-width: 78px;
+  --immersive-mac-traffic-lights-center-y: 11.5px;
   --immersive-control-surface: rgba(10, 16, 20, 0.26);
   --immersive-control-surface-hover: color-mix(
     in srgb,
@@ -32,6 +43,57 @@
   --immersive-progress-track: rgba(255, 255, 255, 0.3);
   --immersive-top-control: rgba(255, 255, 255, 0.58);
   user-select: none;
+}
+
+/* ---------- 进出场 ----------
+   App.vue 用 <Transition name="immersive"> 包住本组件。
+
+   整个视图只做淡入淡出，不加 scale：红黄绿按钮的几何是实机标定的
+   （见下面 --immersive-mac-traffic-lights-* 的推导），动画期间缩放会让返回键
+   与原生按钮错位；整屏 scale 还会在四边露出底下的应用。
+
+   根只列 opacity：列上不会变的属性会让每次退场退化成等超时，而不是由
+   transitionend 触发。 */
+.immersive-view.immersive-enter-active {
+  transition: opacity var(--app-motion-enter) var(--app-motion-ease-out);
+}
+
+.immersive-view.immersive-leave-active {
+  transition: opacity var(--app-motion-leave) var(--app-motion-ease-in);
+}
+
+.immersive-enter-from,
+.immersive-leave-to {
+  opacity: 0;
+}
+
+/* 内容随整页一起浮上来。时长必须与根同 token：根的 -active 类一摘，这条
+   transition 声明就消失，正在跑的位移会被掐断跳到终值——进场时根已经
+   完全不透明，掐断是看得见的。
+   因此这里不能给 transition-delay：根 200ms，内容「延迟 40ms + 200ms」
+   就超出根，会在 200ms 被截断。错峰好看，但代价是这个失配，不做。 */
+.immersive-enter-active .content-section {
+  transition:
+    opacity var(--app-motion-enter) var(--app-motion-ease-out),
+    transform var(--app-motion-enter) var(--app-motion-ease-out);
+}
+
+.immersive-enter-from .content-section {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+/* 退场只淡出、不再位移：用户这时已经不看内容了，多一层运动只会拖慢感知。 */
+
+/* 退场期间把整棵子树的命中测试关掉。只在根上写 pointer-events: none 不够——
+   pointer-events 虽然可继承，但 .immersive-titlebar-drag-region 显式声明了
+   auto，它的 @mousedown 会真的调 currentWindow.startDragging()：退场那 140ms
+   里点一下顶栏就会拖出一个幽灵窗口。
+   !important 在这里是必需的：`*` 只拿到 (0,2,0)，与那条声明打平，其余看顺序。
+   挂 -leave-active 而不是 -leave-to：后者要等两帧 rAF 才加上，会漏掉开头。 */
+.immersive-view.immersive-leave-active,
+.immersive-view.immersive-leave-active * {
+  pointer-events: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -111,11 +173,24 @@
   pointer-events: none;
 }
 
+/* macOS 上原生窗口按钮在左上角，返回键跟着挪过去并与红黄绿同心。
+   其余平台没有红黄绿，保持 left: 20px / top: 12px 原位。
+
+   按钮在 mac 上压到 23px 是被迫的：要让一个圆形按钮与红绿灯同心，
+   直径不能超过「中心距顶边」的两倍（2 × 11.5），否则顶部会越过窗口上缘，
+   被 .immersive-view 的 overflow: hidden 削平，hover 时圆角变成平口。
+   只有外框缩水，里面的图标字号不变，字形大小与非 mac 一致。 */
+.immersive-view.is-mac-platform {
+  --immersive-exit-btn-size: 23px;
+}
+
 .immersive-view.is-mac-platform .top-section {
-  top: 10px;
-  left: 20px;
+  top: calc(
+    var(--immersive-mac-traffic-lights-center-y) - var(--immersive-exit-btn-size) / 2
+  );
+  left: var(--immersive-mac-traffic-lights-width);
   right: 18px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 /* 返回按钮 */
@@ -124,8 +199,8 @@
   background: transparent !important;
   border: 1px solid transparent !important;
   color: var(--immersive-top-control) !important;
-  width: 28px;
-  height: 28px;
+  width: var(--immersive-exit-btn-size);
+  height: var(--immersive-exit-btn-size);
   border-radius: var(--app-radius-full) !important;
   box-shadow: none;
   transition:
@@ -541,11 +616,6 @@
   .immersive-view {
     --immersive-cover-size: clamp(150px, 28vh, 188px);
     --immersive-lyrics-height: clamp(112px, 22vh, 150px);
-  }
-
-  .immersive-view.is-mac-platform .top-section {
-    top: 10px;
-    right: 18px;
   }
 
   .content-section {

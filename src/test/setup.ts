@@ -83,6 +83,17 @@ Object.defineProperty(window, "ResizeObserver", {
   value: ResizeObserverMock,
 });
 
+/**
+ * jsdom 没有实现 scrollIntoView（Element.prototype 上压根没这个方法）。
+ * 任何「挂载后把当前项滚进视野」的组件都会在挂载时抛错，而且是异步抛，
+ * 表现为一条不影响断言的 Unhandled Rejection——测试全绿但输出一片红，
+ * 真出问题时反而看不见。桩成空实现即可，测试关心的从来不是滚动本身。
+ */
+Object.defineProperty(Element.prototype, "scrollIntoView", {
+  writable: true,
+  value: () => undefined,
+});
+
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: (query: string) => ({

@@ -1,13 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import {
-  VideoPlay,
-  VideoPause,
-  ArrowLeft,
-  ArrowRight,
-  Tickets,
-} from "@element-plus/icons-vue";
+import { ArrowLeft, ArrowRight } from "@element-plus/icons-vue";
+import PlayIcon from "@/components/base/icons/PlayIcon.vue";
+import PauseIcon from "@/components/base/icons/PauseIcon.vue";
 import {
   PlayMode,
   type MusicFile,
@@ -196,6 +192,19 @@ const {
     <!-- 中间：播放控制 + 进度条 -->
     <div class="player-center">
       <div v-show="hasTrack" class="player-controls">
+        <!-- 播放顺序：本质是播放行为的开关，和上一首/下一首同族，
+             原先挤在右侧工具组里，挪到控制行左侧。
+             它与右侧音量键各占 32px，左右对称，播放键才落在控制行正中。 -->
+        <el-tooltip :content="playModeTooltip" placement="top" effect="light">
+          <el-button
+            class="control-btn play-mode-btn app-icon-button"
+            :class="{ 'is-active': playMode !== PlayMode.SEQUENTIAL }"
+            :icon="currentPlayModeIcon"
+            :aria-label="playModeTooltip"
+            @click="emit('toggle-play-mode')"
+          />
+        </el-tooltip>
+
         <el-tooltip
           :content="t('playerBar.previous')"
           placement="top"
@@ -218,7 +227,7 @@ const {
         >
           <el-button
             class="control-btn play-btn app-play-button"
-            :icon="isPlaying ? VideoPause : VideoPlay"
+            :icon="isPlaying ? PauseIcon : PlayIcon"
             :loading="isLoading"
             :disabled="!currentMusic && !currentOnlineSong"
             @click="emit('toggle-play')"
@@ -238,6 +247,42 @@ const {
             @click="emit('next')"
           />
         </el-tooltip>
+
+        <!-- 音量：图标常驻，滑块悬停或聚焦时从图标上方浮出。
+             参考图里音量只有一个图标，因为常驻滑块会占掉一百多像素，
+             把播放键挤出控制行中心。浮层不占布局，两侧才保持对称。 -->
+        <div class="volume-control">
+          <button
+            type="button"
+            class="control-btn volume-speaker-icon"
+            :aria-label="t(volume > 0 ? 'playerBar.mute' : 'playerBar.unmute')"
+            @click="toggleMute"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path
+                d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"
+              />
+            </svg>
+          </button>
+          <div class="volume-popup">
+            <div class="volume-popup-inner">
+              <el-slider
+                v-model="volumeSliderValue"
+                :max="100"
+                :min="0"
+                :step="1"
+                :show-tooltip="false"
+                :aria-label="t('playerBar.volume')"
+                class="volume-slider volume-slider-h"
+                @change="handleVolumeChange"
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       <div v-show="hasTrack" class="player-progress">
@@ -267,52 +312,30 @@ const {
       </div>
     </div>
 
-    <!-- 右侧：播放模式 + 内联音量条 -->
+    <!-- 右侧：只剩播放队列。播放顺序与音量已归入控制行。 -->
     <div v-show="hasTrack" class="player-right">
-      <div class="player-tool-group">
-        <el-tooltip :content="t('playerBar.queue')" placement="top" effect="light">
-          <el-button
-            class="queue-btn app-icon-button"
-            circle
-            :icon="Tickets"
-            :disabled="!currentMusic && !currentOnlineSong"
-            :aria-label="t('playerBar.queue')"
-            @click="emit('toggle-queue')"
-          />
-        </el-tooltip>
-        <el-tooltip :content="playModeTooltip" placement="top" effect="light">
-          <el-button
-            class="play-mode-btn app-icon-button"
-            :class="{ 'is-active': playMode !== PlayMode.SEQUENTIAL }"
-            circle
-            :icon="currentPlayModeIcon"
-            @click="emit('toggle-play-mode')"
-          />
-        </el-tooltip>
-      </div>
-      <div class="volume-bar">
-        <button
-          type="button"
-          class="volume-speaker-icon"
-          :aria-label="t(volume > 0 ? 'playerBar.mute' : 'playerBar.unmute')"
-          @click="toggleMute"
+      <el-tooltip :content="t('playerBar.queue')" placement="top" effect="light">
+        <el-button
+          class="queue-btn app-icon-button"
+          circle
+          :disabled="!currentMusic && !currentOnlineSong"
+          :aria-label="t('playerBar.queue')"
+          @click="emit('toggle-queue')"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <!-- 播放列表图标：上面两条通栏横线，第三条短一截，右下角补一个播放三角。
+              照参考图临摹，Element Plus 里没有对应图标，所以自己画。
+              尺寸在 CSS 里控制（.queue-icon），不跟 el-icon 的 font-size 走。 -->
+          <svg class="queue-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path
-              d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"
+              d="M3 4h18M3 11h18M3 18h9"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
             />
+            <path d="M15 14.2 21 18l-6 3.8Z" fill="currentColor" />
           </svg>
-        </button>
-        <el-slider
-          v-model="volumeSliderValue"
-          :max="100"
-          :min="0"
-          :step="1"
-          :show-tooltip="false"
-          class="volume-slider volume-slider-h"
-          @change="handleVolumeChange"
-        />
-      </div>
+        </el-button>
+      </el-tooltip>
     </div>
   </div>
 </template>

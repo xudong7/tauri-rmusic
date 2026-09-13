@@ -63,23 +63,11 @@
             </el-button>
           </template>
           <template v-else>
-            <el-tooltip :content="t('playlist.playAll')" placement="bottom">
-              <el-button
-                circle
-                size="small"
-                :icon="VideoPlay"
-                type="primary"
-                class="header-action-btn playlist-play-all app-icon-button app-icon-button--primary"
-                :disabled="!hasPlayableItems"
-                @click="playAll"
-              />
-            </el-tooltip>
             <el-tooltip :content="t('musicList.multiSelect')" placement="bottom">
               <el-button
                 link
                 size="small"
-                :icon="CircleCheck"
-                type="primary"
+                :icon="MultiSelectIcon"
                 class="header-action-btn app-icon-button"
                 @click="toggleSelectionMode"
               />
@@ -96,7 +84,7 @@
                 <el-button
                   link
                   size="small"
-                  :icon="Delete"
+                  :icon="TrashIcon"
                   type="default"
                   class="header-action-btn playlist-delete-action app-icon-button app-icon-button--danger"
                   :title="t('playlist.delete')"
@@ -126,7 +114,6 @@
         :items="trackRows"
         :selection-mode="selectionMode"
         :selected-keys="selectedRowKeys"
-        width="reading"
         @activate="playAt($event.sourceIndex)"
         @toggle-current="playerStore.togglePlay"
         @toggle-select="toggleSelectRow($event.sourceIndex)"
@@ -155,15 +142,9 @@ import { ref, computed, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
 import { useI18n } from "vue-i18n";
-import {
-  VideoPlay,
-  Minus,
-  Delete,
-  EditPen,
-  CircleCheck,
-  Folder,
-  Search,
-} from "@element-plus/icons-vue";
+import { Minus, EditPen, Folder, Search } from "@element-plus/icons-vue";
+import MultiSelectIcon from "@/components/base/icons/MultiSelectIcon.vue";
+import TrashIcon from "@/components/base/icons/TrashIcon.vue";
 import type { PlaylistItem, MusicFile, SongInfo } from "@/types/model";
 import { formatDuration, getLocalMusicDisplayInfo } from "@/utils/songUtils";
 import { usePlaylistStore } from "@/stores/playlistStore";
@@ -351,12 +332,6 @@ const { getCover, scheduleMany: scheduleLocalCoverLoadMany } =
     getDefaultDirectory: () => localStore.getDefaultDirectory(),
   });
 
-const hasPlayableItems = computed(() =>
-  resolvedItems.value.some(
-    (entry) => entry.item.type === "online" || entry.musicFile !== null
-  )
-);
-
 function isCurrent(entry: ResolvedEntry) {
   if (entry.musicFile && playerStore.currentMusic)
     return playerStore.currentMusic.file_name === entry.musicFile.file_name;
@@ -405,13 +380,6 @@ function playAt(index: number) {
   const list = playlist.value;
   if (!list) return;
   playerStore.playFromPlaylist(list.id, index);
-}
-
-function playAll() {
-  const entry = resolvedItems.value.find(
-    (item) => item.item.type === "online" || item.musicFile !== null
-  );
-  if (entry) playAt(entry.sourceIndex);
 }
 
 function removeAt(index: number) {

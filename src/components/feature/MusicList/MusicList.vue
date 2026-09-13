@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, watch, computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { Upload, Plus, CircleCheck } from "@element-plus/icons-vue";
+import { Upload, Plus } from "@element-plus/icons-vue";
+import MultiSelectIcon from "@/components/base/icons/MultiSelectIcon.vue";
 import type { MusicFile } from "@/types/model";
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { ElMessage } from "element-plus";
@@ -243,22 +244,20 @@ function scheduleVisibleCovers(items: TrackRowModel[]) {
             :content="t('musicList.importFolder')"
             placement="bottom"
           >
+            <!-- 只留图标：与同排的多选键外观一致，含义由 tooltip 交代 -->
             <el-button
+              link
               size="small"
               :icon="Upload"
-              type="primary"
-              class="library-import-btn"
+              class="header-action-btn app-icon-button"
               @click="emit('import')"
-            >
-              {{ t("musicList.import") }}
-            </el-button>
+            />
           </el-tooltip>
           <el-tooltip :content="t('musicList.multiSelect')" placement="bottom">
             <el-button
               link
               size="small"
-              :icon="CircleCheck"
-              type="primary"
+              :icon="MultiSelectIcon"
               class="header-action-btn app-icon-button"
               @click="toggleSelectionMode"
             />
@@ -272,7 +271,6 @@ function scheduleVisibleCovers(items: TrackRowModel[]) {
       :loading="loading"
       :selection-mode="selectionMode"
       :selected-keys="selectedKeys"
-      width="reading"
       @activate="emit('play', musicFiles[$event.sourceIndex])"
       @toggle-current="emit('toggle-current')"
       @toggle-select="toggleSelectRow(musicFiles[$event.sourceIndex])"

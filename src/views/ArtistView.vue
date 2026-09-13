@@ -1,5 +1,5 @@
 <template>
-  <PageLayout class="artist-view" max-width="wide">
+  <PageLayout class="artist-view">
     <PageHeader v-if="artistStore.currentArtist" :title="artistStore.currentArtist.name">
       <template #before-title>
         <CoverImage

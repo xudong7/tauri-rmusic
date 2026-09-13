@@ -11,14 +11,12 @@ const props = withDefaults(
     selectionMode?: boolean;
     selectedKeys?: Set<string>;
     loading?: boolean;
-    width?: "reading" | "online";
     nearEndThreshold?: number;
   }>(),
   {
     selectionMode: false,
     selectedKeys: () => new Set<string>(),
     loading: false,
-    width: "reading",
     nearEndThreshold: 220,
   }
 );
@@ -78,7 +76,7 @@ function handleListKeydown(event: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="track-list" :class="`track-list--${width}`">
+  <div class="track-list">
     <slot name="before" />
 
     <div v-if="loading && items.length === 0" class="track-list__state">
@@ -88,13 +86,13 @@ function handleListKeydown(event: KeyboardEvent) {
       <slot name="empty" />
     </div>
 
+    <!-- 格数必须与 TrackRow 的网格一致：多一格空 span 就会把「歌曲」推到
+         歌名右边 52px。这里只有 4 格——封面、歌名、专辑、时长。 -->
     <div v-if="items.length > 0" class="track-list__columns" aria-hidden="true">
-      <span />
       <span />
       <span class="track-list__column-song">{{ columnLabels.song }}</span>
       <span class="track-list__column-album">{{ columnLabels.album }}</span>
       <span class="track-list__column-duration">{{ columnLabels.duration }}</span>
-      <span />
     </div>
 
     <div
@@ -107,9 +105,10 @@ function handleListKeydown(event: KeyboardEvent) {
     >
       <div v-bind="wrapperProps" class="track-list__rows" role="list">
         <TrackRow
-          v-for="{ data: item } in virtualList"
+          v-for="{ data: item, index } in virtualList"
           :key="item.key"
           :item="item"
+          :index="index"
           :selection-mode="selectionMode"
           :selected="selectedKeys.has(item.key)"
           :row-height="rowHeight"
@@ -132,9 +131,10 @@ function handleListKeydown(event: KeyboardEvent) {
     >
       <div class="track-list__rows" role="list">
         <TrackRow
-          v-for="item in items"
+          v-for="(item, index) in items"
           :key="item.key"
           :item="item"
+          :index="index"
           :selection-mode="selectionMode"
           :selected="selectedKeys.has(item.key)"
           @activate="handleActivate"
@@ -165,20 +165,33 @@ function handleListKeydown(event: KeyboardEvent) {
   scrollbar-gutter: stable;
 }
 
+/* 行与列头都不再限宽居中：整块贴着内容区左边缘，与页面标题同一条竖线。
+   行盒铺满整行（底色、悬停、条纹照旧横贯），里面的网格也铺满，只在右侧
+   留出 --app-track-end-gap 的空档，让时长列不贴边；窗口拉宽时由歌名与专辑
+   两列分掉新增的宽度。
+   过去这里有一条 max-width + margin-inline: auto，把列表居中成一条 1080px
+   的窄带，两侧各留一大块空白，和页面标题完全对不上。 */
 .track-list__rows {
   width: 100%;
   padding: 0 4px 12px;
   box-sizing: border-box;
-  margin-inline: auto;
 }
 
 .track-list__columns {
-  width: calc(100% - 8px);
+  /* 列头不在滚动容器里，宽度要自己扣两笔才与行的网格区同宽同起点：
+       · 4px —— 滚动条槽位（下面的滚动容器有 scrollbar-gutter: stable，
+         实宽取自 themes.css 的 ::-webkit-scrollbar）
+       · 4px —— 行的容器内边距（.track-list__rows 左右各 4px）
+       · 再左移 4px 把那两个内边距补回来，让两者的左边缘重合
+     两笔都算上，右对齐的时长才会与行里的时长落在同一条竖线上。 */
+  width: calc(100% - 12px);
+  margin-left: 4px;
   min-height: 32px;
-  margin-inline: auto;
-  padding: 0 var(--app-track-row-padding-x);
+  /* 右侧空档必须与行里那笔一模一样，否则「时长」这个标题对不上列里的数字 */
+  padding: 0 calc(var(--app-track-row-padding-x) + var(--app-track-end-gap)) 0
+    var(--app-track-row-padding-x);
   display: grid;
-  grid-template-columns: 36px 44px minmax(180px, 1fr) minmax(140px, 220px) 48px 34px;
+  grid-template-columns: var(--app-track-grid);
   align-items: center;
   gap: var(--app-track-row-gap);
   box-sizing: border-box;
@@ -190,24 +203,10 @@ function handleListKeydown(event: KeyboardEvent) {
 }
 
 .track-list__column-duration {
+  /* 与行里的时长同理：钉住最后一格，且必须写成线到线的区间。
+     单个 -1 是最后一条线，会让这一格落到显式网格之外，凭空多出一格。 */
+  grid-column: -2 / -1;
   text-align: right;
-}
-
-.track-list--reading .track-list__rows {
-  max-width: var(--app-list-reading-width);
-}
-
-.track-list--reading .track-list__columns {
-  max-width: var(--app-list-reading-width);
-}
-
-.track-list--online .track-list__rows {
-  max-width: var(--app-online-list-width);
-}
-
-.track-list--online .track-list__columns {
-  max-width: var(--app-online-list-width);
-  grid-template-columns: 36px 44px minmax(180px, 1fr) minmax(140px, 220px) 48px 76px;
 }
 
 .track-list__state {
@@ -218,32 +217,6 @@ function handleListKeydown(event: KeyboardEvent) {
   justify-content: center;
 }
 
-@media (max-width: 1100px) {
-  .track-list__columns {
-    grid-template-columns: 36px 44px minmax(0, 1fr) 48px 34px;
-  }
-
-  .track-list--online .track-list__columns {
-    grid-template-columns: 36px 44px minmax(0, 1fr) 48px 76px;
-  }
-
-  .track-list__column-album {
-    display: none;
-  }
-
-  .track-list__column-duration {
-    grid-column: 4;
-  }
-}
-
-@media (max-width: 840px) {
-  .track-list__columns {
-    grid-template-columns: 32px 44px minmax(0, 1fr) 44px 32px;
-    gap: 10px;
-  }
-
-  .track-list--online .track-list__columns {
-    grid-template-columns: 32px 44px minmax(0, 1fr) 44px 76px;
-  }
-}
+/* 没有窄屏变体：列头与行共用 --app-track-grid，那份网格在任何窗口宽度下都
+   放得下（见 themes.css 里的推导），所以缩窄不需要收起专辑列，也就不会重排。 */
 </style>

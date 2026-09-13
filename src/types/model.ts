@@ -178,6 +178,10 @@ export interface PlaybackQueueItem {
   sourceIndex: number;
   isCurrent: boolean;
   disabled?: boolean;
+  /** 已知的封面地址（在线歌曲的 pic_url），有值就不必再异步解析 */
+  coverUrl?: string;
+  /** 本地文件名：封面要经 IPC 异步取，由队列按可见范围调度加载 */
+  coverFileName?: string;
 }
 
 export interface OnlineServiceStatus {

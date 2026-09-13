@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from "vue";
-import { Close, Headset, VideoPause, VideoPlay } from "@element-plus/icons-vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { Headset } from "@element-plus/icons-vue";
 import { useI18n } from "vue-i18n";
 import type { PlaybackQueueItem } from "@/types/model";
 import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
+import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
+import { useLocalMusicStore } from "@/stores/localMusicStore";
+import QueueRow from "./QueueRow.vue";
 import { QUEUE_ROW_HEIGHT } from "@/constants";
 
 const { t } = useI18n();
@@ -19,9 +22,6 @@ const emit = defineEmits<{
 
 const panelRef = ref<HTMLElement | null>(null);
 const currentIndex = computed(() => props.items.findIndex((item) => item.isCurrent));
-const currentPosition = computed(() =>
-  currentIndex.value >= 0 ? currentIndex.value + 1 : 0
-);
 
 // 没有显式队列时，playbackQueueItems 会退化成整个本地曲库，
 // 裸 v-for 会在一次 patch 里建出成千上万个节点。行高固定，适合虚拟化。
@@ -31,6 +31,45 @@ const { useVirtual, virtualList, scrollTo, containerProps, wrapperProps } =
     source: itemsRef,
     itemHeight: QUEUE_ROW_HEIGHT,
   });
+
+/** 实际渲染出来的行：虚拟滚动下是可视窗口，否则是全部。
+ *  连真实下标一起带出来——隔行底色靠它，而虚拟滚动下 DOM 里的位置
+ *  和真实下标对不上（:nth-child 会随滚动漂移）。 */
+const renderedRows = computed(() =>
+  useVirtual.value
+    ? virtualList.value.map(({ data, index }) => ({ item: data, index }))
+    : props.items.map((item, index) => ({ item, index }))
+);
+
+// 虚拟化和普通渲染只差绑定与数据源，合成一层，免得行标记写两份。
+// 两份的代价不是洁癖：任何一行的改动都要同步两次，漏一次就会出现
+// 「队列短的时候对、长的时候不对」这种按长度变化的诡异 bug。
+const containerBindings = computed(() => (useVirtual.value ? containerProps : {}));
+const wrapperBindings = computed(() => (useVirtual.value ? wrapperProps : {}));
+
+const localMusicStore = useLocalMusicStore();
+const { getCover, scheduleMany: scheduleCoverLoads } =
+  useLocalCoverCache<PlaybackQueueItem>({
+    // 缓存键取文件名而不是行 key：播放列表模式下行 key 含 sourceIndex，
+    // 列表一重排同一首歌就换了 key，缓存会白做。
+    getKey: (item) => item.coverFileName ?? item.key,
+    getFileName: (item) => item.coverFileName ?? "",
+    getDefaultDirectory: () => localMusicStore.getDefaultDirectory(),
+  });
+
+// 只给渲染出来的行排封面。队列在无显式队列时会退化成整个本地曲库，
+// 全量调度等于一次性排上千次 IPC。
+watch(
+  renderedRows,
+  (rows) =>
+    scheduleCoverLoads(rows.map(({ item }) => item).filter((item) => item.coverFileName)),
+  { immediate: true }
+);
+
+function resolveCover(item: PlaybackQueueItem): string {
+  if (item.coverUrl) return item.coverUrl;
+  return item.coverFileName ? getCover(item) : "";
+}
 
 onMounted(async () => {
   await nextTick();
@@ -49,125 +88,57 @@ onMounted(async () => {
   scrollTo(Math.max(0, currentIndex.value - half));
 });
 
+/**
+ * 只处理 Escape。原先还把 Tab 圈在面板里，那是模态对话框的做法；
+ * 现在面板是停靠式的，主页列表要能继续用，Tab 就该能走出去。
+ */
 function handlePanelKeydown(event: KeyboardEvent) {
-  if (event.key === "Escape") {
-    emit("close");
-    return;
-  }
-  if (event.key !== "Tab" || !panelRef.value) return;
-  const focusable = Array.from(
-    panelRef.value.querySelectorAll<HTMLElement>(
-      'button:not(:disabled), [href], [tabindex]:not([tabindex="-1"])'
-    )
-  );
-  if (!focusable.length) return;
-  const first = focusable[0];
-  const last = focusable[focusable.length - 1];
-  if (event.shiftKey && document.activeElement === first) {
-    event.preventDefault();
-    last.focus();
-  } else if (!event.shiftKey && document.activeElement === last) {
-    event.preventDefault();
-    first.focus();
-  }
+  if (event.key === "Escape") emit("close");
 }
 </script>
 
 <template>
-  <div class="queue-layer" @click.self="emit('close')">
+  <div class="queue-layer">
+    <!-- 不加 aria-modal：面板打开时主页照常可滚动可点击，宣称模态会让读屏
+         把下面的内容当成惰性的，与实际行为相反。 -->
     <aside
       ref="panelRef"
       class="queue-panel"
       tabindex="-1"
       role="dialog"
-      aria-modal="true"
       :aria-label="t('playerBar.queue')"
       @keydown="handlePanelKeydown"
     >
       <header class="queue-header">
         <div class="queue-heading">
           <h2>{{ t("playerBar.queue") }}</h2>
-          <p>
-            {{ title || t("playerBar.currentQueue") }}
-            <span v-if="items.length">· {{ currentPosition }}/{{ items.length }}</span>
-          </p>
+          <p>{{ title || t("playerBar.currentQueue") }}</p>
         </div>
-        <button
-          type="button"
-          class="queue-close app-header-icon-button"
-          :aria-label="t('common.close')"
-          @click="emit('close')"
-        >
-          <el-icon><Close /></el-icon>
-        </button>
       </header>
 
       <!-- tabindex 让滚动容器本身可聚焦：虚拟化之后只有可视窗口内的行在
            DOM 里，键盘用户没法 Tab 到窗口之外的行，也就没有任何用键盘
            滚动这个列表的手段。聚焦容器后方向键/PageDown 可以滚动，
-           新进入窗口的行随即变得可 Tab。 -->
+           新进入窗口的行随即变得可 Tab。
+           普通渲染时不给 tabindex，免得容器变成一个多余的 Tab 落点。 -->
       <div
-        v-if="items.length && useVirtual"
-        v-bind="containerProps"
+        v-if="items.length"
+        v-bind="containerBindings"
         class="queue-list"
-        data-render-mode="virtual"
-        tabindex="0"
+        :data-render-mode="useVirtual ? 'virtual' : 'standard'"
+        :tabindex="useVirtual ? 0 : undefined"
         :aria-label="t('playerBar.queue')"
       >
-        <div v-bind="wrapperProps" class="queue-rows" role="list">
-          <button
-            v-for="{ data: item } in virtualList"
-            :key="item.key"
-            type="button"
-            class="queue-item"
-            :class="{ 'is-current': item.isCurrent }"
-            :style="{
-              height: `${QUEUE_ROW_HEIGHT}px`,
-              minHeight: `${QUEUE_ROW_HEIGHT}px`,
-            }"
-            :disabled="item.disabled"
-            :aria-current="item.isCurrent ? 'true' : undefined"
-            @click="emit('play', item.sourceIndex)"
-          >
-            <span class="queue-item-index">
-              <el-icon v-if="item.isCurrent">
-                <VideoPause v-if="isPlaying" />
-                <VideoPlay v-else />
-              </el-icon>
-              <span v-else>{{ item.sourceIndex + 1 }}</span>
-            </span>
-            <span class="queue-item-main">
-              <strong>{{ item.title }}</strong>
-              <span>{{ item.artist }}</span>
-            </span>
-          </button>
-        </div>
-      </div>
-
-      <div v-else-if="items.length" class="queue-list" data-render-mode="standard">
-        <div class="queue-rows" role="list">
-          <button
-            v-for="item in items"
-            :key="item.key"
-            type="button"
-            class="queue-item"
-            :class="{ 'is-current': item.isCurrent }"
-            :disabled="item.disabled"
-            :aria-current="item.isCurrent ? 'true' : undefined"
-            @click="emit('play', item.sourceIndex)"
-          >
-            <span class="queue-item-index">
-              <el-icon v-if="item.isCurrent">
-                <VideoPause v-if="isPlaying" />
-                <VideoPlay v-else />
-              </el-icon>
-              <span v-else>{{ item.sourceIndex + 1 }}</span>
-            </span>
-            <span class="queue-item-main">
-              <strong>{{ item.title }}</strong>
-              <span>{{ item.artist }}</span>
-            </span>
-          </button>
+        <div v-bind="wrapperBindings" class="queue-rows" role="list">
+          <QueueRow
+            v-for="row in renderedRows"
+            :key="row.item.key"
+            :item="row.item"
+            :index="row.index"
+            :is-playing="isPlaying"
+            :cover-url="resolveCover(row.item)"
+            @play="emit('play', row.item.sourceIndex)"
+          />
         </div>
       </div>
 
@@ -180,34 +151,41 @@ function handlePanelKeydown(event: KeyboardEvent) {
 </template>
 
 <style scoped>
+/* 停靠式面板，不是模态遮罩：这一层只负责把面板摆到右侧，本身不吃指针事件，
+   也不铺遮罩。主页列表因此照常可以滚动、可以点歌——面板打开的是一块
+   额外空间，不是把下面的内容锁住。 */
 .queue-layer {
   position: fixed;
   inset: var(--app-header-height) 0 var(--app-player-height) 0;
   z-index: 180;
   display: flex;
   justify-content: flex-end;
-  background: var(--app-overlay-scrim);
+  pointer-events: none;
 }
 
 .queue-panel {
-  width: min(350px, calc(100vw - 32px));
+  /* 420px 来自参考图：面板占 848→1320，除以该截图标度 1.15 约 410px。
+     曲目信息改成一行后更依赖宽度，350px 会把长标题挤没。 */
+  width: min(420px, calc(100vw - 32px));
   height: 100%;
+  /* 上层整层不吃指针事件，只有面板自己吃 */
+  pointer-events: auto;
   display: flex;
   flex-direction: column;
   color: var(--el-text-color-primary);
   background: var(--app-overlay-panel-bg);
+  /* 面板是停靠式的一块，不是浮起来的浮层，所以不打投影；
+     与主页的分界交给这条左边框。 */
   border-left: 1px solid var(--app-surface-border);
-  box-shadow: var(--app-overlay-panel-shadow);
   outline: none;
 }
 
+/* 只剩标题一块，不再需要两端对齐 */
 .queue-header {
   min-height: 64px;
-  padding: 10px 12px 9px 16px;
+  padding: 10px 16px 9px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
   border-bottom: 1px solid var(--app-surface-border);
 }
 
@@ -234,22 +212,6 @@ function handlePanelKeydown(event: KeyboardEvent) {
   font-size: 12px;
 }
 
-.queue-close {
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  border: 0;
-  border-radius: var(--app-radius-full);
-  color: var(--el-text-color-regular);
-  background: transparent;
-  cursor: pointer;
-}
-
-.queue-close:hover {
-  color: var(--el-color-primary);
-  background: var(--hover-bg-color);
-}
-
 .queue-list {
   flex: 1;
   min-height: 0;
@@ -268,68 +230,9 @@ function handlePanelKeydown(event: KeyboardEvent) {
   box-sizing: border-box;
 }
 
-.queue-item {
-  width: 100%;
-  min-height: 46px;
-  padding: 6px 8px;
-  display: grid;
-  grid-template-columns: 26px minmax(0, 1fr);
-  align-items: center;
-  gap: 8px;
-  border: 0;
-  border-radius: var(--app-radius-md);
-  color: inherit;
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-}
-
-.queue-item:hover,
-.queue-item:focus-visible {
-  background: var(--hover-bg-color);
-  outline: none;
-}
-
-.queue-item.is-current {
-  color: var(--el-color-primary);
-  background: var(--active-item-bg);
-}
-
-.queue-item:disabled {
-  opacity: 0.48;
-  cursor: default;
-}
-
-.queue-item-index {
-  color: var(--el-text-color-secondary);
-  font-size: 11px;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-
-.queue-item-main {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.queue-item-main strong,
-.queue-item-main span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.queue-item-main strong {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.queue-item-main span {
-  color: var(--el-text-color-secondary);
-  font-size: 11px;
-}
+/* 行的样式（.queue-item 及其内部）都在 QueueRow.vue 自己的 scoped 里：
+   scoped CSS 的作用域标记只落在本组件模板渲染出的元素上，子组件内部的
+   元素匹配不到这里的规则。 */
 
 .queue-empty {
   flex: 1;
@@ -350,16 +253,54 @@ function handlePanelKeydown(event: KeyboardEvent) {
   font-size: 13px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .queue-panel {
-    animation: queue-slide-in 180ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
+/* ---------- 进出场 ----------
+   App.vue 用 <Transition name="queue"> 包住本组件，下面这些类名由那边加上来，
+   但规则留在这里：scoped 会给最后一个复合选择器补上 [data-v-*]，正好压过
+   .queue-panel 自己那条声明；放进 App.vue 的全局块里就只是同特异性拼源码
+   顺序，组件哪天改成异步加载就会翻盘。
+
+   原先是一条挂载时跑一次的 CSS animation（queue-slide-in），删掉是必须的
+   而不是顺手清理：动画的优先级高于普通 transition 会盖掉滑动，而且它在
+   .queue-panel 上、Vue 等的是根的 transition，animationend 会被
+   e.target === el 过滤掉，两套机制各说各话。 */
+
+/* 淡出必须写在根元素 .queue-layer 上。Vue 判断退场结束读的是过渡根元素自己的
+   transition：只写在下层 .queue-panel 上的话，它解析不出过渡类型就当场摘节点，
+   滑动根本播不完。根的 transition 里只列 opacity——列上不会变的属性会让每次
+   退场都退化成等超时，而不是由 transitionend 触发。 */
+.queue-layer.queue-enter-active {
+  transition: opacity var(--app-motion-enter) var(--app-motion-ease-out);
 }
 
-@keyframes queue-slide-in {
-  from {
-    opacity: 0;
-    transform: translateX(22px);
-  }
+.queue-layer.queue-leave-active {
+  transition: opacity var(--app-motion-leave) var(--app-motion-ease-in);
+}
+
+/* 面板本体横滑。时长与曲线必须与根用同一组 token：根的 -active 类一摘，
+   这里整条 transition 声明就跟着消失，正在跑的滑动会被掐断直接跳到终值——
+   进场时根已经完全不透明，掐断是看得见的。 */
+.queue-enter-active .queue-panel {
+  transition: transform var(--app-motion-enter) var(--app-motion-ease-out);
+}
+
+.queue-leave-active .queue-panel {
+  transition: transform var(--app-motion-leave) var(--app-motion-ease-in);
+}
+
+.queue-enter-from,
+.queue-leave-to {
+  opacity: 0;
+}
+
+.queue-enter-from .queue-panel,
+.queue-leave-to .queue-panel {
+  transform: translateX(22px);
+}
+
+/* 收起途中面板已经没用了，别再让它吃掉 140ms 的点击。
+   挂 -leave-active 而不是 -leave-to：后者要等两帧 rAF 才加上，会漏掉开头。
+   三重选择器是为了压过 .queue-panel 自己的 pointer-events: auto。 */
+.queue-layer.queue-leave-active .queue-panel {
+  pointer-events: none;
 }
 </style>

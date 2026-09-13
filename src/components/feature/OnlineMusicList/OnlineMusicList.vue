@@ -77,7 +77,6 @@ function handleAddToPlaylist(command: string, row: SongInfo) {
     <TrackList
       :items="trackRows"
       :loading="loading"
-      width="online"
       @activate="emit('play', onlineSongs[$event.sourceIndex])"
       @toggle-current="emit('toggle-current')"
       @near-end="requestLoadMore"

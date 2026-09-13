@@ -129,7 +129,13 @@ html.dark .player-bar {
   gap: 1px;
   min-width: 0;
   height: 100%;
-  padding: 5px 0 4px;
+  /* 播放栏 80px 的垂直预算：
+       11(上) + 42(播放按钮) + 1(gap) + 20(进度行) + 6(下) = 80
+     上下不是对称值，因为要让两段留白视觉对等：按钮底边到进度条中心线是
+     1 + 20/2 = 11px，所以按钮上方也留 11px，剩下的 6px 才落到最下面。
+     改之前是 5/4，而进度行占 32px，内容溢出 4px 吃掉了 padding-bottom，
+     按钮顶上只剩 5px、离进度条却有 18px。详见 .progress-slider 的说明。 */
+  padding: 11px 0 6px;
   box-sizing: border-box;
 }
 
@@ -141,6 +147,9 @@ html.dark .player-bar {
   min-height: 38px;
 }
 
+/* 次级控制键都是裸图标：没有底色也没有描边，悬停只让图标自己亮起来。
+   参考图就是这么处理的——整条播放栏里只有播放键是实心圆，其余图标直接
+   落在栏上，各坐一个淡色圆圈会显得每个图标都被框住。 */
 .player-controls .control-btn {
   width: var(--app-icon-btn-md);
   height: var(--app-icon-btn-md);
@@ -151,20 +160,31 @@ html.dark .player-bar {
   font-size: 18px;
   opacity: 1;
   transition:
-    background var(--app-control-transition),
-    border-color var(--app-control-transition),
     color var(--app-control-transition),
-    transform var(--app-control-transition);
+    transform var(--app-control-transition),
+    box-shadow var(--app-control-transition);
 }
 
-/* 排除 .play-btn：它是实心主色按钮，hover 时只做抬升与光晕，
-   底色必须保持主色。若不排除，这条 :hover 的选择器特异性(0,3,0)高于
-   下方 .play-btn 的(0,2,0)，会让实心圆底在悬停瞬间塌成透明的浅色块。 */
-.player-controls .control-btn:not(.play-btn):hover {
-  background: var(--app-icon-button-hover-bg) !important;
-  border-color: var(--app-button-border) !important;
+/* 排除 .play-btn：它是实心主色按钮，悬停只做抬升与光晕，底色要保持主色。
+   排除 .play-mode-btn：它可能是激活态，激活色归下面 .is-active 管，
+   被这条命中会让高亮在悬停瞬间退成普通图标色。
+
+   底色去掉之后这套排除只剩「颜色」一个属性要争，比原先争底色时简单多了。 */
+.player-controls .control-btn:not(.play-btn):not(.play-mode-btn):hover {
   color: var(--app-icon-button-hover-color) !important;
-  transform: translateY(-1px);
+}
+
+/* 播放顺序按钮的悬停：观感与上一条一致，只是被排除后要单写一份 */
+.player-controls .control-btn.play-mode-btn:hover {
+  color: var(--app-icon-button-hover-color) !important;
+}
+
+/* 播放顺序的激活态：常规列表里只有「顺序播放」是常态，所以它是唯一带色的。
+   第二条选择器多一个 :hover，特异性 (0,5,0) 压过上面那条悬停规则 (0,4,0)，
+   不依赖源码顺序。 */
+.player-controls .control-btn.play-mode-btn.is-active,
+.player-controls .control-btn.play-mode-btn.is-active:hover {
+  color: var(--el-color-primary) !important;
 }
 
 .player-controls .control-btn:disabled {
@@ -235,6 +255,14 @@ html.dark .player-bar {
 
 .player-progress .progress-slider {
   flex: 1;
+  /* EP 给 .el-slider 的默认高度是 32px，为的是容纳 20px 的圆形 thumb 和
+     36px 的 hover 热区。本项目已经把 thumb 缩到 8px、button-wrapper 缩到
+     22px，32px 就纯属多余了——它让中间栏内容变成 42 + 1 + 32 = 75px，而
+     80px 的播放栏扣掉 .player-center 的上下内边距只剩 71px，多出的 4px
+     会吃掉 padding-bottom，把播放按钮顶到紧贴栏顶。
+     压到 20px 只为让内容放得下；跑道在这 20px 里仍然是居中的，所以进度条
+     本身的位置没变（仍是 y=875），变的只有播放按钮。 */
+  height: 20px;
 }
 
 .player-progress :deep(.el-slider__runway) {
@@ -285,23 +313,16 @@ html.dark .player-bar {
     0 0 0 2px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
 }
 
-/* 右侧：播放模式 + 内联音量条 */
+/* 右侧：只剩播放队列 */
 .player-right {
   display: flex;
   align-items: center;
-  gap: 18px;
   min-width: 0;
   justify-content: flex-end;
 }
 
-.player-tool-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 0 0 auto;
-}
-
-.play-mode-btn,
+/* .play-mode-btn 已挪进控制行，跟着 .control-btn 走，不再需要单独定尺寸 */
+/* 与次级控制键同一条规矩：裸图标，悬停只亮图标 */
 .queue-btn {
   width: var(--app-icon-btn-md);
   min-width: var(--app-icon-btn-md);
@@ -311,87 +332,134 @@ html.dark .player-bar {
   background: var(--app-icon-button-bg) !important;
   color: var(--app-icon-button-color) !important;
   transition:
-    background var(--app-control-transition),
-    border-color var(--app-control-transition),
     color var(--app-control-transition),
     transform var(--app-control-transition);
 }
 
-.play-mode-btn:hover,
 .queue-btn:hover {
-  background: var(--app-icon-button-hover-bg) !important;
-  border-color: var(--app-button-border) !important;
   color: var(--app-icon-button-hover-color) !important;
 }
 
-.play-mode-btn.is-active {
-  color: var(--el-color-primary) !important;
-  background: var(--active-item-bg) !important;
+/* 队列图标是自己画的，不走 el-icon，所以尺寸在这里定，不跟 font-size 走。
+   字形约占 viewBox 的四分之三，16px 的元素渲染出约 12px 的可见笔画；
+   Element Plus 那些图标在 1024 视窗里四周留白更多，两者观感才对得上。 */
+.queue-btn .queue-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
 }
 
-/* 内联音量条：扬声器图标 + 横向轨道，常驻播放条 */
-.volume-bar {
+/* 音量：图标常驻，滑块悬停或聚焦时从图标上方浮出。
+   参考图里音量只有一个图标，因为常驻滑块要占一百多像素，会把播放键挤出
+   控制行中心。浮层完全不参与布局，所以左侧顺序键与右侧音量键各占 32px，
+   左右对称——这正是参考图能让播放键居中的原因。 */
+.volume-control {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex: 1;
-  min-width: 0;
-  max-width: 120px;
+  flex: 0 0 auto;
 }
 
+/* 这个键是原生 <button>，不是 el-button，所以隔壁几个键靠
+   .app-icon-button.el-button 拿到的圆角、手型光标和内容居中它一样都没有，
+   必须自己补齐——少一条它就是个 32px 的方块，紧挨着圆形的上一首/下一首。 */
 .volume-speaker-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  color: var(--el-text-color-secondary);
-  padding: 0;
-  border: 0;
-  background: transparent;
+  border-radius: var(--app-radius-full);
   cursor: pointer;
 }
 
-.volume-speaker-icon:hover,
-.volume-speaker-icon:focus-visible {
-  color: var(--el-color-primary);
-  outline: none;
-}
-
 .volume-speaker-icon svg {
-  width: 100%;
-  height: 100%;
+  display: block;
+  width: 18px;
+  height: 18px;
 }
 
-html.dark .volume-speaker-icon {
-  color: rgba(255, 255, 255, 0.7);
+.volume-popup {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  /* 这段 padding 兼两用：一是给下方那个箭头留出探出的空间，二是当「悬停桥」——
+     没有它，鼠标从图标移向滑块的途中会经过一段既不属于图标也不属于滑块的
+     空隙，:hover 断开、浮层闪烁。14px 减掉箭头探出的 7px，剩下约 7px 空隙。 */
+  padding-bottom: 14px;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.16s ease,
+    visibility 0.16s ease;
+}
+
+/* :focus-within 让键盘也能用：焦点落在音量键上时浮层出现，滑块随之变为可聚焦，
+   再按 Tab 就能进去。visibility: hidden 的元素本就不可聚焦，顺序天然是对的。 */
+.volume-control:hover .volume-popup,
+.volume-control:focus-within .volume-popup {
+  opacity: 1;
+  visibility: visible;
+}
+
+.volume-popup-inner {
+  box-sizing: border-box;
+  width: 132px;
+  padding: 4px 14px;
+  border: 1px solid var(--app-header-border);
+  border-radius: var(--app-radius-md);
+  background: var(--player-glass-bg);
+  backdrop-filter: blur(var(--app-glass-blur));
+  -webkit-backdrop-filter: blur(var(--app-glass-blur));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  /* 给下面的箭头做定位基准 */
+  position: relative;
+}
+
+/* 底部箭头：把浮层和它指着的音量键连起来，否则整块面板像是凭空悬浮的。
+   做法是旋转 45° 的正方形，只留右下两条边描边，另外两条边与面板重合，
+   视觉上就长成了一体。
+   定位基准是**内边距盒**而不是边框盒（绝对定位的包含块定义如此），面板那
+   1px 描边会让 bottom 整体上移一格，所以这里用 -6px：正方形边长 10px，
+   bottom:-6px 时其中心正好压在面板下边缘上，旋转后半个菱形（10×√2÷2 ≈ 7px）
+   探到外面，刚好落进 14px 的悬停桥里。
+   background: inherit 直接沿用面板材质，换主题时不必同步改颜色。 */
+.volume-popup-inner::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  transform: translateX(-50%) rotate(45deg);
+  border-right: 1px solid var(--app-header-border);
+  border-bottom: 1px solid var(--app-header-border);
+  border-bottom-right-radius: 2px;
+  background: inherit;
 }
 
 /* 横向滑块 */
-.volume-bar .volume-slider-h {
-  flex: 1;
-  min-width: 0;
+.volume-popup .volume-slider-h {
+  width: 100%;
 }
 
-.volume-bar .volume-slider-h :deep(.el-slider__runway) {
+.volume-popup .volume-slider-h :deep(.el-slider__runway) {
   height: 3px;
   border-radius: var(--app-radius-full, 9999px);
   background: var(--app-slider-track-bg);
 }
 
-.volume-bar .volume-slider-h :deep(.el-slider__bar) {
+.volume-popup .volume-slider-h :deep(.el-slider__bar) {
   height: 100%;
   border-radius: var(--app-radius-full, 9999px);
   background: var(--app-slider-fill-bg);
 }
 
-.volume-bar .volume-slider-h :deep(.el-slider__button-wrapper) {
+.volume-popup .volume-slider-h :deep(.el-slider__button-wrapper) {
   top: 50%;
   transform: translate(-50%, -50%);
 }
 
-.volume-bar .volume-slider-h :deep(.el-slider__button) {
+.volume-popup .volume-slider-h :deep(.el-slider__button) {
   width: var(--app-slider-thumb-size);
   height: var(--app-slider-thumb-size);
   border: 1px solid var(--app-slider-thumb-border);
@@ -403,8 +471,8 @@ html.dark .volume-speaker-icon {
     box-shadow 0.2s ease;
 }
 
-.volume-bar .volume-slider-h :deep(.el-slider:hover .el-slider__button),
-.volume-bar .volume-slider-h :deep(.el-slider__button:hover) {
+.volume-popup .volume-slider-h :deep(.el-slider:hover .el-slider__button),
+.volume-popup .volume-slider-h :deep(.el-slider__button:hover) {
   transform: scale(1.15);
   box-shadow:
     var(--app-slider-thumb-shadow),
@@ -426,10 +494,6 @@ html.dark .volume-speaker-icon {
   .player-progress {
     max-width: 420px;
   }
-
-  .volume-bar {
-    max-width: 90px;
-  }
 }
 
 @media (max-width: 780px) {
@@ -441,20 +505,6 @@ html.dark .volume-speaker-icon {
 
   .player-left {
     gap: 8px;
-  }
-
-  .player-right {
-    gap: 12px;
-  }
-
-  .player-tool-group {
-    gap: 6px;
-  }
-
-  .volume-bar {
-    display: flex;
-    gap: 6px;
-    max-width: 76px;
   }
 
   .player-progress {
@@ -470,10 +520,6 @@ html.dark .volume-speaker-icon {
 @media (max-width: 768px) {
   .player-bar {
     grid-template-columns: minmax(124px, 1fr) minmax(250px, 1.6fr) minmax(104px, 0.9fr);
-  }
-
-  .volume-bar {
-    max-width: 68px;
   }
 
   .player-progress .time-display {

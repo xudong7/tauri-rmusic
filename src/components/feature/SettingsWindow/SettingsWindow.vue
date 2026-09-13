@@ -7,11 +7,11 @@ import {
   CopyDocument,
   Download,
   InfoFilled,
-  Delete,
   FolderOpened,
   RefreshLeft,
   Refresh,
 } from "@element-plus/icons-vue";
+import TrashIcon from "@/components/base/icons/TrashIcon.vue";
 import { ElMessage } from "element-plus";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useThemeStore, type ThemeMode } from "@/stores/themeStore";
@@ -334,7 +334,7 @@ onMounted(async () => {
 
       <div class="settings-section">
         <h3 class="section-title">
-          <el-icon><Delete /></el-icon> {{ t("settings.cache") }}
+          <el-icon><TrashIcon /></el-icon> {{ t("settings.cache") }}
         </h3>
         <div class="settings-group">
           <div class="setting-row">
@@ -347,7 +347,7 @@ onMounted(async () => {
               <el-tooltip :content="t('settings.clearCache')" placement="top">
                 <el-button
                   circle
-                  :icon="Delete"
+                  :icon="TrashIcon"
                   :loading="clearingCache"
                   class="settings-action-btn settings-danger-action app-icon-button app-icon-button--danger"
                   @click="handleClearOnlineCache"

@@ -15,7 +15,6 @@ export default {
     warm: "Warm",
     cancel: "Cancel",
     confirmDelete: "Delete",
-    close: "Close",
     download: "Download",
   },
   playlist: {
@@ -32,7 +31,6 @@ export default {
     alreadyInPlaylist: 'Already in "{name}"',
     downloadedAndAdded: 'Downloaded and added to "{name}"',
     removeSelected: "Remove selected from playlist",
-    playAll: "Play all",
     trackCount: "{count} tracks",
     browseLibrary: "Open library",
     browseOnline: "Search online",
@@ -85,7 +83,6 @@ export default {
   },
   musicList: {
     title: "Library",
-    import: "Import",
     importFolder: "Import music from a folder",
     empty: 'No music yet. Click "Import Music" to add',
     multiSelect: "Multi-select",
@@ -158,6 +155,7 @@ export default {
     sequential: "Sequential",
     random: "Shuffle",
     repeatOne: "Repeat One",
+    volume: "Volume",
   },
   lyric: {
     noLyric: "No lyrics",

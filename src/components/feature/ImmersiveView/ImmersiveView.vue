@@ -2,16 +2,17 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import {
-  VideoPlay,
-  VideoPause,
   ArrowLeft,
   ArrowRight,
+  ArrowDown,
   Headset,
   Minus,
   FullScreen,
   ScaleToOriginal,
   Close,
 } from "@element-plus/icons-vue";
+import PlayIcon from "@/components/base/icons/PlayIcon.vue";
+import PauseIcon from "@/components/base/icons/PauseIcon.vue";
 import type { SongInfo, MusicFile, PlayMode } from "@/types/model";
 import LyricView from "@/components/feature/LyricView/LyricView.vue";
 import { useCoverPalette } from "@/composables/useCoverPalette";
@@ -177,11 +178,14 @@ const overlayStyle = computed(() => {
     ></div>
 
     <div class="top-section">
-      <el-tooltip :content="t('common.close')" placement="bottom" effect="dark">
+      <el-tooltip :content="t('common.back')" placement="bottom" effect="dark">
+        <!-- 只有图标没有文本，el-tooltip 给的 aria-describedby 是「描述」不是
+             「名称」，所以要显式补 aria-label，否则读屏只念得出一个「按钮」。 -->
         <el-button
           data-no-drag
           @click="emit('exit')"
-          :icon="ScaleToOriginal"
+          :icon="ArrowDown"
+          :aria-label="t('common.back')"
           circle
           class="back-btn"
         />
@@ -262,7 +266,7 @@ const overlayStyle = computed(() => {
             circle
             size="large"
             class="immersive-play-btn"
-            :icon="isPlaying ? VideoPause : VideoPlay"
+            :icon="isPlaying ? PauseIcon : PlayIcon"
             @click="emit('toggle-play')"
             type="primary"
           />

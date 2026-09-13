@@ -45,8 +45,6 @@ html {
   --app-content-padding-compact: 16px;
 
   /* 页面骨架 */
-  --app-page-max-width: 1280px;
-  --app-page-wide-max-width: 1440px;
   --app-page-header-height: 56px;
   --app-page-header-gap: 10px;
   --app-page-title-size: 24px;
@@ -68,8 +66,6 @@ html {
   --app-surface-shadow: 0 1px 2px rgba(15, 23, 42, 0.025);
   --app-subtle-surface: rgba(255, 255, 255, 0.54);
   --app-overlay-panel-bg: #ffffff;
-  --app-overlay-scrim: rgba(15, 23, 42, 0.08);
-  --app-overlay-panel-shadow: -18px 0 50px rgba(15, 23, 42, 0.14);
 
   /* 主色 */
   --el-color-primary: #7a9bb5;
@@ -98,12 +94,27 @@ html {
   --list-header-btn-padding: 4px 8px;
   --list-header-icon-size: 16px;
   --list-row-btn-size: 34px;
-  --app-track-row-height: 64px;
+  /* 行高 = 封面 40 + 上下内边距各 8。须与 LIST_ROW_HEIGHT 对齐，
+     那个是虚拟滚动的行高，两者对不上滚动位置会累积漂移。 */
+  --app-track-row-height: 56px;
   --app-track-row-gap: 12px;
   --app-track-row-padding-x: 8px;
   --app-track-row-padding-y: 8px;
-  --app-list-reading-width: 1080px;
-  --app-online-list-width: 1180px;
+  /* 行与列头共用这一份网格。两边各写一份是列头与行错位的根因：行上删掉序号列
+     时列头那份没人跟着改，歌名就对不上「歌曲」这个标题（错了整整 52px）。
+     没有断点变体（见下面的说明），组件里也不要再写 grid-template-columns。
+
+     只有歌名与专辑两列伸缩，封面与时长固定——所以窗口拉宽时动的是这两列的
+     宽度，时长与右侧留白纹丝不动。专辑取 0.45fr 而不是 1fr：两列当前的宽度比
+     是 500:220，按这个比例分配，本窗口下与之前的外观一致（约 498 / 224），
+     再宽下去两列按同样比例一起长。
+
+     时长那一列右边必须留出 --app-track-end-gap 的空档（见下面那个 token）：
+     它是最后一格，右边缘就是网格的右边缘，不留空档就会贴着行尾。 */
+  --app-track-grid: 40px minmax(180px, 1fr) minmax(140px, 0.45fr) 48px;
+  /* 网格右边缘到行尾的空档。时长列不贴边靠它；行盒本身仍铺满整行，
+     底色与悬停不受影响。 */
+  --app-track-end-gap: 80px;
 
   /* 按钮与控件：macOS / Apple Music 风格 */
   --app-button-height: 32px;
@@ -115,6 +126,15 @@ html {
   --app-play-btn-lg: 56px;
   --app-button-radius: var(--app-radius-full);
   --app-control-transition: 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  /* 整块界面的进出场（沉浸页、播放队列），与上面那条「控件状态过渡」分开：
+     控件过渡要短而中性，整块界面的进退场要能让眼睛跟得上。
+     进场减速、退场加速且更短——用户已经决定离开，拖久了只是挡着下一步操作。
+     上面那条不是 `180ms var(--app-motion-ease-out)` 的简写：改这里不该牵动
+     20 处控件过渡，两条各自独立。 */
+  --app-motion-enter: 200ms;
+  --app-motion-leave: 140ms;
+  --app-motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --app-motion-ease-in: cubic-bezier(0.55, 0, 1, 0.45);
   --app-button-bg: rgba(255, 255, 255, 0.58);
   --app-button-border: rgba(24, 33, 42, 0.08);
   --app-button-hover-bg: rgba(255, 255, 255, 0.9);
@@ -142,6 +162,13 @@ html {
     0 1px 4px rgba(15, 23, 42, 0.16), 0 0 0 1px rgba(255, 255, 255, 0.55);
 }
 
+/* 列表网格没有断点变体，各宽度下只有上面这一份。
+   原先 1100px 以下会把专辑列整列收掉，可那是没必要地早：这份网格的最小宽度
+   是 40+180+140+48 加三个 12px 间隙 = 444px，加上行内边距 96（左 8 + 右侧
+   那段空档）、容器内边距 8、滚动条槽位 4，列表共需 552px；而窗口的最小宽度
+   （WINDOW_MIN_WIDTH = 1200，与默认开窗宽度一致）保证列表至少拿到 944px——
+   专辑列一直放得下。于是"不重排"不再由断点保证，而是由窗口最小宽度保证。 */
+
 /* ---------- 亮色主题 ---------- */
 :root {
   /* 页面与浮层背景 */
@@ -156,6 +183,10 @@ html {
   --player-bg-color: var(--player-glass-bg);
   --sidebar-bg: var(--app-card-bg);
   --hover-bg-color: rgba(90, 138, 181, 0.04);
+  /* 列表斑马纹：隔行一档底色。中性灰、不带彩色——参考图里也是纯灰，
+     且比同主题的悬停色更淡。TrackRow / QueueRow 里它排在悬停与选中态之前，
+     同特异性靠源码顺序让位。 */
+  --app-row-stripe-bg: rgba(0, 0, 0, 0.03);
   --active-item-bg: rgba(90, 138, 181, 0.1);
 
   /* 按钮相关变量（hover 用略深色，与主色协调） */
@@ -227,9 +258,11 @@ html.dark {
   --app-surface-shadow: none;
   --app-subtle-surface: rgba(255, 255, 255, 0.025);
   --app-overlay-panel-bg: #1a1a1a;
-  --app-overlay-scrim: rgba(0, 0, 0, 0.22);
-  --app-overlay-panel-shadow: -20px 0 54px rgba(0, 0, 0, 0.36);
   --hover-bg-color: rgba(255, 255, 255, 0.04);
+  /* 列表斑马纹：隔行一档底色。中性灰、不带彩色——参考图里也是纯灰，
+     且比同主题的悬停色更淡。TrackRow / QueueRow 里它排在悬停与选中态之前，
+     同特异性靠源码顺序让位。 */
+  --app-row-stripe-bg: rgba(255, 255, 255, 0.03);
   --active-item-bg: rgba(106, 158, 200, 0.1);
 
   /* 按钮 - 深色 */
@@ -316,14 +349,16 @@ html.theme-warm {
   --app-header-border: rgba(61, 56, 50, 0.1);
   --app-header-shadow: 0 1px 3px rgba(61, 56, 50, 0.06);
   --app-overlay-panel-bg: #fffdfb;
-  --app-overlay-scrim: rgba(61, 56, 50, 0.1);
-  --app-overlay-panel-shadow: -18px 0 50px rgba(61, 56, 50, 0.16);
 
   /* 侧栏：与主区同色系 */
   --sidebar-bg: #ebe6e1;
   --sidebar-border-color: rgba(61, 56, 50, 0.12);
 
   --hover-bg-color: rgba(125, 110, 92, 0.07);
+  /* 列表斑马纹：隔行一档底色。中性灰、不带彩色——参考图里也是纯灰，
+     且比同主题的悬停色更淡。TrackRow / QueueRow 里它排在悬停与选中态之前，
+     同特异性靠源码顺序让位。 */
+  --app-row-stripe-bg: rgba(125, 110, 92, 0.045);
   --active-item-bg: rgba(125, 110, 92, 0.13);
 
   /* 按钮：主色暖灰褐，默认按钮 hover 同色系 */
@@ -371,37 +406,30 @@ html.theme-warm {
 }
 
 /* ---------- 共享图标按钮 ---------- */
+/* 只图标的按钮不套底色、描边和阴影，悬停只让图标自己亮起来。
+   三者缺一不可：底色其实是近乎透明的白，真正勾出那个圆圈的是浅描边和
+   那层 1px 投影——只清底色的话，圈还在。
+   带文字的按钮走 .el-button 自己的样式，不受这里影响。 */
 .app-icon-button.el-button {
   width: var(--app-icon-btn-md);
   height: var(--app-icon-btn-md);
   min-width: var(--app-icon-btn-md);
   padding: 0;
-  border: 1px solid var(--app-button-border);
+  border: 1px solid transparent;
   border-radius: var(--app-radius-full);
   color: var(--app-icon-button-color);
-  background: var(--app-button-bg);
-  box-shadow: var(--app-button-shadow);
-  transition:
-    color var(--app-control-transition),
-    background var(--app-control-transition),
-    border-color var(--app-control-transition),
-    box-shadow var(--app-control-transition),
-    transform var(--app-control-transition);
+  background: transparent;
+  box-shadow: none;
+  transition: color var(--app-control-transition);
 }
 
 .app-icon-button.el-button:not(:disabled):hover,
 .app-icon-button.el-button:not(:disabled):focus-visible {
   color: var(--app-icon-button-hover-color);
-  background: var(--app-icon-button-hover-bg);
-  border-color: color-mix(in srgb, var(--el-color-primary) 28%, var(--app-button-border));
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-  transform: translateY(-1px);
-}
-
-.app-icon-button.el-button:not(:disabled):active {
-  background: var(--app-button-active-bg);
-  box-shadow: var(--app-button-shadow);
-  transform: translateY(0);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  transform: none;
 }
 
 .app-icon-button--primary.el-button {
@@ -588,6 +616,16 @@ html.theme-warm {
 }
 
 /* ---------- 应用级控件类：供复杂组件复用 ---------- */
+/* 同一个类的非 el-button 版本（原生 button 也挂这个类）。
+   规矩与上面一致：无底色、无描边、无阴影，悬停只亮图标。
+   !important 保留——这个类会落到非 el-button 的元素上，那边没有 EP 的
+   样式兜底，去掉的话容易被子级样式意外覆盖。
+
+   注意：这条 !important 同样会盖掉 --primary / --danger 变体的底色，
+   因为那两条没带 !important（!important 压特异性，多写一个 .el-button 也
+   没用）。所以「播放全部」这类纯图标的强调按钮目前也是无底色的——这与
+   「图标按钮不套底色」一致。若哪天要让它们恢复实心，得先给那两条加上
+   !important 或把这里的透明底收窄到 :not() 之外。 */
 .app-icon-button {
   width: var(--app-icon-btn-md);
   height: var(--app-icon-btn-md);
@@ -596,18 +634,13 @@ html.theme-warm {
   border-radius: var(--app-radius-full) !important;
   background: var(--app-icon-button-bg) !important;
   color: var(--app-icon-button-color) !important;
-  transition:
-    background var(--app-control-transition),
-    border-color var(--app-control-transition),
-    color var(--app-control-transition),
-    transform var(--app-control-transition);
+  transition: color var(--app-control-transition);
 }
 
 .app-icon-button:not(.is-disabled):hover {
-  background: var(--app-icon-button-hover-bg) !important;
-  border-color: var(--app-button-border) !important;
+  background: var(--app-icon-button-bg) !important;
+  border-color: transparent !important;
   color: var(--app-icon-button-hover-color) !important;
-  transform: translateY(-1px);
 }
 
 .app-play-button {
