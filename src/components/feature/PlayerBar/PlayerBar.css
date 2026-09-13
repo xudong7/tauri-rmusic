@@ -154,7 +154,7 @@ html.dark .player-bar {
   width: var(--app-icon-btn-md);
   height: var(--app-icon-btn-md);
   padding: 0;
-  background: transparent !important;
+  background: var(--app-icon-button-bg) !important;
   border: 1px solid transparent !important;
   color: var(--app-icon-button-color) !important;
   font-size: 18px;
@@ -329,7 +329,7 @@ html.dark .player-bar {
   height: var(--app-icon-btn-md);
   padding: 0;
   border: 1px solid transparent !important;
-  background: transparent !important;
+  background: var(--app-icon-button-bg) !important;
   color: var(--app-icon-button-color) !important;
   transition:
     color var(--app-control-transition),

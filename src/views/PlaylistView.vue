@@ -114,7 +114,6 @@
         :items="trackRows"
         :selection-mode="selectionMode"
         :selected-keys="selectedRowKeys"
-        width="reading"
         @activate="playAt($event.sourceIndex)"
         @toggle-current="playerStore.togglePlay"
         @toggle-select="toggleSelectRow($event.sourceIndex)"

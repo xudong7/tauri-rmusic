@@ -15,7 +15,6 @@ export default {
     warm: "暖色",
     cancel: "取消",
     confirmDelete: "确定删除",
-    close: "关闭",
     download: "下载",
   },
   playlist: {

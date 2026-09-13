@@ -632,13 +632,13 @@ html.theme-warm {
   padding: 0;
   border: 1px solid transparent !important;
   border-radius: var(--app-radius-full) !important;
-  background: transparent !important;
+  background: var(--app-icon-button-bg) !important;
   color: var(--app-icon-button-color) !important;
   transition: color var(--app-control-transition);
 }
 
 .app-icon-button:not(.is-disabled):hover {
-  background: transparent !important;
+  background: var(--app-icon-button-bg) !important;
   border-color: transparent !important;
   color: var(--app-icon-button-hover-color) !important;
 }

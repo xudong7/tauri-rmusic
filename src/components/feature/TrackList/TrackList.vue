@@ -11,14 +11,12 @@ const props = withDefaults(
     selectionMode?: boolean;
     selectedKeys?: Set<string>;
     loading?: boolean;
-    width?: "reading" | "online";
     nearEndThreshold?: number;
   }>(),
   {
     selectionMode: false,
     selectedKeys: () => new Set<string>(),
     loading: false,
-    width: "reading",
     nearEndThreshold: 220,
   }
 );
@@ -78,7 +76,7 @@ function handleListKeydown(event: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="track-list" :class="`track-list--${width}`">
+  <div class="track-list">
     <slot name="before" />
 
     <div v-if="loading && items.length === 0" class="track-list__state">

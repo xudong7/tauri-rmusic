@@ -271,7 +271,6 @@ function scheduleVisibleCovers(items: TrackRowModel[]) {
       :loading="loading"
       :selection-mode="selectionMode"
       :selected-keys="selectedKeys"
-      width="reading"
       @activate="emit('play', musicFiles[$event.sourceIndex])"
       @toggle-current="emit('toggle-current')"
       @toggle-select="toggleSelectRow(musicFiles[$event.sourceIndex])"

@@ -15,7 +15,6 @@ export default {
     warm: "Warm",
     cancel: "Cancel",
     confirmDelete: "Delete",
-    close: "Close",
     download: "Download",
   },
   playlist: {
