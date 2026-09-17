@@ -159,6 +159,13 @@ onMounted(() => {
     runInitTask("local library", () => localStore.initializeLocalLibrary()),
     runInitTask("playlists", () => playlistStore.loadPlaylists()),
     runInitTask("playback volume", () => playerStore.syncVolumeToBackend()),
+    runInitTask("playback clock", async () => {
+      // 组件重挂载（开发时的 HMR 等）会停掉播放时钟，但 store 仍是「播放中」。
+      // 挂载时按 store 状态恢复，否则进度条与歌词会一直冻结。
+      if (playerStore.isPlaying && playerStore.hasCurrentTrack) {
+        playerStore.startPlayTimeTracking();
+      }
+    }),
     runInitTask("playback events", () => playerStore.startPlaybackEventListening()),
     runInitTask("tray events", () => trayEvents.start()),
   ]);

@@ -1,4 +1,4 @@
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { defineStore } from "pinia";
 import { ElMessage } from "element-plus";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
@@ -332,9 +332,10 @@ export const usePlayerStore = defineStore("player", () => {
     ) {
       return;
     }
-    if (progress.duration_ms > 0) {
-      currentTrackDurationMs.value = progress.duration_ms;
-    }
+    // 0 表示后端还没能确定这首的时长（例如边下边播的流）：此时必须清掉旧值，
+    // 让 currentTrackDuration 落到曲目元数据的兜底上。留着上一首的时长会让
+    // 进度条一直停在上一首的长度上。
+    currentTrackDurationMs.value = progress.duration_ms;
     currentPlayTime.value = clampPlayTime(progress.position_ms);
   }
 
@@ -397,11 +398,25 @@ export const usePlayerStore = defineStore("player", () => {
       currentPlayTime.value = clampPlayTime(positionMs);
     },
     setDuration: (durationMs) => {
-      if (durationMs > 0) currentTrackDurationMs.value = durationMs;
+      // 与 updateProgressFromBackend 同一策略：0 = 后端还没确定时长，清掉旧值
+      currentTrackDurationMs.value = durationMs;
     },
     shouldAcceptState: (state) =>
-      currentBackendTrackId.value === 0 || state.track_id === currentBackendTrackId.value,
+      // 切歌窗口内（isLoadingSong）后端状态不可信：它可能还描述着上一首，
+      // 或正处在 clear 与 append 之间（sink 为空、位置仍是上一首的）。
+      // 此时写回会让进度条停在上一首的位置/时长上。
+      !isLoadingSong.value &&
+      (currentBackendTrackId.value === 0 ||
+        state.track_id === currentBackendTrackId.value),
     onEnded: handlePlaybackEnded,
+  });
+
+  // isPlaying 与时钟保持同步：任何路径把状态置为「播放中」，时钟都必须跑起来；
+  // 反之停表。这样即便某条异常路径漏了 start/stop（或被取代的播放请求中途返回），
+  // 也不会出现「歌在放、进度条冻结」。
+  watch(isPlaying, (playing) => {
+    if (playing) startPlayTimeTracking();
+    else stopPlayTimeTracking();
   });
 
   function startPlayTimeTracking() {
