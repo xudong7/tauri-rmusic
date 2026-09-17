@@ -52,8 +52,8 @@
 }
 
 /* 左侧指示条：与曲库列表「正在播放」行的亮条同一语言——主色、3px 宽、
-   半高、右圆角、垂直居中。hover 时浮现，选中时常驻；hover 不再铺底色方块，
-   底色只留给选中态，两者一眼可辨。 */
+   半高、右圆角、垂直居中。只在选中（点击后）的条目上常驻，hover 不显示，
+   避免同时出现两条；hover 的反馈仍是原来的底色方块。 */
 .nav-item::before {
   content: "";
   position: absolute;
@@ -69,14 +69,13 @@
   pointer-events: none;
 }
 
-.nav-item:hover::before,
 .nav-item.is-active::before {
   opacity: 1;
 }
 
 .nav-item:hover {
   color: var(--sidebar-text-active, var(--el-text-color-primary));
-  background: transparent;
+  background: var(--sidebar-hover-bg, var(--hover-bg-color));
 }
 
 .nav-item.is-active {
@@ -263,7 +262,7 @@ html.dark .playlist-section,
 }
 
 .nav-item-playlist:hover {
-  background: transparent;
+  background: var(--sidebar-hover-bg, var(--hover-bg-color));
 }
 
 .nav-item-playlist:hover .nav-label {
