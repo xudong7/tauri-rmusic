@@ -88,7 +88,7 @@
 }
 
 .nav-icon {
-  font-size: 17px;
+  font-size: 20px;
   flex-shrink: 0;
   opacity: 0.92;
 }
@@ -128,64 +128,55 @@ html.dark .playlist-section,
   background: transparent;
 }
 
-.playlist-section-title {
+/* 分栏栏：与参考图一致的「自建歌单 | 收藏歌单」，右侧是新建键 */
+.playlist-section-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 6px;
-  padding: 2px 8px 8px;
   min-height: 28px;
+  padding: 2px 6px 8px 8px;
+}
+
+.playlist-tabs {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.playlist-tab {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  font: inherit;
   font-size: 11.5px;
   font-weight: 600;
   letter-spacing: 0;
-  color: var(--el-text-color-secondary);
-  opacity: 0.9;
-  cursor: default;
-  border-radius: var(--app-radius-sm);
-  transition:
-    color 0.2s ease,
-    background 0.2s ease,
-    opacity 0.2s ease;
-}
-
-.playlist-section-toggle {
-  min-width: 0;
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0;
-  border: 0;
-  color: inherit;
-  background: transparent;
-  font: inherit;
-  text-align: left;
   cursor: pointer;
+  transition: color 0.2s ease;
 }
 
-.playlist-section-title:hover {
+.playlist-tab:hover,
+.playlist-tab.is-active {
   color: var(--el-text-color-primary);
-  opacity: 1;
-  background: transparent;
 }
 
-.playlist-section-title .chevron {
-  font-size: 10px;
+.playlist-tab-divider {
   flex-shrink: 0;
-  transition: transform 0.2s ease;
+  width: 1px;
+  height: 10px;
+  background: var(--sidebar-border-color, var(--el-border-color));
+  opacity: 0.7;
 }
 
-.playlist-section.is-collapsed .playlist-section-title .chevron {
-  transform: rotate(-90deg);
-}
-
-.playlist-section-title .title-icon {
-  display: none;
-  flex-shrink: 0;
-}
-
-.playlist-section-title-text {
-  flex: 1;
-  min-width: 0;
+.playlist-empty-hint {
+  margin: 0;
+  padding: 4px 8px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  opacity: 0.8;
 }
 
 .playlist-section-add {
@@ -225,20 +216,6 @@ html.dark .playlist-section,
     transparent;
 }
 
-/* 展开/收起过渡 */
-.playlist-body-enter-active,
-.playlist-body-leave-active {
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
-}
-
-.playlist-body-enter-from,
-.playlist-body-leave-to {
-  opacity: 0;
-  transform: translateY(-2px);
-}
-
 /* 歌单行与上方导航项同一套几何：左内边距、封面/图标尺寸、间距全部对齐，
    封面与图标因此落在同一条竖线上，标签也与导航文字同一条竖线。 */
 .nav-item-playlist {
@@ -256,8 +233,14 @@ html.dark .playlist-section,
 }
 
 .nav-item-playlist :deep(.playlist-cover) {
-  /* 与 .nav-icon 的 font-size（17px）同尺寸 */
-  flex: 0 0 17px;
+  /* 与 .nav-icon 的 font-size（20px）同尺寸 */
+  flex: 0 0 20px;
+}
+
+/* 收藏歌单的封面直接由 CoverImage 渲染，不会带上 PlaylistCover 的组件样式，
+   这里补一份同样的投影，两种歌单行的观感才一致 */
+.nav-item-playlist .playlist-cover {
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-primary) 10%, transparent);
 }
 
 .nav-item-playlist:last-child {
