@@ -26,22 +26,6 @@ const props = defineProps<{
 const playerStore = usePlayerStore();
 const localStore = useLocalMusicStore();
 
-// 直接监听 store 里的播放时间（每 250ms 更新一次）。
-// 原先走 props.currentTime 中转：时间一变，父组件 ImmersiveView 的整棵
-// 渲染树都会跟着以 4Hz 重渲染；这里读 store 只影响本组件，且下面
-// 只更新 currentIndex，歌词行没有变化时连本组件都不会重渲染。
-watch(
-  () => playerStore.currentPlayTime,
-  (newTime) => {
-    // 切歌加载期间时间会回零，跳过这段避免歌词乱跳
-    if (playerStore.isLoadingSong === false) {
-      currentLyricTime.value = newTime;
-      updateCurrentLine();
-    }
-  },
-  { immediate: true }
-);
-
 // 歌词数据
 const lyricData = ref<LyricLine[]>([]);
 // 加载状态
@@ -172,6 +156,25 @@ async function scrollToCurrentLine(requestId: number) {
     }
   }
 }
+
+// 直接监听 store 里的播放时间（每 250ms 更新一次）。
+// 原先走 props.currentTime 中转：时间一变，父组件 ImmersiveView 的整棵
+// 渲染树都会跟着以 4Hz 重渲染；这里读 store 只影响本组件，且下面
+// 只更新 currentIndex，歌词行没有变化时连本组件都不会重渲染。
+//
+// 必须放在 currentLyricTime / lyricData / updateCurrentLine 定义之后：
+// immediate 会在 setup 期间同步执行回调，放在前面会因暂时性死区直接抛错。
+watch(
+  () => playerStore.currentPlayTime,
+  (newTime) => {
+    // 切歌加载期间时间会回零，跳过这段避免歌词乱跳
+    if (playerStore.isLoadingSong === false) {
+      currentLyricTime.value = newTime;
+      updateCurrentLine();
+    }
+  },
+  { immediate: true }
+);
 
 watch(
   lyricSource,

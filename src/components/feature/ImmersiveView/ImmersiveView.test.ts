@@ -34,7 +34,9 @@ async function mountImmersiveView() {
     props: { currentSong: null, currentMusic: null, isPlaying: false },
     global: {
       plugins: [createPinia(), i18n, router],
-      stubs: { LyricView: true },
+      // 刻意不 stub LyricView：它曾在 setup 阶段因 watch immediate 访问
+      // 未初始化的 ref 抛错，stub 掉会让这类错误从测试里消失，
+      // 而真实运行时整棵沉浸页都渲染不出来。
     },
   });
   await flushPromises();
