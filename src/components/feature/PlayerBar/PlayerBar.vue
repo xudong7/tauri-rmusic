@@ -10,12 +10,12 @@ import {
   type PlaybackPhase,
   type SongInfo,
 } from "@/types/model";
-import { getLocalMusicDisplayInfo } from "@/utils/songUtils";
+import { formatDuration, getLocalMusicDisplayInfo } from "@/utils/songUtils";
 import { playModeIcon, playModeLabelKey } from "@/utils/playModeUtils";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
-import PlaybackProgress from "./PlaybackProgress.vue";
 import { useArtistNavigation } from "@/composables/useArtistNavigation";
 import { useCoverLoader } from "@/composables/useCoverLoader";
+import { usePlaybackProgressSlider } from "@/composables/usePlaybackProgressSlider";
 import { useVolumeMute } from "@/composables/usePlaybackVolume";
 import { useArtistStore } from "@/stores/artistStore";
 import { useOnlineMusicStore } from "@/stores/onlineMusicStore";
@@ -31,6 +31,8 @@ const props = withDefaults(
     playbackPhase?: PlaybackPhase;
     playMode: PlayMode;
     volume: number;
+    currentPlayTime: number;
+    currentTrackDuration: number;
   }>(),
   {
     playbackPhase: "idle",
@@ -52,6 +54,7 @@ const artistStore = useArtistStore();
 const onlineStore = useOnlineMusicStore();
 const localStore = useLocalMusicStore();
 const volumeSliderValue = ref(props.volume);
+const showRemainingTime = ref(false);
 
 watch(
   () => props.volume,
@@ -87,6 +90,10 @@ const playbackStatus = computed(() =>
     ? t("playerBar.resolving")
     : t("playerBar.buffering")
 );
+const remainingTimeDisplay = computed(
+  () =>
+    `-${formatDuration(Math.max(0, props.currentTrackDuration - props.currentPlayTime))}`
+);
 
 const currentArtistDisplay = computed(() => {
   void locale.value;
@@ -121,6 +128,20 @@ function enterImmersiveMode() {
     emit("show-immersive");
   }
 }
+
+const {
+  sliderValue,
+  progressDisabled,
+  currentTimeDisplay,
+  durationDisplay,
+  handleProgressInput,
+  handleProgressChange,
+} = usePlaybackProgressSlider({
+  currentTime: () => props.currentPlayTime,
+  duration: () => props.currentTrackDuration,
+  hasTrack: () => Boolean(props.currentMusic || props.currentOnlineSong),
+  onSeek: (positionMs) => emit("seek", positionMs),
+});
 </script>
 
 <template>
@@ -267,9 +288,28 @@ function enterImmersiveMode() {
         </div>
       </div>
 
-      <!-- 进度条：交给 PlaybackProgress 叶子组件，它直接读 playerStore，
-            currentPlayTime 每 250ms 变化不会牵连整条播放栏重渲染 -->
-      <PlaybackProgress v-show="hasTrack" variant="bar" @seek="emit('seek', $event)" />
+      <div v-show="hasTrack" class="player-progress">
+        <span class="time-display">{{ currentTimeDisplay }}</span>
+        <el-slider
+          v-model="sliderValue"
+          :max="100"
+          :min="0"
+          :step="0.1"
+          :show-tooltip="false"
+          :disabled="progressDisabled"
+          class="progress-slider"
+          @input="handleProgressInput"
+          @change="handleProgressChange"
+        />
+        <button
+          type="button"
+          class="time-display time-display-toggle"
+          :aria-label="t('playerBar.toggleRemainingTime')"
+          @click="showRemainingTime = !showRemainingTime"
+        >
+          {{ showRemainingTime ? remainingTimeDisplay : durationDisplay }}
+        </button>
+      </div>
       <div v-if="!hasTrack" class="player-empty-hint">
         {{ t("playerBar.emptyHint") }}
       </div>

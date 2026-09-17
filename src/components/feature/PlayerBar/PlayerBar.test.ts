@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { i18n } from "@/i18n";
 import { PlayMode } from "@/types/model";
 import PlayerBar from "./PlayerBar.vue";
-import { usePlayerStore } from "@/stores/playerStore";
 
 vi.mock("@/composables/useCoverLoader", () => ({
   useCoverLoader: () => ({ coverUrl: computed(() => "/icon.png") }),
@@ -20,9 +19,6 @@ vi.mock("@/composables/useArtistNavigation", () => ({
 }));
 
 function mountBar(volume = 50): VueWrapper {
-  // 进度条组件直接从 store 读时间，测试里把 store 状态铺好
-  const store = usePlayerStore();
-  store.currentPlayTime = 1000;
   return mount(PlayerBar, {
     props: {
       currentMusic: {
@@ -38,6 +34,8 @@ function mountBar(volume = 50): VueWrapper {
       isPlaying: false,
       playMode: PlayMode.SEQUENTIAL,
       volume,
+      currentPlayTime: 1000,
+      currentTrackDuration: 120000,
     },
     global: { plugins: [i18n] },
   });
