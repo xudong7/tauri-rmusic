@@ -384,16 +384,17 @@ html.dark .search-history-item:focus-within {
     transform var(--app-control-transition);
 }
 
+/* 与全项目一致：裸图标，悬停只让图标亮起来，不浮出圆形底色/描边 */
 .window-button:hover {
   color: var(--app-icon-button-hover-color);
-  background: var(--app-icon-button-hover-bg);
-  border-color: var(--app-button-border);
-  transform: translateY(-1px);
+  background: transparent;
+  border-color: transparent;
+  transform: none;
 }
 
 .window-button:active {
-  background: var(--app-button-active-bg);
-  transform: translateY(0);
+  background: transparent;
+  transform: none;
 }
 
 .window-button .el-icon {
@@ -406,8 +407,8 @@ html.dark .search-history-item:focus-within {
 }
 
 .window-button.close:hover {
-  color: #fff;
-  background-color: #e54d4d;
+  color: var(--el-color-danger);
+  background-color: transparent;
 }
 
 /* 搜索框：Pill 形状，图标在左，精致样式 */

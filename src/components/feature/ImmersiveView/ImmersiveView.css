@@ -28,13 +28,6 @@
      原生按钮由 AppKit 绘制、永远盖在 webview 之上，z-index 压不住，只能让位。 */
   --immersive-mac-traffic-lights-width: 78px;
   --immersive-mac-traffic-lights-center-y: 11.5px;
-  --immersive-control-surface: rgba(10, 16, 20, 0.26);
-  --immersive-control-surface-hover: color-mix(
-    in srgb,
-    var(--el-color-primary) 26%,
-    rgba(12, 18, 23, 0.66)
-  );
-  --immersive-control-border: rgba(255, 255, 255, 0.13);
   --immersive-control-text: rgba(255, 255, 255, 0.76);
   --immersive-accent: color-mix(in srgb, var(--el-color-primary) 82%, #fff);
   --immersive-text-primary: #fff;
@@ -104,8 +97,6 @@
 }
 
 .immersive-view.uses-dark-foreground {
-  --immersive-control-surface: rgba(245, 248, 250, 0.22);
-  --immersive-control-border: rgba(18, 31, 40, 0.22);
   --immersive-control-text: rgba(18, 31, 40, 0.76);
   --immersive-text-primary: rgba(16, 27, 35, 0.9);
   --immersive-text-secondary: rgba(18, 31, 40, 0.62);
@@ -193,7 +184,7 @@
   justify-content: flex-start;
 }
 
-/* 返回按钮 */
+/* 返回按钮：裸图标，悬停只让图标亮起来，不出现圆形底色/描边 */
 .back-btn {
   pointer-events: auto;
   background: transparent !important;
@@ -203,26 +194,22 @@
   height: var(--immersive-exit-btn-size);
   border-radius: var(--app-radius-full) !important;
   box-shadow: none;
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease,
-    transform 0.2s ease;
+  transition: color 0.2s ease;
 }
 
 .back-btn:hover {
-  background: var(--immersive-control-surface) !important;
-  border-color: var(--immersive-control-border) !important;
+  background: transparent !important;
+  border-color: transparent !important;
   color: var(--immersive-text-primary) !important;
   transform: none;
 }
 
 .back-btn:active {
-  background: rgba(255, 255, 255, 0.14) !important;
-  color: #fff !important;
+  background: transparent !important;
+  color: var(--immersive-text-primary) !important;
 }
 
-/* 窗口控制按钮 */
+/* 窗口控制按钮：同样是裸图标。非 macOS 平台才显示。 */
 .window-controls {
   display: flex;
   gap: 6px;
@@ -230,22 +217,22 @@
 }
 
 .window-controls .el-button {
-  background: rgba(255, 255, 255, 0.12) !important;
-  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
   color: rgba(255, 255, 255, 0.86) !important;
   width: var(--app-icon-btn-md);
   height: var(--app-icon-btn-md);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
 .window-controls .el-button:hover {
-  background: rgba(255, 255, 255, 0.22) !important;
+  background: transparent !important;
+  border-color: transparent !important;
   color: #fff !important;
 }
 
 .window-controls .el-button:nth-child(3):hover {
-  background: #ff453a !important;
+  background: transparent !important;
+  color: #ff453a !important;
 }
 
 /* 主内容区域 - 左右布局 */
@@ -369,66 +356,51 @@
   margin-top: 2px;
 }
 
+/* 上一首/下一首：裸图标，不套描边和玻璃底，悬停只让图标亮起来 */
 .controls .immersive-control-btn {
-  border: 1px solid var(--immersive-control-border) !important;
+  border: 1px solid transparent !important;
   height: var(--app-icon-btn-lg);
   width: var(--app-icon-btn-lg);
-  border-radius: var(--app-radius-md) !important;
+  border-radius: var(--app-radius-full) !important;
   background: transparent !important;
   color: var(--immersive-control-text) !important;
   box-shadow: none;
-  backdrop-filter: blur(12px) saturate(1.12);
-  -webkit-backdrop-filter: blur(12px) saturate(1.12);
-  transition:
-    background var(--app-control-transition),
-    border-color var(--app-control-transition),
-    color var(--app-control-transition),
-    transform var(--app-control-transition);
+  transition: color var(--app-control-transition);
 }
 
 .controls .immersive-control-btn:hover {
-  background: var(--immersive-control-surface-hover) !important;
-  border-color: color-mix(
-    in srgb,
-    var(--el-color-primary) 42%,
-    var(--immersive-control-border)
-  ) !important;
+  background: transparent !important;
+  border-color: transparent !important;
   color: var(--immersive-text-primary) !important;
-  box-shadow: 0 8px 22px color-mix(in srgb, var(--el-color-primary) 16%, transparent);
-  transform: translateY(-1px) scale(1.02);
+  box-shadow: none;
+  transform: none;
 }
 
-/* 播放/暂停按钮 */
+/* 播放/暂停按钮：全项目唯一的实心主色按钮，形状与播放栏保持一致用圆形；
+    实心是常态而非悬停浮出的外框，所以保留。 */
 .controls .immersive-play-btn {
   background: color-mix(
     in srgb,
     var(--el-color-primary) 68%,
     rgba(18, 29, 35, 0.9)
   ) !important;
-  border: 1px solid
-    color-mix(in srgb, var(--el-color-primary) 48%, rgba(255, 255, 255, 0.18)) !important;
+  border: none !important;
   color: #fff !important;
   height: var(--app-play-btn-lg) !important;
   width: var(--app-play-btn-lg) !important;
-  border-radius: var(--app-radius-lg) !important;
+  border-radius: var(--app-radius-full) !important;
   font-size: 20px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
   transition:
     background var(--app-control-transition),
-    border-color var(--app-control-transition),
     box-shadow var(--app-control-transition),
     transform var(--app-control-transition);
 }
 
 .controls .immersive-play-btn:hover {
   background: color-mix(in srgb, var(--el-color-primary) 80%, #10171b) !important;
-  border-color: color-mix(
-    in srgb,
-    var(--el-color-primary) 66%,
-    rgba(255, 255, 255, 0.2)
-  ) !important;
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
-  transform: translateY(-1px) scale(1.02);
+  transform: translateY(-1px) scale(1.03);
 }
 
 /* 右侧区域：歌词 */

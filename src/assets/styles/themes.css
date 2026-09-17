@@ -451,12 +451,13 @@ html.theme-warm {
   color: var(--el-color-danger);
 }
 
+/* 与其它图标按钮同规矩：悬停只让图标亮起来，不浮出红色实心圆 */
 .app-icon-button--danger.el-button:not(:disabled):hover,
 .app-icon-button--danger.el-button:not(:disabled):focus-visible {
-  color: #fff;
-  background: var(--el-color-danger);
-  border-color: var(--el-color-danger);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-danger) 18%, transparent);
+  color: color-mix(in srgb, var(--el-color-danger) 62%, #fff);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 @media (max-width: 840px) {
