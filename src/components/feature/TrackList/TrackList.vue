@@ -93,10 +93,10 @@ function handleListKeydown(event: KeyboardEvent) {
       <slot name="empty" />
     </div>
 
-    <!-- 格数必须与 TrackRow 的网格一致：多一格空 span 就会把「歌曲」推到
-         歌名右边 52px。这里只有 4 格——封面、歌名、专辑、时长。 -->
+    <!-- 「歌曲」列头跨封面与标题两列，左边沿因此落在封面左边缘，与行里的
+         封面左对齐（而不是缩进到歌名文字的位置）。专辑、时长各占一列，
+         由下面 CSS 里的 grid-column 钉死。 -->
     <div v-if="items.length > 0" class="track-list__columns" aria-hidden="true">
-      <span />
       <span class="track-list__column-song">{{ columnLabels.song }}</span>
       <span class="track-list__column-album">{{ columnLabels.album }}</span>
       <span class="track-list__column-duration">{{ columnLabels.duration }}</span>
@@ -212,6 +212,11 @@ function handleListKeydown(event: KeyboardEvent) {
   font-size: 11px;
   font-weight: 550;
   letter-spacing: 0.02em;
+}
+
+.track-list__column-song {
+  /* 跨封面与标题两列：起点与行里封面的左边缘同一条竖线 */
+  grid-column: 1 / 3;
 }
 
 .track-list__column-duration {
