@@ -1,6 +1,7 @@
+use crate::fs_util::{commit_temp_file, unique_temp_path_for};
 use crate::music::MusicFile;
 use crate::netease;
-use crate::netease::get_song_url;
+use crate::netease::{get_song_cover, get_song_lyric, get_song_url};
 use rodio::{Decoder, Source};
 use serde::{Deserialize, Serialize};
 use sha1::{Digest, Sha1};
@@ -8,7 +9,7 @@ use std::collections::HashMap;
 use std::fs::{self, create_dir_all, read_dir, File};
 use std::io::{BufReader, ErrorKind, Write};
 use std::path::{Path, PathBuf};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, UNIX_EPOCH};
 use symphonia::core::formats::FormatOptions;
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::{MetadataOptions, MetadataRevision, StandardTagKey};
@@ -290,24 +291,6 @@ fn music_file_from_path(id: i32, absolute_path: &Path, relative_path: &Path) -> 
     })
 }
 
-fn unique_temp_path_for(target_path: &Path) -> PathBuf {
-    let unique = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_nanos())
-        .unwrap_or(0);
-    let file_name = target_path
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("download");
-
-    target_path.with_file_name(format!(
-        "{}.{}.{}.tmp",
-        file_name,
-        std::process::id(),
-        unique
-    ))
-}
-
 async fn write_response_to_file(
     mut response: reqwest::Response,
     target_path: &Path,
@@ -385,15 +368,6 @@ fn available_import_path(target_path: &Path) -> PathBuf {
     unreachable!("unbounded counter should eventually find an available import path")
 }
 
-fn commit_temp_file(tmp_path: &Path, target_path: &Path) -> Result<(), String> {
-    #[cfg(windows)]
-    if target_path.exists() {
-        fs::remove_file(target_path).map_err(|e| format!("replace file: {}", e))?;
-    }
-
-    fs::rename(tmp_path, target_path).map_err(|e| format!("commit file error: {}", e))
-}
-
 fn commit_new_temp_file(tmp_path: &Path, target_path: &Path) -> Result<(), String> {
     fs::hard_link(tmp_path, target_path).map_err(|e| {
         if e.kind() == ErrorKind::AlreadyExists {
@@ -446,8 +420,6 @@ fn copy_file_to_path(source_path: &Path, target_path: &Path) -> Result<(), Strin
     result
 }
 
-/// recursive scan the directory
-/// and add the files to the list
 #[cfg(test)]
 pub fn scan_directory(
     base_path: &std::path::Path,
@@ -736,32 +708,25 @@ pub async fn download_music(
     artist: String,
     default_directory: Option<String>,
 ) -> Result<String, String> {
-    // 获取歌曲下载URL
     let song_url = get_song_url(song_hash.clone()).await?;
 
     let client = netease::get_client()?;
 
-    // 下载歌曲文件
     let response = netease::get_response(client.clone(), song_url).await?;
 
-    // Determine the base directory to use
     let base_dir = if let Some(custom_dir) = default_directory {
-        // Use the custom directory as base, create subdirectories within it
         std::path::PathBuf::from(custom_dir)
     } else {
-        // Fall back to app data directory
         app_handle
             .path()
             .app_data_dir()
             .map_err(|e| format!("unable to get dir: {}", e))?
     };
 
-    // Create subdirectories under the base directory
     let music_dir = base_dir.join("music");
     let cover_dir = base_dir.join("cover");
     let lyrics_dir = base_dir.join("lyrics");
 
-    // Create directories if they don't exist
     if !music_dir.exists() {
         create_dir_all(&music_dir).map_err(|e| format!("create music dir error: {}", e))?;
     }
@@ -774,7 +739,6 @@ pub async fn download_music(
         create_dir_all(&lyrics_dir).map_err(|e| format!("create lyrics dir error: {}", e))?;
     }
 
-    // create file name
     let file_name = format!(
         "{} - {}.mp3",
         sanitize_filename(&artist),
@@ -782,21 +746,16 @@ pub async fn download_music(
     );
     let file_path = music_dir.join(&file_name);
 
-    // check if the file exists
     if file_path.exists() {
         return Err(format!("file already exists: {}", file_path.display()));
     }
     write_response_to_file(response, &file_path).await?;
-    // 下载封面图片
     let base_filename = file_name.replace(".mp3", "");
-
-    use crate::netease::get_song_cover;
 
     let cover_url_result =
         get_song_cover(song_hash.clone(), song_name.clone(), artist.clone()).await;
     if let Ok(cover_url) = cover_url_result {
         if !cover_url.is_empty() {
-            // 2. 下载封面图片
             match netease::get_response(client.clone(), cover_url).await {
                 Ok(pic_response) => {
                     if let Ok(Ok(pic_bytes)) =
@@ -804,27 +763,25 @@ pub async fn download_music(
                     {
                         let cover_path = cover_dir.join(format!("{}.jpg", base_filename));
                         if let Err(e) = write_bytes_to_file(&pic_bytes, &cover_path) {
-                            eprintln!("写入封面失败: {}", e);
+                            eprintln!("write cover failed: {}", e);
                         }
                     }
                 }
-                Err(e) => eprintln!("下载封面失败: {}", e),
+                Err(e) => eprintln!("download cover failed: {}", e),
             }
         }
     }
-    // 3. 尝试下载歌词
-    use crate::netease::get_song_lyric;
 
     match get_song_lyric(song_hash.clone()).await {
         Ok(lyric_content) => {
             if !lyric_content.is_empty() {
                 let lyric_path = lyrics_dir.join(format!("{}.lrc", base_filename));
                 if let Err(e) = write_bytes_to_file(lyric_content.as_bytes(), &lyric_path) {
-                    eprintln!("写入歌词失败: {}", e);
+                    eprintln!("write lyric failed: {}", e);
                 }
             }
         }
-        Err(e) => eprintln!("下载歌词失败: {}", e),
+        Err(e) => eprintln!("download lyric failed: {}", e),
     }
 
     Ok(file_name)
@@ -840,7 +797,7 @@ fn local_media_base_dir(
         app_handle
             .path()
             .app_data_dir()
-            .map_err(|e| format!("无法获取应用目录: {}", e))
+            .map_err(|e| format!("unable to get app data dir: {}", e))
     }
 }
 
@@ -902,10 +859,9 @@ pub fn load_local_lyric(
         return Ok(String::new());
     }
 
-    std::fs::read_to_string(&lyrics_path).map_err(|e| format!("读取歌词文件失败: {}", e))
+    std::fs::read_to_string(&lyrics_path).map_err(|e| format!("read lyric file failed: {}", e))
 }
 
-/// clean file name
 fn sanitize_filename(name: &str) -> String {
     name.chars()
         .map(|c| match c {
@@ -933,7 +889,7 @@ pub async fn import_music(
         app_handle
             .path()
             .app_data_dir()
-            .map_err(|e| format!("无法获取应用目录: {}", e))?
+            .map_err(|e| format!("unable to get app data dir: {}", e))?
     };
     let music_dir = music_dir_from_library_root(&base_dir);
 
@@ -952,28 +908,19 @@ fn import_music_blocking(music_dir: &Path, files: Vec<String>) -> Result<String,
     let mut imported_count = 0;
     let mut failed_files = Vec::new();
 
-    // 处理每个文件
     for file_path in files {
         let source_path = PathBuf::from(&file_path);
 
-        // 检查文件是否存在
         if !source_path.is_file() {
             failed_files.push(format!("文件不存在或不是普通文件: {}", file_path));
             continue;
         }
 
-        // 检查是否是支持的音频格式
-        if let Some(extension) = source_path.extension().and_then(|ext| ext.to_str()) {
-            if !["mp3", "wav", "ogg", "flac"].contains(&extension.to_lowercase().as_str()) {
-                failed_files.push(format!("不支持的格式: {}", file_path));
-                continue;
-            }
-        } else {
-            failed_files.push(format!("无法识别文件格式: {}", file_path));
+        if supported_audio_extension(&source_path).is_none() {
+            failed_files.push(format!("不支持的格式: {}", file_path));
             continue;
         }
 
-        // 获取文件名
         if let Some(file_name) = source_path.file_name() {
             let target_path = music_dir.join(file_name);
             let target_path = available_import_path(&target_path);
@@ -991,7 +938,6 @@ fn import_music_blocking(music_dir: &Path, files: Vec<String>) -> Result<String,
         }
     }
 
-    // 构建结果消息
     let mut result_message = format!("成功导入 {} 个文件", imported_count);
 
     if !failed_files.is_empty() {

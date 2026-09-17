@@ -122,7 +122,6 @@ function handleThemeModeChange(val: ThemeMode) {
   themeStore.setThemeMode(val);
 }
 
-// 选择下载目录
 const selectDownloadPath = async () => {
   try {
     const selected = await open({
@@ -141,11 +140,9 @@ const selectDownloadPath = async () => {
   }
 };
 
-// 重置下载目录为默认
 const resetDownloadPath = async () => {
   try {
     await localStore.resetDefaultDirectory();
-    // 更新显示的路径
     const currentDefaultDir = localStore.getDefaultDirectory();
     if (currentDefaultDir) {
       downloadPath.value = currentDefaultDir;
@@ -155,7 +152,6 @@ const resetDownloadPath = async () => {
   }
 };
 
-// 处理开机自启动状态变化
 const handleAutoStartChange = async (value: boolean) => {
   try {
     if (value) {
@@ -165,7 +161,6 @@ const handleAutoStartChange = async (value: boolean) => {
     }
   } catch (error) {
     console.error("设置开机自启动失败:", error);
-    // 如果设置失败，恢复原状态
     autoStartEnabled.value = !value;
   }
 };

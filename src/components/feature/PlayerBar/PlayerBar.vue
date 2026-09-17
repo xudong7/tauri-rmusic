@@ -121,9 +121,7 @@ const { coverUrl } = useCoverLoader({
 const currentPlayModeIcon = computed(() => playModeIcon(props.playMode));
 const playModeTooltip = computed(() => t(playModeLabelKey(props.playMode)));
 
-// 进入沉浸模式
 function enterImmersiveMode() {
-  // 只要有当前歌曲（在线或本地）就可以进入沉浸模式
   if (props.currentOnlineSong || props.currentMusic) {
     emit("show-immersive");
   }

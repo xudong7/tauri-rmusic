@@ -1,4 +1,5 @@
 import { computed, onScopeDispose, ref, watch } from "vue";
+import { formatDuration } from "@/utils/songUtils";
 
 const SEEK_RELEASE_DELAY_MS = 800;
 
@@ -8,14 +9,6 @@ function clamp(value: number, min: number, max: number): number {
 
 function toNumber(value: number | number[]): number {
   return Array.isArray(value) ? (value[0] ?? 0) : value;
-}
-
-function formatTime(ms: number): string {
-  if (!ms || ms <= 0) return "0:00";
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
 export function usePlaybackProgressSlider(args: {
@@ -39,8 +32,8 @@ export function usePlaybackProgressSlider(args: {
     if (durationMs.value <= 0) return 0;
     return clamp((currentTimeMs.value / durationMs.value) * 100, 0, 100);
   });
-  const currentTimeDisplay = computed(() => formatTime(currentTimeMs.value));
-  const durationDisplay = computed(() => formatTime(durationMs.value));
+  const currentTimeDisplay = computed(() => formatDuration(currentTimeMs.value));
+  const durationDisplay = computed(() => formatDuration(durationMs.value));
 
   function clearReleaseTimer() {
     if (releaseTimer !== null) {

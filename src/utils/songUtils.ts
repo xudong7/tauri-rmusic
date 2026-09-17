@@ -51,6 +51,11 @@ export function formatDuration(ms: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
+/** 行内时长标签：未知时长返回 undefined，由调用方决定是否渲染 */
+export function formatDurationLabel(ms: number | null | undefined): string | undefined {
+  return ms && ms > 0 ? formatDuration(ms) : undefined;
+}
+
 /**
  * 按 locale 压缩大数字，用于播放量、曲目数等。
  * 交给 Intl 而不是自己拼「万/亿」：中文得到 1.2万，英文得到 12K。

@@ -2,6 +2,7 @@ import { ref } from "vue";
 import { defineStore } from "pinia";
 import { STORAGE_KEY_COLLECTED_PLAYLISTS } from "@/constants";
 import type { PlaylistInfo } from "@/types/model";
+import { readJsonFromStorage, writeJsonToStorage } from "@/utils/storage";
 
 /** 收藏的在线歌单：只保留列表与侧边栏需要的字段 */
 export type CollectedPlaylist = Pick<
@@ -24,25 +25,20 @@ function toCollectedPlaylist(value: unknown): CollectedPlaylist | null {
 }
 
 function loadFromStorage(): CollectedPlaylist[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_COLLECTED_PLAYLISTS);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .map(toCollectedPlaylist)
-      .filter((item): item is CollectedPlaylist => item !== null);
-  } catch {
-    return [];
-  }
+  return readJsonFromStorage<CollectedPlaylist[]>(
+    STORAGE_KEY_COLLECTED_PLAYLISTS,
+    [],
+    (value) => {
+      if (!Array.isArray(value)) return [];
+      return value
+        .map(toCollectedPlaylist)
+        .filter((item): item is CollectedPlaylist => item !== null);
+    }
+  );
 }
 
 function saveToStorage(list: CollectedPlaylist[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY_COLLECTED_PLAYLISTS, JSON.stringify(list));
-  } catch {
-    /* ignore */
-  }
+  writeJsonToStorage(STORAGE_KEY_COLLECTED_PLAYLISTS, list);
 }
 
 /**

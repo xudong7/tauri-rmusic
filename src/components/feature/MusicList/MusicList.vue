@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { ref, watch, computed } from "vue";
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { Upload, Plus } from "@element-plus/icons-vue";
 import MultiSelectIcon from "@/components/base/icons/MultiSelectIcon.vue";
 import type { MusicFile } from "@/types/model";
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { ElMessage } from "element-plus";
-import { formatDuration, getLocalMusicDisplayInfo } from "@/utils/songUtils";
+import { formatDurationLabel, getLocalMusicDisplayInfo } from "@/utils/songUtils";
 import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
+import { useRowSelection } from "@/composables/useRowSelection";
 import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
 import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
 import TrackList from "@/components/feature/TrackList/TrackList.vue";
@@ -15,9 +16,6 @@ import type { TrackRowModel } from "@/components/feature/TrackList/types";
 
 const { t } = useI18n();
 const playlistStore = usePlaylistStore();
-
-const selectionMode = ref(false);
-const selectedKeys = ref<Set<string>>(new Set());
 
 function getFileKey(file: MusicFile): string {
   return file.relative_path || file.file_name;
@@ -42,28 +40,6 @@ function getDisplayInfo(row: MusicFile) {
       artist: t("common.unknownArtist"),
     }
   );
-}
-
-function toggleSelectionMode() {
-  selectionMode.value = !selectionMode.value;
-  if (!selectionMode.value) selectedKeys.value.clear();
-}
-
-function toggleSelectRow(row: MusicFile) {
-  if (!selectionMode.value) return;
-  const key = getFileKey(row);
-  const next = new Set(selectedKeys.value);
-  if (next.has(key)) next.delete(key);
-  else next.add(key);
-  selectedKeys.value = next;
-}
-
-function selectAll() {
-  selectedKeys.value = new Set(props.musicFiles.map(getFileKey));
-}
-
-function deselectAll() {
-  selectedKeys.value = new Set();
 }
 
 function handleBatchAddToPlaylist(command: string) {
@@ -92,8 +68,7 @@ function handleBatchAddToPlaylist(command: string) {
       ElMessage.info(t("playlist.alreadyInPlaylist", { name }));
     }
   }
-  selectedKeys.value = new Set();
-  selectionMode.value = false;
+  clearSelection();
 }
 
 const props = withDefaults(
@@ -128,17 +103,22 @@ const librarySubtitle = computed(() => {
 
 const emit = defineEmits(["play", "toggle-current", "import"]);
 
-watch(
-  () => props.musicFiles,
-  (files) => {
-    if (!selectionMode.value || selectedKeys.value.size === 0) return;
-    const availableKeys = new Set(files.map(getFileKey));
-    const next = new Set(
-      Array.from(selectedKeys.value).filter((key) => availableKeys.has(key))
-    );
-    if (next.size !== selectedKeys.value.size) selectedKeys.value = next;
-  }
-);
+const {
+  selectionMode,
+  selectedKeys,
+  toggleSelectionMode,
+  toggleSelectRow: toggleSelectKey,
+  selectAll,
+  deselectAll,
+  clearSelection,
+} = useRowSelection<string>({
+  getSelectableKeys: () => props.musicFiles.map(getFileKey),
+  getAvailableKeys: () => new Set(props.musicFiles.map(getFileKey)),
+});
+
+function toggleSelectRow(row: MusicFile) {
+  toggleSelectKey(getFileKey(row));
+}
 
 const currentKey = computed(() =>
   props.currentMusic ? getFileKey(props.currentMusic) : null
@@ -151,10 +131,7 @@ function toTrackRow(music: MusicFile, sourceIndex: number): TrackRowModel {
     title: display.title,
     artist: display.artist,
     album: display.album,
-    durationLabel:
-      music.duration_ms && music.duration_ms > 0
-        ? formatDuration(music.duration_ms)
-        : undefined,
+    durationLabel: formatDurationLabel(music.duration_ms),
     coverUrl: () => getCover(music),
     source: "local",
     sourceIndex,
