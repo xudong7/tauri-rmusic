@@ -51,9 +51,32 @@
   outline-offset: 1px;
 }
 
+/* 左侧指示条：与曲库列表「正在播放」行的亮条同一语言——主色、3px 宽、
+   半高、右圆角、垂直居中。hover 时浮现，选中时常驻；hover 不再铺底色方块，
+   底色只留给选中态，两者一眼可辨。 */
+.nav-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 50%;
+  border-radius: 0 var(--app-radius-full) var(--app-radius-full) 0;
+  background: var(--el-color-primary);
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.nav-item:hover::before,
+.nav-item.is-active::before {
+  opacity: 1;
+}
+
 .nav-item:hover {
   color: var(--sidebar-text-active, var(--el-text-color-primary));
-  background: var(--sidebar-hover-bg, var(--hover-bg-color));
+  background: transparent;
 }
 
 .nav-item.is-active {
@@ -63,7 +86,6 @@
     --sidebar-active-bg,
     var(--active-item-bg, rgba(var(--el-color-primary-rgb), 0.06))
   );
-  box-shadow: inset 2px 0 0 var(--el-color-primary);
 }
 
 .nav-icon {
@@ -241,7 +263,7 @@ html.dark .playlist-section,
 }
 
 .nav-item-playlist:hover {
-  background: var(--sidebar-hover-bg, var(--hover-bg-color));
+  background: transparent;
 }
 
 .nav-item-playlist:hover .nav-label {
