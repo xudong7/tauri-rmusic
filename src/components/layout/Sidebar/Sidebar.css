@@ -239,12 +239,12 @@ html.dark .playlist-section,
   transform: translateY(-2px);
 }
 
-/* 歌单行：与参考图一致的宽松规格——封面 32px、行高 44px。
-   左内边距从 24 收到 16，封面变大后文字仍停在原来的位置附近。 */
+/* 歌单行与上方导航项同一套几何：左内边距、封面/图标尺寸、间距全部对齐，
+   封面与图标因此落在同一条竖线上，标签也与导航文字同一条竖线。 */
 .nav-item-playlist {
   min-height: 44px;
-  gap: 10px;
-  padding: 0 10px 0 16px;
+  gap: 11px;
+  padding: 0 11px;
   border-radius: var(--app-radius-md);
   margin-bottom: 1px;
 }
@@ -256,7 +256,8 @@ html.dark .playlist-section,
 }
 
 .nav-item-playlist :deep(.playlist-cover) {
-  flex: 0 0 32px;
+  /* 与 .nav-icon 的 font-size（17px）同尺寸 */
+  flex: 0 0 17px;
 }
 
 .nav-item-playlist:last-child {

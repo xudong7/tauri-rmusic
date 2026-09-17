@@ -125,8 +125,8 @@ function goToPlaylist(id: string) {
             >
               <PlaylistCover
                 :item="pl.items[0]"
-                :size="32"
-                :radius="8"
+                :size="17"
+                :radius="4"
                 aria-hidden="true"
               />
               <span class="nav-label" :title="pl.name">{{
