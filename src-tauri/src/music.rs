@@ -339,6 +339,12 @@ where
     if sink_lock.is_paused() {
         sink_lock.play();
     }
+    // rodio 的播放位置由音频线程的周期回调维护：换源后要等新音源被拉取一次
+    // 才会归零。在那之前 get_pos() 仍返回上一首的位置，而 track_id/duration
+    // 已经是新曲——这段窗口里前端的一次进度同步会被判为「当前曲目的有效状态」，
+    // 把进度条和本地时钟基准都写成上一首的位置（表现为进度条先停在上一首末尾，
+    // 约 10 秒后才被下一次同步纠正）。try_seek 会同步写入 position，立即归零。
+    let _ = sink_lock.try_seek(Duration::ZERO);
     Ok(())
 }
 
