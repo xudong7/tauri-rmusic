@@ -16,6 +16,7 @@ export default {
     cancel: "取消",
     confirmDelete: "确定删除",
     download: "下载",
+    retry: "重试",
   },
   playlist: {
     title: "播放列表",
@@ -80,6 +81,7 @@ export default {
     serviceStatus: "服务状态",
     serviceStatusDesc: "在线搜索和播放所需的后台服务",
     refreshService: "启动或刷新在线服务",
+    copyPath: "复制路径",
   },
   musicList: {
     title: "曲库",
@@ -140,6 +142,7 @@ export default {
   playerBar: {
     noSong: "未选择歌曲",
     emptyHint: "从曲库选择一首歌曲开始播放",
+    albumCover: "专辑封面",
     previous: "上一曲",
     next: "下一曲",
     play: "播放",

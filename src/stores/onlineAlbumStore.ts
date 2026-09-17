@@ -16,6 +16,8 @@ export const useOnlineAlbumStore = defineStore("onlineAlbum", () => {
   const album = ref<AlbumInfo | null>(null);
   const songs = ref<SongInfo[]>([]);
   const isLoading = ref(false);
+  /** 加载失败时置为可读文案；区分「失败」与「不存在」，供视图展示重试。 */
+  const errorMessage = ref("");
   let requestId = 0;
 
   async function loadAlbum(id: string) {
@@ -23,6 +25,7 @@ export const useOnlineAlbumStore = defineStore("onlineAlbum", () => {
     // 切换专辑时先清空，避免旧曲目与新专辑头并存
     album.value = null;
     songs.value = [];
+    errorMessage.value = "";
     try {
       isLoading.value = true;
       const result = await getAlbumDetail({ id });
@@ -32,6 +35,7 @@ export const useOnlineAlbumStore = defineStore("onlineAlbum", () => {
     } catch (error) {
       if (currentRequestId !== requestId) return;
       console.error("加载专辑失败:", error);
+      errorMessage.value = parseErrorMessage(error);
       ElMessage.error(
         `${i18n.global.t("errors.loadAlbumFailed")}: ${parseErrorMessage(error)}`
       );
@@ -40,5 +44,5 @@ export const useOnlineAlbumStore = defineStore("onlineAlbum", () => {
     }
   }
 
-  return { album, songs, isLoading, loadAlbum };
+  return { album, songs, isLoading, errorMessage, loadAlbum };
 });

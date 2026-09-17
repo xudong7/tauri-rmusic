@@ -199,7 +199,11 @@ onUnmounted(() => {
       <div class="app-body">
         <Sidebar />
         <div class="main-content">
-          <router-view />
+          <router-view v-slot="{ Component }">
+            <Transition name="page" mode="out-in">
+              <component :is="Component" />
+            </Transition>
+          </router-view>
         </div>
       </div>
       <!-- 过渡类名（.queue-enter-* / .queue-leave-*）写在 PlaybackQueue.vue 自己的
@@ -224,8 +228,6 @@ onUnmounted(() => {
         :playbackPhase="playerStore.playbackPhase"
         :playMode="playerStore.playMode"
         :volume="playerStore.volume"
-        :currentPlayTime="playerStore.currentPlayTime"
-        :currentTrackDuration="playerStore.currentTrackDuration"
         @toggle-play="playerStore.togglePlay"
         @volume-change="playerStore.adjustVolume"
         @previous="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1))"
@@ -244,8 +246,6 @@ onUnmounted(() => {
           :currentSong="playerStore.currentOnlineSong"
           :currentMusic="playerStore.currentMusic"
           :isPlaying="playerStore.isPlaying"
-          :currentTime="playerStore.currentPlayTime"
-          :currentTrackDuration="playerStore.currentTrackDuration"
           :playMode="playerStore.playMode"
           @toggle-play="playerStore.togglePlay"
           @next="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1))"
@@ -301,5 +301,25 @@ onUnmounted(() => {
 
 .dark-theme {
   color-scheme: dark;
+}
+
+/* 页面切换：纯淡入淡出，不带动效里的位移——transform 会给固定定位的
+   子元素建新的包含块，而视图里可能有固定元素。out-in 保证新旧页面
+   不会同框，也就不会在过渡期间出现两套滚动条。 */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.14s ease;
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter-active,
+  .page-leave-active {
+    transition: none;
+  }
 }
 </style>

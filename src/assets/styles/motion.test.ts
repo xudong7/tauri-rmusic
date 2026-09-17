@@ -53,6 +53,7 @@ describe("过渡类名", () => {
     expect(declared.map(({ name }) => name).sort()).toEqual([
       "history-dropdown",
       "immersive",
+      "page",
       "playlist-body",
       "queue",
     ]);

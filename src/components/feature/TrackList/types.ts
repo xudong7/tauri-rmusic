@@ -10,7 +10,5 @@ export interface TrackRowModel {
   coverUrl: TrackCoverSource;
   source: TrackSource;
   sourceIndex: number;
-  isCurrent: boolean;
-  isPlaying: boolean;
   disabled?: boolean;
 }

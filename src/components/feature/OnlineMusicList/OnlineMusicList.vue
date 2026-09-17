@@ -48,7 +48,7 @@ function requestLoadMore() {
   emit("load-more");
 }
 
-const isCurrentSong = (s: SongInfo) => props.currentSong?.id === s.id;
+const currentKey = computed(() => props.currentSong?.id ?? null);
 
 function toTrackRow(song: SongInfo, sourceIndex: number): TrackRowModel {
   return {
@@ -60,8 +60,6 @@ function toTrackRow(song: SongInfo, sourceIndex: number): TrackRowModel {
     coverUrl: song.pic_url,
     source: "online",
     sourceIndex,
-    isCurrent: isCurrentSong(song),
-    isPlaying: props.isPlaying,
   };
 }
 
@@ -77,6 +75,8 @@ function handleAddToPlaylist(command: string, row: SongInfo) {
     <TrackList
       :items="trackRows"
       :loading="loading"
+      :current-key="currentKey"
+      :is-playing="props.isPlaying"
       @activate="emit('play', onlineSongs[$event.sourceIndex])"
       @toggle-current="emit('toggle-current')"
       @near-end="requestLoadMore"

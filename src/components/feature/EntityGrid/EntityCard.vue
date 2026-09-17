@@ -60,6 +60,10 @@ function handleClick() {
   font: inherit;
   text-align: left;
   cursor: pointer;
+  /* 网格最多 200 张卡片：视口外的卡片跳过渲染与绘制，
+     滚动进入视口时再逐张布局（用 contain-intrinsic-size 预留尺寸防跳动） */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 180px;
 }
 
 .entity-card.is-disabled {

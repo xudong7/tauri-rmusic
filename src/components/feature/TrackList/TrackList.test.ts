@@ -38,8 +38,6 @@ function rows(count: number): TrackRowModel[] {
     coverUrl: "",
     source: "local",
     sourceIndex: index,
-    isCurrent: false,
-    isPlaying: false,
   }));
 }
 

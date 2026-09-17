@@ -16,6 +16,7 @@ export default {
     cancel: "Cancel",
     confirmDelete: "Delete",
     download: "Download",
+    retry: "Retry",
   },
   playlist: {
     title: "Playlists",
@@ -80,6 +81,7 @@ export default {
     serviceStatus: "Service status",
     serviceStatusDesc: "Background service required for online music",
     refreshService: "Start or refresh online service",
+    copyPath: "Copy path",
   },
   musicList: {
     title: "Library",
@@ -140,6 +142,7 @@ export default {
   playerBar: {
     noSong: "No song selected",
     emptyHint: "Choose a song from your library to start listening",
+    albumCover: "Album cover",
     previous: "Previous",
     next: "Next",
     play: "Play",

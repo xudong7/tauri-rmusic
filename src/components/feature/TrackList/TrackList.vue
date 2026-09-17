@@ -12,12 +12,19 @@ const props = withDefaults(
     selectedKeys?: Set<string>;
     loading?: boolean;
     nearEndThreshold?: number;
+    /** 当前曲目的行 key；行的 is-current 样式由它与 item.key 比较得出，
+        不烘焙进行对象里，播放/暂停时行模型数组可以保持同一份引用。 */
+    currentKey?: string | null;
+    /** 是否正在播放；只对 currentKey 那行生效。 */
+    isPlaying?: boolean;
   }>(),
   {
     selectionMode: false,
     selectedKeys: () => new Set<string>(),
     loading: false,
     nearEndThreshold: 220,
+    currentKey: null,
+    isPlaying: false,
   }
 );
 const columnLabels = computed(() => {
@@ -55,7 +62,7 @@ function handleScroll(event: Event) {
 }
 
 function handleActivate(item: TrackRowModel) {
-  if (item.isCurrent) emit("toggleCurrent", item);
+  if (item.key === props.currentKey) emit("toggleCurrent", item);
   else emit("activate", item);
 }
 
@@ -100,6 +107,7 @@ function handleListKeydown(event: KeyboardEvent) {
       v-bind="containerProps"
       class="track-list__scroll track-list__scroll--virtual"
       data-render-mode="virtual"
+      :tabindex="0"
       @scroll.passive="handleScroll"
       @keydown="handleListKeydown"
     >
@@ -111,6 +119,8 @@ function handleListKeydown(event: KeyboardEvent) {
           :index="index"
           :selection-mode="selectionMode"
           :selected="selectedKeys.has(item.key)"
+          :is-current="item.key === currentKey"
+          :is-playing="isPlaying && item.key === currentKey"
           :row-height="rowHeight"
           @activate="handleActivate"
           @toggle-select="emit('toggleSelect', $event)"
@@ -137,6 +147,8 @@ function handleListKeydown(event: KeyboardEvent) {
           :index="index"
           :selection-mode="selectionMode"
           :selected="selectedKeys.has(item.key)"
+          :is-current="item.key === currentKey"
+          :is-playing="isPlaying && item.key === currentKey"
           @activate="handleActivate"
           @toggle-select="emit('toggleSelect', $event)"
         >

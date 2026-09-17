@@ -34,7 +34,6 @@
       :loading="artistStore.isArtistLoading"
       :totalCount="artistStore.artistSongsTotal"
       :hasMore="artistStore.artistSongsHasMore"
-      :showTitle="false"
       @play="playArtistSong"
       @toggle-current="playerStore.togglePlay"
       @download="downloadOnlineSong"
@@ -43,7 +42,10 @@
     >
       <template #loading><el-skeleton :rows="6" animated /></template>
       <template #empty>
-        <el-empty :description="t('musicList.empty')" />
+        <el-empty v-if="artistStore.songsError" :description="t('errors.searchFailed')">
+          <el-button type="primary" @click="reloadTab">{{ t("common.retry") }}</el-button>
+        </el-empty>
+        <el-empty v-else :description="t('musicList.empty')" />
       </template>
     </OnlineMusicList>
 
@@ -56,7 +58,13 @@
     >
       <template #loading><el-skeleton :rows="5" animated /></template>
       <template #empty>
-        <el-empty :description="t('onlineAlbum.empty')" />
+        <el-empty
+          v-if="artistStore.albumsError"
+          :description="t('errors.loadArtistAlbumsFailed')"
+        >
+          <el-button type="primary" @click="reloadTab">{{ t("common.retry") }}</el-button>
+        </el-empty>
+        <el-empty v-else :description="t('onlineAlbum.empty')" />
       </template>
     </EntityGrid>
   </PageLayout>
@@ -133,6 +141,13 @@ function getQueryString(v: unknown): string {
 
 function goBackToSearch() {
   router.push({ name: "OnlineMusic" });
+}
+
+function reloadTab() {
+  const id = String(route.params.id || "");
+  if (!id) return;
+  if (activeTab.value === "songs") void artistStore.loadArtistSongs(id, 1);
+  else void artistStore.loadArtistAlbums(id, 1);
 }
 
 function load() {

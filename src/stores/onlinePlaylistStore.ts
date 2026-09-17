@@ -46,6 +46,8 @@ export const useOnlinePlaylistStore = defineStore("onlinePlaylist", () => {
   const hasMoreTracks = ref(false);
   const isDetailLoading = ref(false);
   const isLoadingMoreTracks = ref(false);
+  /** 详情加载失败的可读文案，供视图区分「失败」与「不存在」并展示重试。 */
+  const detailError = ref("");
   let detailRequestId = 0;
   let tracksRequestId = 0;
 
@@ -54,6 +56,7 @@ export const useOnlinePlaylistStore = defineStore("onlinePlaylist", () => {
     // 切换歌单时立即清空，避免旧曲目与新歌单头并存
     songs.value = [];
     hasMoreTracks.value = false;
+    detailError.value = "";
     try {
       isDetailLoading.value = true;
       const result = await getPlaylistDetail({ id });
@@ -65,6 +68,7 @@ export const useOnlinePlaylistStore = defineStore("onlinePlaylist", () => {
     } catch (error) {
       if (requestId !== detailRequestId) return;
       detail.value = null;
+      detailError.value = parseErrorMessage(error);
       console.error("加载歌单失败:", error);
       ElMessage.error(
         `${i18n.global.t("errors.loadPlaylistFailed")}: ${parseErrorMessage(error)}`
@@ -122,6 +126,7 @@ export const useOnlinePlaylistStore = defineStore("onlinePlaylist", () => {
     hasMoreTracks.value = false;
     isDetailLoading.value = false;
     isLoadingMoreTracks.value = false;
+    detailError.value = "";
     detailRequestId++;
     tracksRequestId++;
   }
@@ -135,6 +140,7 @@ export const useOnlinePlaylistStore = defineStore("onlinePlaylist", () => {
     hasMoreTracks,
     isDetailLoading,
     isLoadingMoreTracks,
+    detailError,
     loadDetail,
     loadMoreTracks,
     resetDetail,

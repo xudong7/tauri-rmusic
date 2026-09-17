@@ -214,103 +214,10 @@ html.dark .player-bar {
   box-shadow: var(--app-play-button-hover-shadow);
 }
 
-.player-progress {
-  width: 100%;
-  min-width: 0;
-  max-width: 560px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .player-empty-hint {
   color: var(--el-text-color-secondary);
   font-size: 12.5px;
   letter-spacing: 0.01em;
-}
-
-.player-progress .time-display {
-  font-size: 11px;
-  min-width: 38px;
-  text-align: center;
-  color: var(--el-text-color-secondary);
-  font-variant-numeric: tabular-nums;
-  font-weight: 500;
-}
-
-.player-progress .time-display-toggle {
-  padding: 2px 0;
-  border: 0;
-  border-radius: 3px;
-  background: transparent;
-  cursor: pointer;
-}
-
-.player-progress .time-display-toggle:hover,
-.player-progress .time-display-toggle:focus-visible {
-  color: var(--el-color-primary);
-  outline: 2px solid color-mix(in srgb, var(--el-color-primary) 36%, transparent);
-  outline-offset: 1px;
-}
-
-.player-progress .progress-slider {
-  flex: 1;
-  /* EP 给 .el-slider 的默认高度是 32px，为的是容纳 20px 的圆形 thumb 和
-     36px 的 hover 热区。本项目已经把 thumb 缩到 8px、button-wrapper 缩到
-     22px，32px 就纯属多余了——它让中间栏内容变成 42 + 1 + 32 = 75px，而
-     80px 的播放栏扣掉 .player-center 的上下内边距只剩 71px，多出的 4px
-     会吃掉 padding-bottom，把播放按钮顶到紧贴栏顶。
-     压到 20px 只为让内容放得下；跑道在这 20px 里仍然是居中的，所以进度条
-     本身的位置没变（仍是 y=875），变的只有播放按钮。 */
-  height: 20px;
-}
-
-.player-progress :deep(.el-slider__runway) {
-  height: 3px;
-  background: var(--app-slider-track-bg);
-  border-radius: var(--app-radius-full, 9999px);
-  transition:
-    height 0.2s ease,
-    background-color 0.2s ease;
-}
-
-.player-progress :deep(.el-slider__bar) {
-  height: 100%;
-  border-radius: var(--app-radius-full, 9999px);
-  background: var(--app-slider-fill-bg);
-}
-
-.player-progress :deep(.el-slider__button-wrapper) {
-  top: 50%;
-  width: 22px;
-  height: 22px;
-  transform: translate(-50%, -50%);
-}
-
-.player-progress :deep(.el-slider__button) {
-  width: var(--app-slider-thumb-size);
-  height: var(--app-slider-thumb-size);
-  box-sizing: border-box;
-  border: 1px solid var(--app-slider-thumb-border);
-  background: var(--app-slider-thumb-bg);
-  box-shadow: var(--app-slider-thumb-shadow);
-  opacity: 1;
-  transition:
-    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.18s ease;
-}
-
-.player-progress:hover :deep(.el-slider__runway) {
-  height: 4px;
-}
-
-.player-progress:hover :deep(.el-slider__button),
-.player-progress :deep(.el-slider__button:hover),
-.player-progress :deep(.el-slider__button.dragging) {
-  transform: scale(1.18);
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.18),
-    0 0 0 2px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
 }
 
 /* 右侧：只剩播放队列 */
@@ -490,10 +397,6 @@ html.dark .player-bar {
   .player-controls {
     gap: 12px;
   }
-
-  .player-progress {
-    max-width: 420px;
-  }
 }
 
 @media (max-width: 780px) {
@@ -506,24 +409,11 @@ html.dark .player-bar {
   .player-left {
     gap: 8px;
   }
-
-  .player-progress {
-    min-width: 0;
-    gap: 6px;
-  }
-
-  .player-progress .time-display {
-    min-width: 32px;
-  }
 }
 
 @media (max-width: 768px) {
   .player-bar {
     grid-template-columns: minmax(124px, 1fr) minmax(250px, 1.6fr) minmax(104px, 0.9fr);
-  }
-
-  .player-progress .time-display {
-    min-width: 28px;
   }
 }
 

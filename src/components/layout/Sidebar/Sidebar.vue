@@ -83,6 +83,7 @@ function goToPlaylist(id: string) {
         type="button"
         class="nav-item"
         :class="{ 'is-active': isActive(item) }"
+        :aria-current="isActive(item) ? 'page' : undefined"
         @click="goTo(item)"
       >
         <el-icon class="nav-icon"><component :is="item.icon" /></el-icon>
@@ -119,6 +120,7 @@ function goToPlaylist(id: string) {
               type="button"
               class="nav-item nav-item-playlist"
               :class="{ 'is-active': isPlaylistActive(pl.id) }"
+              :aria-current="isPlaylistActive(pl.id) ? 'page' : undefined"
               @click="goToPlaylist(pl.id)"
             >
               <PlaylistCover

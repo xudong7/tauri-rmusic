@@ -19,6 +19,14 @@
         </template>
       </PageHeader>
     </template>
+    <!-- 加载中先占住标题位，歌单头到位前页面不再整体跳动 -->
+    <div
+      v-else-if="store.isDetailLoading"
+      class="detail-header-skeleton"
+      aria-hidden="true"
+    >
+      <el-skeleton :rows="2" animated />
+    </div>
 
     <!-- 放在 header 之外：PageHeader 的 title/after-title 是同一行 flex，
          长简介塞进 after-title 会把标题挤成省略号。 -->
@@ -33,7 +41,6 @@
       :loading="store.isDetailLoading || store.isLoadingMoreTracks"
       :totalCount="store.detail?.track_count ?? 0"
       :hasMore="store.hasMoreTracks"
-      :showTitle="false"
       @play="playSong"
       @toggle-current="playerStore.togglePlay"
       @download="downloadOnlineSong"
@@ -42,9 +49,10 @@
     >
       <template #loading><el-skeleton :rows="6" animated /></template>
       <template #empty>
-        <el-empty
-          :description="store.isDetailLoading ? '' : t('onlinePlaylist.notFound')"
-        />
+        <el-empty v-if="store.detailError" :description="t('errors.loadPlaylistFailed')">
+          <el-button type="primary" @click="retry">{{ t("common.retry") }}</el-button>
+        </el-empty>
+        <el-empty v-else :description="t('onlinePlaylist.notFound')" />
       </template>
     </OnlineMusicList>
   </PageLayout>
@@ -102,6 +110,10 @@ function load() {
   void store.loadDetail(id);
 }
 
+function retry() {
+  void store.loadDetail(String(route.params.id || ""));
+}
+
 // 用 route.fullPath 而非 onMounted：/online/playlist/1 -> /2 会复用同一组件实例，
 // onMounted 不会再次触发。
 watch(() => route.fullPath, load, { immediate: true });
@@ -114,6 +126,13 @@ watch(() => route.fullPath, load, { immediate: true });
 
 .online-playlist-view__cover {
   margin-right: 12px;
+}
+
+/* 与 PageHeader 高度一致，加载时占位不跳动 */
+.detail-header-skeleton {
+  min-height: var(--app-page-header-height);
+  margin-bottom: var(--app-page-header-gap);
+  flex-shrink: 0;
 }
 
 .online-playlist-view__desc {

@@ -6,7 +6,9 @@
   flex-direction: column;
   overflow: hidden;
   color: var(--immersive-text-muted, rgba(255, 255, 255, 0.7));
-  transition: all 0.3s ease;
+  /* 只过渡会变的属性：transition: all 会让每次重渲染都去比对整棵子树的
+     全部属性，即使只有 color 在变 */
+  transition: color 0.3s ease;
   padding: 0;
   align-items: flex-start;
 }
@@ -45,7 +47,14 @@
   margin: 14px 0;
   font-size: 15px;
   line-height: 1.6;
-  transition: all 0.4s ease;
+  /* 只有激活行在状态切换，transition: all 会让每一行都为没在变的
+     属性（margin/padding/line-height）做过渡准备 */
+  transition:
+    color 0.4s ease,
+    font-size 0.4s ease,
+    font-weight 0.4s ease,
+    opacity 0.4s ease,
+    letter-spacing 0.4s ease;
   padding: 4px 8px;
   opacity: 0.66;
   font-weight: 400;

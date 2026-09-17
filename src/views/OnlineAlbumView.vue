@@ -17,6 +17,10 @@
         }}</el-button>
       </template>
     </PageHeader>
+    <!-- 加载中先占住标题位，专辑头到位前页面不再整体跳动 -->
+    <div v-else-if="store.isLoading" class="detail-header-skeleton" aria-hidden="true">
+      <el-skeleton :rows="2" animated />
+    </div>
 
     <OnlineMusicList
       :onlineSongs="store.songs"
@@ -25,7 +29,6 @@
       :loading="store.isLoading"
       :totalCount="store.songs.length"
       :hasMore="false"
-      :showTitle="false"
       @play="playSong"
       @toggle-current="playerStore.togglePlay"
       @download="downloadOnlineSong"
@@ -34,7 +37,10 @@
     >
       <template #loading><el-skeleton :rows="6" animated /></template>
       <template #empty>
-        <el-empty :description="store.isLoading ? '' : t('onlineAlbum.notFound')" />
+        <el-empty v-if="store.errorMessage" :description="t('errors.loadAlbumFailed')">
+          <el-button type="primary" @click="retry">{{ t("common.retry") }}</el-button>
+        </el-empty>
+        <el-empty v-else :description="t('onlineAlbum.notFound')" />
       </template>
     </OnlineMusicList>
   </PageLayout>
@@ -93,6 +99,10 @@ function load() {
   void store.loadAlbum(id);
 }
 
+function retry() {
+  void store.loadAlbum(String(route.params.id || ""));
+}
+
 // 同 OnlinePlaylistView：路由参数变化会复用组件实例，必须用 watch 而非 onMounted
 watch(() => route.fullPath, load, { immediate: true });
 </script>
@@ -104,5 +114,12 @@ watch(() => route.fullPath, load, { immediate: true });
 
 .online-album-view__cover {
   margin-right: 12px;
+}
+
+/* 与 PageHeader 高度一致，加载时占位不跳动 */
+.detail-header-skeleton {
+  min-height: var(--app-page-header-height);
+  margin-bottom: var(--app-page-header-gap);
+  flex-shrink: 0;
 }
 </style>

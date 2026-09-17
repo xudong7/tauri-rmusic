@@ -29,6 +29,10 @@ export const useArtistStore = defineStore("artist", () => {
   const artistAlbums = ref<AlbumInfo[]>([]);
   const artistAlbumsHasMore = ref(false);
   const isAlbumsLoading = ref(false);
+  /** 歌曲列表加载失败的可读文案，供视图区分「失败」与「空」并展示重试。 */
+  const songsError = ref("");
+  /** 专辑列表加载失败的可读文案。 */
+  const albumsError = ref("");
 
   let songsRequestId = 0;
   let detailRequestId = 0;
@@ -90,6 +94,7 @@ export const useArtistStore = defineStore("artist", () => {
         artistSongs.value = [];
         artistSongsTotal.value = 0;
         artistSongsHasMore.value = false;
+        songsError.value = "";
       }
       isArtistLoading.value = true;
 
@@ -137,6 +142,7 @@ export const useArtistStore = defineStore("artist", () => {
       artistSongsHasMore.value = hasMore;
     } catch (error) {
       if (requestId !== songsRequestId) return;
+      songsError.value = parseErrorMessage(error);
       console.error("加载歌手歌曲失败:", error);
       ElMessage.error(
         `${i18n.global.t("errors.searchFailed")}: ${parseErrorMessage(error)}`
@@ -158,6 +164,7 @@ export const useArtistStore = defineStore("artist", () => {
       if (page === 1) {
         artistAlbums.value = [];
         artistAlbumsHasMore.value = false;
+        albumsError.value = "";
       }
       isAlbumsLoading.value = true;
       const res = await getArtistAlbums({
@@ -172,6 +179,7 @@ export const useArtistStore = defineStore("artist", () => {
       artistAlbumsHasMore.value = res.has_more;
     } catch (error) {
       if (requestId !== albumsRequestId) return;
+      albumsError.value = parseErrorMessage(error);
       console.error("加载歌手专辑失败:", error);
       ElMessage.error(
         `${i18n.global.t("errors.loadArtistAlbumsFailed")}: ${parseErrorMessage(error)}`
@@ -205,6 +213,8 @@ export const useArtistStore = defineStore("artist", () => {
     artistAlbums,
     artistAlbumsHasMore,
     isAlbumsLoading,
+    songsError,
+    albumsError,
     loadArtist,
     loadArtistSongs,
     loadMoreArtistSongs,
