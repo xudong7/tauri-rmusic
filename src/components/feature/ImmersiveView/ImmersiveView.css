@@ -431,78 +431,6 @@
   transform: translateY(-1px) scale(1.02);
 }
 
-/* 进度条 */
-.immersive-progress {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 6px;
-  width: 100%;
-  max-width: var(--immersive-cover-size);
-}
-
-.immersive-progress .time-display {
-  font-size: 11px;
-  min-width: 36px;
-  color: var(--immersive-text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.immersive-progress .progress-slider {
-  flex: 1;
-}
-
-.immersive-progress .progress-slider :deep(.el-slider__runway) {
-  height: 3px;
-  background-color: var(--immersive-progress-track);
-  border-radius: var(--app-radius-full, 9999px);
-  transition:
-    height 0.2s ease,
-    background-color 0.2s ease;
-}
-
-.immersive-progress .progress-slider :deep(.el-slider__bar) {
-  height: 100%;
-  background: color-mix(in srgb, var(--immersive-accent) 88%, #fff);
-  border-radius: var(--app-radius-full, 9999px);
-}
-
-.immersive-progress .progress-slider :deep(.el-slider__button-wrapper) {
-  top: 50%;
-  width: 22px;
-  height: 22px;
-  transform: translate(-50%, -50%);
-}
-
-.immersive-progress .progress-slider :deep(.el-slider__button) {
-  width: var(--app-slider-thumb-size);
-  height: var(--app-slider-thumb-size);
-  box-sizing: border-box;
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 48%, #fff);
-  background: var(--immersive-accent);
-  box-shadow:
-    0 1px 4px rgba(0, 0, 0, 0.24),
-    0 0 0 1px rgba(255, 255, 255, 0.18);
-  opacity: 1;
-  transition:
-    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.18s ease;
-}
-
-.immersive-progress .progress-slider:hover :deep(.el-slider__runway) {
-  height: 4px;
-  background-color: color-mix(in srgb, var(--immersive-text-primary) 30%, transparent);
-}
-
-.immersive-progress .progress-slider:hover :deep(.el-slider__button),
-.immersive-progress .progress-slider :deep(.el-slider__button:hover),
-.immersive-progress .progress-slider :deep(.el-slider__button.dragging) {
-  transform: scale(1.18);
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.28),
-    0 0 0 2px color-mix(in srgb, var(--el-color-primary) 28%, transparent);
-}
-
 /* 右侧区域：歌词 */
 .right-section {
   display: flex;
@@ -593,10 +521,6 @@
     height: 52px !important;
     width: 52px !important;
   }
-
-  .immersive-progress {
-    margin-top: 2px;
-  }
 }
 
 @media (max-width: 880px) and (max-height: 720px) {
@@ -628,10 +552,6 @@
 
   .controls {
     margin-top: 0;
-  }
-
-  .immersive-progress {
-    margin-top: 8px;
   }
 
   .right-section {

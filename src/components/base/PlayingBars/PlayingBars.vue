@@ -27,6 +27,9 @@
 
 .playing-bars i {
   width: 2px;
+  /* 动画动的是 height 的相反数——height 是布局属性，每帧都要重排；
+     scaleY 走合成器，只贴图不上排。基线是各自的高度，往 0 缩。 */
+  transform-origin: 50% 100%;
   border-radius: var(--app-radius-full);
   background: currentColor;
   animation: playing-bars 0.8s ease-in-out infinite alternate;
@@ -49,7 +52,7 @@
 
 @keyframes playing-bars {
   to {
-    height: 4px;
+    transform: scaleY(0.25);
   }
 }
 

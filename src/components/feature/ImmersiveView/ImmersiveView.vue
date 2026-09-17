@@ -15,10 +15,10 @@ import PlayIcon from "@/components/base/icons/PlayIcon.vue";
 import PauseIcon from "@/components/base/icons/PauseIcon.vue";
 import type { SongInfo, MusicFile, PlayMode } from "@/types/model";
 import LyricView from "@/components/feature/LyricView/LyricView.vue";
+import PlaybackProgress from "@/components/feature/PlayerBar/PlaybackProgress.vue";
 import { useCoverPalette } from "@/composables/useCoverPalette";
 import { useCoverLoader } from "@/composables/useCoverLoader";
 import { useArtistNavigation } from "@/composables/useArtistNavigation";
-import { usePlaybackProgressSlider } from "@/composables/usePlaybackProgressSlider";
 import { usePlatform } from "@/composables/usePlatform";
 import { useWindowDrag } from "@/composables/useWindowDrag";
 import {
@@ -38,8 +38,6 @@ const props = defineProps<{
   currentSong: SongInfo | null;
   currentMusic: MusicFile | null;
   isPlaying: boolean;
-  currentTime?: number;
-  currentTrackDuration?: number;
   playMode?: PlayMode;
 }>();
 
@@ -56,20 +54,6 @@ const artistStore = useArtistStore();
 const onlineStore = useOnlineMusicStore();
 const localStore = useLocalMusicStore();
 const { isMacPlatform } = usePlatform();
-
-const {
-  sliderValue,
-  progressDisabled,
-  currentTimeDisplay,
-  durationDisplay,
-  handleProgressInput,
-  handleProgressChange,
-} = usePlaybackProgressSlider({
-  currentTime: () => props.currentTime ?? 0,
-  duration: () => props.currentTrackDuration ?? 0,
-  hasTrack: () => Boolean(props.currentSong || props.currentMusic),
-  onSeek: (positionMs) => emit("seek", positionMs),
-});
 
 const { isMaximized, minimize, toggleMaximize, close } = useWindowControls({
   onClose: "hide",
@@ -194,17 +178,32 @@ const overlayStyle = computed(() => {
       <!-- 非 macOS 平台显示窗口控制按钮 -->
       <div v-if="!isMacPlatform" class="window-controls">
         <el-tooltip :content="t('header.minimize')" placement="bottom" effect="dark">
-          <el-button @click="minimize" :icon="Minus" circle />
+          <el-button
+            @click="minimize"
+            :icon="Minus"
+            circle
+            :aria-label="t('header.minimize')"
+          />
         </el-tooltip>
         <el-tooltip
           :content="isMaximized ? t('header.restore') : t('header.maximize')"
           placement="bottom"
           effect="dark"
         >
-          <el-button @click="toggleMaximize" :icon="maximizeIcon" circle />
+          <el-button
+            @click="toggleMaximize"
+            :icon="maximizeIcon"
+            circle
+            :aria-label="isMaximized ? t('header.restore') : t('header.maximize')"
+          />
         </el-tooltip>
         <el-tooltip :content="t('header.close')" placement="bottom" effect="dark">
-          <el-button @click="close" :icon="Close" circle />
+          <el-button
+            @click="close"
+            :icon="Close"
+            circle
+            :aria-label="t('header.close')"
+          />
         </el-tooltip>
       </div>
     </div>
@@ -218,7 +217,7 @@ const overlayStyle = computed(() => {
             :key="currentCoverUrl"
             :src="currentCoverUrl"
             class="song-cover"
-            alt="封面"
+            :alt="t('playerBar.albumCover')"
           />
           <div v-else class="no-cover">
             <el-icon><Headset /></el-icon>
@@ -278,22 +277,9 @@ const overlayStyle = computed(() => {
           />
         </div>
 
-        <!-- 进度条 -->
-        <div class="immersive-progress">
-          <span class="time-display">{{ currentTimeDisplay }}</span>
-          <el-slider
-            v-model="sliderValue"
-            :max="100"
-            :min="0"
-            :step="0.1"
-            :show-tooltip="false"
-            :disabled="progressDisabled"
-            class="progress-slider"
-            @input="handleProgressInput"
-            @change="handleProgressChange"
-          />
-          <span class="time-display">{{ durationDisplay }}</span>
-        </div>
+        <!-- 进度条：叶子组件直接读 playerStore，避免 4Hz 时间更新
+             触发整个沉浸页重渲染 -->
+        <PlaybackProgress variant="immersive" @seek="emit('seek', $event)" />
       </div>
 
       <!-- 右侧：歌词 -->
@@ -303,7 +289,6 @@ const overlayStyle = computed(() => {
             :currentSong="currentSong"
             :currentMusic="currentMusic"
             :isPlaying="isPlaying"
-            :currentTime="currentTime"
           />
         </div>
       </div>

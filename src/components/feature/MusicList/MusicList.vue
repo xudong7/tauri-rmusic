@@ -140,8 +140,9 @@ watch(
   }
 );
 
-const isCurrentMusic = (music: MusicFile) =>
-  props.currentMusic !== null && getFileKey(props.currentMusic) === getFileKey(music);
+const currentKey = computed(() =>
+  props.currentMusic ? getFileKey(props.currentMusic) : null
+);
 
 function toTrackRow(music: MusicFile, sourceIndex: number): TrackRowModel {
   const display = getDisplayInfo(music);
@@ -157,8 +158,6 @@ function toTrackRow(music: MusicFile, sourceIndex: number): TrackRowModel {
     coverUrl: () => getCover(music),
     source: "local",
     sourceIndex,
-    isCurrent: isCurrentMusic(music),
-    isPlaying: props.isPlaying,
   };
 }
 
@@ -271,6 +270,8 @@ function scheduleVisibleCovers(items: TrackRowModel[]) {
       :loading="loading"
       :selection-mode="selectionMode"
       :selected-keys="selectedKeys"
+      :current-key="currentKey"
+      :is-playing="props.isPlaying"
       @activate="emit('play', musicFiles[$event.sourceIndex])"
       @toggle-current="emit('toggle-current')"
       @toggle-select="toggleSelectRow(musicFiles[$event.sourceIndex])"

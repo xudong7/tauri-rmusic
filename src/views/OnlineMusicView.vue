@@ -11,7 +11,6 @@
       :isPlaying="playerStore.isPlaying"
       :loading="onlineStore.tabMeta.song.loading"
       :totalCount="onlineStore.onlineSongsTotal"
-      :showTitle="false"
       @play="playOnlineSongFromSearch"
       @toggle-current="playerStore.togglePlay"
       @download="downloadOnlineSong"

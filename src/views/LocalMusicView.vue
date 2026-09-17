@@ -16,7 +16,6 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { open } from "@tauri-apps/plugin-dialog";
 import { ElMessage } from "element-plus";
@@ -30,8 +29,6 @@ import type { MusicFile } from "@/types/model";
 const { t } = useI18n();
 const localStore = useLocalMusicStore();
 const playerStore = usePlayerStore();
-
-onMounted(() => {});
 
 function playLocalMusic(music: MusicFile) {
   void playerStore.playMusic(music, { queue: localStore.filteredMusicFiles });

@@ -13,12 +13,18 @@ const props = withDefaults(
     index?: number;
     selectionMode?: boolean;
     selected?: boolean;
+    /** 当前曲目（由 TrackList 与 currentKey 比较得出）。 */
+    isCurrent?: boolean;
+    /** 是否正在播放；只在 isCurrent 时有意义。 */
+    isPlaying?: boolean;
     rowHeight?: number;
   }>(),
   {
     index: 0,
     selectionMode: false,
     selected: false,
+    isCurrent: false,
+    isPlaying: false,
     rowHeight: undefined,
   }
 );
@@ -50,7 +56,7 @@ function handleActivate() {
   <div
     class="track-row"
     :class="{
-      'is-current': item.isCurrent && !selectionMode,
+      'is-current': isCurrent && !selectionMode,
       'is-selected': selected,
       'is-disabled': item.disabled,
       'is-striped': props.index % 2 === 0,
@@ -61,7 +67,7 @@ function handleActivate() {
     :title="`${item.title} — ${item.artist}`"
     :tabindex="item.disabled ? -1 : 0"
     role="listitem"
-    :aria-current="item.isCurrent ? 'true' : undefined"
+    :aria-current="isCurrent ? 'true' : undefined"
     :aria-disabled="item.disabled || undefined"
     @click="handleRowClick"
     @keydown.enter.self.prevent="handleRowClick"
@@ -84,7 +90,7 @@ function handleActivate() {
         v-else
         type="button"
         class="track-row__cover-play"
-        :class="{ 'is-current': item.isCurrent }"
+        :class="{ 'is-current': isCurrent }"
         :disabled="item.disabled"
         :aria-label="item.title"
         @click.stop="handleActivate()"
@@ -92,7 +98,7 @@ function handleActivate() {
         <!-- 播放/暂停的表达与队列面板逐字一致：播放中出跳动条，否则出播放三角。
              图标不带圈，全项目统一用 PlayIcon/PauseIcon——Element Plus 的
              VideoPlay 会把三角套进圆圈里，叠在封面上就像多了个边框。 -->
-        <PlayingBars v-if="item.isCurrent && item.isPlaying" />
+        <PlayingBars v-if="isCurrent && isPlaying" />
         <el-icon v-else class="track-row__play-icon"><PlayIcon /></el-icon>
       </button>
     </div>
@@ -101,7 +107,7 @@ function handleActivate() {
          挪进来之后与歌名同属一块，右对齐贴住本列末尾。 -->
     <div class="track-row__main">
       <div class="track-row__text">
-        <div class="track-row__title" :class="{ 'is-playing': item.isCurrent }">
+        <div class="track-row__title" :class="{ 'is-playing': isCurrent }">
           {{ item.title }}
         </div>
         <div class="track-row__meta">{{ item.artist }}</div>

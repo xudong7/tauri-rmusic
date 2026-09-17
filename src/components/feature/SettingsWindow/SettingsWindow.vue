@@ -205,6 +205,7 @@ onMounted(async () => {
               <el-select
                 :model-value="themeStore.themeMode"
                 class="theme-select"
+                :aria-label="t('settings.themeMode')"
                 @update:model-value="handleThemeModeChange"
               >
                 <el-option
@@ -229,6 +230,7 @@ onMounted(async () => {
             <div class="setting-control">
               <el-select
                 v-model="currentLocale"
+                :aria-label="t('settings.language')"
                 @change="handleLocaleChange"
                 class="locale-select"
               >
@@ -255,7 +257,11 @@ onMounted(async () => {
               <small>{{ t("settings.autoStartDesc") }}</small>
             </label>
             <div class="setting-control">
-              <el-switch v-model="autoStartEnabled" @change="handleAutoStartChange" />
+              <el-switch
+                v-model="autoStartEnabled"
+                :aria-label="t('settings.autoStart')"
+                @change="handleAutoStartChange"
+              />
             </div>
           </div>
           <div class="setting-row">
@@ -303,6 +309,7 @@ onMounted(async () => {
                   circle
                   type="primary"
                   :icon="FolderOpened"
+                  :aria-label="t('common.browse')"
                   class="settings-action-btn app-icon-button app-icon-button--primary"
                   @click="selectDownloadPath"
                 />
@@ -311,6 +318,7 @@ onMounted(async () => {
                 <el-button
                   circle
                   :icon="RefreshLeft"
+                  :aria-label="t('common.reset')"
                   class="settings-action-btn app-icon-button"
                   @click="resetDownloadPath"
                 />
@@ -322,12 +330,15 @@ onMounted(async () => {
             <code class="path-summary-value" :title="downloadPath">{{
               downloadPath
             }}</code>
-            <el-button
-              link
-              :icon="CopyDocument"
-              class="path-copy"
-              @click="copyPath(downloadPath)"
-            />
+            <el-tooltip :content="t('settings.copyPath')" placement="top">
+              <el-button
+                link
+                :icon="CopyDocument"
+                :aria-label="t('settings.copyPath')"
+                class="path-copy"
+                @click="copyPath(downloadPath)"
+              />
+            </el-tooltip>
           </div>
         </div>
       </div>
@@ -360,12 +371,15 @@ onMounted(async () => {
             <code class="path-summary-value" :title="onlineCachePath">{{
               onlineCachePath || "-"
             }}</code>
-            <el-button
-              link
-              :icon="CopyDocument"
-              class="path-copy"
-              @click="copyPath(onlineCachePath)"
-            />
+            <el-tooltip :content="t('settings.copyPath')" placement="top">
+              <el-button
+                link
+                :icon="CopyDocument"
+                :aria-label="t('settings.copyPath')"
+                class="path-copy"
+                @click="copyPath(onlineCachePath)"
+              />
+            </el-tooltip>
           </div>
         </div>
       </div>

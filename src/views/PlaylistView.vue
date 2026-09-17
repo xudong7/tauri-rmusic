@@ -114,6 +114,8 @@
         :items="trackRows"
         :selection-mode="selectionMode"
         :selected-keys="selectedRowKeys"
+        :current-key="currentRowKey"
+        :is-playing="playerStore.isPlaying"
         @activate="playAt($event.sourceIndex)"
         @toggle-current="playerStore.togglePlay"
         @toggle-select="toggleSelectRow($event.sourceIndex)"
@@ -332,13 +334,20 @@ const { getCover, scheduleMany: scheduleLocalCoverLoadMany } =
     getDefaultDirectory: () => localStore.getDefaultDirectory(),
   });
 
-function isCurrent(entry: ResolvedEntry) {
-  if (entry.musicFile && playerStore.currentMusic)
-    return playerStore.currentMusic.file_name === entry.musicFile.file_name;
-  if (entry.songInfo && playerStore.currentOnlineSong)
-    return playerStore.currentOnlineSong.id === entry.songInfo.id;
-  return false;
-}
+// 当前曲目对应哪一行：行 key 由「类型 + 下标 + 文件名/ID」拼成，
+// 重排后下标会变，所以必须从这里现算，不能烘焙进行对象。
+const currentRowKey = computed(() => {
+  const currentLocalName = playerStore.currentMusic?.file_name;
+  const currentOnlineId = playerStore.currentOnlineSong?.id;
+  if (!currentLocalName && !currentOnlineId) return null;
+  const match = resolvedItems.value.find((entry) => {
+    if (entry.musicFile && currentLocalName)
+      return entry.musicFile.file_name === currentLocalName;
+    if (entry.songInfo && currentOnlineId) return entry.songInfo.id === currentOnlineId;
+    return false;
+  });
+  return match?.key ?? null;
+});
 
 function toTrackRow(entry: ResolvedEntry): TrackRowModel {
   return {
@@ -350,8 +359,6 @@ function toTrackRow(entry: ResolvedEntry): TrackRowModel {
     coverUrl: entry.item.type === "online" ? entry.coverUrl : () => getCover(entry),
     source: "playlist",
     sourceIndex: entry.sourceIndex,
-    isCurrent: isCurrent(entry),
-    isPlaying: playerStore.isPlaying,
     disabled: entry.item.type === "local" && entry.musicFile === null,
   };
 }

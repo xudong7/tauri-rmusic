@@ -12,8 +12,6 @@ const item: TrackRowModel = {
   coverUrl: "",
   source: "local",
   sourceIndex: 0,
-  isCurrent: true,
-  isPlaying: true,
 };
 
 describe("TrackRow", () => {
@@ -23,7 +21,7 @@ describe("TrackRow", () => {
   // "Artist · Album"——text() 会把 display: none 的内容也算进去，所以它一直
   // 在为一个用户根本看不见的节点背书。专辑列现在常驻，那条补偿路径已删除。
   it("renders normalized track information", () => {
-    const wrapper = mount(TrackRow, { props: { item } });
+    const wrapper = mount(TrackRow, { props: { item, isCurrent: true } });
 
     expect(wrapper.text()).toContain("Track title");
     expect(wrapper.text()).toContain("3:20");
@@ -38,7 +36,7 @@ describe("TrackRow", () => {
   // 用 sourceIndex 非 0 的曲目，确保断的不是「碰巧没渲染」。
   it("不再渲染序号", () => {
     const wrapper = mount(TrackRow, {
-      props: { item: { ...item, sourceIndex: 7, isCurrent: false, isPlaying: false } },
+      props: { item: { ...item, sourceIndex: 7 } },
     });
 
     expect(wrapper.find(".track-row__index").exists()).toBe(false);
@@ -69,9 +67,7 @@ describe("TrackRow", () => {
   // 而播放键本身往往已经是圆按钮或叠在封面上，多一圈就像多了个框。
   // 自绘的 PlayIcon 是纯三角：路径里没有任何圆弧命令（A/a），带圈的必有。
   it("播放键用无框三角，不带圆圈", () => {
-    const wrapper = mount(TrackRow, {
-      props: { item: { ...item, isCurrent: false, isPlaying: false } },
-    });
+    const wrapper = mount(TrackRow, { props: { item } });
 
     expect(wrapper.find(".track-row__play-icon .play-icon").exists()).toBe(true);
     const d = wrapper.get(".track-row__play-icon path").attributes("d") ?? "";
@@ -79,10 +75,14 @@ describe("TrackRow", () => {
   });
 
   it("播放中出跳动条，否则出播放键", () => {
-    const playing = mount(TrackRow, { props: { item } });
+    const playing = mount(TrackRow, {
+      props: { item, isCurrent: true, isPlaying: true },
+    });
     expect(playing.find(".playing-bars").exists()).toBe(true);
 
-    const paused = mount(TrackRow, { props: { item: { ...item, isPlaying: false } } });
+    const paused = mount(TrackRow, {
+      props: { item, isCurrent: true, isPlaying: false },
+    });
     expect(paused.find(".playing-bars").exists()).toBe(false);
   });
 

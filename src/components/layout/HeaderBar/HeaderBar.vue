@@ -195,6 +195,7 @@ onUnmounted(() => {
             ref="searchInputRef"
             v-model="searchKeyword"
             :placeholder="searchPlaceholder"
+            :aria-label="searchPlaceholder"
             clearable
             class="search-input search-pill"
             @keyup.enter="handleSearch"
@@ -284,6 +285,7 @@ onUnmounted(() => {
           type="button"
           class="header-button window-button"
           :title="t('header.minimize')"
+          :aria-label="t('header.minimize')"
           @click="minimize"
         >
           <el-icon><Minus /></el-icon>
@@ -292,6 +294,7 @@ onUnmounted(() => {
           type="button"
           class="header-button window-button"
           :title="isMaximized ? t('header.restore') : t('header.maximize')"
+          :aria-label="isMaximized ? t('header.restore') : t('header.maximize')"
           @click="toggleMaximize"
         >
           <el-icon><component :is="maximizeIcon" /></el-icon>
@@ -300,6 +303,7 @@ onUnmounted(() => {
           type="button"
           class="header-button window-button close"
           :title="t('header.close')"
+          :aria-label="t('header.close')"
           @click="close"
         >
           <el-icon><Close /></el-icon>

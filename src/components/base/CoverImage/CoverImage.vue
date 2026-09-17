@@ -19,7 +19,7 @@ const props = withDefaults(
     fluid?: boolean;
   }>(),
   {
-    alt: "cover",
+    alt: "",
     clickable: false,
     size: 56,
     radius: 10,
