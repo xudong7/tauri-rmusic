@@ -255,18 +255,12 @@ html.dark .playlist-section,
   color: var(--el-text-color-primary);
 }
 
+/* 选中态与导航项同一套语言：左侧主色亮条、主色文字、选中底色都由
+   .nav-item.is-active 提供，歌单行不再单独改写。此前这里藏掉亮条并把
+   标签加粗到 600，与上方导航项看起来像两套控件。 */
 .nav-item-playlist.is-active {
   background: var(--sidebar-active-bg, var(--active-item-bg));
   box-shadow: none;
-}
-
-.nav-item-playlist.is-active .nav-label {
-  font-weight: 600;
-}
-
-/* 播放列表项无左侧主色条，用背景区分即可 */
-.nav-item-playlist.is-active::before {
-  display: none;
 }
 
 @media (max-width: 840px) {
