@@ -508,11 +508,12 @@
   right: 0;
   bottom: 0;
   z-index: 9;
-  height: clamp(118px, 17vh, 168px);
+  height: clamp(104px, 13vh, 132px);
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding: 0 var(--immersive-shell-padding-x) clamp(16px, 3.2vh, 34px);
+  /* 尽量贴住底边：只留一点呼吸空间，不把控制条悬在半空 */
+  padding: 0 var(--immersive-shell-padding-x) clamp(10px, 1.8vh, 18px);
   pointer-events: auto;
 }
 
@@ -538,11 +539,12 @@
 
 .immersive-bottom-bar {
   position: relative;
-  width: min(100%, 760px);
+  /* 紧凑的居中一簇，不做成通栏宽条 */
+  width: min(100%, 520px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: clamp(6px, 1.4vh, 12px);
+  gap: clamp(4px, 1vh, 8px);
   opacity: 0;
   transform: translateY(14px);
   pointer-events: none;
