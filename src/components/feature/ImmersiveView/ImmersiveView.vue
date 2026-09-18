@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   ArrowLeft,
@@ -13,12 +13,14 @@ import {
 } from "@element-plus/icons-vue";
 import PlayIcon from "@/components/base/icons/PlayIcon.vue";
 import PauseIcon from "@/components/base/icons/PauseIcon.vue";
-import type { SongInfo, MusicFile, PlayMode } from "@/types/model";
+import { PlayMode, type SongInfo, type MusicFile } from "@/types/model";
+import { playModeIcon, playModeLabelKey } from "@/utils/playModeUtils";
 import LyricView from "@/components/feature/LyricView/LyricView.vue";
 import { useCoverPalette } from "@/composables/useCoverPalette";
 import { useCoverLoader } from "@/composables/useCoverLoader";
 import { useArtistNavigation } from "@/composables/useArtistNavigation";
 import { usePlaybackProgressSlider } from "@/composables/usePlaybackProgressSlider";
+import { useVolumeMute } from "@/composables/usePlaybackVolume";
 import { usePlatform } from "@/composables/usePlatform";
 import { useWindowDrag } from "@/composables/useWindowDrag";
 import {
@@ -41,6 +43,7 @@ const props = defineProps<{
   currentTime?: number;
   currentTrackDuration?: number;
   playMode?: PlayMode;
+  volume: number;
 }>();
 
 const emit = defineEmits<{
@@ -50,6 +53,7 @@ const emit = defineEmits<{
   exit: [];
   seek: [positionMs: number];
   "toggle-play-mode": [];
+  "volume-change": [value: number];
 }>();
 
 const artistStore = useArtistStore();
@@ -69,6 +73,29 @@ const {
   duration: () => props.currentTrackDuration ?? 0,
   hasTrack: () => Boolean(props.currentSong || props.currentMusic),
   onSeek: (positionMs) => emit("seek", positionMs),
+});
+
+const currentPlayModeIcon = computed(() => playModeIcon(props.playMode));
+const playModeTooltip = computed(() => t(playModeLabelKey(props.playMode)));
+
+const volumeSliderValue = ref(props.volume);
+
+watch(
+  () => props.volume,
+  (value) => {
+    if (value !== volumeSliderValue.value) volumeSliderValue.value = value;
+  }
+);
+
+function handleVolumeChange(value: number | number[]) {
+  const nextValue = Array.isArray(value) ? (value[0] ?? 0) : value;
+  volumeSliderValue.value = nextValue;
+  emit("volume-change", nextValue);
+}
+
+const { toggleMute } = useVolumeMute({
+  currentVolume: () => props.volume,
+  onChange: handleVolumeChange,
 });
 
 const { isMaximized, minimize, toggleMaximize, close } = useWindowControls({
@@ -288,26 +315,79 @@ const overlayStyle = computed(() => {
     <div class="immersive-bottom-zone">
       <div class="immersive-bottom-bar">
         <div class="controls">
-          <el-button
-            circle
-            class="immersive-control-btn"
-            :icon="ArrowLeft"
-            @click="emit('previous')"
-          />
-          <el-button
-            circle
-            size="large"
-            class="immersive-play-btn"
-            :icon="isPlaying ? PauseIcon : PlayIcon"
-            @click="emit('toggle-play')"
-            type="primary"
-          />
-          <el-button
-            circle
-            class="immersive-control-btn"
-            :icon="ArrowRight"
-            @click="emit('next')"
-          />
+          <el-tooltip :content="playModeTooltip" placement="top" effect="dark">
+            <el-button
+              circle
+              class="immersive-control-btn immersive-mode-btn"
+              :class="{ 'is-active': playMode !== PlayMode.SEQUENTIAL }"
+              :icon="currentPlayModeIcon"
+              :aria-label="playModeTooltip"
+              @click="emit('toggle-play-mode')"
+            />
+          </el-tooltip>
+          <el-tooltip :content="t('playerBar.previous')" placement="top" effect="dark">
+            <el-button
+              circle
+              class="immersive-control-btn"
+              :icon="ArrowLeft"
+              :aria-label="t('playerBar.previous')"
+              @click="emit('previous')"
+            />
+          </el-tooltip>
+          <el-tooltip
+            :content="isPlaying ? t('playerBar.pause') : t('playerBar.play')"
+            placement="top"
+            effect="dark"
+          >
+            <el-button
+              circle
+              size="large"
+              class="immersive-play-btn"
+              :icon="isPlaying ? PauseIcon : PlayIcon"
+              :aria-label="isPlaying ? t('playerBar.pause') : t('playerBar.play')"
+              @click="emit('toggle-play')"
+              type="primary"
+            />
+          </el-tooltip>
+          <el-tooltip :content="t('playerBar.next')" placement="top" effect="dark">
+            <el-button
+              circle
+              class="immersive-control-btn"
+              :icon="ArrowRight"
+              :aria-label="t('playerBar.next')"
+              @click="emit('next')"
+            />
+          </el-tooltip>
+
+          <!-- 音量：图标常驻，滑块悬停/聚焦时从上方浮出，与播放栏同一交互 -->
+          <div class="immersive-volume">
+            <button
+              type="button"
+              class="immersive-volume-btn"
+              :aria-label="t(volume > 0 ? 'playerBar.mute' : 'playerBar.unmute')"
+              @click="toggleMute"
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path
+                  d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"
+                />
+              </svg>
+            </button>
+            <div class="immersive-volume-popup">
+              <div class="immersive-volume-popup-inner">
+                <el-slider
+                  v-model="volumeSliderValue"
+                  :max="100"
+                  :min="0"
+                  :step="1"
+                  :show-tooltip="false"
+                  :aria-label="t('playerBar.volume')"
+                  class="immersive-volume-slider"
+                  @change="handleVolumeChange"
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="immersive-progress">
