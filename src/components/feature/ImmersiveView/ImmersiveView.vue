@@ -225,7 +225,7 @@ const overlayStyle = computed(() => {
     </div>
 
     <div class="content-section">
-      <!-- 左侧：封面 + 歌曲信息 + 控制 -->
+      <!-- 左侧：封面 + 歌曲信息 -->
       <div class="left-section">
         <div class="cover-container">
           <img
@@ -268,8 +268,25 @@ const overlayStyle = computed(() => {
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- 控制按钮 -->
+      <!-- 右侧：歌词 -->
+      <div class="right-section">
+        <div class="lyric-view-container">
+          <LyricView
+            :currentSong="currentSong"
+            :currentMusic="currentMusic"
+            :isPlaying="isPlaying"
+            :currentTime="currentTime"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部播放栏：像播放栏一样承载控制与进度，默认隐藏，
+         鼠标移到底部热区（或键盘聚焦其中）才滑出。 -->
+    <div class="immersive-bottom-zone">
+      <div class="immersive-bottom-bar">
         <div class="controls">
           <el-button
             circle
@@ -293,7 +310,6 @@ const overlayStyle = computed(() => {
           />
         </div>
 
-        <!-- 进度条 -->
         <div class="immersive-progress">
           <span class="time-display">{{ currentTimeDisplay }}</span>
           <el-slider
@@ -308,18 +324,6 @@ const overlayStyle = computed(() => {
             @change="handleProgressChange"
           />
           <span class="time-display">{{ durationDisplay }}</span>
-        </div>
-      </div>
-
-      <!-- 右侧：歌词 -->
-      <div class="right-section">
-        <div class="lyric-view-container">
-          <LyricView
-            :currentSong="currentSong"
-            :currentMusic="currentMusic"
-            :isPlaying="isPlaying"
-            :currentTime="currentTime"
-          />
         </div>
       </div>
     </div>

@@ -498,16 +498,70 @@
   flex-direction: column;
 }
 
-/* 底部控制区 - 简约 */
-.control-section {
+/* ---------- 底部播放栏 ----------
+   控制与进度收进底部横条，像常规播放栏一样居中排两行；默认藏起来，
+   鼠标移进底部热区（或键盘聚焦其中）才滑出——沉浸模式下封面与歌词
+   是主角，控制条只在需要时出现。 */
+.immersive-bottom-zone {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9;
+  height: clamp(118px, 17vh, 168px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 var(--immersive-shell-padding-x) clamp(16px, 3.2vh, 34px);
+  pointer-events: auto;
+}
+
+/* 底部渐隐遮罩跟着控制条一起浮现，避免悬停时突然多出一块底色 */
+.immersive-bottom-zone::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.36), transparent);
+  opacity: 0;
+  transition: opacity 0.24s ease;
+  pointer-events: none;
+}
+
+.immersive-view.uses-dark-foreground .immersive-bottom-zone::before {
+  background: linear-gradient(to top, rgba(255, 255, 255, 0.42), transparent);
+}
+
+.immersive-bottom-zone:hover::before,
+.immersive-bottom-zone:focus-within::before {
+  opacity: 1;
+}
+
+.immersive-bottom-bar {
   position: relative;
-  z-index: 10;
-  width: 100%;
-  max-width: 1000px;
-  margin: 0 auto;
-  box-sizing: border-box;
-  padding: 0 60px 24px;
-  display: none;
+  width: min(100%, 760px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(6px, 1.4vh, 12px);
+  opacity: 0;
+  transform: translateY(14px);
+  pointer-events: none;
+  transition:
+    opacity 0.24s ease,
+    transform 0.24s ease;
+}
+
+.immersive-bottom-zone:hover .immersive-bottom-bar,
+.immersive-bottom-zone:focus-within .immersive-bottom-bar {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+/* 进度条在横条里铺满可用宽度，不再跟随封面尺寸 */
+.immersive-bottom-bar .immersive-progress {
+  max-width: none;
+  margin-top: 0;
 }
 
 /* 响应式适配 */
