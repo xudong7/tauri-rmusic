@@ -2,8 +2,6 @@
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import {
-  ArrowLeft,
-  ArrowRight,
   ArrowDown,
   Headset,
   Minus,
@@ -13,6 +11,8 @@ import {
 } from "@element-plus/icons-vue";
 import PlayIcon from "@/components/base/icons/PlayIcon.vue";
 import PauseIcon from "@/components/base/icons/PauseIcon.vue";
+import SkipPreviousIcon from "@/components/base/icons/SkipPreviousIcon.vue";
+import SkipNextIcon from "@/components/base/icons/SkipNextIcon.vue";
 import { PlayMode, type SongInfo, type MusicFile } from "@/types/model";
 import { playModeIcon, playModeLabelKey } from "@/utils/playModeUtils";
 import LyricView from "@/components/feature/LyricView/LyricView.vue";
@@ -351,7 +351,7 @@ const overlayStyle = computed(() => {
           <el-button
             circle
             class="immersive-control-btn"
-            :icon="ArrowLeft"
+            :icon="SkipPreviousIcon"
             :aria-label="t('playerBar.previous')"
             @click="emit('previous')"
           />
@@ -367,7 +367,7 @@ const overlayStyle = computed(() => {
           <el-button
             circle
             class="immersive-control-btn"
-            :icon="ArrowRight"
+            :icon="SkipNextIcon"
             :aria-label="t('playerBar.next')"
             @click="emit('next')"
           />

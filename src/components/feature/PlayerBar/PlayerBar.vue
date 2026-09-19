@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { ArrowLeft, ArrowRight } from "@element-plus/icons-vue";
 import PlayIcon from "@/components/base/icons/PlayIcon.vue";
 import PauseIcon from "@/components/base/icons/PauseIcon.vue";
+import SkipPreviousIcon from "@/components/base/icons/SkipPreviousIcon.vue";
+import SkipNextIcon from "@/components/base/icons/SkipNextIcon.vue";
 import {
   PlayMode,
   type MusicFile,
@@ -238,7 +239,7 @@ const {
         >
           <el-button
             class="control-btn app-icon-button"
-            :icon="ArrowLeft"
+            :icon="SkipPreviousIcon"
             :disabled="!currentMusic && !currentOnlineSong"
             :aria-label="t('playerBar.previous')"
             @click="emit('previous')"
@@ -269,7 +270,7 @@ const {
         >
           <el-button
             class="control-btn app-icon-button"
-            :icon="ArrowRight"
+            :icon="SkipNextIcon"
             :disabled="!currentMusic && !currentOnlineSong"
             :aria-label="t('playerBar.next')"
             @click="emit('next')"

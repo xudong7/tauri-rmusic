@@ -145,12 +145,11 @@ html.dark .player-bar {
   min-width: 0;
   height: 100%;
   /* 播放栏 80px 的垂直预算：
-       11(上) + 42(播放按钮) + 1(gap) + 20(进度行) + 6(下) = 80
-     上下不是对称值，因为要让两段留白视觉对等：按钮底边到进度条中心线是
-     1 + 20/2 = 11px，所以按钮上方也留 11px，剩下的 6px 才落到最下面。
-     改之前是 5/4，而进度行占 32px，内容溢出 4px 吃掉了 padding-bottom，
-     按钮顶上只剩 5px、离进度条却有 18px。详见 .progress-slider 的说明。 */
-  padding: 11px 0 6px;
+       36(播放按钮) + 1(gap) + 20(进度行) = 57，其余交给上下 padding
+       与 flex 居中分配，按钮上下留白接近对等。
+       改之前是 5/4，而进度行占 32px，内容溢出 4px 吃掉了 padding-bottom，
+       按钮顶上只剩 5px、离进度条却有 18px。详见 .progress-slider 的说明。 */
+  padding: 8px 0 6px;
   box-sizing: border-box;
 }
 
@@ -211,10 +210,11 @@ html.dark .player-bar {
   background: var(--app-play-button-bg) !important;
   border: none !important;
   color: var(--app-play-button-color) !important;
-  width: var(--app-play-btn-sm);
-  height: var(--app-play-btn-sm);
+  /* 与沉浸页同一个胶囊尺寸 */
+  width: var(--app-play-btn-pill-width);
+  height: var(--app-play-btn-pill-height);
   border-radius: var(--app-radius-full);
-  font-size: 15px;
+  font-size: 16px;
   opacity: 1;
   padding: 0;
   box-shadow: var(--app-play-button-shadow);

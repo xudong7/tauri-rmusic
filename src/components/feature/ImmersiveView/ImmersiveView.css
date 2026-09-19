@@ -419,9 +419,9 @@
   background: var(--immersive-play-bg) !important;
   border: none !important;
   color: var(--app-play-button-color) !important;
-  /* 参考图的播放键是胶囊（stadium）：两侧平直、端头半圆，圆角取满值 */
-  height: 36px !important;
-  width: 60px !important;
+  /* 与播放栏共用的胶囊尺寸（stadium：两侧平直、端头半圆） */
+  height: var(--app-play-btn-pill-height) !important;
+  width: var(--app-play-btn-pill-width) !important;
   padding: 0;
   border-radius: var(--app-radius-full, 9999px) !important;
   font-size: 16px;
