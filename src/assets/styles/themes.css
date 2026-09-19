@@ -125,7 +125,7 @@ html {
   --app-play-btn-sm: 42px;
   --app-play-btn-lg: 56px;
   /* 播放键统一为胶囊：播放栏与沉浸页共用同一组尺寸 */
-  --app-play-btn-pill-width: 50px;
+  --app-play-btn-pill-width: 44px;
   --app-play-btn-pill-height: 34px;
   --app-button-radius: var(--app-radius-full);
   --app-control-transition: 180ms cubic-bezier(0.22, 1, 0.36, 1);
