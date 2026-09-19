@@ -171,6 +171,7 @@ export default {
     noLyric: "暂无歌词",
     loadFailed: "歌词加载失败",
     loading: "加载歌词中...",
+    seekTo: "跳转到 {time}",
   },
   import: {
     audioFiles: "音频文件",

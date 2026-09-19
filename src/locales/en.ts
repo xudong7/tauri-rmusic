@@ -171,6 +171,7 @@ export default {
     noLyric: "No lyrics",
     loadFailed: "Failed to load lyrics",
     loading: "Loading lyrics...",
+    seekTo: "Jump to {time}",
   },
   import: {
     audioFiles: "Audio files",

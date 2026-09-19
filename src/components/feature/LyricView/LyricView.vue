@@ -2,9 +2,11 @@
 import { ref, computed, watch, nextTick, onUnmounted, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { ElScrollbar } from "element-plus";
+import PlayIcon from "@/components/base/icons/PlayIcon.vue";
 import type { SongInfo, MusicFile } from "@/types/model";
 import { getSongLyric } from "@/api/commands/netease";
 import { loadLocalLyric as loadLocalLyricText } from "@/api/commands/file";
+import { formatDuration } from "@/utils/songUtils";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
 import {
@@ -24,6 +26,10 @@ const props = defineProps<{
   currentTime?: number; // 从父组件传入的当前播放时间
 }>();
 
+const emit = defineEmits<{
+  seek: [positionMs: number];
+}>();
+
 const playerStore = usePlayerStore();
 const localStore = useLocalMusicStore();
 
@@ -40,6 +46,8 @@ watch(
 const lyricData = ref<LyricLine[]>([]);
 const loading = ref(false);
 const currentIndex = ref(-1);
+/** 占位行（暂无歌词 / 加载失败）不可点击跳转 */
+const lyricUnavailable = ref(false);
 const lyricScrollRef = ref<InstanceType<typeof ElScrollbar> | null>(null);
 const currentLyricTime = ref(0);
 let lyricUpdateInterval: number | null = null;
@@ -102,6 +110,7 @@ async function loadLyric(song: SongInfo) {
   const cached = getCachedLyric(cacheKey);
   if (cached) {
     lyricData.value = cached;
+    lyricUnavailable.value = false;
     return;
   }
 
@@ -119,14 +128,17 @@ async function loadLyric(song: SongInfo) {
       if (requestId !== lyricLoadRequestId) return;
       setCachedLyric(cacheKey, parsed);
       lyricData.value = parsed;
+      lyricUnavailable.value = false;
     } else {
       if (requestId !== lyricLoadRequestId) return;
       lyricData.value = [{ time: 0, text: t("lyric.noLyric") }];
+      lyricUnavailable.value = true;
     }
   } catch (error) {
     if (requestId !== lyricLoadRequestId) return;
     console.error("加载歌词失败:", error);
     lyricData.value = [{ time: 0, text: t("lyric.loadFailed") }];
+    lyricUnavailable.value = true;
   } finally {
     if (requestId === lyricLoadRequestId) loading.value = false;
   }
@@ -139,6 +151,7 @@ async function loadLocalLyric(music: MusicFile) {
   const cached = getCachedLyric(cacheKey);
   if (cached) {
     lyricData.value = cached;
+    lyricUnavailable.value = false;
     return;
   }
 
@@ -156,17 +169,26 @@ async function loadLocalLyric(music: MusicFile) {
       if (requestId !== lyricLoadRequestId) return;
       setCachedLyric(cacheKey, parsed);
       lyricData.value = parsed;
+      lyricUnavailable.value = false;
     } else {
       if (requestId !== lyricLoadRequestId) return;
       lyricData.value = [{ time: 0, text: t("lyric.noLyric") }];
+      lyricUnavailable.value = true;
     }
   } catch (error) {
     if (requestId !== lyricLoadRequestId) return;
     console.error("加载本地歌词失败:", error);
     lyricData.value = [{ time: 0, text: t("lyric.loadFailed") }];
+    lyricUnavailable.value = true;
   } finally {
     if (requestId === lyricLoadRequestId) loading.value = false;
   }
+}
+
+/** 点击歌词行跳转到该行时间点 */
+function seekToLine(line: LyricLine) {
+  if (lyricUnavailable.value) return;
+  emit("seek", line.time);
 }
 
 function updateCurrentLine() {
@@ -242,14 +264,31 @@ const lyricContainerClass = computed(() => {
         <!-- 顶部空白，确保第一行歌词可以滚动到中间 -->
         <div class="lyric-line lyric-placeholder"></div>
 
-        <div
+        <!-- 点击歌词行跳到该行时间点；hover 时左侧浮出「播放 + 时间」胶囊，
+             与参考图一致 -->
+        <component
+          :is="lyricUnavailable ? 'div' : 'button'"
           v-for="(line, index) in lyricData"
           :key="index"
+          :type="lyricUnavailable ? undefined : 'button'"
           class="lyric-line"
-          :class="{ 'active-lyric': index === currentIndex }"
+          :class="{
+            'active-lyric': index === currentIndex,
+            'is-seekable': !lyricUnavailable,
+          }"
+          :aria-label="
+            lyricUnavailable
+              ? undefined
+              : t('lyric.seekTo', { time: formatDuration(line.time) })
+          "
+          @click="seekToLine(line)"
         >
-          {{ line.text }}
-        </div>
+          <span v-if="!lyricUnavailable" class="lyric-seek-hint" aria-hidden="true">
+            <PlayIcon class="lyric-seek-icon" />
+            <span class="lyric-seek-time">{{ formatDuration(line.time) }}</span>
+          </span>
+          <span class="lyric-line-text">{{ line.text }}</span>
+        </component>
 
         <!-- 底部空白，确保最后一行歌词可以滚动到中间 -->
         <div class="lyric-line lyric-placeholder"></div>

@@ -329,6 +329,7 @@ const overlayStyle = computed(() => {
             :currentMusic="currentMusic"
             :isPlaying="isPlaying"
             :currentTime="currentTime"
+            @seek="emit('seek', $event)"
           />
         </div>
       </div>
