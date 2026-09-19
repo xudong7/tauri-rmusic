@@ -71,6 +71,7 @@ const searchPlaceholder = computed(() => {
   if (props.searchScope === "playlist") return t("search.placeholderPlaylist");
   return t("search.placeholderOnline");
 });
+/** 只给读屏用：指示灯本身不显示任何文字，仅靠颜色表达状态 */
 const onlineServiceStatusTitle = computed(() => {
   if (onlineServiceStore.state === "checking") return t("onlineService.checking");
   if (onlineServiceStore.state === "restarting") return t("onlineService.restarting");
@@ -79,9 +80,6 @@ const onlineServiceStatusTitle = computed(() => {
     ? `${t("onlineService.unavailable")}: ${onlineServiceStore.message} · ${t("onlineService.clickToRestart")}`
     : `${t("onlineService.unavailable")} · ${t("onlineService.clickToRestart")}`;
 });
-const showOnlineServiceLabel = computed(
-  () => props.searchScope === "online" && onlineServiceStore.state !== "available"
-);
 
 function handleOnlineServiceStatusClick() {
   if (onlineServiceStore.state === "unavailable") {
@@ -257,28 +255,17 @@ onUnmounted(() => {
     </div>
 
     <div class="header-right">
-      <el-tooltip
+      <!-- 纯色指示灯：不出现任何文字，避免在窄窗口下挤占搜索框 -->
+      <button
         v-if="searchScope === 'online'"
-        :content="onlineServiceStatusTitle"
-        placement="bottom"
-        effect="light"
+        type="button"
+        class="service-status app-header-icon-button"
+        :class="`is-${onlineServiceStore.state}`"
+        :aria-label="onlineServiceStatusTitle"
+        @click.stop="handleOnlineServiceStatusClick"
       >
-        <button
-          type="button"
-          class="service-status app-header-icon-button"
-          :class="[
-            `is-${onlineServiceStore.state}`,
-            { 'has-label': showOnlineServiceLabel },
-          ]"
-          :aria-label="onlineServiceStatusTitle"
-          @click.stop="handleOnlineServiceStatusClick"
-        >
-          <span class="service-status-dot" />
-          <span v-if="showOnlineServiceLabel" class="service-status-label">
-            {{ onlineServiceStatusTitle }}
-          </span>
-        </button>
-      </el-tooltip>
+        <span class="service-status-dot" />
+      </button>
       <!-- 非 macOS 平台显示窗口控制按钮 -->
       <div v-if="!isMacPlatform" class="window-controls">
         <button
