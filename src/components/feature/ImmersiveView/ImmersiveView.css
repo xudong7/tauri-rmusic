@@ -384,21 +384,18 @@
   color: var(--immersive-accent) !important;
 }
 
-/* 播放/暂停按钮：全项目唯一的实心主色按钮，形状与播放栏保持一致用圆形；
-    实心是常态而非悬停浮出的外框，所以保留。 */
+/* 播放/暂停按钮：与播放栏同一个实心主色圆——直接用同一组 token，
+    不掺深色，悬停只做抬升与光晕，底色始终是干净的主色。 */
 .controls .immersive-play-btn {
-  background: color-mix(
-    in srgb,
-    var(--el-color-primary) 68%,
-    rgba(18, 29, 35, 0.9)
-  ) !important;
+  background: var(--app-play-button-bg) !important;
   border: none !important;
-  color: #fff !important;
+  color: var(--app-play-button-color) !important;
   height: 36px !important;
   width: 36px !important;
+  padding: 0;
   border-radius: var(--app-radius-full) !important;
   font-size: 16px;
-  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.16);
+  box-shadow: var(--app-play-button-shadow);
   transition:
     background var(--app-control-transition),
     box-shadow var(--app-control-transition),
@@ -406,8 +403,8 @@
 }
 
 .controls .immersive-play-btn:hover {
-  background: color-mix(in srgb, var(--el-color-primary) 80%, #10171b) !important;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  background: var(--app-play-button-bg) !important;
+  box-shadow: var(--app-play-button-hover-shadow);
   transform: translateY(-1px) scale(1.03);
 }
 
