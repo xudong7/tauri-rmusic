@@ -6,8 +6,13 @@
 
 <template>
   <svg class="skip-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M14.1 12 5.4 6v12z" />
-    <path d="M15.6 6H18v12h-2.4z" />
+    <path
+      d="M5.2 6.2 15.2 12 5.2 17.8Z"
+      stroke="currentColor"
+      stroke-width="4.4"
+      stroke-linejoin="round"
+    />
+    <rect x="18.2" y="4" width="2.8" height="16" rx="1.4" />
   </svg>
 </template>
 

@@ -13,6 +13,7 @@ import PlayIcon from "@/components/base/icons/PlayIcon.vue";
 import PauseIcon from "@/components/base/icons/PauseIcon.vue";
 import SkipPreviousIcon from "@/components/base/icons/SkipPreviousIcon.vue";
 import SkipNextIcon from "@/components/base/icons/SkipNextIcon.vue";
+import VolumeIcon from "@/components/base/icons/VolumeIcon.vue";
 import { PlayMode, type SongInfo, type MusicFile } from "@/types/model";
 import { playModeIcon, playModeLabelKey } from "@/utils/playModeUtils";
 import LyricView from "@/components/feature/LyricView/LyricView.vue";
@@ -380,11 +381,7 @@ const overlayStyle = computed(() => {
               :aria-label="t(volume > 0 ? 'playerBar.mute' : 'playerBar.unmute')"
               @click="toggleMute"
             >
-              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path
-                  d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"
-                />
-              </svg>
+              <VolumeIcon />
             </button>
             <div class="immersive-volume-popup">
               <div class="immersive-volume-popup-inner">

@@ -1,4 +1,6 @@
-import { Refresh, RefreshRight, Sort } from "@element-plus/icons-vue";
+import RepeatIcon from "@/components/base/icons/RepeatIcon.vue";
+import RepeatOneIcon from "@/components/base/icons/RepeatOneIcon.vue";
+import ShuffleIcon from "@/components/base/icons/ShuffleIcon.vue";
 import { PlayMode } from "@/types/model";
 
 /**
@@ -18,11 +20,11 @@ export const PLAY_MODE_SEQUENCE: readonly PlayMode[] = [
 export function playModeIcon(mode: PlayMode | undefined) {
   switch (mode) {
     case PlayMode.REPEAT_ONE:
-      return RefreshRight;
+      return RepeatOneIcon;
     case PlayMode.RANDOM:
-      return Refresh;
+      return ShuffleIcon;
     default:
-      return Sort;
+      return RepeatIcon;
   }
 }
 

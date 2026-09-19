@@ -1,13 +1,15 @@
-import { Refresh, RefreshRight, Sort } from "@element-plus/icons-vue";
 import { describe, expect, it } from "vitest";
+import RepeatIcon from "@/components/base/icons/RepeatIcon.vue";
+import RepeatOneIcon from "@/components/base/icons/RepeatOneIcon.vue";
+import ShuffleIcon from "@/components/base/icons/ShuffleIcon.vue";
 import { PlayMode } from "@/types/model";
 import { PLAY_MODE_SEQUENCE, playModeIcon, playModeLabelKey } from "./playModeUtils";
 
 describe("playModeUtils", () => {
   it("maps each mode to a distinct icon", () => {
-    expect(playModeIcon(PlayMode.SEQUENTIAL)).toBe(Sort);
-    expect(playModeIcon(PlayMode.RANDOM)).toBe(Refresh);
-    expect(playModeIcon(PlayMode.REPEAT_ONE)).toBe(RefreshRight);
+    expect(playModeIcon(PlayMode.SEQUENTIAL)).toBe(RepeatIcon);
+    expect(playModeIcon(PlayMode.RANDOM)).toBe(ShuffleIcon);
+    expect(playModeIcon(PlayMode.REPEAT_ONE)).toBe(RepeatOneIcon);
   });
 
   it("maps each mode to a label key", () => {
@@ -17,7 +19,7 @@ describe("playModeUtils", () => {
   });
 
   it("falls back to sequential for an undefined mode", () => {
-    expect(playModeIcon(undefined)).toBe(Sort);
+    expect(playModeIcon(undefined)).toBe(RepeatIcon);
     expect(playModeLabelKey(undefined)).toBe("playerBar.sequential");
   });
 
