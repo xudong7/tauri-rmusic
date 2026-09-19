@@ -101,10 +101,8 @@ pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
                 // 退出入口。改成定时兜底：窗口期内没退出就无条件退出。
                 let handle = app.clone();
                 tauri::async_runtime::spawn(async move {
-                    tokio::time::sleep(std::time::Duration::from_millis(
-                        FRONTEND_QUIT_GRACE_MS,
-                    ))
-                    .await;
+                    tokio::time::sleep(std::time::Duration::from_millis(FRONTEND_QUIT_GRACE_MS))
+                        .await;
                     // 前端已正常退出时这里不会有任何机会执行；若执行了，
                     // shutdown_service 是幂等的（内部 take()）。
                     quit_app(&handle);

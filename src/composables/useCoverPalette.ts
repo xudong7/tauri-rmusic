@@ -4,7 +4,6 @@ interface CoverPaletteState {
   brightness: number;
   /** 从封面提取的强调色（hsl 字符串），未分析完成时为空 */
   accent: string;
-  isAnalyzing: boolean;
   isAnalyzed: boolean;
 }
 
@@ -125,14 +124,12 @@ export function useCoverPalette(imageUrl: Ref<string>) {
   const state = ref<CoverPaletteState>({
     brightness: 0.7,
     accent: "",
-    isAnalyzing: false,
     isAnalyzed: false,
   });
   let analysisId = 0;
 
   async function analyze(url: string, currentAnalysisId: number) {
     if (!url) return;
-    state.value.isAnalyzing = true;
 
     try {
       const img = await loadImage(url);
@@ -147,10 +144,6 @@ export function useCoverPalette(imageUrl: Ref<string>) {
       console.error("分析封面图片配色失败:", error);
       state.value.brightness = 0.7;
       state.value.accent = "";
-    } finally {
-      if (currentAnalysisId === analysisId) {
-        state.value.isAnalyzing = false;
-      }
     }
   }
 
@@ -159,20 +152,17 @@ export function useCoverPalette(imageUrl: Ref<string>) {
     (url) => {
       const currentAnalysisId = ++analysisId;
       state.value.isAnalyzed = false;
-      if (url) {
-        const cached = paletteCache.get(url);
-        if (cached !== undefined) {
-          state.value = {
-            brightness: cached.brightness,
-            accent: cached.accent,
-            isAnalyzing: false,
-            isAnalyzed: true,
-          };
-        } else {
-          void analyze(url, currentAnalysisId);
-        }
+      if (!url) return;
+
+      const cached = paletteCache.get(url);
+      if (cached !== undefined) {
+        state.value = {
+          brightness: cached.brightness,
+          accent: cached.accent,
+          isAnalyzed: true,
+        };
       } else {
-        state.value.isAnalyzing = false;
+        void analyze(url, currentAnalysisId);
       }
     },
     { immediate: true }
