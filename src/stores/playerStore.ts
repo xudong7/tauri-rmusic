@@ -12,7 +12,7 @@ import { i18n } from "@/i18n";
 import { STORAGE_KEY_PLAY_MODE } from "@/constants";
 import { parseErrorMessage } from "@/utils/errorUtils";
 import { joinPathSegment } from "@/utils/pathUtils";
-import { getLocalMusicDisplayInfo } from "@/utils/songUtils";
+import { formatArtists, getLocalMusicDisplayInfo } from "@/utils/songUtils";
 import {
   getPlaybackStep,
   getSequentialIndex,
@@ -120,7 +120,7 @@ export const usePlayerStore = defineStore("player", () => {
     if (currentOnlineSong.value) {
       return {
         name: currentOnlineSong.value.name,
-        artist: currentOnlineSong.value.artists.join(", "),
+        artist: formatArtists(currentOnlineSong.value.artists),
         picUrl: currentOnlineSong.value.pic_url || "",
       };
     }
@@ -143,7 +143,7 @@ export const usePlayerStore = defineStore("player", () => {
           return {
             key: `online:${sourceIndex}:${item.song.id}`,
             title: item.song.name,
-            artist: item.song.artists.join(", "),
+            artist: formatArtists(item.song.artists),
             sourceIndex,
             isCurrent: currentOnlineSong.value?.id === item.song.id,
             coverUrl: item.song.pic_url,
@@ -189,7 +189,7 @@ export const usePlayerStore = defineStore("player", () => {
     return currentOnlineQueue.value.map((song, sourceIndex) => ({
       key: `online:${song.id}`,
       title: song.name,
-      artist: song.artists.join(", "),
+      artist: formatArtists(song.artists),
       sourceIndex,
       isCurrent: currentOnlineSong.value?.id === song.id,
       coverUrl: song.pic_url,

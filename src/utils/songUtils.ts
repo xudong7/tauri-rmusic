@@ -40,9 +40,18 @@ export function getLocalMusicDisplayInfo(file: MusicFile, unknownArtist = "") {
   };
 }
 
-/** 格式化艺术家列表 */
+/**
+ * 多个歌手的展示分隔符。
+ *
+ * 展示不用逗号：歌手名本身可能带逗号，逗号会让整行看起来像被切碎的名字。
+ * 需要与后端文件名/接口参数保持一致的地方（下载、播放请求）仍用 ", "，
+ * 不能换成这个常量。
+ */
+export const ARTIST_SEPARATOR = " / ";
+
+/** 格式化艺术家列表（仅用于展示） */
 export function formatArtists(artists: string[]): string {
-  return artists?.join(", ") ?? "";
+  return artists?.join(ARTIST_SEPARATOR) ?? "";
 }
 
 /** 将毫秒格式化为 "m:ss" */

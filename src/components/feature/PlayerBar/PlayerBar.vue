@@ -10,7 +10,12 @@ import {
   type PlaybackPhase,
   type SongInfo,
 } from "@/types/model";
-import { formatDuration, getLocalMusicDisplayInfo } from "@/utils/songUtils";
+import {
+  ARTIST_SEPARATOR,
+  formatArtists,
+  formatDuration,
+  getLocalMusicDisplayInfo,
+} from "@/utils/songUtils";
 import { playModeIcon, playModeLabelKey } from "@/utils/playModeUtils";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import { useArtistNavigation } from "@/composables/useArtistNavigation";
@@ -98,7 +103,7 @@ const remainingTimeDisplay = computed(
 const currentArtistDisplay = computed(() => {
   void locale.value;
   if (props.currentOnlineSong?.artists?.length)
-    return props.currentOnlineSong.artists.join(", ");
+    return formatArtists(props.currentOnlineSong.artists);
   if (props.currentMusic) {
     return getLocalMusicDisplayInfo(props.currentMusic, t("common.unknownArtist")).artist;
   }
@@ -177,7 +182,9 @@ const {
               >
                 {{ a }}
               </component>
-              <span v-if="idx < artistNames.length - 1" class="artist-sep">, </span>
+              <span v-if="idx < artistNames.length - 1" class="artist-sep">{{
+                ARTIST_SEPARATOR
+              }}</span>
             </template>
           </template>
           <template v-else>

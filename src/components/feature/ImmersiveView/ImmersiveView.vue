@@ -24,6 +24,7 @@ import { useVolumeMute } from "@/composables/usePlaybackVolume";
 import { usePlatform } from "@/composables/usePlatform";
 import { useWindowDrag } from "@/composables/useWindowDrag";
 import {
+  ARTIST_SEPARATOR,
   extractArtistName,
   extractSongTitle,
   formatArtists,
@@ -267,7 +268,9 @@ const overlayStyle = computed(() => {
                   >
                     {{ a }}
                   </component>
-                  <span v-if="idx < artistNames.length - 1" class="artist-sep">, </span>
+                  <span v-if="idx < artistNames.length - 1" class="artist-sep">{{
+                    ARTIST_SEPARATOR
+                  }}</span>
                 </template>
               </template>
               <template v-else>

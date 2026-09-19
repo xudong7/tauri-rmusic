@@ -149,7 +149,11 @@ import { Minus, EditPen, Folder, Search } from "@element-plus/icons-vue";
 import MultiSelectIcon from "@/components/base/icons/MultiSelectIcon.vue";
 import TrashIcon from "@/components/base/icons/TrashIcon.vue";
 import type { PlaylistItem, MusicFile, SongInfo } from "@/types/model";
-import { formatDurationLabel, getLocalMusicDisplayInfo } from "@/utils/songUtils";
+import {
+  formatArtists,
+  formatDurationLabel,
+  getLocalMusicDisplayInfo,
+} from "@/utils/songUtils";
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { usePlayerStore } from "@/stores/playerStore";
@@ -262,7 +266,7 @@ const resolvedItems = computed(() => {
         key: `online_${i}_${s.id}`,
         sourceIndex: i,
         title: s.name,
-        artist: s.artists?.join(", ") ?? t("common.unknownArtist"),
+        artist: formatArtists(s.artists) || t("common.unknownArtist"),
         album: s.album || undefined,
         durationLabel: formatDurationLabel(s.duration),
         coverUrl: s.pic_url ?? "",
