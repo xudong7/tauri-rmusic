@@ -30,6 +30,11 @@
   --immersive-mac-traffic-lights-center-y: 11.5px;
   --immersive-control-text: rgba(255, 255, 255, 0.76);
   --immersive-accent: color-mix(in srgb, var(--el-color-primary) 82%, #fff);
+  /* 链接 hover 与播放键按背景明暗分两套（见 uses-dark-foreground）：
+     深色背景用亮色，浅色背景用深色，避免和封面糊在一起。 */
+  --immersive-link-hover: var(--immersive-accent);
+  --immersive-play-bg: var(--app-play-button-bg);
+  --immersive-play-bg-hover: color-mix(in srgb, var(--el-color-primary) 80%, #10171b);
   --immersive-text-primary: #fff;
   --immersive-text-secondary: rgba(255, 255, 255, 0.6);
   --immersive-text-muted: rgba(255, 255, 255, 0.7);
@@ -98,6 +103,10 @@
 
 .immersive-view.uses-dark-foreground {
   --immersive-control-text: rgba(18, 31, 40, 0.76);
+  /* 浅色封面：强调色整体压深，hover / 进度条 / 播放键在浅背景上才有对比 */
+  --immersive-accent: color-mix(in srgb, var(--el-color-primary) 45%, #0e1a24);
+  --immersive-play-bg: color-mix(in srgb, var(--el-color-primary) 45%, #0e1a24);
+  --immersive-play-bg-hover: color-mix(in srgb, var(--el-color-primary) 58%, #0e1a24);
   --immersive-text-primary: rgba(16, 27, 35, 0.9);
   --immersive-text-secondary: rgba(18, 31, 40, 0.62);
   --immersive-text-muted: rgba(18, 31, 40, 0.72);
@@ -334,7 +343,7 @@
 }
 
 .song-title-text.is-link:hover {
-  color: var(--el-color-primary);
+  color: var(--immersive-link-hover);
 }
 
 .song-artist {
@@ -363,7 +372,7 @@
 
 /* 同 PlayerBar：只用颜色变化标示可点击 */
 .song-artist .artist-part.artist-link:hover {
-  color: var(--el-color-primary);
+  color: var(--immersive-link-hover);
 }
 
 /* 控制按钮：比播放栏小一号，整簇更紧凑 */
@@ -406,7 +415,7 @@
 /* 播放/暂停按钮：与播放栏同一个实心主色圆——直接用同一组 token，
     不掺深色，悬停只做抬升与光晕，底色始终是干净的主色。 */
 .controls .immersive-play-btn {
-  background: var(--app-play-button-bg) !important;
+  background: var(--immersive-play-bg) !important;
   border: none !important;
   color: var(--app-play-button-color) !important;
   height: 36px !important;
@@ -422,7 +431,7 @@
 }
 
 .controls .immersive-play-btn:hover {
-  background: var(--app-play-button-bg) !important;
+  background: var(--immersive-play-bg-hover) !important;
   box-shadow: var(--app-play-button-hover-shadow);
   transform: translateY(-1px) scale(1.03);
 }
@@ -654,26 +663,6 @@
   /* 尽量贴住底边：只留一点呼吸空间，不把控制条悬在半空 */
   padding: 0 var(--immersive-shell-padding-x) clamp(8px, 1.4vh, 14px);
   pointer-events: auto;
-}
-
-/* 底部渐隐遮罩跟着控制条一起浮现，避免悬停时突然多出一块底色 */
-.immersive-bottom-zone::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.36), transparent);
-  opacity: 0;
-  transition: opacity 0.24s ease;
-  pointer-events: none;
-}
-
-.immersive-view.uses-dark-foreground .immersive-bottom-zone::before {
-  background: linear-gradient(to top, rgba(255, 255, 255, 0.42), transparent);
-}
-
-.immersive-bottom-zone:hover::before,
-.immersive-bottom-zone:focus-within::before {
-  opacity: 1;
 }
 
 .immersive-bottom-bar {
