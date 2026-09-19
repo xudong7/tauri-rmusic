@@ -352,17 +352,17 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: clamp(14px, 2.2vw, 22px);
+  gap: clamp(10px, 1.8vw, 16px);
   margin-top: 0;
 }
 
 /* 顺序/上一首/下一首：裸图标，不套描边和玻璃底，悬停只让图标亮起来 */
 .controls .immersive-control-btn {
   border: 1px solid transparent !important;
-  height: 30px;
-  width: 30px;
+  height: 26px;
+  width: 26px;
   padding: 0;
-  font-size: 15px;
+  font-size: 14px;
   border-radius: var(--app-radius-full) !important;
   background: transparent !important;
   color: var(--immersive-control-text) !important;
@@ -394,11 +394,11 @@
   ) !important;
   border: none !important;
   color: #fff !important;
-  height: 42px !important;
-  width: 42px !important;
+  height: 36px !important;
+  width: 36px !important;
   border-radius: var(--app-radius-full) !important;
-  font-size: 18px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.16);
+  font-size: 16px;
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.16);
   transition:
     background var(--app-control-transition),
     box-shadow var(--app-control-transition),
@@ -423,8 +423,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   padding: 0;
   border: 0;
   border-radius: var(--app-radius-full);
@@ -436,8 +436,8 @@
 
 .immersive-volume-btn svg {
   display: block;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 
 .immersive-volume-btn:hover {
@@ -467,8 +467,8 @@
 .immersive-volume-popup-inner {
   box-sizing: border-box;
   position: relative;
-  width: 108px;
-  padding: 2px 12px;
+  width: 100px;
+  padding: 0 10px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: var(--app-radius-md);
   background: rgba(18, 23, 28, 0.78);
@@ -494,6 +494,7 @@
 
 .immersive-volume-slider {
   width: 100%;
+  height: 20px;
 }
 
 .immersive-volume-slider :deep(.el-slider__runway) {
@@ -530,19 +531,20 @@
 .immersive-progress {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
-}
-
-.immersive-progress .time-display {
-  font-size: 10.5px;
-  min-width: 32px;
-  color: var(--immersive-text-muted);
-  font-variant-numeric: tabular-nums;
 }
 
 .immersive-progress .progress-slider {
   flex: 1;
+  height: 18px;
+}
+
+.immersive-progress .time-display {
+  font-size: 10px;
+  min-width: 30px;
+  color: var(--immersive-text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .immersive-progress .progress-slider :deep(.el-slider__runway) {
@@ -629,12 +631,12 @@
   right: 0;
   bottom: 0;
   z-index: 9;
-  height: clamp(92px, 12vh, 118px);
+  height: clamp(80px, 10vh, 104px);
   display: flex;
   align-items: flex-end;
   justify-content: center;
   /* 尽量贴住底边：只留一点呼吸空间，不把控制条悬在半空 */
-  padding: 0 var(--immersive-shell-padding-x) clamp(10px, 1.8vh, 18px);
+  padding: 0 var(--immersive-shell-padding-x) clamp(8px, 1.4vh, 14px);
   pointer-events: auto;
 }
 
@@ -661,11 +663,11 @@
 .immersive-bottom-bar {
   position: relative;
   /* 紧凑的居中一簇，不做成通栏宽条 */
-  width: min(100%, 460px);
+  width: min(100%, 400px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: clamp(4px, 1vh, 8px);
+  gap: clamp(3px, 0.8vh, 6px);
   opacity: 0;
   transform: translateY(14px);
   pointer-events: none;
@@ -733,8 +735,8 @@
   }
 
   .controls .immersive-play-btn {
-    height: 40px !important;
-    width: 40px !important;
+    height: 34px !important;
+    width: 34px !important;
   }
 }
 
