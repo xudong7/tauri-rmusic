@@ -12,6 +12,9 @@ import { useOnlineServiceStore } from "@/stores/onlineServiceStore";
  *
  * 专辑 id 不在 SongInfo 里，需要按名字（+歌手）解析；解析依赖在线服务，
  * 所以点击时先确保 sidecar 已启动，否则静默失败会让用户以为按钮坏了。
+ *
+ * 可点击性与歌手链接对齐：只要歌名/专辑名有一个可用就常驻链接样式，
+ * 专辑标签缺失时用歌名兜底搜索（单曲专辑常与歌名同名），而不是直接不可点。
  */
 export function useAlbumNavigation(args: {
   /** 在线歌曲：直接取它的专辑名 */
@@ -20,6 +23,8 @@ export function useAlbumNavigation(args: {
   localAlbumDisplay?: () => string;
   /** 本地文件：从元数据解析出的歌手，用于消歧同名专辑 */
   localArtistDisplay?: () => string;
+  /** 歌名：专辑信息缺失时的兜底搜索词 */
+  displayTitle?: () => string;
   /** 在线搜索缓存，命中就不必再发请求 */
   onlineAlbums?: () => AlbumInfo[];
 }) {
@@ -34,6 +39,11 @@ export function useAlbumNavigation(args: {
     return args.localAlbumDisplay?.()?.trim() ?? "";
   });
 
+  const searchName = computed(() => {
+    void locale.value;
+    return albumName.value || args.displayTitle?.()?.trim() || "";
+  });
+
   const artistName = computed(() => {
     void locale.value;
     const song = args.currentOnlineSong?.();
@@ -42,11 +52,11 @@ export function useAlbumNavigation(args: {
     return splitArtistNames(args.localArtistDisplay?.() ?? "")[0] ?? "";
   });
 
-  const canNavigateAlbum = computed(() => Boolean(albumName.value));
+  const canNavigateAlbum = computed(() => Boolean(searchName.value));
 
   /** 返回是否真的发生了跳转（调用方据此决定要不要退出沉浸模式） */
   async function navigateAlbumByName(): Promise<boolean> {
-    if (!albumName.value) return false;
+    if (!searchName.value) return false;
 
     try {
       await onlineServiceStore.ensureStarted();
@@ -55,7 +65,7 @@ export function useAlbumNavigation(args: {
       return false;
     }
 
-    const album = await resolveAlbumByName(albumName.value, artistName.value, {
+    const album = await resolveAlbumByName(searchName.value, artistName.value, {
       onlineAlbums: args.onlineAlbums?.(),
     });
     if (!album?.id) return false;
@@ -64,5 +74,5 @@ export function useAlbumNavigation(args: {
     return true;
   }
 
-  return { albumName, canNavigateAlbum, navigateAlbumByName };
+  return { canNavigateAlbum, navigateAlbumByName };
 }

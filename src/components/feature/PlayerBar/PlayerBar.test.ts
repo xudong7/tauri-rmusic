@@ -133,7 +133,9 @@ describe("PlayerBar", () => {
     expect(wrapper.emitted("volume-change")?.[0]).toEqual([0]);
   });
 
-  it("有专辑信息时歌名是可点击链接，没有时保持纯文本", () => {
+  // 与歌手链接对齐：只要有名可解析就常驻链接样式；
+  // 本地文件没有专辑标签时用歌名兜底，而不是直接不可点。
+  it("歌名始终是可点击链接（专辑缺失时用歌名兜底）", () => {
     const linked = mount(PlayerBar, {
       props: {
         currentMusic: null,
@@ -148,9 +150,6 @@ describe("PlayerBar", () => {
     });
 
     expect(linked.get(".song-name-text").classes()).toContain("is-link");
-
-    // 本地文件没有专辑元数据：不应显示可点击样式
-    const plain = mountBar();
-    expect(plain.get(".song-name-text").classes()).not.toContain("is-link");
+    expect(mountBar().get(".song-name-text").classes()).toContain("is-link");
   });
 });

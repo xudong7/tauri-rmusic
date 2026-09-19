@@ -139,6 +139,7 @@ const { canNavigateAlbum, navigateAlbumByName } = useAlbumNavigation({
   localAlbumDisplay: () =>
     props.currentMusic ? (getLocalMusicDisplayInfo(props.currentMusic).album ?? "") : "",
   localArtistDisplay: () => currentArtistName.value,
+  displayTitle: () => songTitle.value,
   onlineAlbums: () => onlineStore.albumResults,
 });
 
