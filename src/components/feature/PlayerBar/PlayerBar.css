@@ -35,6 +35,7 @@ html.dark .player-bar {
 }
 
 .cover-container {
+  position: relative;
   width: 48px;
   height: 48px;
   border-radius: 8px;
@@ -42,14 +43,51 @@ html.dark .player-bar {
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   cursor: pointer;
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease;
 }
 
 .cover-container:hover {
-  transform: scale(1.03);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+/* 悬停反馈：封面压暗 + 右上/左下各一个圆角「L」取景框（参考图）。
+   原先的整体放大在 48px 上更像抖动，取景框的指向也更明确。 */
+.cover-hover-frame {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.42);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--app-control-transition);
+}
+
+.cover-hover-frame::before,
+.cover-hover-frame::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: 2px solid #fff;
+}
+
+.cover-hover-frame::before {
+  top: 8px;
+  right: 8px;
+  border-left: 0;
+  border-bottom: 0;
+  border-top-right-radius: 3px;
+}
+
+.cover-hover-frame::after {
+  bottom: 8px;
+  left: 8px;
+  border-right: 0;
+  border-top: 0;
+  border-bottom-left-radius: 3px;
+}
+
+.cover-container:hover .cover-hover-frame {
+  opacity: 1;
 }
 
 .cover-image {

@@ -172,6 +172,8 @@ const {
           :size="48"
           :radius="8"
         />
+        <!-- 悬停反馈：封面压暗 + 对角取景框（参考图），点开进入沉浸模式 -->
+        <span class="cover-hover-frame" aria-hidden="true" />
       </div>
       <div class="song-info">
         <div class="song-name" :title="songTitle">
