@@ -6,14 +6,20 @@
  * 圆按钮，再套一圈就成了「圆中圆」；列表里叠在封面上的情形更明显，那圈线
  * 看着像个多余的边框。所以自绘一个不带圈的版本。
  *
- * 三角按重心居中（顶点 x 与底边 x 满足 (2·底 + 顶)/3 = 中心），与 EP 的
- * CaretRight 同一套比例；底边比早期版本更宽，实心块在小尺寸下也够厚实。
+ * 实心块要够厚实，所以用粗描边把三角「吹胖」一圈，linejoin 取 round 让三个
+ * 角带上圆角（参考图的实心图标就是圆角块）。三角按重心居中：描边后重心仍在
+ * 视窗中心，与暂停的竖条块重量相当。
  */
 </script>
 
 <template>
   <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M7.6 4 20.8 12 7.6 20Z" />
+    <path
+      d="M9.2 6.2 19.2 12 9.2 17.8Z"
+      stroke="currentColor"
+      stroke-width="4.4"
+      stroke-linejoin="round"
+    />
   </svg>
 </template>
 
