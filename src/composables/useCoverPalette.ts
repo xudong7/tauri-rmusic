@@ -112,10 +112,10 @@ function calculateCoverPalette(img: HTMLImageElement): CoverPalette | null {
     accent = lightBackground ? "rgba(16, 27, 35, 0.92)" : "rgba(255, 255, 255, 0.92)";
   } else {
     const hue = ((Math.atan2(hueSin, hueCos) * 180) / Math.PI + 360) % 360;
-    const saturation = Math.min(0.68, Math.max(0.3, averageSaturation * 1.5));
-    // 亮背景用深色强调色，暗背景用中亮强调色（保证白图标/文字有对比）
-    const lightness = lightBackground ? 34 : 56;
-    accent = `hsl(${Math.round(hue)}, ${Math.round(saturation * 100)}%, ${lightness}%)`;
+    // 提饱和、固定中间亮度：实心播放键需要鲜亮（参考图的绿胶囊），
+    // 文字 hover 的明暗由 CSS 按背景明暗再混一次。
+    const saturation = Math.min(0.82, Math.max(0.45, averageSaturation * 2));
+    accent = `hsl(${Math.round(hue)}, ${Math.round(saturation * 100)}%, 50%)`;
   }
 
   return { brightness, accent };

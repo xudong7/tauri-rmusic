@@ -106,7 +106,7 @@
   --immersive-control-text: rgba(18, 31, 40, 0.76);
   /* 浅色封面：强调色兜底压深，文字 hover 往更暗处走（对比深色背景的加亮） */
   --immersive-accent: color-mix(in srgb, var(--el-color-primary) 45%, #0e1a24);
-  --immersive-link-hover: color-mix(in srgb, var(--immersive-accent) 82%, #000);
+  --immersive-link-hover: color-mix(in srgb, var(--immersive-accent) 65%, #000);
   --immersive-play-bg: color-mix(in srgb, var(--el-color-primary) 45%, #0e1a24);
   --immersive-text-primary: rgba(16, 27, 35, 0.9);
   --immersive-text-secondary: rgba(18, 31, 40, 0.62);
@@ -419,11 +419,11 @@
   background: var(--immersive-play-bg) !important;
   border: none !important;
   color: var(--app-play-button-color) !important;
-  /* 参考图的播放键是横向椭圆：宽高比约 1.3，圆角用 50% 才是椭圆而不是胶囊 */
-  height: 38px !important;
-  width: 50px !important;
+  /* 参考图的播放键是胶囊（stadium）：两侧平直、端头半圆，圆角取满值 */
+  height: 36px !important;
+  width: 60px !important;
   padding: 0;
-  border-radius: 50% !important;
+  border-radius: var(--app-radius-full, 9999px) !important;
   font-size: 16px;
   box-shadow: var(--app-play-button-shadow);
   transition:
@@ -743,7 +743,7 @@
 
   .controls .immersive-play-btn {
     height: 34px !important;
-    width: 45px !important;
+    width: 56px !important;
   }
 }
 
