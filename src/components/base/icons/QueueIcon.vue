@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * 播放队列：上面两条通栏横线，第三条短一截，右下角补一个播放三角。
- * 照参考图临摹，Element Plus 里没有对应图标，所以自己画；线条加粗、
- * 三角带圆角，与播放/暂停的实心圆角块同一套语言。
+ * 照参考图临摹，Element Plus 里没有对应图标，所以自己画；线条加粗，
+ * 三角的圆角画进路径（半透明色下填充 + 描边叠加会叠出一圈深色描线）。
  */
 </script>
 
@@ -15,11 +15,8 @@
       stroke-linecap="round"
     />
     <path
-      d="M15.6 14.4 21.4 18 15.6 21.6Z"
+      d="M14.8 14.4 14.8 21.6A0.8 0.8 0 0 0 16 22.3L21.8 18.7A0.8 0.8 0 0 0 21.8 17.3L16 13.7A0.8 0.8 0 0 0 14.8 14.4Z"
       fill="currentColor"
-      stroke="currentColor"
-      stroke-width="1.6"
-      stroke-linejoin="round"
     />
   </svg>
 </template>
