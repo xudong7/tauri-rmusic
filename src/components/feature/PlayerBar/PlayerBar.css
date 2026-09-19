@@ -73,10 +73,25 @@ html.dark .player-bar {
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--el-text-color-primary);
+}
+
+/* 与沉浸页歌名/歌手链接一致：可点击时只用颜色变化标示 */
+.song-name-text.is-link {
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
   cursor: pointer;
 }
 
-.song-name:hover {
+.song-name-text.is-link:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+.song-name-text.is-link:hover {
   color: var(--el-color-primary);
 }
 

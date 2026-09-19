@@ -123,6 +123,12 @@ describe("ImmersiveView 退出入口", () => {
 });
 
 describe("ImmersiveView 歌名/歌手跳转", () => {
+  it("有专辑信息时歌名渲染为可点击链接", async () => {
+    const wrapper = await mountImmersiveView(song);
+
+    expect(wrapper.get(".song-title-text").classes()).toContain("is-link");
+  });
+
   it("点击歌名跳专辑页并退出沉浸模式", async () => {
     await router.push("/");
     const wrapper = await mountImmersiveView(song);

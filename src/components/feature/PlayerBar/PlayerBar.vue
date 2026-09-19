@@ -19,6 +19,7 @@ import {
 import { playModeIcon, playModeLabelKey } from "@/utils/playModeUtils";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import { useArtistNavigation } from "@/composables/useArtistNavigation";
+import { useAlbumNavigation } from "@/composables/useAlbumNavigation";
 import { useCoverLoader } from "@/composables/useCoverLoader";
 import { usePlaybackProgressSlider } from "@/composables/usePlaybackProgressSlider";
 import { useVolumeMute } from "@/composables/usePlaybackVolume";
@@ -117,6 +118,14 @@ const { artistNames, canNavigateArtist, navigateArtistByName } = useArtistNaviga
   onlineArtists: () => onlineStore.onlineArtists,
 });
 
+const { canNavigateAlbum, navigateAlbumByName } = useAlbumNavigation({
+  currentOnlineSong: () => props.currentOnlineSong,
+  localAlbumDisplay: () =>
+    props.currentMusic ? (getLocalMusicDisplayInfo(props.currentMusic).album ?? "") : "",
+  localArtistDisplay: () => currentArtistDisplay.value,
+  onlineAlbums: () => onlineStore.albumResults,
+});
+
 const { coverUrl } = useCoverLoader({
   currentMusic: () => props.currentMusic,
   currentOnlineSong: () => props.currentOnlineSong,
@@ -161,7 +170,17 @@ const {
         />
       </div>
       <div class="song-info">
-        <div class="song-name" :title="songTitle">{{ songTitle }}</div>
+        <div class="song-name" :title="songTitle">
+          <component
+            :is="canNavigateAlbum ? 'button' : 'span'"
+            :type="canNavigateAlbum ? 'button' : undefined"
+            class="song-name-text"
+            :class="{ 'is-link': canNavigateAlbum }"
+            @click.stop="navigateAlbumByName"
+          >
+            {{ songTitle }}
+          </component>
+        </div>
         <div v-if="isLoading" class="playback-status" role="status">
           {{ playbackStatus }}
         </div>

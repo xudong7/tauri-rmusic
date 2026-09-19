@@ -1,10 +1,16 @@
 import { computed } from "vue";
 import { createPinia, setActivePinia } from "pinia";
 import { mount, type VueWrapper } from "@vue/test-utils";
+import { createMemoryHistory, createRouter } from "vue-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { i18n } from "@/i18n";
-import { PlayMode } from "@/types/model";
+import { PlayMode, type SongInfo } from "@/types/model";
 import PlayerBar from "./PlayerBar.vue";
+
+const router = createRouter({
+  history: createMemoryHistory(),
+  routes: [{ path: "/", component: { template: "<div />" } }],
+});
 
 vi.mock("@/composables/useCoverLoader", () => ({
   useCoverLoader: () => ({ coverUrl: computed(() => "/icon.png") }),
@@ -37,9 +43,19 @@ function mountBar(volume = 50): VueWrapper {
       currentPlayTime: 1000,
       currentTrackDuration: 120000,
     },
-    global: { plugins: [i18n] },
+    global: { plugins: [i18n, router] },
   });
 }
+
+const onlineSong: SongInfo = {
+  id: "s1",
+  name: "Online Song",
+  artists: ["Artist"],
+  album: "Album",
+  duration: 1000,
+  pic_url: "",
+  file_hash: "h1",
+};
 
 /** 控制行各元素的类名，按 DOM 顺序 */
 function controlClasses(wrapper: VueWrapper): string[] {
@@ -115,5 +131,26 @@ describe("PlayerBar", () => {
     await wrapper.get(".volume-speaker-icon").trigger("click");
 
     expect(wrapper.emitted("volume-change")?.[0]).toEqual([0]);
+  });
+
+  it("有专辑信息时歌名是可点击链接，没有时保持纯文本", () => {
+    const linked = mount(PlayerBar, {
+      props: {
+        currentMusic: null,
+        currentOnlineSong: onlineSong,
+        isPlaying: false,
+        playMode: PlayMode.SEQUENTIAL,
+        volume: 50,
+        currentPlayTime: 0,
+        currentTrackDuration: 1000,
+      },
+      global: { plugins: [i18n, router] },
+    });
+
+    expect(linked.get(".song-name-text").classes()).toContain("is-link");
+
+    // 本地文件没有专辑元数据：不应显示可点击样式
+    const plain = mountBar();
+    expect(plain.get(".song-name-text").classes()).not.toContain("is-link");
   });
 });
