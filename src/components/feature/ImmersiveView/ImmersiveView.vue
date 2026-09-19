@@ -113,6 +113,16 @@ const { coverUrl: currentCoverUrl } = useCoverLoader({
 });
 const { brightness: imageAnalysisState } = useCoverPalette(currentCoverUrl);
 
+/** 沉浸页强调色跟随封面色调；分析完成前由 CSS 里的主题色兜底 */
+const paletteStyle = computed(() => {
+  const palette = imageAnalysisState.value;
+  if (!palette.isAnalyzed || !palette.accent) return undefined;
+  return {
+    "--immersive-accent": palette.accent,
+    "--immersive-play-bg": palette.accent,
+  };
+});
+
 const songTitle = computed(() => {
   void locale.value;
   if (props.currentSong) return extractSongTitle(props.currentSong.name);
@@ -205,6 +215,7 @@ const overlayStyle = computed(() => {
       'is-mac-platform': isMacPlatform,
       'uses-dark-foreground': usesDarkForeground,
     }"
+    :style="paletteStyle"
   >
     <img
       v-if="currentCoverUrl"
