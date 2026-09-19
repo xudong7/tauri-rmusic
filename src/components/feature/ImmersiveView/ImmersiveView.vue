@@ -205,49 +205,32 @@ const overlayStyle = computed(() => {
     ></div>
 
     <div class="top-section">
-      <el-tooltip :content="t('common.back')" placement="bottom" effect="dark">
-        <!-- 只有图标没有文本，el-tooltip 给的 aria-describedby 是「描述」不是
-             「名称」，所以要显式补 aria-label，否则读屏只念得出一个「按钮」。 -->
-        <el-button
-          data-no-drag
-          @click="emit('exit')"
-          :icon="ArrowDown"
-          :aria-label="t('common.back')"
-          circle
-          class="back-btn"
-        />
-      </el-tooltip>
+      <!-- 只有图标没有文本，必须显式补 aria-label，否则读屏只念得出一个「按钮」。
+           悬浮文字 tip 一律不要，视觉上保持干净。 -->
+      <el-button
+        data-no-drag
+        @click="emit('exit')"
+        :icon="ArrowDown"
+        :aria-label="t('common.back')"
+        circle
+        class="back-btn"
+      />
 
       <!-- 非 macOS 平台显示窗口控制按钮 -->
       <div v-if="!isMacPlatform" class="window-controls">
-        <el-tooltip :content="t('header.minimize')" placement="bottom" effect="dark">
-          <el-button
-            @click="minimize"
-            :icon="Minus"
-            circle
-            :aria-label="t('header.minimize')"
-          />
-        </el-tooltip>
-        <el-tooltip
-          :content="isMaximized ? t('header.restore') : t('header.maximize')"
-          placement="bottom"
-          effect="dark"
-        >
-          <el-button
-            @click="toggleMaximize"
-            :icon="maximizeIcon"
-            circle
-            :aria-label="isMaximized ? t('header.restore') : t('header.maximize')"
-          />
-        </el-tooltip>
-        <el-tooltip :content="t('header.close')" placement="bottom" effect="dark">
-          <el-button
-            @click="close"
-            :icon="Close"
-            circle
-            :aria-label="t('header.close')"
-          />
-        </el-tooltip>
+        <el-button
+          @click="minimize"
+          :icon="Minus"
+          circle
+          :aria-label="t('header.minimize')"
+        />
+        <el-button
+          @click="toggleMaximize"
+          :icon="maximizeIcon"
+          circle
+          :aria-label="isMaximized ? t('header.restore') : t('header.maximize')"
+        />
+        <el-button @click="close" :icon="Close" circle :aria-label="t('header.close')" />
       </div>
     </div>
 
@@ -315,49 +298,37 @@ const overlayStyle = computed(() => {
     <div class="immersive-bottom-zone">
       <div class="immersive-bottom-bar">
         <div class="controls">
-          <el-tooltip :content="playModeTooltip" placement="top" effect="dark">
-            <el-button
-              circle
-              class="immersive-control-btn immersive-mode-btn"
-              :class="{ 'is-active': playMode !== PlayMode.SEQUENTIAL }"
-              :icon="currentPlayModeIcon"
-              :aria-label="playModeTooltip"
-              @click="emit('toggle-play-mode')"
-            />
-          </el-tooltip>
-          <el-tooltip :content="t('playerBar.previous')" placement="top" effect="dark">
-            <el-button
-              circle
-              class="immersive-control-btn"
-              :icon="ArrowLeft"
-              :aria-label="t('playerBar.previous')"
-              @click="emit('previous')"
-            />
-          </el-tooltip>
-          <el-tooltip
-            :content="isPlaying ? t('playerBar.pause') : t('playerBar.play')"
-            placement="top"
-            effect="dark"
-          >
-            <el-button
-              circle
-              size="large"
-              class="immersive-play-btn"
-              :icon="isPlaying ? PauseIcon : PlayIcon"
-              :aria-label="isPlaying ? t('playerBar.pause') : t('playerBar.play')"
-              @click="emit('toggle-play')"
-              type="primary"
-            />
-          </el-tooltip>
-          <el-tooltip :content="t('playerBar.next')" placement="top" effect="dark">
-            <el-button
-              circle
-              class="immersive-control-btn"
-              :icon="ArrowRight"
-              :aria-label="t('playerBar.next')"
-              @click="emit('next')"
-            />
-          </el-tooltip>
+          <el-button
+            circle
+            class="immersive-control-btn immersive-mode-btn"
+            :class="{ 'is-active': playMode !== PlayMode.SEQUENTIAL }"
+            :icon="currentPlayModeIcon"
+            :aria-label="playModeTooltip"
+            @click="emit('toggle-play-mode')"
+          />
+          <el-button
+            circle
+            class="immersive-control-btn"
+            :icon="ArrowLeft"
+            :aria-label="t('playerBar.previous')"
+            @click="emit('previous')"
+          />
+          <el-button
+            circle
+            size="large"
+            class="immersive-play-btn"
+            :icon="isPlaying ? PauseIcon : PlayIcon"
+            :aria-label="isPlaying ? t('playerBar.pause') : t('playerBar.play')"
+            @click="emit('toggle-play')"
+            type="primary"
+          />
+          <el-button
+            circle
+            class="immersive-control-btn"
+            :icon="ArrowRight"
+            :aria-label="t('playerBar.next')"
+            @click="emit('next')"
+          />
 
           <!-- 音量：图标常驻，滑块悬停/聚焦时从上方浮出，与播放栏同一交互 -->
           <div class="immersive-volume">
