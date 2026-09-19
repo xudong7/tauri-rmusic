@@ -226,7 +226,6 @@ const {
         <el-tooltip :content="playModeTooltip" placement="top" effect="light">
           <el-button
             class="control-btn play-mode-btn app-icon-button"
-            :class="{ 'is-active': playMode !== PlayMode.SEQUENTIAL }"
             :icon="currentPlayModeIcon"
             :aria-label="playModeTooltip"
             @click="emit('toggle-play-mode')"

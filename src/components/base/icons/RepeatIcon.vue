@@ -2,9 +2,8 @@
 /**
  * 顺序播放：列表循环的环形箭头。
  * 顺序模式实际是绕列表循环（见 playbackQueue 的 getSequentialIndex），
- * 所以用「循环」而不是早期 Element Plus Sort 的排序箭头。线条保持细描边，
- * 路径显式 fill="none"：描边一粗、环/随机这种小图形就会糊成实心块，
- * 看着像被填了色。
+ * 所以用「循环」而不是早期 Element Plus Sort 的排序箭头；线条取细描边，
+ * 路径显式 fill="none"，保证只以描边形态出现。
  */
 </script>
 

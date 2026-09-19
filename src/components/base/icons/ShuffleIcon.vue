@@ -2,8 +2,7 @@
 /**
  * 随机播放：两条交叉的箭头（shuffle）。
  * 早期用的 Element Plus Refresh 是刷新箭头，和单曲循环的图标几乎一样；
- * 换成通用的 shuffle 之后三个播放模式互相区分得开。细描边 + 显式
- * fill="none"，交叉线条才不会糊成一团实心。
+ * 换成通用的 shuffle 之后三个播放模式互相区分得开。细描边 + 显式 fill="none"。
  */
 </script>
 

@@ -407,12 +407,6 @@
   transform: none;
 }
 
-/* 播放顺序非「顺序播放」时点亮，与播放栏一致 */
-.controls .immersive-mode-btn.is-active,
-.controls .immersive-mode-btn.is-active:hover {
-  color: var(--immersive-accent) !important;
-}
-
 /* 播放/暂停按钮：与播放栏同一个实心主色圆——直接用同一组 token，
     不掺深色，悬停只做抬升与光晕，底色始终是干净的主色。 */
 .controls .immersive-play-btn {

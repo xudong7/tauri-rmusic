@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * 单曲循环：环形箭头 + 中间的「1」，与 RepeatIcon 同一套线条（细描边、
- * 显式 fill="none"），避免小图形糊成实心块。
+ * 显式 fill="none"）。
  */
 </script>
 
