@@ -419,10 +419,11 @@
   background: var(--immersive-play-bg) !important;
   border: none !important;
   color: var(--app-play-button-color) !important;
-  height: 36px !important;
-  width: 36px !important;
+  /* 参考图的播放键是横向椭圆：宽高比约 1.3，圆角用 50% 才是椭圆而不是胶囊 */
+  height: 38px !important;
+  width: 50px !important;
   padding: 0;
-  border-radius: var(--app-radius-full) !important;
+  border-radius: 50% !important;
   font-size: 16px;
   box-shadow: var(--app-play-button-shadow);
   transition:
@@ -742,7 +743,7 @@
 
   .controls .immersive-play-btn {
     height: 34px !important;
-    width: 34px !important;
+    width: 45px !important;
   }
 }
 
