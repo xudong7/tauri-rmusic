@@ -41,7 +41,6 @@ import "element-plus/es/components/tooltip/style/css";
 // 必须排在 themes.css 之前：两者都是 html.dark 特异度，靠顺序决定胜负，
 // 放前面才能让 themes.css 里的自定义配色覆盖 EP 默认值。
 import "element-plus/theme-chalk/dark/css-vars.css";
-// 导入全局主题样式
 import "./assets/styles/themes.css";
 import "./assets/styles/message.css";
 import App from "./App.vue";

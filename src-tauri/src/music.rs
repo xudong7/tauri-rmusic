@@ -8,12 +8,13 @@ use std::io::{self, BufReader, ErrorKind, Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Condvar, Mutex as StdMutex, OnceLock, Weak};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime};
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::io::AsyncWriteExt;
 use tokio::sync::broadcast::Sender;
 use tokio::sync::{broadcast, Mutex};
 
+use crate::fs_util::unique_temp_path_for;
 use crate::netease;
 
 const MAX_ONLINE_AUDIO_CACHE_BYTES: u64 = 1024 * 1024 * 1024;
@@ -74,7 +75,6 @@ pub struct PlaybackTrackIdState(pub Arc<Mutex<u64>>);
 #[derive(Clone, Default)]
 pub struct PlaybackRequestIdState(pub Arc<AtomicU64>);
 
-#[derive(Default)]
 struct ProgressiveDownloadState {
     downloaded: u64,
     total: Option<u64>,
@@ -255,9 +255,7 @@ impl Music {
         let duration_clone = Arc::new(Mutex::new(0u64));
         let track_id = Arc::new(Mutex::new(0u64));
 
-        // spawn a thread to handle the music events
         tokio::spawn(async move {
-            // receive events from the channel
             while let Ok(event) = event_receiver.recv().await {
                 match event {
                     MusicState::Recovery => {
@@ -410,23 +408,6 @@ pub(crate) fn is_online_audio_cached(app_handle: &AppHandle, cache_key: &str) ->
         .ok()
         .and_then(|path| fs::metadata(path).ok())
         .is_some_and(|metadata| metadata.len() > 0)
-}
-
-fn unique_temp_path_for(target_path: &Path) -> PathBuf {
-    let unique = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_nanos())
-        .unwrap_or(0);
-    let file_name = target_path
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("cache");
-    target_path.with_file_name(format!(
-        "{}.{}.{}.tmp",
-        file_name,
-        std::process::id(),
-        unique
-    ))
 }
 
 fn online_download_lock(cache_path: &Path) -> Result<Arc<Mutex<()>>, String> {

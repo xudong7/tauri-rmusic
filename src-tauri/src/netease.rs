@@ -1223,12 +1223,11 @@ pub async fn get_artist_songs(
     })
 }
 
-/// get song url by file_hash or song id
+/// get online song play url by id
 #[tauri::command]
 pub async fn get_song_url(id: String) -> Result<String, String> {
     let client = get_client()?;
 
-    // Check if the id is a hash (for Kugou API) or a numeric ID (for NetEase API)
     let url = format!("{}/song/url?id={}&level=exhigh", LOCAL_API_BASE, id);
 
     let response_json = fetch_json_ok(client, url.clone()).await?;
@@ -1307,9 +1306,7 @@ pub async fn play_netease_song(
 
 #[tauri::command]
 pub async fn get_song_cover(_id: String, name: String, artist: String) -> Result<String, String> {
-    // Backward-compatible signature: current frontend calls this with (id, name, artist),
-    // but cover can be reliably fetched by id via NetEase /song/detail.
-    // We keep name/artist only for logging/debugging.
+    // 兼容旧签名：封面按 id 取即可，name/artist 只为匹配前端传入的参数。
     let id = _id;
     if id.trim().is_empty() {
         return Err("Empty song id".to_string());
@@ -1339,23 +1336,19 @@ pub async fn get_song_cover(_id: String, name: String, artist: String) -> Result
     Ok(pic_url)
 }
 
-/// Get song lyrics directly with a single function call
-/// Instead of using search_lyric -> get_lyric -> get_lyric_decoded
+/// get song lyric text by id
 #[tauri::command]
 pub async fn get_song_lyric(id: String) -> Result<String, String> {
     let client = get_client()?;
 
-    // We can directly get the lyrics with the song ID
     let url = format!("{}/lyric?id={}", LOCAL_API_BASE, id);
 
     let response_json: serde_json::Value = get_response_json(client, url).await?;
 
-    // Check if the response contains the lrc field
     let lrc = response_json
         .get("lrc")
         .ok_or_else(|| "No lrc field in response".to_string())?;
 
-    // Extract the lyric content from the lrc field
     let content = lrc
         .get("lyric")
         .and_then(|v| v.as_str())

@@ -111,7 +111,6 @@ const { coverUrl: currentCoverUrl } = useCoverLoader({
 });
 const { brightness: imageAnalysisState } = useCoverPalette(currentCoverUrl);
 
-// 当前歌曲标题
 const songTitle = computed(() => {
   void locale.value;
   if (props.currentSong) return extractSongTitle(props.currentSong.name);
@@ -133,7 +132,6 @@ const { artistNames, canNavigateArtist, navigateArtistByName } = useArtistNaviga
   onlineArtists: () => onlineStore.onlineArtists,
 });
 
-// 背景滤镜样式
 const backgroundFilterStyle = computed(() => {
   return `blur(46px) saturate(1.36) contrast(1.04) brightness(${imageAnalysisState.value.brightness})`;
 });

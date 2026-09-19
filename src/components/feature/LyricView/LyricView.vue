@@ -13,7 +13,7 @@ import {
   parseLyric,
   setCachedLyric,
   type LyricLine,
-} from "@/composables/useLyrics";
+} from "@/utils/lyrics";
 
 const { t } = useI18n();
 
@@ -27,28 +27,20 @@ const props = defineProps<{
 const playerStore = usePlayerStore();
 const localStore = useLocalMusicStore();
 
-// 监听当前播放时间变化
 watch(
   () => props.currentTime,
   (newTime) => {
-    // 使用播放时间更新歌词
     if (newTime !== undefined && playerStore.isLoadingSong === false) {
-      // 如果有外部传入的时间，直接使用并更新当前行
       currentLyricTime.value = newTime;
       updateCurrentLine();
     }
   }
 );
 
-// 歌词数据
 const lyricData = ref<LyricLine[]>([]);
-// 加载状态
 const loading = ref(false);
-// 当前显示的歌词索引
 const currentIndex = ref(-1);
-// 歌词滚动容器引用
 const lyricScrollRef = ref<InstanceType<typeof ElScrollbar> | null>(null);
-// 通过状态模拟实现简单的歌词滚动
 const currentLyricTime = ref(0);
 let lyricUpdateInterval: number | null = null;
 let lyricLoadRequestId = 0;
@@ -60,16 +52,13 @@ const lyricSource = computed(() => {
   return null;
 });
 
-// 组件挂载时，初始化播放时间
 onMounted(() => {
-  // 如果有外部传入的时间，立即同步
   if (props.currentTime !== undefined) {
     currentLyricTime.value = props.currentTime;
     updateCurrentLine();
   }
 });
 
-// 监听播放状态
 watch(
   () => props.isPlaying,
   (isPlaying) => {
@@ -82,7 +71,6 @@ watch(
   { immediate: true }
 );
 
-// 开始模拟歌词滚动
 function startLyricUpdate() {
   if (props.currentTime !== undefined) {
     currentLyricTime.value = props.currentTime;
@@ -90,19 +78,16 @@ function startLyricUpdate() {
     return;
   }
 
-  // 清除之前的定时器
   stopLyricUpdate();
 
-  // 开始新的定时器
   lyricUpdateInterval = window.setInterval(() => {
     if (props.currentTime !== undefined) {
       currentLyricTime.value = props.currentTime;
     } else currentLyricTime.value += 200;
     updateCurrentLine();
-  }, 200); // 更新频率提高到200ms，让滚动更流畅
+  }, 200);
 }
 
-// 停止模拟歌词滚动
 function stopLyricUpdate() {
   if (lyricUpdateInterval !== null) {
     clearInterval(lyricUpdateInterval);
@@ -110,7 +95,6 @@ function stopLyricUpdate() {
   }
 }
 
-// 加载歌词
 async function loadLyric(song: SongInfo) {
   if (!song || !song.file_hash) return;
 
@@ -126,13 +110,11 @@ async function loadLyric(song: SongInfo) {
   lyricData.value = [];
 
   try {
-    // 直接获取歌词内容
     const lyricContent = await getSongLyric({
       id: song.id,
     });
 
     if (lyricContent) {
-      // 解析歌词
       const parsed = parseLyric(lyricContent);
       if (requestId !== lyricLoadRequestId) return;
       setCachedLyric(cacheKey, parsed);
@@ -150,7 +132,6 @@ async function loadLyric(song: SongInfo) {
   }
 }
 
-// 加载本地歌词
 async function loadLocalLyric(music: MusicFile) {
   if (!music || !music.file_name) return;
 
@@ -171,7 +152,6 @@ async function loadLocalLyric(music: MusicFile) {
     });
 
     if (lyricContent) {
-      // 解析歌词
       const parsed = parseLyric(lyricContent);
       if (requestId !== lyricLoadRequestId) return;
       setCachedLyric(cacheKey, parsed);
@@ -189,21 +169,18 @@ async function loadLocalLyric(music: MusicFile) {
   }
 }
 
-// 根据当前播放时间更新显示的歌词
 function updateCurrentLine() {
   if (lyricData.value.length === 0) return;
 
   const time = currentLyricTime.value;
   const newIndex = findLyricIndex(lyricData.value, time);
 
-  // 如果索引变化了，更新并滚动
   if (newIndex !== currentIndex.value) {
     currentIndex.value = newIndex;
     void scrollToCurrentLine(++lyricScrollRequestId);
   }
 }
 
-// 滚动到当前歌词行
 async function scrollToCurrentLine(requestId: number) {
   await nextTick();
   if (requestId !== lyricScrollRequestId) return;
@@ -216,7 +193,6 @@ async function scrollToCurrentLine(requestId: number) {
       const itemTop = activeItem.offsetTop;
       const itemHeight = activeItem.clientHeight;
 
-      // 将当前行滚动到中间位置
       lyricScrollRef.value.setScrollTop(itemTop - containerHeight / 2 + itemHeight);
     }
   }
@@ -245,12 +221,10 @@ watch(
   { immediate: true }
 );
 
-// 组件卸载时清除定时器
 onUnmounted(() => {
   stopLyricUpdate();
 });
 
-// 歌词容器类
 const lyricContainerClass = computed(() => {
   return {
     "lyric-container": true,

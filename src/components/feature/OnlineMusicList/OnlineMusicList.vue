@@ -3,7 +3,7 @@ import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { Download, Plus } from "@element-plus/icons-vue";
 import type { SongInfo } from "@/types/model";
-import { formatDuration, formatArtists } from "@/utils/songUtils";
+import { formatDurationLabel, formatArtists } from "@/utils/songUtils";
 import { usePlaylistStore } from "@/stores/playlistStore";
 import TrackList from "@/components/feature/TrackList/TrackList.vue";
 import type { TrackRowModel } from "@/components/feature/TrackList/types";
@@ -56,7 +56,7 @@ function toTrackRow(song: SongInfo, sourceIndex: number): TrackRowModel {
     title: song.name,
     artist: formatArtists(song.artists),
     album: song.album || undefined,
-    durationLabel: formatDuration(song.duration),
+    durationLabel: formatDurationLabel(song.duration),
     coverUrl: song.pic_url,
     source: "online",
     sourceIndex,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findLyricIndex, parseLyric } from "./useLyrics";
+import { findLyricIndex, parseLyric } from "./lyrics";
 
 describe("useLyrics", () => {
   it("parses multiple timestamps and sorts lyric lines", () => {

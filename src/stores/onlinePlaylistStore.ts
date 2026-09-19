@@ -120,17 +120,6 @@ export const useOnlinePlaylistStore = defineStore("onlinePlaylist", () => {
     }
   }
 
-  function resetDetail() {
-    detail.value = null;
-    songs.value = [];
-    hasMoreTracks.value = false;
-    isDetailLoading.value = false;
-    isLoadingMoreTracks.value = false;
-    detailError.value = "";
-    detailRequestId++;
-    tracksRequestId++;
-  }
-
   return {
     toplists,
     isToplistLoading,
@@ -143,6 +132,5 @@ export const useOnlinePlaylistStore = defineStore("onlinePlaylist", () => {
     detailError,
     loadDetail,
     loadMoreTracks,
-    resetDetail,
   };
 });

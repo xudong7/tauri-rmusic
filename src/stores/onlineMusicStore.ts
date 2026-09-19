@@ -42,7 +42,6 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
   const activeTab = ref<OnlineTab>("song");
   const searchKeyword = ref("");
 
-  // 单曲 tab
   const onlineSongs = ref<SongInfo[]>([]);
   const onlineSongsTotal = ref(0);
   /**
@@ -56,13 +55,8 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
    */
   const onlineArtists = ref<ArtistInfo[]>([]);
 
-  // 歌手 tab
   const artistResults = ref<ArtistInfo[]>([]);
-
-  // 专辑 tab
   const albumResults = ref<AlbumInfo[]>([]);
-
-  // 歌单 tab
   const playlistResults = ref<PlaylistInfo[]>([]);
 
   const tabMeta = ref<Record<OnlineSearchTab, TabMeta>>({

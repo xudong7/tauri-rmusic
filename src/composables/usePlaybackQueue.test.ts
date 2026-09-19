@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { PlayMode, ViewMode, type SongInfo } from "@/types/model";
+import { PlayMode, type SongInfo } from "@/types/model";
 import { usePlaybackQueue } from "./usePlaybackQueue";
 
 function song(id: string): SongInfo {
@@ -20,8 +20,6 @@ describe("usePlaybackQueue", () => {
     const prefetch = vi.fn().mockResolvedValue(undefined);
     const playbackQueue = usePlaybackQueue({
       getPlayMode: () => PlayMode.SEQUENTIAL,
-      getViewMode: () => ViewMode.ONLINE,
-      getFallbackOnlineQueue: () => queue,
       getCurrentPlaylistId: () => null,
       setCurrentPlaylistId: vi.fn(),
       getPlaylist: () => undefined,
@@ -41,8 +39,6 @@ describe("usePlaybackQueue", () => {
     const prefetch = vi.fn().mockResolvedValue(undefined);
     const playbackQueue = usePlaybackQueue({
       getPlayMode: () => PlayMode.REPEAT_ONE,
-      getViewMode: () => ViewMode.ONLINE,
-      getFallbackOnlineQueue: () => queue,
       getCurrentPlaylistId: () => null,
       setCurrentPlaylistId: vi.fn(),
       getPlaylist: () => undefined,
