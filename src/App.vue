@@ -258,12 +258,14 @@ onUnmounted(() => {
           :currentTime="playerStore.currentPlayTime"
           :currentTrackDuration="playerStore.currentTrackDuration"
           :playMode="playerStore.playMode"
+          :volume="playerStore.volume"
           @toggle-play="playerStore.togglePlay"
           @next="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1))"
           @previous="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1))"
           @exit="playerStore.exitImmersive"
           @seek="playerStore.seekToPosition"
           @toggle-play-mode="playerStore.togglePlayMode"
+          @volume-change="playerStore.adjustVolume"
         />
       </Transition>
     </div>

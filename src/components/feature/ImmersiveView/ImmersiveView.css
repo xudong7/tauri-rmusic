@@ -347,20 +347,22 @@
   color: var(--el-color-primary);
 }
 
-/* 控制按钮 */
+/* 控制按钮：比播放栏小一号，整簇更紧凑 */
 .controls {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: clamp(24px, 4vw, 36px);
-  margin-top: 2px;
+  gap: clamp(10px, 1.8vw, 16px);
+  margin-top: 0;
 }
 
-/* 上一首/下一首：裸图标，不套描边和玻璃底，悬停只让图标亮起来 */
+/* 顺序/上一首/下一首：裸图标，不套描边和玻璃底，悬停只让图标亮起来 */
 .controls .immersive-control-btn {
   border: 1px solid transparent !important;
-  height: var(--app-icon-btn-lg);
-  width: var(--app-icon-btn-lg);
+  height: 26px;
+  width: 26px;
+  padding: 0;
+  font-size: 14px;
   border-radius: var(--app-radius-full) !important;
   background: transparent !important;
   color: var(--immersive-control-text) !important;
@@ -376,21 +378,24 @@
   transform: none;
 }
 
-/* 播放/暂停按钮：全项目唯一的实心主色按钮，形状与播放栏保持一致用圆形；
-    实心是常态而非悬停浮出的外框，所以保留。 */
+/* 播放顺序非「顺序播放」时点亮，与播放栏一致 */
+.controls .immersive-mode-btn.is-active,
+.controls .immersive-mode-btn.is-active:hover {
+  color: var(--immersive-accent) !important;
+}
+
+/* 播放/暂停按钮：与播放栏同一个实心主色圆——直接用同一组 token，
+    不掺深色，悬停只做抬升与光晕，底色始终是干净的主色。 */
 .controls .immersive-play-btn {
-  background: color-mix(
-    in srgb,
-    var(--el-color-primary) 68%,
-    rgba(18, 29, 35, 0.9)
-  ) !important;
+  background: var(--app-play-button-bg) !important;
   border: none !important;
-  color: #fff !important;
-  height: var(--app-play-btn-lg) !important;
-  width: var(--app-play-btn-lg) !important;
+  color: var(--app-play-button-color) !important;
+  height: 36px !important;
+  width: 36px !important;
+  padding: 0;
   border-radius: var(--app-radius-full) !important;
-  font-size: 20px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
+  font-size: 16px;
+  box-shadow: var(--app-play-button-shadow);
   transition:
     background var(--app-control-transition),
     box-shadow var(--app-control-transition),
@@ -398,30 +403,145 @@
 }
 
 .controls .immersive-play-btn:hover {
-  background: color-mix(in srgb, var(--el-color-primary) 80%, #10171b) !important;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+  background: var(--app-play-button-bg) !important;
+  box-shadow: var(--app-play-button-hover-shadow);
   transform: translateY(-1px) scale(1.03);
+}
+
+/* 音量：图标常驻，滑块悬停/聚焦时从上方浮出，与播放栏同一交互 */
+.immersive-volume {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.immersive-volume-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--app-radius-full);
+  background: transparent;
+  color: var(--immersive-control-text);
+  cursor: pointer;
+  transition: color var(--app-control-transition);
+}
+
+.immersive-volume-btn svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
+.immersive-volume-btn:hover {
+  color: var(--immersive-text-primary);
+}
+
+.immersive-volume-popup {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  /* 兼作悬停桥，鼠标从图标移向滑块时不断开 */
+  padding-bottom: 12px;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.16s ease,
+    visibility 0.16s ease;
+}
+
+.immersive-volume:hover .immersive-volume-popup,
+.immersive-volume:focus-within .immersive-volume-popup {
+  opacity: 1;
+  visibility: visible;
+}
+
+.immersive-volume-popup-inner {
+  box-sizing: border-box;
+  position: relative;
+  width: 100px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--app-radius-md);
+  background: rgba(18, 23, 28, 0.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+}
+
+/* 底部箭头：与面板同材质，把浮层和音量键连起来 */
+.immersive-volume-popup-inner::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  transform: translateX(-50%) rotate(45deg);
+  border-right: 1px solid rgba(255, 255, 255, 0.16);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  border-bottom-right-radius: 2px;
+  background: inherit;
+}
+
+.immersive-volume-slider {
+  width: 100%;
+  height: 20px;
+}
+
+.immersive-volume-slider :deep(.el-slider__runway) {
+  height: 3px;
+  border-radius: var(--app-radius-full, 9999px);
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.immersive-volume-slider :deep(.el-slider__bar) {
+  height: 100%;
+  border-radius: var(--app-radius-full, 9999px);
+  background: var(--immersive-accent);
+}
+
+.immersive-volume-slider :deep(.el-slider__button-wrapper) {
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.immersive-volume-slider :deep(.el-slider__button) {
+  width: var(--app-slider-thumb-size);
+  height: var(--app-slider-thumb-size);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 48%, #fff);
+  background: var(--immersive-accent);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.24);
+  opacity: 1;
+}
+
+.immersive-volume-slider :deep(.el-slider__button:hover) {
+  transform: scale(1.15);
 }
 
 /* 进度条 */
 .immersive-progress {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 6px;
+  gap: 8px;
   width: 100%;
-  max-width: var(--immersive-cover-size);
-}
-
-.immersive-progress .time-display {
-  font-size: 11px;
-  min-width: 36px;
-  color: var(--immersive-text-muted);
-  font-variant-numeric: tabular-nums;
 }
 
 .immersive-progress .progress-slider {
   flex: 1;
+  height: 18px;
+}
+
+.immersive-progress .time-display {
+  font-size: 10px;
+  min-width: 30px;
+  color: var(--immersive-text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .immersive-progress .progress-slider :deep(.el-slider__runway) {
@@ -498,16 +618,66 @@
   flex-direction: column;
 }
 
-/* 底部控制区 - 简约 */
-.control-section {
+/* ---------- 底部播放栏 ----------
+   控制与进度收进底部横条，像常规播放栏一样居中排两行；默认藏起来，
+   鼠标移进底部热区（或键盘聚焦其中）才滑出——沉浸模式下封面与歌词
+   是主角，控制条只在需要时出现。 */
+.immersive-bottom-zone {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9;
+  height: clamp(80px, 10vh, 104px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  /* 尽量贴住底边：只留一点呼吸空间，不把控制条悬在半空 */
+  padding: 0 var(--immersive-shell-padding-x) clamp(8px, 1.4vh, 14px);
+  pointer-events: auto;
+}
+
+/* 底部渐隐遮罩跟着控制条一起浮现，避免悬停时突然多出一块底色 */
+.immersive-bottom-zone::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.36), transparent);
+  opacity: 0;
+  transition: opacity 0.24s ease;
+  pointer-events: none;
+}
+
+.immersive-view.uses-dark-foreground .immersive-bottom-zone::before {
+  background: linear-gradient(to top, rgba(255, 255, 255, 0.42), transparent);
+}
+
+.immersive-bottom-zone:hover::before,
+.immersive-bottom-zone:focus-within::before {
+  opacity: 1;
+}
+
+.immersive-bottom-bar {
   position: relative;
-  z-index: 10;
-  width: 100%;
-  max-width: 1000px;
-  margin: 0 auto;
-  box-sizing: border-box;
-  padding: 0 60px 24px;
-  display: none;
+  /* 紧凑的居中一簇，不做成通栏宽条 */
+  width: min(100%, 400px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(3px, 0.8vh, 6px);
+  opacity: 0;
+  transform: translateY(14px);
+  pointer-events: none;
+  transition:
+    opacity 0.24s ease,
+    transform 0.24s ease;
+}
+
+.immersive-bottom-zone:hover .immersive-bottom-bar,
+.immersive-bottom-zone:focus-within .immersive-bottom-bar {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
 }
 
 /* 响应式适配 */
@@ -562,12 +732,8 @@
   }
 
   .controls .immersive-play-btn {
-    height: 52px !important;
-    width: 52px !important;
-  }
-
-  .immersive-progress {
-    margin-top: 2px;
+    height: 34px !important;
+    width: 34px !important;
   }
 }
 
@@ -596,14 +762,6 @@
 
   .left-section {
     gap: 8px;
-  }
-
-  .controls {
-    margin-top: 0;
-  }
-
-  .immersive-progress {
-    margin-top: 8px;
   }
 
   .right-section {

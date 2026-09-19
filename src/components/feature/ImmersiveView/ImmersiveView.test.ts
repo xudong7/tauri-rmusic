@@ -31,7 +31,7 @@ const router = createRouter({
 
 async function mountImmersiveView() {
   const wrapper = mount(ImmersiveView, {
-    props: { currentSong: null, currentMusic: null, isPlaying: false },
+    props: { currentSong: null, currentMusic: null, isPlaying: false, volume: 50 },
     global: {
       plugins: [createPinia(), i18n, router],
       // 刻意不 stub LyricView：它曾在 setup 阶段因 watch immediate 访问
@@ -60,5 +60,13 @@ describe("ImmersiveView 退出入口", () => {
     expect(wrapper.get(".back-btn").attributes("aria-label")).toBe(
       i18n.global.t("common.back")
     );
+  });
+
+  it("点击音量键 emit volume-change", async () => {
+    const wrapper = await mountImmersiveView();
+
+    await wrapper.get(".immersive-volume-btn").trigger("click");
+
+    expect(wrapper.emitted("volume-change")).toEqual([[0]]);
   });
 });

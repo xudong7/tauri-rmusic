@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   ArrowLeft,
@@ -13,12 +13,14 @@ import {
 } from "@element-plus/icons-vue";
 import PlayIcon from "@/components/base/icons/PlayIcon.vue";
 import PauseIcon from "@/components/base/icons/PauseIcon.vue";
-import type { SongInfo, MusicFile, PlayMode } from "@/types/model";
+import { PlayMode, type SongInfo, type MusicFile } from "@/types/model";
+import { playModeIcon, playModeLabelKey } from "@/utils/playModeUtils";
 import LyricView from "@/components/feature/LyricView/LyricView.vue";
 import { useCoverPalette } from "@/composables/useCoverPalette";
 import { useCoverLoader } from "@/composables/useCoverLoader";
 import { useArtistNavigation } from "@/composables/useArtistNavigation";
 import { usePlaybackProgressSlider } from "@/composables/usePlaybackProgressSlider";
+import { useVolumeMute } from "@/composables/usePlaybackVolume";
 import { usePlatform } from "@/composables/usePlatform";
 import { useWindowDrag } from "@/composables/useWindowDrag";
 import {
@@ -41,6 +43,7 @@ const props = defineProps<{
   currentTime?: number;
   currentTrackDuration?: number;
   playMode?: PlayMode;
+  volume: number;
 }>();
 
 const emit = defineEmits<{
@@ -50,6 +53,7 @@ const emit = defineEmits<{
   exit: [];
   seek: [positionMs: number];
   "toggle-play-mode": [];
+  "volume-change": [value: number];
 }>();
 
 const artistStore = useArtistStore();
@@ -69,6 +73,29 @@ const {
   duration: () => props.currentTrackDuration ?? 0,
   hasTrack: () => Boolean(props.currentSong || props.currentMusic),
   onSeek: (positionMs) => emit("seek", positionMs),
+});
+
+const currentPlayModeIcon = computed(() => playModeIcon(props.playMode));
+const playModeTooltip = computed(() => t(playModeLabelKey(props.playMode)));
+
+const volumeSliderValue = ref(props.volume);
+
+watch(
+  () => props.volume,
+  (value) => {
+    if (value !== volumeSliderValue.value) volumeSliderValue.value = value;
+  }
+);
+
+function handleVolumeChange(value: number | number[]) {
+  const nextValue = Array.isArray(value) ? (value[0] ?? 0) : value;
+  volumeSliderValue.value = nextValue;
+  emit("volume-change", nextValue);
+}
+
+const { toggleMute } = useVolumeMute({
+  currentVolume: () => props.volume,
+  onChange: handleVolumeChange,
 });
 
 const { isMaximized, minimize, toggleMaximize, close } = useWindowControls({
@@ -178,54 +205,37 @@ const overlayStyle = computed(() => {
     ></div>
 
     <div class="top-section">
-      <el-tooltip :content="t('common.back')" placement="bottom" effect="dark">
-        <!-- 只有图标没有文本，el-tooltip 给的 aria-describedby 是「描述」不是
-             「名称」，所以要显式补 aria-label，否则读屏只念得出一个「按钮」。 -->
-        <el-button
-          data-no-drag
-          @click="emit('exit')"
-          :icon="ArrowDown"
-          :aria-label="t('common.back')"
-          circle
-          class="back-btn"
-        />
-      </el-tooltip>
+      <!-- 只有图标没有文本，必须显式补 aria-label，否则读屏只念得出一个「按钮」。
+           悬浮文字 tip 一律不要，视觉上保持干净。 -->
+      <el-button
+        data-no-drag
+        @click="emit('exit')"
+        :icon="ArrowDown"
+        :aria-label="t('common.back')"
+        circle
+        class="back-btn"
+      />
 
       <!-- 非 macOS 平台显示窗口控制按钮 -->
       <div v-if="!isMacPlatform" class="window-controls">
-        <el-tooltip :content="t('header.minimize')" placement="bottom" effect="dark">
-          <el-button
-            @click="minimize"
-            :icon="Minus"
-            circle
-            :aria-label="t('header.minimize')"
-          />
-        </el-tooltip>
-        <el-tooltip
-          :content="isMaximized ? t('header.restore') : t('header.maximize')"
-          placement="bottom"
-          effect="dark"
-        >
-          <el-button
-            @click="toggleMaximize"
-            :icon="maximizeIcon"
-            circle
-            :aria-label="isMaximized ? t('header.restore') : t('header.maximize')"
-          />
-        </el-tooltip>
-        <el-tooltip :content="t('header.close')" placement="bottom" effect="dark">
-          <el-button
-            @click="close"
-            :icon="Close"
-            circle
-            :aria-label="t('header.close')"
-          />
-        </el-tooltip>
+        <el-button
+          @click="minimize"
+          :icon="Minus"
+          circle
+          :aria-label="t('header.minimize')"
+        />
+        <el-button
+          @click="toggleMaximize"
+          :icon="maximizeIcon"
+          circle
+          :aria-label="isMaximized ? t('header.restore') : t('header.maximize')"
+        />
+        <el-button @click="close" :icon="Close" circle :aria-label="t('header.close')" />
       </div>
     </div>
 
     <div class="content-section">
-      <!-- 左侧：封面 + 歌曲信息 + 控制 -->
+      <!-- 左侧：封面 + 歌曲信息 -->
       <div class="left-section">
         <div class="cover-container">
           <img
@@ -268,13 +278,39 @@ const overlayStyle = computed(() => {
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- 控制按钮 -->
+      <!-- 右侧：歌词 -->
+      <div class="right-section">
+        <div class="lyric-view-container">
+          <LyricView
+            :currentSong="currentSong"
+            :currentMusic="currentMusic"
+            :isPlaying="isPlaying"
+            :currentTime="currentTime"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部播放栏：像播放栏一样承载控制与进度，默认隐藏，
+         鼠标移到底部热区（或键盘聚焦其中）才滑出。 -->
+    <div class="immersive-bottom-zone">
+      <div class="immersive-bottom-bar">
         <div class="controls">
+          <el-button
+            circle
+            class="immersive-control-btn immersive-mode-btn"
+            :class="{ 'is-active': playMode !== PlayMode.SEQUENTIAL }"
+            :icon="currentPlayModeIcon"
+            :aria-label="playModeTooltip"
+            @click="emit('toggle-play-mode')"
+          />
           <el-button
             circle
             class="immersive-control-btn"
             :icon="ArrowLeft"
+            :aria-label="t('playerBar.previous')"
             @click="emit('previous')"
           />
           <el-button
@@ -282,6 +318,7 @@ const overlayStyle = computed(() => {
             size="large"
             class="immersive-play-btn"
             :icon="isPlaying ? PauseIcon : PlayIcon"
+            :aria-label="isPlaying ? t('playerBar.pause') : t('playerBar.play')"
             @click="emit('toggle-play')"
             type="primary"
           />
@@ -289,11 +326,41 @@ const overlayStyle = computed(() => {
             circle
             class="immersive-control-btn"
             :icon="ArrowRight"
+            :aria-label="t('playerBar.next')"
             @click="emit('next')"
           />
+
+          <!-- 音量：图标常驻，滑块悬停/聚焦时从上方浮出，与播放栏同一交互 -->
+          <div class="immersive-volume">
+            <button
+              type="button"
+              class="immersive-volume-btn"
+              :aria-label="t(volume > 0 ? 'playerBar.mute' : 'playerBar.unmute')"
+              @click="toggleMute"
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path
+                  d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"
+                />
+              </svg>
+            </button>
+            <div class="immersive-volume-popup">
+              <div class="immersive-volume-popup-inner">
+                <el-slider
+                  v-model="volumeSliderValue"
+                  :max="100"
+                  :min="0"
+                  :step="1"
+                  :show-tooltip="false"
+                  :aria-label="t('playerBar.volume')"
+                  class="immersive-volume-slider"
+                  @change="handleVolumeChange"
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- 进度条 -->
         <div class="immersive-progress">
           <span class="time-display">{{ currentTimeDisplay }}</span>
           <el-slider
@@ -308,18 +375,6 @@ const overlayStyle = computed(() => {
             @change="handleProgressChange"
           />
           <span class="time-display">{{ durationDisplay }}</span>
-        </div>
-      </div>
-
-      <!-- 右侧：歌词 -->
-      <div class="right-section">
-        <div class="lyric-view-container">
-          <LyricView
-            :currentSong="currentSong"
-            :currentMusic="currentMusic"
-            :isPlaying="isPlaying"
-            :currentTime="currentTime"
-          />
         </div>
       </div>
     </div>
