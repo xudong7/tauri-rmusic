@@ -13,7 +13,7 @@
 
 <template>
   <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M8.4 4 19.2 12 8.4 20Z" />
+    <path d="M7.6 4 20.8 12 7.6 20Z" />
   </svg>
 </template>
 

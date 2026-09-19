@@ -10,7 +10,7 @@
 
 <template>
   <svg class="pause-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M7.8 4h3.4v16H7.8zM12.8 4h3.4v16h-3.4z" />
+    <path d="M6.8 4h4.4v16H6.8zM12.8 4h4.4v16h-4.4z" />
   </svg>
 </template>
 
