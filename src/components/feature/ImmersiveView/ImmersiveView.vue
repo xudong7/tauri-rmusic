@@ -20,6 +20,7 @@ import { useCoverPalette } from "@/composables/useCoverPalette";
 import { useCoverLoader } from "@/composables/useCoverLoader";
 import { useArtistNavigation } from "@/composables/useArtistNavigation";
 import { usePlaybackProgressSlider } from "@/composables/usePlaybackProgressSlider";
+import { useAlbumNavigation } from "@/composables/useAlbumNavigation";
 import { useVolumeMute } from "@/composables/usePlaybackVolume";
 import { usePlatform } from "@/composables/usePlatform";
 import { useWindowDrag } from "@/composables/useWindowDrag";
@@ -132,6 +133,23 @@ const { artistNames, canNavigateArtist, navigateArtistByName } = useArtistNaviga
   currentArtist: () => artistStore.currentArtist,
   onlineArtists: () => onlineStore.onlineArtists,
 });
+
+const { canNavigateAlbum, navigateAlbumByName } = useAlbumNavigation({
+  currentOnlineSong: () => props.currentSong,
+  localAlbumDisplay: () =>
+    props.currentMusic ? (getLocalMusicDisplayInfo(props.currentMusic).album ?? "") : "",
+  localArtistDisplay: () => currentArtistName.value,
+  onlineAlbums: () => onlineStore.albumResults,
+});
+
+// 跳转成功后要退出沉浸模式：路由换了但整屏还盖在上面，用户是看不到目标页的。
+async function handleNavigateArtist(name: string) {
+  if (await navigateArtistByName(name)) emit("exit");
+}
+
+async function handleNavigateAlbum() {
+  if (await navigateAlbumByName()) emit("exit");
+}
 
 const backgroundFilterStyle = computed(() => {
   return `blur(46px) saturate(1.36) contrast(1.04) brightness(${imageAnalysisState.value.brightness})`;
@@ -250,7 +268,17 @@ const overlayStyle = computed(() => {
         </div>
 
         <div class="song-info">
-          <h1 class="song-title" :title="songTitle">{{ songTitle }}</h1>
+          <h1 class="song-title" :title="songTitle">
+            <component
+              :is="canNavigateAlbum ? 'button' : 'span'"
+              :type="canNavigateAlbum ? 'button' : undefined"
+              class="song-title-text"
+              :class="{ 'is-link': canNavigateAlbum }"
+              @click.stop="handleNavigateAlbum"
+            >
+              {{ songTitle }}
+            </component>
+          </h1>
           <div class="song-artist-container">
             <div
               class="song-artist"
@@ -263,7 +291,7 @@ const overlayStyle = computed(() => {
                     :type="canNavigateArtist ? 'button' : undefined"
                     class="artist-part"
                     :class="{ 'artist-link': canNavigateArtist }"
-                    @click.stop="navigateArtistByName(a)"
+                    @click.stop="handleNavigateArtist(a)"
                     :title="canNavigateArtist ? t('artist.open', { name: a }) : a"
                   >
                     {{ a }}

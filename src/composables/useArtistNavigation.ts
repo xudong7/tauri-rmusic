@@ -1,9 +1,11 @@
 import { computed } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
+import { ElMessage } from "element-plus";
 import type { ArtistInfo, SongInfo } from "@/types/model";
 import { resolveArtistByName } from "@/utils/artistNav";
 import { splitArtistNames } from "@/utils/songUtils";
+import { useOnlineServiceStore } from "@/stores/onlineServiceStore";
 
 export function useArtistNavigation(args: {
   /** 在线歌曲（若有则优先使用 artists[]） */
@@ -17,6 +19,7 @@ export function useArtistNavigation(args: {
 }) {
   const router = useRouter();
   const { t, locale } = useI18n();
+  const onlineServiceStore = useOnlineServiceStore();
 
   const artistNames = computed(() => {
     void locale.value;
@@ -33,19 +36,30 @@ export function useArtistNavigation(args: {
     );
   });
 
-  async function navigateArtistByName(name: string) {
-    if (!name) return;
-    if (name === t("common.unknownArtist")) return;
+  /** 返回是否真的发生了跳转（调用方据此决定要不要退出沉浸模式） */
+  async function navigateArtistByName(name: string): Promise<boolean> {
+    if (!name || name === t("common.unknownArtist")) return false;
+
+    // 解析歌手 id 依赖在线服务，先确保 sidecar 已启动，否则点击会静默失败
+    try {
+      await onlineServiceStore.ensureStarted();
+    } catch {
+      ElMessage.error(t("onlineService.unavailable"));
+      return false;
+    }
+
     const artist = await resolveArtistByName(name, {
       currentArtist: args.currentArtist?.() ?? undefined,
       onlineArtists: args.onlineArtists?.() ?? undefined,
     });
-    if (!artist?.id) return;
-    router.push({
+    if (!artist?.id) return false;
+
+    await router.push({
       name: "Artist",
       params: { id: artist.id },
       query: { name: artist.name, pic_url: artist.pic_url || "" },
     });
+    return true;
   }
 
   return { artistNames, canNavigateArtist, navigateArtistByName };

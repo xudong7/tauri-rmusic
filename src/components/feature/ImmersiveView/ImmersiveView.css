@@ -317,6 +317,26 @@
   margin: 0 0 12px;
 }
 
+/* 歌名与歌手链接同一套交互：可点击时只用颜色变化标示 */
+.song-title-text.is-link {
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.song-title-text.is-link:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+.song-title-text.is-link:hover {
+  color: var(--el-color-primary);
+}
+
 .song-artist {
   font-size: 14px;
   line-height: 1.6;
