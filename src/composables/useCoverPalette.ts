@@ -27,9 +27,9 @@ function cachePalette(url: string, palette: CoverPalette) {
   }
 }
 
-function getAdjustedBrightness(averageBrightness: number): number {
+export function getAdjustedBrightness(averageBrightness: number): number {
   if (averageBrightness < 0.3) return 1.28;
-  if (averageBrightness < 0.6) return 1.1;
+  if (averageBrightness < 0.5) return 1.1;
   return 0.96;
 }
 
