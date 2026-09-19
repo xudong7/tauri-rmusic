@@ -42,16 +42,3 @@ export async function resolveArtistByName(
     return null;
   }
 }
-
-/**
- * 将展示用歌手字符串拆成多个歌手名。
- * 只支持“逗号一类”的分隔符：英文逗号 `,` / 中文逗号 `，`（及其两侧空格）。
- */
-export function splitArtistNames(display: string): string[] {
-  if (!display) return [];
-  const normalized = display.replace(/\s*(?:,|，)\s*/g, ",").trim();
-  return normalized
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-}

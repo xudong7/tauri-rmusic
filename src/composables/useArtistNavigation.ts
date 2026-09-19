@@ -2,7 +2,8 @@ import { computed } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { ArtistInfo, SongInfo } from "@/types/model";
-import { resolveArtistByName, splitArtistNames } from "@/utils/artistNav";
+import { resolveArtistByName } from "@/utils/artistNav";
+import { splitArtistNames } from "@/utils/songUtils";
 
 export function useArtistNavigation(args: {
   /** 在线歌曲（若有则优先使用 artists[]） */

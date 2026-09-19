@@ -30,12 +30,38 @@ export function extractSongTitle(fullName: string): string {
   return match ? match[1].trim() : fullName;
 }
 
+/**
+ * 将展示用歌手字符串拆成多个歌手名。
+ *
+ * 支持逗号（英文/中文）与展示分隔符 ` / `（两侧带空格）。
+ * 斜杠必须带空格才算分隔符：`AC/DC` 这类名字不能被拆开。
+ */
+export function splitArtistNames(display: string): string[] {
+  if (!display) return [];
+  const normalized = display
+    .replace(/\s*(?:,|，)\s*/g, ",")
+    .replace(/\s+\/\s+/g, ",")
+    .trim();
+  return normalized
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/** 标签里的歌手串：拆开后按展示分隔符重排，避免逗号被当成名字的一部分 */
+export function formatArtistDisplay(display: string): string {
+  const parts = splitArtistNames(display);
+  return parts.length > 1 ? parts.join(ARTIST_SEPARATOR) : display;
+}
+
 /** 优先使用音频元数据，缺失时回退到文件名解析 */
 export function getLocalMusicDisplayInfo(file: MusicFile, unknownArtist = "") {
   const displayName = getDisplayName(file.file_name);
   return {
     title: file.title?.trim() || extractSongTitle(displayName) || displayName,
-    artist: file.artist?.trim() || extractArtistName(displayName) || unknownArtist,
+    artist: formatArtistDisplay(
+      file.artist?.trim() || extractArtistName(displayName) || unknownArtist
+    ),
     album: file.album?.trim() || undefined,
   };
 }
