@@ -246,6 +246,17 @@ html.dark .search-history-item:focus-within {
   gap: 12px;
 }
 
+/* 指示灯槽位常驻：在线搜索时点亮，其他视图留白。留白是为了让右侧宽度
+   恒定——右侧一宽一窄，中间居中的搜索框就会跟着左右移动。 */
+.service-status-slot {
+  width: var(--app-icon-btn-md);
+  height: var(--app-icon-btn-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 .service-status {
   width: var(--app-icon-btn-md);
   height: var(--app-icon-btn-md);
