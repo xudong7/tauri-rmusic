@@ -7,13 +7,13 @@
  * 看着像个多余的边框。所以自绘一个不带圈的版本。
  *
  * 三角按重心居中（顶点 x 与底边 x 满足 (2·底 + 顶)/3 = 中心），与 EP 的
- * CaretRight 同一套比例，换用后大小不会变。
+ * CaretRight 同一套比例；底边比早期版本更宽，实心块在小尺寸下也够厚实。
  */
 </script>
 
 <template>
   <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M9 4.5 18 12 9 19.5Z" />
+    <path d="M8.4 4 19.2 12 8.4 20Z" />
   </svg>
 </template>
 

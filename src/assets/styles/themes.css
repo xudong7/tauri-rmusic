@@ -125,8 +125,8 @@ html {
   --app-play-btn-sm: 42px;
   --app-play-btn-lg: 56px;
   /* 播放键统一为胶囊：播放栏与沉浸页共用同一组尺寸 */
-  --app-play-btn-pill-width: 60px;
-  --app-play-btn-pill-height: 36px;
+  --app-play-btn-pill-width: 50px;
+  --app-play-btn-pill-height: 34px;
   --app-button-radius: var(--app-radius-full);
   --app-control-transition: 180ms cubic-bezier(0.22, 1, 0.36, 1);
   /* 整块界面的进出场（沉浸页、播放队列），与上面那条「控件状态过渡」分开：

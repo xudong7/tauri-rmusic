@@ -388,10 +388,10 @@
 /* 顺序/上一首/下一首：裸图标，不套描边和玻璃底，悬停只让图标亮起来 */
 .controls .immersive-control-btn {
   border: 1px solid transparent !important;
-  height: 26px;
-  width: 26px;
+  height: 30px;
+  width: 30px;
   padding: 0;
-  font-size: 14px;
+  font-size: 15px;
   border-radius: var(--app-radius-full) !important;
   background: transparent !important;
   color: var(--immersive-control-text) !important;
@@ -424,7 +424,7 @@
   width: var(--app-play-btn-pill-width) !important;
   padding: 0;
   border-radius: var(--app-radius-full, 9999px) !important;
-  font-size: 16px;
+  font-size: 17px;
   box-shadow: var(--app-play-button-shadow);
   transition:
     background var(--app-control-transition),
@@ -450,8 +450,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   padding: 0;
   border: 0;
   border-radius: var(--app-radius-full);
@@ -463,8 +463,8 @@
 
 .immersive-volume-btn svg {
   display: block;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
 }
 
 .immersive-volume-btn:hover {
@@ -742,8 +742,8 @@
   }
 
   .controls .immersive-play-btn {
-    height: 34px !important;
-    width: 56px !important;
+    height: 32px !important;
+    width: 46px !important;
   }
 }
 

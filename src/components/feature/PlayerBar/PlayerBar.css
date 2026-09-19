@@ -165,8 +165,9 @@ html.dark .player-bar {
    参考图就是这么处理的——整条播放栏里只有播放键是实心圆，其余图标直接
    落在栏上，各坐一个淡色圆圈会显得每个图标都被框住。 */
 .player-controls .control-btn {
-  width: var(--app-icon-btn-md);
-  height: var(--app-icon-btn-md);
+  /* 比 token 里的 32px 略大一点，和胶囊播放键的体量更接近 */
+  width: 34px;
+  height: 34px;
   padding: 0;
   background: var(--app-icon-button-bg) !important;
   border: 1px solid transparent !important;
@@ -214,7 +215,7 @@ html.dark .player-bar {
   width: var(--app-play-btn-pill-width);
   height: var(--app-play-btn-pill-height);
   border-radius: var(--app-radius-full);
-  font-size: 16px;
+  font-size: 17px;
   opacity: 1;
   padding: 0;
   box-shadow: var(--app-play-button-shadow);
