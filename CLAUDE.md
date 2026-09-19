@@ -30,6 +30,13 @@ npm run format
 npm run format:check
 ```
 
+## Git Workflow
+
+- **Feature branches**: Every feature development must start from a new branch checked out from `main` (e.g. `perf/`, `feat/`, `fix/` prefixes).
+- **Gate**: Pushing to remote, creating a PR, and merging/releasing into `main` must ONLY be done after the user explicitly instructs it — never proactively.
+- **Merge style**: When merging a PR, use **squash** merge.
+- **Cleanup**: Delete the feature branch (local and remote) after the merge is complete.
+
 Note: Online music requires a local API proxy running at `http://localhost:3000` (see [nooblong/NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup)).
 
 ## Architecture

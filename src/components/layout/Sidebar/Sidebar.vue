@@ -1,41 +1,23 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { Folder, Search, Setting, Plus, List, ArrowDown } from "@element-plus/icons-vue";
-import { STORAGE_KEY_SIDEBAR_PLAYLIST_EXPANDED } from "@/constants";
+import { Folder, Search, Setting, Plus } from "@element-plus/icons-vue";
 import { useViewStore } from "@/stores/viewStore";
 import { usePlaylistStore } from "@/stores/playlistStore";
+import { useCollectedPlaylistStore } from "@/stores/collectedPlaylistStore";
 import PlaylistCover from "@/components/feature/PlaylistCover/PlaylistCover.vue";
+import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 
 const { t } = useI18n();
 const router = useRouter();
 const route = useRoute();
 const viewStore = useViewStore();
 const playlistStore = usePlaylistStore();
+const collectedStore = useCollectedPlaylistStore();
 
-const playlistSectionExpanded = ref(true);
-
-onMounted(() => {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY_SIDEBAR_PLAYLIST_EXPANDED);
-    if (saved !== null) playlistSectionExpanded.value = saved === "1";
-  } catch {
-    /* ignore */
-  }
-});
-
-function togglePlaylistSection() {
-  playlistSectionExpanded.value = !playlistSectionExpanded.value;
-  try {
-    localStorage.setItem(
-      STORAGE_KEY_SIDEBAR_PLAYLIST_EXPANDED,
-      playlistSectionExpanded.value ? "1" : "0"
-    );
-  } catch {
-    /* ignore */
-  }
-}
+/** 侧边栏歌单区分栏：自建 / 收藏 */
+const playlistTab = ref<"created" | "collected">("created");
 
 const navItems = [
   { path: "/", name: "LocalMusic", labelKey: "common.localMusic", icon: Folder },
@@ -58,6 +40,10 @@ function isPlaylistActive(id: string) {
   return route.name === "Playlist" && route.params.id === id;
 }
 
+function isCollectedPlaylistActive(id: string) {
+  return route.name === "OnlinePlaylist" && String(route.params.id) === id;
+}
+
 function goTo(item: (typeof navItems)[0]) {
   if (isActive(item)) return;
   const targetPath = item.name === "OnlineMusic" ? viewStore.lastOnlinePath : item.path;
@@ -71,6 +57,11 @@ function goToNewPlaylist() {
 function goToPlaylist(id: string) {
   if (route.params.id === id) return;
   router.push(`/playlist/${id}`);
+}
+
+function goToCollectedPlaylist(id: string) {
+  if (isCollectedPlaylistActive(id)) return;
+  router.push({ name: "OnlinePlaylist", params: { id } });
 }
 </script>
 
@@ -90,19 +81,34 @@ function goToPlaylist(id: string) {
         <span class="nav-label">{{ t(item.labelKey) }}</span>
       </button>
 
-      <div class="playlist-section" :class="{ 'is-collapsed': !playlistSectionExpanded }">
-        <div class="playlist-section-title">
+      <div class="playlist-section">
+        <!-- 分栏栏：与参考图一致的「自建歌单 | 收藏歌单」，右侧是新建键 -->
+        <div class="playlist-section-header">
+          <div class="playlist-tabs" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              class="playlist-tab"
+              :class="{ 'is-active': playlistTab === 'created' }"
+              :aria-selected="playlistTab === 'created'"
+              @click="playlistTab = 'created'"
+            >
+              {{ t("playlist.created") }}
+            </button>
+            <span class="playlist-tab-divider" aria-hidden="true"></span>
+            <button
+              type="button"
+              role="tab"
+              class="playlist-tab"
+              :class="{ 'is-active': playlistTab === 'collected' }"
+              :aria-selected="playlistTab === 'collected'"
+              @click="playlistTab = 'collected'"
+            >
+              {{ t("playlist.collected") }}
+            </button>
+          </div>
           <button
-            type="button"
-            class="playlist-section-toggle"
-            :aria-expanded="playlistSectionExpanded"
-            @click="togglePlaylistSection"
-          >
-            <el-icon class="chevron"><ArrowDown /></el-icon>
-            <el-icon class="title-icon"><List /></el-icon>
-            <span class="playlist-section-title-text">{{ t("playlist.title") }}</span>
-          </button>
-          <button
+            v-if="playlistTab === 'created'"
             type="button"
             class="playlist-section-add"
             :title="t('playlist.newPlaylist')"
@@ -112,8 +118,9 @@ function goToPlaylist(id: string) {
             <el-icon><Plus /></el-icon>
           </button>
         </div>
-        <Transition name="playlist-body">
-          <div v-show="playlistSectionExpanded" class="playlist-section-body">
+
+        <div class="playlist-section-body">
+          <template v-if="playlistTab === 'created'">
             <button
               v-for="pl in playlistStore.playlists"
               :key="pl.id"
@@ -125,16 +132,44 @@ function goToPlaylist(id: string) {
             >
               <PlaylistCover
                 :item="pl.items[0]"
-                :size="24"
-                :radius="6"
+                :size="20"
+                :radius="5"
                 aria-hidden="true"
               />
               <span class="nav-label" :title="pl.name">{{
                 pl.name || t("playlist.unnamed")
               }}</span>
             </button>
-          </div>
-        </Transition>
+          </template>
+
+          <template v-else>
+            <button
+              v-for="pl in collectedStore.collectedPlaylists"
+              :key="pl.id"
+              type="button"
+              class="nav-item nav-item-playlist"
+              :class="{ 'is-active': isCollectedPlaylistActive(pl.id) }"
+              :aria-current="isCollectedPlaylistActive(pl.id) ? 'page' : undefined"
+              @click="goToCollectedPlaylist(pl.id)"
+            >
+              <CoverImage
+                :src="pl.cover_url"
+                alt=""
+                :size="20"
+                :radius="5"
+                variant="playlist"
+                class="playlist-cover"
+              />
+              <span class="nav-label" :title="pl.name">{{ pl.name }}</span>
+            </button>
+            <p
+              v-if="collectedStore.collectedPlaylists.length === 0"
+              class="playlist-empty-hint"
+            >
+              {{ t("playlist.collectedEmpty") }}
+            </p>
+          </template>
+        </div>
       </div>
     </nav>
   </aside>

@@ -56,7 +56,7 @@ describe("TrackList", () => {
   // 列头与行曾各自维护一份网格：行上删掉序号列时列头那份没人跟着改，
   // 于是「歌曲」这个标题比歌名右移了整整 52px。这两条把「同源」钉死。
   describe("列头与行的网格必须同源", () => {
-    it("列头的格数等于网格的轨道数", () => {
+    it("列头覆盖全部轨道，且「歌曲」在最前", () => {
       const tracks = countTracks(baseGrid);
       // 自检：解析失败会得到 0，下面的断言就成了空转
       expect(tracks).toBe(4);
@@ -64,7 +64,22 @@ describe("TrackList", () => {
       const cells = mount(TrackList, { props: { items: rows(3) } }).findAll(
         ".track-list__columns > *"
       );
-      expect(cells).toHaveLength(tracks);
+      // 「歌曲」跨封面+标题两列，专辑、时长各一列：总跨度 = 4 = 轨道数。
+      // 顺序也钉住：歌曲必须是首个子元素，否则它不会从封面左边沿开始。
+      expect(cells.map((cell) => cell.classes()[0])).toEqual([
+        "track-list__column-song",
+        "track-list__column-album",
+        "track-list__column-duration",
+      ]);
+    });
+
+    // jsdom 不算网格，跨列只能从源码层面钉住：少了这条显式跨列，
+    // 歌曲列头会自动落到第二列（歌名上方），封面左边缘就没有列头对齐。
+    it("「歌曲」列头显式跨封面与标题两列", () => {
+      const songColumnRule =
+        trackListSource.match(/\.track-list__column-song\s*\{[^}]*\}/)?.[0] ?? "";
+
+      expect(songColumnRule).toContain("grid-column: 1 / 3");
     });
 
     // 这一条守的是一个没有报错、也测不出布局的错误：

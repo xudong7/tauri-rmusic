@@ -23,6 +23,7 @@ use tokio::sync::broadcast::Sender;
 use tray::{quit_app as quit_app_handle, setup_tray};
 
 mod file;
+mod fs_util;
 mod music;
 mod netease;
 mod playlist;

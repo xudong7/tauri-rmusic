@@ -65,13 +65,13 @@ describe("TrackRow", () => {
 
   // 图标不能带那圈「边框」。Element Plus 的 VideoPlay 把三角套在圆圈里，
   // 而播放键本身往往已经是圆按钮或叠在封面上，多一圈就像多了个框。
-  // 自绘的 PlayIcon 是纯三角：路径里没有任何圆弧命令（A/a），带圈的必有。
+  // 自绘的 PlayIcon 只在小半径圆角处用 A 命令（2.2），带圈的必有 448 的大圆弧。
   it("播放键用无框三角，不带圆圈", () => {
     const wrapper = mount(TrackRow, { props: { item } });
 
     expect(wrapper.find(".track-row__play-icon .play-icon").exists()).toBe(true);
     const d = wrapper.get(".track-row__play-icon path").attributes("d") ?? "";
-    expect(d).not.toMatch(/[aA]\s*\d/);
+    expect(d).not.toMatch(/[aA]\s*\d{3,}/);
   });
 
   it("播放中出跳动条，否则出播放键", () => {

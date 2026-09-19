@@ -124,6 +124,9 @@ html {
   --app-icon-btn-lg: 40px;
   --app-play-btn-sm: 42px;
   --app-play-btn-lg: 56px;
+  /* 播放键统一为胶囊：播放栏与沉浸页共用同一组尺寸 */
+  --app-play-btn-pill-width: 44px;
+  --app-play-btn-pill-height: 34px;
   --app-button-radius: var(--app-radius-full);
   --app-control-transition: 180ms cubic-bezier(0.22, 1, 0.36, 1);
   /* 整块界面的进出场（沉浸页、播放队列），与上面那条「控件状态过渡」分开：
@@ -451,12 +454,13 @@ html.theme-warm {
   color: var(--el-color-danger);
 }
 
+/* 与其它图标按钮同规矩：悬停只让图标亮起来，不浮出红色实心圆 */
 .app-icon-button--danger.el-button:not(:disabled):hover,
 .app-icon-button--danger.el-button:not(:disabled):focus-visible {
-  color: #fff;
-  background: var(--el-color-danger);
-  border-color: var(--el-color-danger);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-danger) 18%, transparent);
+  color: color-mix(in srgb, var(--el-color-danger) 62%, #fff);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 @media (max-width: 840px) {

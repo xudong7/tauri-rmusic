@@ -6,9 +6,7 @@
   flex-direction: column;
   overflow: hidden;
   color: var(--immersive-text-muted, rgba(255, 255, 255, 0.7));
-  /* 只过渡会变的属性：transition: all 会让每次重渲染都去比对整棵子树的
-     全部属性，即使只有 color 在变 */
-  transition: color 0.3s ease;
+  transition: all 0.3s ease;
   padding: 0;
   align-items: flex-start;
 }
@@ -33,33 +31,75 @@
   width: 100%;
 }
 
-/* 歌词内容区 */
+/* 歌词内容区：左侧留出「播放 + 时间」胶囊的固定槽位 */
 .lyric-lines {
-  padding: 20px 0;
+  padding: 20px 0 20px 68px;
   width: 100%;
   text-align: left;
-  padding-left: 8px;
 }
 
 /* 歌词行 */
 .lyric-line {
+  position: relative;
+  display: block;
+  width: 100%;
   text-align: left;
   margin: 14px 0;
   font-size: 15px;
   line-height: 1.6;
-  /* 只有激活行在状态切换，transition: all 会让每一行都为没在变的
-     属性（margin/padding/line-height）做过渡准备 */
-  transition:
-    color 0.4s ease,
-    font-size 0.4s ease,
-    font-weight 0.4s ease,
-    opacity 0.4s ease,
-    letter-spacing 0.4s ease;
+  transition: all 0.4s ease;
   padding: 4px 8px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  cursor: default;
   opacity: 0.66;
   font-weight: 400;
   letter-spacing: 0;
   overflow-wrap: anywhere;
+}
+
+.lyric-line.is-seekable {
+  cursor: pointer;
+}
+
+.lyric-line.is-seekable:focus-visible {
+  border-radius: var(--app-radius-sm, 6px);
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* hover 浮出的跳转胶囊：播放三角 + 该行时间，落在左侧槽位里 */
+.lyric-seek-hint {
+  position: absolute;
+  left: -68px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--app-radius-full, 9999px);
+  background: color-mix(in srgb, var(--immersive-text-primary, #fff) 14%, transparent);
+  color: var(--immersive-text-primary, #fff);
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.lyric-line.is-seekable:hover .lyric-seek-hint,
+.lyric-line.is-seekable:focus-visible .lyric-seek-hint {
+  opacity: 1;
+}
+
+.lyric-seek-icon {
+  font-size: 10px;
 }
 
 /* 当前播放的歌词行 */

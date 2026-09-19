@@ -11,8 +11,6 @@ export interface PlayOnlineOptions {
 
 export function usePlaybackQueue(options: {
   getPlayMode: () => PlayMode;
-  getViewMode?: () => unknown;
-  getFallbackOnlineQueue?: () => SongInfo[];
   getCurrentPlaylistId: () => string | null;
   setCurrentPlaylistId: (id: string | null) => void;
   getPlaylist: (id: string) => Playlist | undefined;
@@ -127,7 +125,6 @@ export function usePlaybackQueue(options: {
     clearOnlineQueue,
     applyOnlinePlaybackContext,
     getActiveOnlineQueue,
-    getNextOnlineSongForPrefetch,
     prefetchOnlineSong,
     prefetchNextOnlineSong,
   };

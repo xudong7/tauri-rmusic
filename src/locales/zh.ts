@@ -20,6 +20,13 @@ export default {
   },
   playlist: {
     title: "播放列表",
+    created: "自建歌单",
+    collected: "收藏歌单",
+    collect: "收藏",
+    uncollect: "取消收藏",
+    collectSuccess: "已收藏",
+    uncollectSuccess: "已取消收藏",
+    collectedEmpty: "还没有收藏的歌单",
     newPlaylist: "新建播放列表",
     unnamed: "未命名列表",
     rename: "重命名",
@@ -164,6 +171,7 @@ export default {
     noLyric: "暂无歌词",
     loadFailed: "歌词加载失败",
     loading: "加载歌词中...",
+    seekTo: "跳转到 {time}",
   },
   import: {
     audioFiles: "音频文件",

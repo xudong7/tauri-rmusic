@@ -355,9 +355,13 @@ function handleActivate() {
     box-shadow var(--app-control-transition);
 }
 
-/* 与全项目一致：悬停只让图标亮起来，不浮出底色方块 */
+/* 与全项目一致：悬停只让图标亮起来，不浮出底色方块。
+   显式写 background/border 是为了压过全局 .el-button.is-link:hover 的底色。 */
 :deep(.track-row__actions .el-button:hover) {
   color: var(--app-icon-button-hover-color);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .track-row__play-icon {

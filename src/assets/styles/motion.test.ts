@@ -54,7 +54,6 @@ describe("过渡类名", () => {
       "history-dropdown",
       "immersive",
       "page",
-      "playlist-body",
       "queue",
     ]);
   });

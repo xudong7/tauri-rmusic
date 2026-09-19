@@ -159,6 +159,13 @@ onMounted(() => {
     runInitTask("local library", () => localStore.initializeLocalLibrary()),
     runInitTask("playlists", () => playlistStore.loadPlaylists()),
     runInitTask("playback volume", () => playerStore.syncVolumeToBackend()),
+    runInitTask("playback clock", async () => {
+      // 组件重挂载（开发时的 HMR 等）会停掉播放时钟，但 store 仍是「播放中」。
+      // 挂载时按 store 状态恢复，否则进度条与歌词会一直冻结。
+      if (playerStore.isPlaying && playerStore.hasCurrentTrack) {
+        playerStore.startPlayTimeTracking();
+      }
+    }),
     runInitTask("playback events", () => playerStore.startPlaybackEventListening()),
     runInitTask("tray events", () => trayEvents.start()),
   ]);
@@ -228,6 +235,8 @@ onUnmounted(() => {
         :playbackPhase="playerStore.playbackPhase"
         :playMode="playerStore.playMode"
         :volume="playerStore.volume"
+        :currentPlayTime="playerStore.currentPlayTime"
+        :currentTrackDuration="playerStore.currentTrackDuration"
         @toggle-play="playerStore.togglePlay"
         @volume-change="playerStore.adjustVolume"
         @previous="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1))"
@@ -246,13 +255,17 @@ onUnmounted(() => {
           :currentSong="playerStore.currentOnlineSong"
           :currentMusic="playerStore.currentMusic"
           :isPlaying="playerStore.isPlaying"
+          :currentTime="playerStore.currentPlayTime"
+          :currentTrackDuration="playerStore.currentTrackDuration"
           :playMode="playerStore.playMode"
+          :volume="playerStore.volume"
           @toggle-play="playerStore.togglePlay"
           @next="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1))"
           @previous="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1))"
           @exit="playerStore.exitImmersive"
           @seek="playerStore.seekToPosition"
           @toggle-play-mode="playerStore.togglePlayMode"
+          @volume-change="playerStore.adjustVolume"
         />
       </Transition>
     </div>

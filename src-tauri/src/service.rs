@@ -1,6 +1,5 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use tauri::{Emitter, Manager};
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
 
@@ -36,8 +35,7 @@ pub async fn ensure_online_service(
     process: tauri::State<'_, OnlineServiceProcess>,
 ) -> Result<(), String> {
     let service_name = sidecar_name_for_current_platform();
-    let window = app_handle.get_webview_window("main");
-    spawn_service(&app_handle, service_name, window, process.inner())?;
+    spawn_service(&app_handle, service_name, process.inner())?;
     wait_until_service_ready().await
 }
 
@@ -80,7 +78,6 @@ async fn wait_until_service_ready() -> Result<(), String> {
 fn spawn_service(
     app_handle: &tauri::AppHandle,
     service_name: &str,
-    window: Option<tauri::webview::WebviewWindow>,
     process: &OnlineServiceProcess,
 ) -> Result<(), String> {
     if process
@@ -109,24 +106,13 @@ fn spawn_service(
 
     let child_state = Arc::clone(&process.child);
     tauri::async_runtime::spawn(async move {
-        // 读取诸如 stdout 之类的事件
         while let Some(event) = rx.recv().await {
-            match event {
-                CommandEvent::Stdout(line) => {
-                    if let Some(window) = &window {
-                        if let Err(e) = window.emit("message", Some(format!("{:?}", line))) {
-                            eprintln!("Failed to emit event: {}", e);
-                        }
+            if let CommandEvent::Terminated(_) = event {
+                if let Ok(mut current) = child_state.lock() {
+                    if current.as_ref().map(CommandChild::pid) == Some(pid) {
+                        current.take();
                     }
                 }
-                CommandEvent::Terminated(_) => {
-                    if let Ok(mut current) = child_state.lock() {
-                        if current.as_ref().map(CommandChild::pid) == Some(pid) {
-                            current.take();
-                        }
-                    }
-                }
-                _ => {}
             }
         }
         if let Ok(mut current) = child_state.lock() {
@@ -146,8 +132,7 @@ pub async fn restart_online_service(
     let service_name = sidecar_name_for_current_platform();
     shutdown_service(process.inner())?;
     tokio::time::sleep(Duration::from_millis(300)).await;
-    let window = app_handle.get_webview_window("main");
-    spawn_service(&app_handle, service_name, window, process.inner())?;
+    spawn_service(&app_handle, service_name, process.inner())?;
     wait_until_service_ready().await
 }
 

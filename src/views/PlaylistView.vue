@@ -143,12 +143,17 @@
 import { ref, computed, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
+import { useRowSelection } from "@/composables/useRowSelection";
 import { useI18n } from "vue-i18n";
 import { Minus, EditPen, Folder, Search } from "@element-plus/icons-vue";
 import MultiSelectIcon from "@/components/base/icons/MultiSelectIcon.vue";
 import TrashIcon from "@/components/base/icons/TrashIcon.vue";
 import type { PlaylistItem, MusicFile, SongInfo } from "@/types/model";
-import { formatDuration, getLocalMusicDisplayInfo } from "@/utils/songUtils";
+import {
+  formatArtists,
+  formatDurationLabel,
+  getLocalMusicDisplayInfo,
+} from "@/utils/songUtils";
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { usePlayerStore } from "@/stores/playerStore";
@@ -173,33 +178,6 @@ const nameInputRef = ref<InstanceType<typeof import("element-plus").ElInput> | n
   null
 );
 
-const selectionMode = ref(false);
-const selectedIndices = ref<Set<number>>(new Set());
-
-function toggleSelectionMode() {
-  selectionMode.value = !selectionMode.value;
-  if (!selectionMode.value) selectedIndices.value = new Set();
-}
-
-function toggleSelectRow(index: number) {
-  if (!selectionMode.value) return;
-  const next = new Set(selectedIndices.value);
-  if (next.has(index)) next.delete(index);
-  else next.add(index);
-  selectedIndices.value = next;
-}
-
-function selectAll() {
-  if (!playlist.value) return;
-  selectedIndices.value = new Set(
-    filteredResolvedItems.value.map((item) => item.sourceIndex)
-  );
-}
-
-function deselectAll() {
-  selectedIndices.value = new Set();
-}
-
 function removeSelectedFromPlaylist() {
   const list = playlist.value;
   if (!list || selectedIndices.value.size === 0) return;
@@ -207,8 +185,7 @@ function removeSelectedFromPlaylist() {
   for (const index of indices) {
     playlistStore.removeFromPlaylist(list.id, index);
   }
-  selectedIndices.value = new Set();
-  selectionMode.value = false;
+  clearSelection();
 }
 
 const playlistId = computed(() => route.params.id as string);
@@ -220,17 +197,6 @@ const playlist = computed(() =>
 
 const displayName = computed(() => playlist.value?.name ?? t("playlist.unnamed"));
 const localMusicByFileName = computed(() => localStore.musicFilesByName);
-
-watch(
-  () => playlist.value?.items.length ?? 0,
-  (length) => {
-    if (!selectionMode.value || selectedIndices.value.size === 0) return;
-    const next = new Set(
-      Array.from(selectedIndices.value).filter((index) => index >= 0 && index < length)
-    );
-    if (next.size !== selectedIndices.value.size) selectedIndices.value = next;
-  }
-);
 
 watch(
   () => playlist.value?.name,
@@ -287,10 +253,7 @@ const resolvedItems = computed(() => {
         title: display.title,
         artist: display.artist,
         album: display.album,
-        durationLabel:
-          file?.duration_ms && file.duration_ms > 0
-            ? formatDuration(file.duration_ms)
-            : undefined,
+        durationLabel: formatDurationLabel(file?.duration_ms),
         coverUrl: "",
         coverKey: file?.key ?? item.file_name,
         item,
@@ -303,9 +266,9 @@ const resolvedItems = computed(() => {
         key: `online_${i}_${s.id}`,
         sourceIndex: i,
         title: s.name,
-        artist: s.artists?.join(", ") ?? t("common.unknownArtist"),
+        artist: formatArtists(s.artists) || t("common.unknownArtist"),
         album: s.album || undefined,
-        durationLabel: s.duration > 0 ? formatDuration(s.duration) : undefined,
+        durationLabel: formatDurationLabel(s.duration),
         coverUrl: s.pic_url ?? "",
         coverKey: s.id,
         item,
@@ -325,6 +288,19 @@ const filteredResolvedItems = computed(() => {
       .toLocaleLowerCase()
       .includes(keyword)
   );
+});
+
+const {
+  selectionMode,
+  selectedKeys: selectedIndices,
+  toggleSelectionMode,
+  toggleSelectRow,
+  selectAll,
+  deselectAll,
+  clearSelection,
+} = useRowSelection<number>({
+  getSelectableKeys: () => filteredResolvedItems.value.map((item) => item.sourceIndex),
+  getAvailableKeys: () => new Set(playlist.value?.items.map((_, index) => index) ?? []),
 });
 
 const { getCover, scheduleMany: scheduleLocalCoverLoadMany } =

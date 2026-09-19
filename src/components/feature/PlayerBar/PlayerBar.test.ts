@@ -1,11 +1,16 @@
 import { computed } from "vue";
 import { createPinia, setActivePinia } from "pinia";
 import { mount, type VueWrapper } from "@vue/test-utils";
+import { createMemoryHistory, createRouter } from "vue-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { i18n } from "@/i18n";
-import { PlayMode } from "@/types/model";
+import { PlayMode, type SongInfo } from "@/types/model";
 import PlayerBar from "./PlayerBar.vue";
-import { usePlayerStore } from "@/stores/playerStore";
+
+const router = createRouter({
+  history: createMemoryHistory(),
+  routes: [{ path: "/", component: { template: "<div />" } }],
+});
 
 vi.mock("@/composables/useCoverLoader", () => ({
   useCoverLoader: () => ({ coverUrl: computed(() => "/icon.png") }),
@@ -20,9 +25,6 @@ vi.mock("@/composables/useArtistNavigation", () => ({
 }));
 
 function mountBar(volume = 50): VueWrapper {
-  // 进度条组件直接从 store 读时间，测试里把 store 状态铺好
-  const store = usePlayerStore();
-  store.currentPlayTime = 1000;
   return mount(PlayerBar, {
     props: {
       currentMusic: {
@@ -38,10 +40,22 @@ function mountBar(volume = 50): VueWrapper {
       isPlaying: false,
       playMode: PlayMode.SEQUENTIAL,
       volume,
+      currentPlayTime: 1000,
+      currentTrackDuration: 120000,
     },
-    global: { plugins: [i18n] },
+    global: { plugins: [i18n, router] },
   });
 }
+
+const onlineSong: SongInfo = {
+  id: "s1",
+  name: "Online Song",
+  artists: ["Artist"],
+  album: "Album",
+  duration: 1000,
+  pic_url: "",
+  file_hash: "h1",
+};
 
 /** 控制行各元素的类名，按 DOM 顺序 */
 function controlClasses(wrapper: VueWrapper): string[] {
@@ -117,5 +131,25 @@ describe("PlayerBar", () => {
     await wrapper.get(".volume-speaker-icon").trigger("click");
 
     expect(wrapper.emitted("volume-change")?.[0]).toEqual([0]);
+  });
+
+  // 与歌手链接对齐：只要有名可解析就常驻链接样式；
+  // 本地文件没有专辑标签时用歌名兜底，而不是直接不可点。
+  it("歌名始终是可点击链接（专辑缺失时用歌名兜底）", () => {
+    const linked = mount(PlayerBar, {
+      props: {
+        currentMusic: null,
+        currentOnlineSong: onlineSong,
+        isPlaying: false,
+        playMode: PlayMode.SEQUENTIAL,
+        volume: 50,
+        currentPlayTime: 0,
+        currentTrackDuration: 1000,
+      },
+      global: { plugins: [i18n, router] },
+    });
+
+    expect(linked.get(".song-name-text").classes()).toContain("is-link");
+    expect(mountBar().get(".song-name-text").classes()).toContain("is-link");
   });
 });

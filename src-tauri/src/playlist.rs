@@ -1,10 +1,10 @@
 // 播放列表持久化：在应用数据目录读写 playlists.json，与前端 Playlist/PlaylistItem 结构一致
 
+use crate::fs_util::{commit_temp_file, unique_temp_path_for};
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
 use std::io::{BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::AppHandle;
 use tauri::Manager;
 
@@ -47,33 +47,6 @@ fn playlists_path(app_handle: &AppHandle) -> Result<PathBuf, String> {
         .app_data_dir()
         .map_err(|e| format!("app_data_dir: {}", e))?;
     Ok(dir.join(PLAYLISTS_FILE))
-}
-
-fn unique_temp_path_for(target_path: &Path) -> PathBuf {
-    let unique = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_nanos())
-        .unwrap_or(0);
-    let file_name = target_path
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("playlists.json");
-
-    target_path.with_file_name(format!(
-        "{}.{}.{}.tmp",
-        file_name,
-        std::process::id(),
-        unique
-    ))
-}
-
-fn commit_temp_file(tmp_path: &Path, target_path: &Path) -> Result<(), String> {
-    #[cfg(windows)]
-    if target_path.exists() {
-        fs::remove_file(target_path).map_err(|e| format!("replace playlists file: {}", e))?;
-    }
-
-    fs::rename(tmp_path, target_path).map_err(|e| format!("commit playlists file: {}", e))
 }
 
 fn write_playlists_to_path(path: &Path, playlists: &[Playlist]) -> Result<(), String> {
@@ -130,6 +103,7 @@ pub fn write_playlists(app_handle: AppHandle, playlists: Vec<Playlist>) -> Resul
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     fn unique_test_dir(name: &str) -> PathBuf {
         let unique = SystemTime::now()

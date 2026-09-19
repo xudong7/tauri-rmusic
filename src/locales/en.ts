@@ -20,6 +20,13 @@ export default {
   },
   playlist: {
     title: "Playlists",
+    created: "Created",
+    collected: "Collected",
+    collect: "Collect",
+    uncollect: "Remove from collection",
+    collectSuccess: "Added to collection",
+    uncollectSuccess: "Removed from collection",
+    collectedEmpty: "No collected playlists yet",
     newPlaylist: "New playlist",
     unnamed: "Unnamed",
     rename: "Rename",
@@ -164,6 +171,7 @@ export default {
     noLyric: "No lyrics",
     loadFailed: "Failed to load lyrics",
     loading: "Loading lyrics...",
+    seekTo: "Jump to {time}",
   },
   import: {
     audioFiles: "Audio files",

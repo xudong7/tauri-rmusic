@@ -13,6 +13,17 @@
           />
         </template>
         <template #actions>
+          <el-tooltip :content="collectLabel" placement="bottom">
+            <el-button
+              link
+              size="small"
+              :icon="collectIcon"
+              class="app-icon-button online-playlist-view__collect"
+              :class="{ 'is-collected': isCollected }"
+              :aria-label="collectLabel"
+              @click="toggleCollect"
+            />
+          </el-tooltip>
           <el-button text :icon="ArrowLeft" @click="goBack">{{
             t("onlinePlaylist.back")
           }}</el-button>
@@ -62,10 +73,12 @@
 import { computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
-import { ArrowLeft } from "@element-plus/icons-vue";
+import { ArrowLeft, Star, StarFilled } from "@element-plus/icons-vue";
+import { ElMessage } from "element-plus";
 import type { SongInfo } from "@/types/model";
 import { formatCompactNumber } from "@/utils/songUtils";
 import { useOnlinePlaylistStore } from "@/stores/onlinePlaylistStore";
+import { useCollectedPlaylistStore } from "@/stores/collectedPlaylistStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useViewStore } from "@/stores/viewStore";
 import OnlineMusicList from "@/components/feature/OnlineMusicList/OnlineMusicList.vue";
@@ -78,9 +91,49 @@ const { t, locale } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const store = useOnlinePlaylistStore();
+const collectedStore = useCollectedPlaylistStore();
 const playerStore = usePlayerStore();
 const viewStore = useViewStore();
 const { downloadOnlineSong, addOnlineSongToPlaylist } = useOnlinePlaylistActions();
+
+const playlistId = computed(() => String(route.params.id || ""));
+const isCollected = computed(() => collectedStore.isCollected(playlistId.value));
+const collectIcon = computed(() => (isCollected.value ? StarFilled : Star));
+const collectLabel = computed(() =>
+  isCollected.value ? t("playlist.uncollect") : t("playlist.collect")
+);
+
+function toggleCollect() {
+  const detail = store.detail;
+  if (!detail) return;
+  const collected = collectedStore.toggleCollected({
+    id: detail.id,
+    name: detail.name,
+    cover_url: detail.cover_url,
+    track_count: detail.track_count,
+    creator: detail.creator,
+    play_count: detail.play_count,
+  });
+  ElMessage.success(
+    collected ? t("playlist.collectSuccess") : t("playlist.uncollectSuccess")
+  );
+}
+
+// 详情到位后刷新收藏条目的元数据（名称/封面等可能已在服务端变化）
+watch(
+  () => store.detail,
+  (detail) => {
+    if (!detail || !collectedStore.isCollected(detail.id)) return;
+    collectedStore.updateCollected({
+      id: detail.id,
+      name: detail.name,
+      cover_url: detail.cover_url,
+      track_count: detail.track_count,
+      creator: detail.creator,
+      play_count: detail.play_count,
+    });
+  }
+);
 
 const subtitle = computed(() => {
   const detail = store.detail;
@@ -126,6 +179,12 @@ watch(() => route.fullPath, load, { immediate: true });
 
 .online-playlist-view__cover {
   margin-right: 12px;
+}
+
+/* 已收藏：图标常驻主色。悬停也保持，压过全局图标按钮的悬停色。 */
+.online-playlist-view__collect.is-collected,
+.online-playlist-view__collect.is-collected:hover {
+  color: var(--el-color-primary) !important;
 }
 
 /* 与 PageHeader 高度一致，加载时占位不跳动 */

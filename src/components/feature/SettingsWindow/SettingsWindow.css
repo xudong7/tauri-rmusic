@@ -196,9 +196,13 @@
   color: var(--el-text-color-secondary);
 }
 
-/* 与全项目一致：悬停只让图标亮起来，不浮出底色方块 */
+/* 与全项目一致：悬停只让图标亮起来，不浮出底色方块。
+   全局 .el-button.is-link:hover 会给链接按钮加一层底色（特异性高于本选择器），
+   必须显式压掉。 */
 .path-copy:hover {
   color: var(--el-color-primary);
+  background: transparent !important;
+  border-color: transparent !important;
 }
 
 .settings-about .about-content {

@@ -8,12 +8,13 @@ use std::io::{self, BufReader, ErrorKind, Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Condvar, Mutex as StdMutex, OnceLock, Weak};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime};
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::io::AsyncWriteExt;
 use tokio::sync::broadcast::Sender;
 use tokio::sync::{broadcast, Mutex};
 
+use crate::fs_util::unique_temp_path_for;
 use crate::netease;
 
 const MAX_ONLINE_AUDIO_CACHE_BYTES: u64 = 1024 * 1024 * 1024;
@@ -74,7 +75,6 @@ pub struct PlaybackTrackIdState(pub Arc<Mutex<u64>>);
 #[derive(Clone, Default)]
 pub struct PlaybackRequestIdState(pub Arc<AtomicU64>);
 
-#[derive(Default)]
 struct ProgressiveDownloadState {
     downloaded: u64,
     total: Option<u64>,
@@ -255,9 +255,7 @@ impl Music {
         let duration_clone = Arc::new(Mutex::new(0u64));
         let track_id = Arc::new(Mutex::new(0u64));
 
-        // spawn a thread to handle the music events
         tokio::spawn(async move {
-            // receive events from the channel
             while let Ok(event) = event_receiver.recv().await {
                 match event {
                     MusicState::Recovery => {
@@ -339,6 +337,12 @@ where
     if sink_lock.is_paused() {
         sink_lock.play();
     }
+    // rodio 的播放位置由音频线程的周期回调维护：换源后要等新音源被拉取一次
+    // 才会归零。在那之前 get_pos() 仍返回上一首的位置，而 track_id/duration
+    // 已经是新曲——这段窗口里前端的一次进度同步会被判为「当前曲目的有效状态」，
+    // 把进度条和本地时钟基准都写成上一首的位置（表现为进度条先停在上一首末尾，
+    // 约 10 秒后才被下一次同步纠正）。try_seek 会同步写入 position，立即归零。
+    let _ = sink_lock.try_seek(Duration::ZERO);
     Ok(())
 }
 
@@ -404,23 +408,6 @@ pub(crate) fn is_online_audio_cached(app_handle: &AppHandle, cache_key: &str) ->
         .ok()
         .and_then(|path| fs::metadata(path).ok())
         .is_some_and(|metadata| metadata.len() > 0)
-}
-
-fn unique_temp_path_for(target_path: &Path) -> PathBuf {
-    let unique = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_nanos())
-        .unwrap_or(0);
-    let file_name = target_path
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("cache");
-    target_path.with_file_name(format!(
-        "{}.{}.{}.tmp",
-        file_name,
-        std::process::id(),
-        unique
-    ))
 }
 
 fn online_download_lock(cache_path: &Path) -> Result<Arc<Mutex<()>>, String> {
