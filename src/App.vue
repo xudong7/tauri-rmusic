@@ -4,6 +4,7 @@ import {
   onUnmounted,
   computed,
   nextTick,
+  ref,
   watch,
   type WatchStopHandle,
 } from "vue";
@@ -23,6 +24,7 @@ import { usePlaybackQueueRouteReset } from "./composables/usePlaybackQueueRouteR
 import { useStorageThemeSync } from "./composables/useStorageThemeSync";
 import { useTrayPlaybackEvents } from "./composables/useTrayPlaybackEvents";
 import { useWindowSizeConstraints } from "./composables/useWindowSizeConstraints";
+import { getCoverFlightSource, playCoverFlight } from "./composables/useCoverFlight";
 import { useThemeStore } from "./stores/themeStore";
 import { useViewStore } from "./stores/viewStore";
 import { useLocalMusicStore } from "./stores/localMusicStore";
@@ -193,6 +195,31 @@ onUnmounted(() => {
   window.removeEventListener("pagehide", flushPlaylistSave);
   flushPlaylistSave();
 });
+
+const immersiveViewRef = ref<InstanceType<typeof ImmersiveView> | null>(null);
+
+/** 进入沉浸：先让沉浸页挂载（量它的封面矩形），再把播放栏封面飞过去。
+    飞行期间沉浸页自己的封面藏起来，落位后由飞行引擎恢复。 */
+async function handleShowImmersive() {
+  playerStore.showImmersive();
+  await nextTick();
+  await playCoverFlight(
+    getCoverFlightSource(),
+    immersiveViewRef.value?.coverElement ?? null,
+    {
+      phase: "enter",
+      hideTarget: true,
+    }
+  );
+}
+
+/** 退出沉浸：沉浸页还在 DOM 里时量两端矩形，然后反向飞回播放栏封面 */
+async function handleExitImmersive() {
+  const from = immersiveViewRef.value?.coverElement ?? null;
+  const to = getCoverFlightSource();
+  playerStore.exitImmersive();
+  await playCoverFlight(from, to, { phase: "leave", hideTarget: false });
+}
 </script>
 
 <template>
@@ -243,7 +270,7 @@ onUnmounted(() => {
         @next="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1))"
         @toggle-play-mode="playerStore.togglePlayMode"
         @toggle-queue="viewStore.togglePlaybackQueue"
-        @show-immersive="playerStore.showImmersive"
+        @show-immersive="handleShowImmersive"
         @seek="playerStore.seekToPosition"
       />
 
@@ -252,6 +279,7 @@ onUnmounted(() => {
       <Transition name="immersive">
         <ImmersiveView
           v-if="viewStore.showImmersiveMode"
+          ref="immersiveViewRef"
           :currentSong="playerStore.currentOnlineSong"
           :currentMusic="playerStore.currentMusic"
           :isPlaying="playerStore.isPlaying"
@@ -262,7 +290,7 @@ onUnmounted(() => {
           @toggle-play="playerStore.togglePlay"
           @next="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1))"
           @previous="playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1))"
-          @exit="playerStore.exitImmersive"
+          @exit="handleExitImmersive"
           @seek="playerStore.seekToPosition"
           @toggle-play-mode="playerStore.togglePlayMode"
           @volume-change="playerStore.adjustVolume"
@@ -334,5 +362,21 @@ onUnmounted(() => {
   .page-leave-active {
     transition: none;
   }
+}
+
+/* 共享元素转场的飞行副本：挂在 body 上（见 useCoverFlight），只动 transform。
+   位置与尺寸由 JS 设成终点封面的矩形，transform-origin: 0 0 让起点矩形能
+   精确对上；背景用封面图，飞行时带一点投影把它从画面里托起来。 */
+.cover-flight {
+  position: fixed;
+  z-index: 2000;
+  transform-origin: 0 0;
+  border-radius: 8px;
+  background-color: var(--el-fill-color);
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+  pointer-events: none;
+  will-change: transform;
 }
 </style>

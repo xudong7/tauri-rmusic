@@ -207,6 +207,10 @@ const overlayStyle = computed(() => {
     )`,
   };
 });
+
+// 封面是共享元素飞行的落点：App 在进场/退场时量它的矩形，飞行期间把它藏起来。
+const coverRef = ref<HTMLElement | null>(null);
+defineExpose({ coverElement: coverRef });
 </script>
 
 <template>
@@ -267,7 +271,7 @@ const overlayStyle = computed(() => {
     <div class="content-section">
       <!-- 左侧：封面 + 歌曲信息 -->
       <div class="left-section">
-        <div class="cover-container">
+        <div ref="coverRef" class="cover-container">
           <img
             v-if="currentCoverUrl"
             :key="currentCoverUrl"

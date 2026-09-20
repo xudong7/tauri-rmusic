@@ -66,18 +66,22 @@
   opacity: 0;
 }
 
-/* 内容随整页一起浮上来。时长必须与根同 token：根的 -active 类一摘，这条
+/* 文字与歌词随整页一起浮上来。时长必须与根同 token：根的 -active 类一摘，这条
    transition 声明就消失，正在跑的位移会被掐断跳到终值——进场时根已经
    完全不透明，掐断是看得见的。
    因此这里不能给 transition-delay：根 200ms，内容「延迟 40ms + 200ms」
-   就超出根，会在 200ms 被截断。错峰好看，但代价是这个失配，不做。 */
-.immersive-enter-active .content-section {
+   就超出根，会在 200ms 被截断。错峰好看，但代价是这个失配，不做。
+   位移刻意不含封面：封面是共享元素飞行的落点，进场期间它的矩形必须稳定，
+   否则量出来的目标会偏 14px，飞行落位会跳一下。 */
+.immersive-enter-active .song-info,
+.immersive-enter-active .right-section {
   transition:
     opacity var(--app-motion-enter) var(--app-motion-ease-out),
     transform var(--app-motion-enter) var(--app-motion-ease-out);
 }
 
-.immersive-enter-from .content-section {
+.immersive-enter-from .song-info,
+.immersive-enter-from .right-section {
   opacity: 0;
   transform: translateY(14px);
 }
