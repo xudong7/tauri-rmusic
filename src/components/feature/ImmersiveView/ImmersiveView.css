@@ -707,11 +707,12 @@
 .immersive-track-text {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 7px;
   min-width: 0;
 }
 
 .immersive-track-title {
+  display: block;
   font-size: 14px;
   font-weight: 600;
   color: var(--immersive-text-primary);
@@ -726,6 +727,37 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 可点击时只用颜色变化标示：与画面中央的歌名/歌手、播放栏同一套 */
+.immersive-track-title.is-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.immersive-track-artist .artist-part.artist-link {
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.immersive-track-title.is-link:hover,
+.immersive-track-artist .artist-part.artist-link:hover {
+  color: var(--immersive-link-hover);
+}
+
+.immersive-track-title.is-link:focus-visible,
+.immersive-track-artist .artist-part.artist-link:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
 }
 
 .immersive-bottom-zone:hover .immersive-bottom-bar,

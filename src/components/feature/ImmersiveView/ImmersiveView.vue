@@ -352,13 +352,33 @@ defineExpose({ coverElement: coverRef });
             <CollapseIcon />
           </span>
           <div class="immersive-track-text">
-            <div class="immersive-track-title" :title="songTitle">{{ songTitle }}</div>
-            <div
-              v-if="currentArtistName"
-              class="immersive-track-artist"
-              :title="currentArtistName"
+            <component
+              :is="canNavigateAlbum ? 'button' : 'span'"
+              :type="canNavigateAlbum ? 'button' : undefined"
+              class="immersive-track-title"
+              :class="{ 'is-link': canNavigateAlbum }"
+              @click.stop="handleNavigateAlbum"
             >
-              {{ currentArtistName }}
+              {{ songTitle }}
+            </component>
+            <div class="immersive-track-artist">
+              <template v-if="artistNames.length">
+                <template v-for="(a, idx) in artistNames" :key="a + idx">
+                  <component
+                    :is="canNavigateArtist ? 'button' : 'span'"
+                    :type="canNavigateArtist ? 'button' : undefined"
+                    class="artist-part"
+                    :class="{ 'artist-link': canNavigateArtist }"
+                    @click.stop="handleNavigateArtist(a)"
+                  >
+                    {{ a }}
+                  </component>
+                  <span v-if="idx < artistNames.length - 1" class="artist-sep">{{
+                    ARTIST_SEPARATOR
+                  }}</span>
+                </template>
+              </template>
+              <template v-else>{{ currentArtistName }}</template>
             </div>
           </div>
         </div>
