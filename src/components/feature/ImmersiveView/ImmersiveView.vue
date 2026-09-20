@@ -11,6 +11,7 @@ import {
 } from "@element-plus/icons-vue";
 import PlayIcon from "@/components/base/icons/PlayIcon.vue";
 import PauseIcon from "@/components/base/icons/PauseIcon.vue";
+import CollapseIcon from "@/components/base/icons/CollapseIcon.vue";
 import SkipPreviousIcon from "@/components/base/icons/SkipPreviousIcon.vue";
 import SkipNextIcon from "@/components/base/icons/SkipNextIcon.vue";
 import VolumeIcon from "@/components/base/icons/VolumeIcon.vue";
@@ -344,79 +345,99 @@ defineExpose({ coverElement: coverRef });
          鼠标移到底部热区（或键盘聚焦其中）才滑出。 -->
     <div class="immersive-bottom-zone">
       <div class="immersive-bottom-bar">
-        <div class="controls">
-          <el-button
-            circle
-            class="immersive-control-btn immersive-mode-btn"
-            :icon="currentPlayModeIcon"
-            :aria-label="playModeTooltip"
-            @click="emit('toggle-play-mode')"
-          />
-          <el-button
-            circle
-            class="immersive-control-btn"
-            :icon="SkipPreviousIcon"
-            :aria-label="t('playerBar.previous')"
-            @click="emit('previous')"
-          />
-          <el-button
-            circle
-            size="large"
-            class="immersive-play-btn"
-            :icon="isPlaying ? PauseIcon : PlayIcon"
-            :aria-label="isPlaying ? t('playerBar.pause') : t('playerBar.play')"
-            @click="emit('toggle-play')"
-            type="primary"
-          />
-          <el-button
-            circle
-            class="immersive-control-btn"
-            :icon="SkipNextIcon"
-            :aria-label="t('playerBar.next')"
-            @click="emit('next')"
-          />
-
-          <!-- 音量：图标常驻，滑块悬停/聚焦时从上方浮出，与播放栏同一交互 -->
-          <div class="immersive-volume">
-            <button
-              type="button"
-              class="immersive-volume-btn"
-              :aria-label="t(volume > 0 ? 'playerBar.mute' : 'playerBar.unmute')"
-              @click="toggleMute"
+        <!-- 左侧：占位封面 + 歌曲信息（参考图）。封面图就在画面中央，这里
+             不再放第二份，只给一个带缩放图标的占位块。 -->
+        <div class="immersive-track">
+          <span class="immersive-track-cover" aria-hidden="true">
+            <CollapseIcon />
+          </span>
+          <div class="immersive-track-text">
+            <div class="immersive-track-title" :title="songTitle">{{ songTitle }}</div>
+            <div
+              v-if="currentArtistName"
+              class="immersive-track-artist"
+              :title="currentArtistName"
             >
-              <VolumeIcon />
-            </button>
-            <div class="immersive-volume-popup">
-              <div class="immersive-volume-popup-inner">
-                <el-slider
-                  v-model="volumeSliderValue"
-                  :max="100"
-                  :min="0"
-                  :step="1"
-                  :show-tooltip="false"
-                  :aria-label="t('playerBar.volume')"
-                  class="immersive-volume-slider"
-                  @change="handleVolumeChange"
-                />
-              </div>
+              {{ currentArtistName }}
             </div>
           </div>
         </div>
 
-        <div class="immersive-progress">
-          <span class="time-display">{{ currentTimeDisplay }}</span>
-          <el-slider
-            v-model="sliderValue"
-            :max="100"
-            :min="0"
-            :step="0.1"
-            :show-tooltip="false"
-            :disabled="progressDisabled"
-            class="progress-slider"
-            @input="handleProgressInput"
-            @change="handleProgressChange"
-          />
-          <span class="time-display">{{ durationDisplay }}</span>
+        <div class="immersive-center">
+          <div class="controls">
+            <el-button
+              circle
+              class="immersive-control-btn immersive-mode-btn"
+              :icon="currentPlayModeIcon"
+              :aria-label="playModeTooltip"
+              @click="emit('toggle-play-mode')"
+            />
+            <el-button
+              circle
+              class="immersive-control-btn"
+              :icon="SkipPreviousIcon"
+              :aria-label="t('playerBar.previous')"
+              @click="emit('previous')"
+            />
+            <el-button
+              circle
+              size="large"
+              class="immersive-play-btn"
+              :icon="isPlaying ? PauseIcon : PlayIcon"
+              :aria-label="isPlaying ? t('playerBar.pause') : t('playerBar.play')"
+              @click="emit('toggle-play')"
+              type="primary"
+            />
+            <el-button
+              circle
+              class="immersive-control-btn"
+              :icon="SkipNextIcon"
+              :aria-label="t('playerBar.next')"
+              @click="emit('next')"
+            />
+
+            <!-- 音量：图标常驻，滑块悬停/聚焦时从上方浮出，与播放栏同一交互 -->
+            <div class="immersive-volume">
+              <button
+                type="button"
+                class="immersive-volume-btn"
+                :aria-label="t(volume > 0 ? 'playerBar.mute' : 'playerBar.unmute')"
+                @click="toggleMute"
+              >
+                <VolumeIcon />
+              </button>
+              <div class="immersive-volume-popup">
+                <div class="immersive-volume-popup-inner">
+                  <el-slider
+                    v-model="volumeSliderValue"
+                    :max="100"
+                    :min="0"
+                    :step="1"
+                    :show-tooltip="false"
+                    :aria-label="t('playerBar.volume')"
+                    class="immersive-volume-slider"
+                    @change="handleVolumeChange"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="immersive-progress">
+            <span class="time-display">{{ currentTimeDisplay }}</span>
+            <el-slider
+              v-model="sliderValue"
+              :max="100"
+              :min="0"
+              :step="0.1"
+              :show-tooltip="false"
+              :disabled="progressDisabled"
+              class="progress-slider"
+              @input="handleProgressInput"
+              @change="handleProgressChange"
+            />
+            <span class="time-display">{{ durationDisplay }}</span>
+          </div>
         </div>
       </div>
     </div>
