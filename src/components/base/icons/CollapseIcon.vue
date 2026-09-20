@@ -12,7 +12,7 @@
     viewBox="2.4 2.4 19.2 19.2"
     fill="none"
     stroke="currentColor"
-    stroke-width="2.8"
+    stroke-width="1.8"
     stroke-linecap="round"
     stroke-linejoin="round"
     aria-hidden="true"

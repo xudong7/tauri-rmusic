@@ -683,15 +683,15 @@
 .immersive-track {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 18px;
   min-width: 0;
 }
 
 .immersive-track-cover {
-  /* 与中间一簇等高（行被 grid stretch 拉满），宽度按正方形走 */
   position: relative;
-  height: 100%;
-  aspect-ratio: 1;
+  /* 与两行文字（歌名 + 歌手）相当，不跟中间一簇等高——等高会大得压住信息 */
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
   color: var(--immersive-control-text);
 }
@@ -707,12 +707,12 @@
 .immersive-track-text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
 }
 
 .immersive-track-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--immersive-text-primary);
   overflow: hidden;
@@ -721,7 +721,7 @@
 }
 
 .immersive-track-artist {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--immersive-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
