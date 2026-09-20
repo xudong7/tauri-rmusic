@@ -9,7 +9,7 @@
 <template>
   <svg
     class="collapse-icon"
-    viewBox="0 0 24 24"
+    viewBox="2.4 2.4 19.2 19.2"
     fill="none"
     stroke="currentColor"
     stroke-width="2.8"

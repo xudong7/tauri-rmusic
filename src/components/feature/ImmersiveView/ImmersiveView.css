@@ -654,10 +654,11 @@
 .immersive-bottom-bar {
   position: relative;
   width: 100%;
-  /* 左信息 / 中控制 / 右留白：三列等宽，控制簇才会落在整条栏的正中 */
+  /* 左信息 / 中控制 / 右留白：三列等宽，控制簇才会落在整条栏的正中。
+     stretch 让左侧信息与中间一簇等高：顶对齐播放顺序键、底对齐进度条。 */
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
+  align-items: stretch;
   column-gap: clamp(12px, 2vw, 28px);
   opacity: 0;
   transform: translateY(14px);
@@ -667,11 +668,12 @@
     transform 0.24s ease;
 }
 
-/* 中间一簇：控制 + 进度，仍是紧凑竖排 */
+/* 中间一簇：控制 + 进度，仍是紧凑竖排；拉高时内容保持居中 */
 .immersive-center {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: clamp(3px, 0.8vh, 6px);
   width: min(100%, 400px);
 }
@@ -686,11 +688,20 @@
 }
 
 .immersive-track-cover {
-  display: grid;
-  place-items: center;
+  /* 与中间一簇等高（行被 grid stretch 拉满），宽度按正方形走 */
+  position: relative;
+  height: 100%;
+  aspect-ratio: 1;
   flex-shrink: 0;
   color: var(--immersive-control-text);
-  font-size: 22px;
+}
+
+/* 绝对定位：svg 自带 300×150 的固有尺寸，留在流里会把整行撑高 */
+.immersive-track-cover .collapse-icon {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .immersive-track-text {
