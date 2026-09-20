@@ -9,6 +9,23 @@
   transition: all 0.3s ease;
   padding: 0;
   align-items: flex-start;
+  /* 上下边缘淡出：滚到边缘的歌词先变淡再消失，滚动/切歌不会硬切。
+     模糊那份在 ImmersiveView 的 .lyric-view-container 上（backdrop-filter），
+     两层叠加才是完整的「过渡模糊」。 */
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 16%,
+    #000 84%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 16%,
+    #000 84%,
+    transparent 100%
+  );
 }
 
 .is-playing {
@@ -31,8 +48,11 @@
   width: 100%;
 }
 
-/* 歌词内容区：左侧留出「播放 + 时间」胶囊的固定槽位 */
+/* 歌词内容区：左侧留出「播放 + 时间」胶囊的固定槽位。
+   border-box 不能少：width: 100% 加上 68px 内边距，默认 content-box 会
+   比容器宽 68px，歌词区就能左右拖动了。 */
 .lyric-lines {
+  box-sizing: border-box;
   padding: 20px 0 20px 68px;
   width: 100%;
   text-align: left;
@@ -45,7 +65,7 @@
   width: 100%;
   text-align: left;
   margin: 14px 0;
-  font-size: 15px;
+  font-size: 18px;
   line-height: 1.6;
   transition: all 0.4s ease;
   padding: 4px 8px;
@@ -133,4 +153,6 @@
 
 .lyric-container :deep(.el-scrollbar__wrap) {
   max-width: 100%;
+  /* 歌词只纵向滚动：横向留给「播放 + 时间」胶囊的槽位，不该被拖出来 */
+  overflow-x: hidden;
 }

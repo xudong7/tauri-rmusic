@@ -66,18 +66,22 @@
   opacity: 0;
 }
 
-/* 内容随整页一起浮上来。时长必须与根同 token：根的 -active 类一摘，这条
+/* 文字与歌词随整页一起浮上来。时长必须与根同 token：根的 -active 类一摘，这条
    transition 声明就消失，正在跑的位移会被掐断跳到终值——进场时根已经
    完全不透明，掐断是看得见的。
    因此这里不能给 transition-delay：根 200ms，内容「延迟 40ms + 200ms」
-   就超出根，会在 200ms 被截断。错峰好看，但代价是这个失配，不做。 */
-.immersive-enter-active .content-section {
+   就超出根，会在 200ms 被截断。错峰好看，但代价是这个失配，不做。
+   位移刻意不含封面：封面是共享元素飞行的落点，进场期间它的矩形必须稳定，
+   否则量出来的目标会偏 14px，飞行落位会跳一下。 */
+.immersive-enter-active .song-info,
+.immersive-enter-active .right-section {
   transition:
     opacity var(--app-motion-enter) var(--app-motion-ease-out),
     transform var(--app-motion-enter) var(--app-motion-ease-out);
 }
 
-.immersive-enter-from .content-section {
+.immersive-enter-from .song-info,
+.immersive-enter-from .right-section {
   opacity: 0;
   transform: translateY(14px);
 }
@@ -619,11 +623,40 @@
 
 /* 歌词容器 */
 .lyric-view-container {
+  position: relative;
   width: 100%;
   height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
+}
+
+/* 上下边缘的过渡模糊：两层各做 backdrop-filter，再用 mask 让模糊由边缘向内
+   渐隐；歌词本身在 LyricView 里已按同样的区间淡出，两层叠起来才是「边缘化开」。
+   纯装饰，不吃指针事件。 */
+.lyric-view-container::before,
+.lyric-view-container::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 15%;
+  z-index: 1;
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.lyric-view-container::before {
+  top: 0;
+  mask-image: linear-gradient(to bottom, #000, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, #000, transparent);
+}
+
+.lyric-view-container::after {
+  bottom: 0;
+  mask-image: linear-gradient(to top, #000, transparent);
+  -webkit-mask-image: linear-gradient(to top, #000, transparent);
 }
 
 /* ---------- 底部播放栏 ----------
@@ -640,25 +673,163 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  /* 尽量贴住底边：只留一点呼吸空间，不把控制条悬在半空 */
-  padding: 0 var(--immersive-shell-padding-x) clamp(8px, 1.4vh, 14px);
+  /* 尽量贴住底边：只留一点呼吸空间，不把控制条悬在半空。
+     横向内边距比内容区小得多：左侧信息（缩放图标 + 歌名）要贴住窗口左边沿，
+     而内容区的 --immersive-shell-padding-x 最宽能到 88px。 */
+  padding: 0 clamp(16px, 2.2vw, 30px) clamp(8px, 1.4vh, 14px);
   pointer-events: auto;
 }
 
 .immersive-bottom-bar {
   position: relative;
-  /* 紧凑的居中一簇，不做成通栏宽条 */
-  width: min(100%, 400px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: clamp(3px, 0.8vh, 6px);
+  width: 100%;
+  /* 左信息 / 中控制 / 右留白：三列等宽，控制簇才会落在整条栏的正中。
+     stretch 让左侧信息与中间一簇等高：顶对齐播放顺序键、底对齐进度条。 */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  column-gap: clamp(12px, 2vw, 28px);
   opacity: 0;
   transform: translateY(14px);
   pointer-events: none;
   transition:
     opacity 0.24s ease,
     transform 0.24s ease;
+}
+
+/* 中间一簇：控制 + 进度，仍是紧凑竖排；拉高时内容保持居中 */
+.immersive-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(3px, 0.8vh, 6px);
+  width: min(100%, 400px);
+}
+
+/* 左侧：缩放图标 + 歌名/歌手。图标是裸的（无底色无描边），
+   整块贴住窗口左边沿——底部栏的横向内边距因此比内容区小得多。 */
+.immersive-track {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+}
+
+.immersive-track-cover {
+  position: relative;
+  /* 与两行文字（歌名 + 歌手）相当，不跟中间一簇等高——等高会大得压住信息 */
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--app-radius-md);
+  background: transparent;
+  color: var(--immersive-control-text);
+  cursor: pointer;
+  transition: color var(--app-control-transition);
+}
+
+/* 与全项目一致：裸图标，悬停只提亮字形 */
+.immersive-track-cover:hover {
+  color: var(--immersive-text-primary);
+}
+
+.immersive-track-cover:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* 绝对定位：svg 自带 300×150 的固有尺寸，留在流里会把整行撑高 */
+.immersive-track-cover .collapse-icon {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.immersive-track-text {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.immersive-track-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--immersive-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.immersive-track-artist {
+  font-size: 12px;
+  color: var(--immersive-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 可点击时只用颜色变化标示：与画面中央的歌名/歌手、播放栏同一套 */
+.immersive-track-title.is-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.immersive-track-artist .artist-part.artist-link {
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.immersive-track-title.is-link:hover,
+.immersive-track-artist .artist-part.artist-link:hover {
+  color: var(--immersive-link-hover);
+}
+
+.immersive-track-title.is-link:focus-visible,
+.immersive-track-artist .artist-part.artist-link:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* 右侧：播放队列。裸图标按钮，与左侧信息对称占位 */
+.immersive-queue-btn {
+  justify-self: end;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--app-radius-full);
+  background: transparent;
+  color: var(--immersive-control-text);
+  font-size: 20px;
+  cursor: pointer;
+  transition: color var(--app-control-transition);
+}
+
+.immersive-queue-btn:hover {
+  color: var(--immersive-text-primary);
+}
+
+.immersive-queue-btn:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
 }
 
 .immersive-bottom-zone:hover .immersive-bottom-bar,
@@ -675,6 +846,11 @@
     --immersive-shell-padding-bottom: 20px;
     --immersive-cover-size: clamp(178px, 35vh, 230px);
     --immersive-lyrics-height: clamp(132px, 24vh, 180px);
+  }
+
+  /* 窄窗口里控制簇要占满，左侧信息先让位 */
+  .immersive-track {
+    display: none;
   }
 
   .content-section {

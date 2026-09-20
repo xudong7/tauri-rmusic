@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import PlayIcon from "@/components/base/icons/PlayIcon.vue";
 import PauseIcon from "@/components/base/icons/PauseIcon.vue";
@@ -24,6 +24,7 @@ import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import { useArtistNavigation } from "@/composables/useArtistNavigation";
 import { useAlbumNavigation } from "@/composables/useAlbumNavigation";
 import { useCoverLoader } from "@/composables/useCoverLoader";
+import { registerCoverFlightSource } from "@/composables/useCoverFlight";
 import { usePlaybackProgressSlider } from "@/composables/usePlaybackProgressSlider";
 import { useVolumeMute } from "@/composables/usePlaybackVolume";
 import { useArtistStore } from "@/stores/artistStore";
@@ -64,6 +65,11 @@ const onlineStore = useOnlineMusicStore();
 const localStore = useLocalMusicStore();
 const volumeSliderValue = ref(props.volume);
 const showRemainingTime = ref(false);
+
+// 封面兼作共享元素飞行的端点：进入沉浸时是起点，退出时是终点。
+const coverRef = ref<HTMLElement | null>(null);
+onMounted(() => registerCoverFlightSource(coverRef.value));
+onUnmounted(() => registerCoverFlightSource(null));
 
 watch(
   () => props.volume,
@@ -164,7 +170,7 @@ const {
   <div class="player-bar" :class="{ 'is-empty': !hasTrack }">
     <!-- 左侧：封面 + 歌曲信息 -->
     <div class="player-left">
-      <div class="cover-container" @click="enterImmersiveMode">
+      <div ref="coverRef" class="cover-container" @click="enterImmersiveMode">
         <CoverImage
           :src="coverUrl"
           :alt="t('playerBar.albumCover')"

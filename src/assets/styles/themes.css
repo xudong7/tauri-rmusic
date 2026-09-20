@@ -138,6 +138,11 @@ html {
   --app-motion-leave: 140ms;
   --app-motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --app-motion-ease-in: cubic-bezier(0.55, 0, 1, 0.45);
+  /* 共享元素转场（封面在播放栏与沉浸页之间飞行）：比整页淡入长一截，
+     让飞行成为主角、两端封面的交接也更从容；退场略短，与整页退场一致
+     地「用户已决定离开，别拖」。 */
+  --app-motion-flight-enter: 640ms;
+  --app-motion-flight-leave: 520ms;
   --app-button-bg: rgba(255, 255, 255, 0.58);
   --app-button-border: rgba(24, 33, 42, 0.08);
   --app-button-hover-bg: rgba(255, 255, 255, 0.9);

@@ -16,17 +16,18 @@ export function getDisplayName(path: string): string {
   return getFileName(path).replace(/\.[^/.]+$/, "");
 }
 
-/** 从 "歌手 - 歌曲" 格式提取歌手名 */
+/** 从 "歌手 - 歌曲" 格式提取歌手名。
+ *  分隔符两侧必须带空格：`TOKYO-KICK-ASS` 这类歌名里的连字符不是分隔符。 */
 export function extractArtistName(fullName: string): string {
   if (!fullName) return "";
-  const match = fullName.match(/^(.+?)\s*-\s*.+$/);
+  const match = fullName.match(/^(.+?)\s+-\s+.+$/);
   return match ? match[1].trim() : "";
 }
 
-/** 从 "歌手 - 歌曲" 格式提取歌曲名 */
+/** 从 "歌手 - 歌曲" 格式提取歌曲名（分隔符同上，两侧必须带空格） */
 export function extractSongTitle(fullName: string): string {
   if (!fullName) return "";
-  const match = fullName.match(/\s*-\s*(.+)$/);
+  const match = fullName.match(/\s+-\s+(.+)$/);
   return match ? match[1].trim() : fullName;
 }
 

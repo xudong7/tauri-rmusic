@@ -11,6 +11,8 @@ import {
 } from "@element-plus/icons-vue";
 import PlayIcon from "@/components/base/icons/PlayIcon.vue";
 import PauseIcon from "@/components/base/icons/PauseIcon.vue";
+import CollapseIcon from "@/components/base/icons/CollapseIcon.vue";
+import QueueIcon from "@/components/base/icons/QueueIcon.vue";
 import SkipPreviousIcon from "@/components/base/icons/SkipPreviousIcon.vue";
 import SkipNextIcon from "@/components/base/icons/SkipNextIcon.vue";
 import VolumeIcon from "@/components/base/icons/VolumeIcon.vue";
@@ -36,6 +38,7 @@ import { useWindowControls } from "@/composables/useWindowControls";
 import { useArtistStore } from "@/stores/artistStore";
 import { useOnlineMusicStore } from "@/stores/onlineMusicStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
+import { useViewStore } from "@/stores/viewStore";
 
 const { t, locale } = useI18n();
 
@@ -57,11 +60,13 @@ const emit = defineEmits<{
   seek: [positionMs: number];
   "toggle-play-mode": [];
   "volume-change": [value: number];
+  "toggle-queue": [];
 }>();
 
 const artistStore = useArtistStore();
 const onlineStore = useOnlineMusicStore();
 const localStore = useLocalMusicStore();
+const viewStore = useViewStore();
 const { isMacPlatform } = usePlatform();
 
 const {
@@ -207,6 +212,18 @@ const overlayStyle = computed(() => {
     )`,
   };
 });
+
+// 封面是共享元素飞行的落点：App 在进场/退场时量它的矩形，飞行期间把它藏起来。
+const coverRef = ref<HTMLElement | null>(null);
+defineExpose({ coverElement: coverRef });
+
+/** 队列面板展开时，点画面空白处收回；点到按钮/歌词/滑块等交互元素不收回 */
+function handleImmersiveClick(event: MouseEvent) {
+  if (!viewStore.showPlaybackQueue) return;
+  const target = event.target as HTMLElement | null;
+  if (target?.closest("button, a, input, .el-slider")) return;
+  viewStore.closePlaybackQueue();
+}
 </script>
 
 <template>
@@ -217,6 +234,7 @@ const overlayStyle = computed(() => {
       'uses-dark-foreground': usesDarkForeground,
     }"
     :style="paletteStyle"
+    @click="handleImmersiveClick"
   >
     <img
       v-if="currentCoverUrl"
@@ -267,7 +285,7 @@ const overlayStyle = computed(() => {
     <div class="content-section">
       <!-- 左侧：封面 + 歌曲信息 -->
       <div class="left-section">
-        <div class="cover-container">
+        <div ref="coverRef" class="cover-container">
           <img
             v-if="currentCoverUrl"
             :key="currentCoverUrl"
@@ -340,80 +358,135 @@ const overlayStyle = computed(() => {
          鼠标移到底部热区（或键盘聚焦其中）才滑出。 -->
     <div class="immersive-bottom-zone">
       <div class="immersive-bottom-bar">
-        <div class="controls">
-          <el-button
-            circle
-            class="immersive-control-btn immersive-mode-btn"
-            :icon="currentPlayModeIcon"
-            :aria-label="playModeTooltip"
-            @click="emit('toggle-play-mode')"
-          />
-          <el-button
-            circle
-            class="immersive-control-btn"
-            :icon="SkipPreviousIcon"
-            :aria-label="t('playerBar.previous')"
-            @click="emit('previous')"
-          />
-          <el-button
-            circle
-            size="large"
-            class="immersive-play-btn"
-            :icon="isPlaying ? PauseIcon : PlayIcon"
-            :aria-label="isPlaying ? t('playerBar.pause') : t('playerBar.play')"
-            @click="emit('toggle-play')"
-            type="primary"
-          />
-          <el-button
-            circle
-            class="immersive-control-btn"
-            :icon="SkipNextIcon"
-            :aria-label="t('playerBar.next')"
-            @click="emit('next')"
-          />
-
-          <!-- 音量：图标常驻，滑块悬停/聚焦时从上方浮出，与播放栏同一交互 -->
-          <div class="immersive-volume">
-            <button
-              type="button"
-              class="immersive-volume-btn"
-              :aria-label="t(volume > 0 ? 'playerBar.mute' : 'playerBar.unmute')"
-              @click="toggleMute"
+        <!-- 左侧：占位封面 + 歌曲信息（参考图）。封面图就在画面中央，这里
+             不再放第二份，只给一个带缩放图标的占位块。 -->
+        <div class="immersive-track">
+          <button
+            type="button"
+            class="immersive-track-cover"
+            :aria-label="t('common.back')"
+            @click="emit('exit')"
+          >
+            <CollapseIcon />
+          </button>
+          <div class="immersive-track-text">
+            <component
+              :is="canNavigateAlbum ? 'button' : 'span'"
+              :type="canNavigateAlbum ? 'button' : undefined"
+              class="immersive-track-title"
+              :class="{ 'is-link': canNavigateAlbum }"
+              @click.stop="handleNavigateAlbum"
             >
-              <VolumeIcon />
-            </button>
-            <div class="immersive-volume-popup">
-              <div class="immersive-volume-popup-inner">
-                <el-slider
-                  v-model="volumeSliderValue"
-                  :max="100"
-                  :min="0"
-                  :step="1"
-                  :show-tooltip="false"
-                  :aria-label="t('playerBar.volume')"
-                  class="immersive-volume-slider"
-                  @change="handleVolumeChange"
-                />
-              </div>
+              {{ songTitle }}
+            </component>
+            <div class="immersive-track-artist">
+              <template v-if="artistNames.length">
+                <template v-for="(a, idx) in artistNames" :key="a + idx">
+                  <component
+                    :is="canNavigateArtist ? 'button' : 'span'"
+                    :type="canNavigateArtist ? 'button' : undefined"
+                    class="artist-part"
+                    :class="{ 'artist-link': canNavigateArtist }"
+                    @click.stop="handleNavigateArtist(a)"
+                  >
+                    {{ a }}
+                  </component>
+                  <span v-if="idx < artistNames.length - 1" class="artist-sep">{{
+                    ARTIST_SEPARATOR
+                  }}</span>
+                </template>
+              </template>
+              <template v-else>{{ currentArtistName }}</template>
             </div>
           </div>
         </div>
 
-        <div class="immersive-progress">
-          <span class="time-display">{{ currentTimeDisplay }}</span>
-          <el-slider
-            v-model="sliderValue"
-            :max="100"
-            :min="0"
-            :step="0.1"
-            :show-tooltip="false"
-            :disabled="progressDisabled"
-            class="progress-slider"
-            @input="handleProgressInput"
-            @change="handleProgressChange"
-          />
-          <span class="time-display">{{ durationDisplay }}</span>
+        <div class="immersive-center">
+          <div class="controls">
+            <el-button
+              circle
+              class="immersive-control-btn immersive-mode-btn"
+              :icon="currentPlayModeIcon"
+              :aria-label="playModeTooltip"
+              @click="emit('toggle-play-mode')"
+            />
+            <el-button
+              circle
+              class="immersive-control-btn"
+              :icon="SkipPreviousIcon"
+              :aria-label="t('playerBar.previous')"
+              @click="emit('previous')"
+            />
+            <el-button
+              circle
+              size="large"
+              class="immersive-play-btn"
+              :icon="isPlaying ? PauseIcon : PlayIcon"
+              :aria-label="isPlaying ? t('playerBar.pause') : t('playerBar.play')"
+              @click="emit('toggle-play')"
+              type="primary"
+            />
+            <el-button
+              circle
+              class="immersive-control-btn"
+              :icon="SkipNextIcon"
+              :aria-label="t('playerBar.next')"
+              @click="emit('next')"
+            />
+
+            <!-- 音量：图标常驻，滑块悬停/聚焦时从上方浮出，与播放栏同一交互 -->
+            <div class="immersive-volume">
+              <button
+                type="button"
+                class="immersive-volume-btn"
+                :aria-label="t(volume > 0 ? 'playerBar.mute' : 'playerBar.unmute')"
+                @click="toggleMute"
+              >
+                <VolumeIcon />
+              </button>
+              <div class="immersive-volume-popup">
+                <div class="immersive-volume-popup-inner">
+                  <el-slider
+                    v-model="volumeSliderValue"
+                    :max="100"
+                    :min="0"
+                    :step="1"
+                    :show-tooltip="false"
+                    :aria-label="t('playerBar.volume')"
+                    class="immersive-volume-slider"
+                    @change="handleVolumeChange"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="immersive-progress">
+            <span class="time-display">{{ currentTimeDisplay }}</span>
+            <el-slider
+              v-model="sliderValue"
+              :max="100"
+              :min="0"
+              :step="0.1"
+              :show-tooltip="false"
+              :disabled="progressDisabled"
+              class="progress-slider"
+              @input="handleProgressInput"
+              @change="handleProgressChange"
+            />
+            <span class="time-display">{{ durationDisplay }}</span>
+          </div>
         </div>
+
+        <!-- 右侧：播放队列。与左侧信息对称占位，控制簇才会落在整条栏正中 -->
+        <button
+          type="button"
+          class="immersive-queue-btn"
+          :aria-label="t('playerBar.queue')"
+          @click="emit('toggle-queue')"
+        >
+          <QueueIcon />
+        </button>
       </div>
     </div>
   </div>
