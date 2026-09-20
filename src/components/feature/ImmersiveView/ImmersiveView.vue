@@ -344,7 +344,6 @@ const overlayStyle = computed(() => {
           <el-button
             circle
             class="immersive-control-btn immersive-mode-btn"
-            :class="{ 'is-active': playMode !== PlayMode.SEQUENTIAL }"
             :icon="currentPlayModeIcon"
             :aria-label="playModeTooltip"
             @click="emit('toggle-play-mode')"

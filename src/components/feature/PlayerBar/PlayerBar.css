@@ -35,6 +35,7 @@ html.dark .player-bar {
 }
 
 .cover-container {
+  position: relative;
   width: 48px;
   height: 48px;
   border-radius: 8px;
@@ -42,14 +43,51 @@ html.dark .player-bar {
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   cursor: pointer;
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease;
 }
 
 .cover-container:hover {
-  transform: scale(1.03);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+/* 悬停反馈：封面压暗 + 右上/左下各一个圆角「L」取景框（参考图）。
+   原先的整体放大在 48px 上更像抖动，取景框的指向也更明确。 */
+.cover-hover-frame {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.42);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--app-control-transition);
+}
+
+.cover-hover-frame::before,
+.cover-hover-frame::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: 2px solid #fff;
+}
+
+.cover-hover-frame::before {
+  top: 8px;
+  right: 8px;
+  border-left: 0;
+  border-bottom: 0;
+  border-top-right-radius: 3px;
+}
+
+.cover-hover-frame::after {
+  bottom: 8px;
+  left: 8px;
+  border-right: 0;
+  border-top: 0;
+  border-bottom-left-radius: 3px;
+}
+
+.cover-container:hover .cover-hover-frame {
+  opacity: 1;
 }
 
 .cover-image {
@@ -181,25 +219,11 @@ html.dark .player-bar {
 }
 
 /* 排除 .play-btn：它是实心主色按钮，悬停只做抬升与光晕，底色要保持主色。
-   排除 .play-mode-btn：它可能是激活态，激活色归下面 .is-active 管，
-   被这条命中会让高亮在悬停瞬间退成普通图标色。
+   播放顺序键不再按模式点亮（图标形状本身已经区分得开），所以不必单独排除。
 
    底色去掉之后这套排除只剩「颜色」一个属性要争，比原先争底色时简单多了。 */
-.player-controls .control-btn:not(.play-btn):not(.play-mode-btn):hover {
+.player-controls .control-btn:not(.play-btn):hover {
   color: var(--app-icon-button-hover-color) !important;
-}
-
-/* 播放顺序按钮的悬停：观感与上一条一致，只是被排除后要单写一份 */
-.player-controls .control-btn.play-mode-btn:hover {
-  color: var(--app-icon-button-hover-color) !important;
-}
-
-/* 播放顺序的激活态：常规列表里只有「顺序播放」是常态，所以它是唯一带色的。
-   第二条选择器多一个 :hover，特异性 (0,5,0) 压过上面那条悬停规则 (0,4,0)，
-   不依赖源码顺序。 */
-.player-controls .control-btn.play-mode-btn.is-active,
-.player-controls .control-btn.play-mode-btn.is-active:hover {
-  color: var(--el-color-primary) !important;
 }
 
 .player-controls .control-btn:disabled {

@@ -172,6 +172,8 @@ const {
           :size="48"
           :radius="8"
         />
+        <!-- 悬停反馈：封面压暗 + 对角取景框（参考图），点开进入沉浸模式 -->
+        <span class="cover-hover-frame" aria-hidden="true" />
       </div>
       <div class="song-info">
         <div class="song-name" :title="songTitle">
@@ -226,7 +228,6 @@ const {
         <el-tooltip :content="playModeTooltip" placement="top" effect="light">
           <el-button
             class="control-btn play-mode-btn app-icon-button"
-            :class="{ 'is-active': playMode !== PlayMode.SEQUENTIAL }"
             :icon="currentPlayModeIcon"
             :aria-label="playModeTooltip"
             @click="emit('toggle-play-mode')"

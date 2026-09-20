@@ -255,17 +255,21 @@ onUnmounted(() => {
     </div>
 
     <div class="header-right">
-      <!-- 纯色指示灯：不出现任何文字，避免在窄窗口下挤占搜索框 -->
-      <button
-        v-if="searchScope === 'online'"
-        type="button"
-        class="service-status app-header-icon-button"
-        :class="`is-${onlineServiceStore.state}`"
-        :aria-label="onlineServiceStatusTitle"
-        @click.stop="handleOnlineServiceStatusClick"
-      >
-        <span class="service-status-dot" />
-      </button>
+      <!-- 纯色指示灯：不出现任何文字，避免在窄窗口下挤占搜索框。
+           槽位常驻、只在在线搜索时点亮：指示灯若整块消失，右侧宽度变化会
+           把居中的搜索框推着左右移动，切视图时位置就对不上了。 -->
+      <span class="service-status-slot">
+        <button
+          v-if="searchScope === 'online'"
+          type="button"
+          class="service-status app-header-icon-button"
+          :class="`is-${onlineServiceStore.state}`"
+          :aria-label="onlineServiceStatusTitle"
+          @click.stop="handleOnlineServiceStatusClick"
+        >
+          <span class="service-status-dot" />
+        </button>
+      </span>
       <!-- 非 macOS 平台显示窗口控制按钮 -->
       <div v-if="!isMacPlatform" class="window-controls">
         <button
