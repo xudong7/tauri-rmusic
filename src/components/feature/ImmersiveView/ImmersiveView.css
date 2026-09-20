@@ -623,11 +623,40 @@
 
 /* 歌词容器 */
 .lyric-view-container {
+  position: relative;
   width: 100%;
   height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
+}
+
+/* 上下边缘的过渡模糊：两层各做 backdrop-filter，再用 mask 让模糊由边缘向内
+   渐隐；歌词本身在 LyricView 里已按同样的区间淡出，两层叠起来才是「边缘化开」。
+   纯装饰，不吃指针事件。 */
+.lyric-view-container::before,
+.lyric-view-container::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 15%;
+  z-index: 1;
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.lyric-view-container::before {
+  top: 0;
+  mask-image: linear-gradient(to bottom, #000, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, #000, transparent);
+}
+
+.lyric-view-container::after {
+  bottom: 0;
+  mask-image: linear-gradient(to top, #000, transparent);
+  -webkit-mask-image: linear-gradient(to top, #000, transparent);
 }
 
 /* ---------- 底部播放栏 ----------
@@ -772,6 +801,33 @@
 .immersive-track-title.is-link:focus-visible,
 .immersive-track-artist .artist-part.artist-link:focus-visible {
   border-radius: 3px;
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* 右侧：播放队列。裸图标按钮，与左侧信息对称占位 */
+.immersive-queue-btn {
+  justify-self: end;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--app-radius-full);
+  background: transparent;
+  color: var(--immersive-control-text);
+  font-size: 20px;
+  cursor: pointer;
+  transition: color var(--app-control-transition);
+}
+
+.immersive-queue-btn:hover {
+  color: var(--immersive-text-primary);
+}
+
+.immersive-queue-btn:focus-visible {
   outline: 2px solid currentColor;
   outline-offset: 2px;
 }

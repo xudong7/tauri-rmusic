@@ -12,6 +12,7 @@ import {
 import PlayIcon from "@/components/base/icons/PlayIcon.vue";
 import PauseIcon from "@/components/base/icons/PauseIcon.vue";
 import CollapseIcon from "@/components/base/icons/CollapseIcon.vue";
+import QueueIcon from "@/components/base/icons/QueueIcon.vue";
 import SkipPreviousIcon from "@/components/base/icons/SkipPreviousIcon.vue";
 import SkipNextIcon from "@/components/base/icons/SkipNextIcon.vue";
 import VolumeIcon from "@/components/base/icons/VolumeIcon.vue";
@@ -37,6 +38,7 @@ import { useWindowControls } from "@/composables/useWindowControls";
 import { useArtistStore } from "@/stores/artistStore";
 import { useOnlineMusicStore } from "@/stores/onlineMusicStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
+import { useViewStore } from "@/stores/viewStore";
 
 const { t, locale } = useI18n();
 
@@ -58,11 +60,13 @@ const emit = defineEmits<{
   seek: [positionMs: number];
   "toggle-play-mode": [];
   "volume-change": [value: number];
+  "toggle-queue": [];
 }>();
 
 const artistStore = useArtistStore();
 const onlineStore = useOnlineMusicStore();
 const localStore = useLocalMusicStore();
+const viewStore = useViewStore();
 const { isMacPlatform } = usePlatform();
 
 const {
@@ -212,6 +216,14 @@ const overlayStyle = computed(() => {
 // 封面是共享元素飞行的落点：App 在进场/退场时量它的矩形，飞行期间把它藏起来。
 const coverRef = ref<HTMLElement | null>(null);
 defineExpose({ coverElement: coverRef });
+
+/** 队列面板展开时，点画面空白处收回；点到按钮/歌词/滑块等交互元素不收回 */
+function handleImmersiveClick(event: MouseEvent) {
+  if (!viewStore.showPlaybackQueue) return;
+  const target = event.target as HTMLElement | null;
+  if (target?.closest("button, a, input, .el-slider")) return;
+  viewStore.closePlaybackQueue();
+}
 </script>
 
 <template>
@@ -222,6 +234,7 @@ defineExpose({ coverElement: coverRef });
       'uses-dark-foreground': usesDarkForeground,
     }"
     :style="paletteStyle"
+    @click="handleImmersiveClick"
   >
     <img
       v-if="currentCoverUrl"
@@ -464,6 +477,16 @@ defineExpose({ coverElement: coverRef });
             <span class="time-display">{{ durationDisplay }}</span>
           </div>
         </div>
+
+        <!-- 右侧：播放队列。与左侧信息对称占位，控制簇才会落在整条栏正中 -->
+        <button
+          type="button"
+          class="immersive-queue-btn"
+          :aria-label="t('playerBar.queue')"
+          @click="emit('toggle-queue')"
+        >
+          <QueueIcon />
+        </button>
       </div>
     </div>
   </div>

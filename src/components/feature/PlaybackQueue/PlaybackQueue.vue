@@ -157,7 +157,8 @@ function handlePanelKeydown(event: KeyboardEvent) {
 .queue-layer {
   position: fixed;
   inset: var(--app-header-height) 0 var(--app-player-height) 0;
-  z-index: 180;
+  /* 要盖过沉浸模式（z-index 1000）：沉浸页底部播放栏也能开队列面板 */
+  z-index: 1100;
   display: flex;
   justify-content: flex-end;
   pointer-events: none;

@@ -294,6 +294,7 @@ async function handleExitImmersive() {
           @seek="playerStore.seekToPosition"
           @toggle-play-mode="playerStore.togglePlayMode"
           @volume-change="playerStore.adjustVolume"
+          @toggle-queue="viewStore.togglePlaybackQueue"
         />
       </Transition>
     </div>
