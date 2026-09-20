@@ -274,7 +274,8 @@ function handlePanelKeydown(event: KeyboardEvent) {
 }
 
 .queue-layer.queue-leave-active {
-  transition: opacity var(--app-motion-leave) var(--app-motion-ease-in);
+  /* 收起比常规退场长一截、走减速曲线：面板是整块滑出去的，太快会像被抽走 */
+  transition: opacity 240ms var(--app-motion-ease-out);
 }
 
 /* 面板本体横滑。时长与曲线必须与根用同一组 token：根的 -active 类一摘，
@@ -285,7 +286,7 @@ function handlePanelKeydown(event: KeyboardEvent) {
 }
 
 .queue-leave-active .queue-panel {
-  transition: transform var(--app-motion-leave) var(--app-motion-ease-in);
+  transition: transform 240ms var(--app-motion-ease-out);
 }
 
 .queue-enter-from,
@@ -293,9 +294,13 @@ function handlePanelKeydown(event: KeyboardEvent) {
   opacity: 0;
 }
 
-.queue-enter-from .queue-panel,
-.queue-leave-to .queue-panel {
+/* 进场只挪一点（画面基本是淡入），退场整块滑出面板宽度——「收回」要看得见 */
+.queue-enter-from .queue-panel {
   transform: translateX(22px);
+}
+
+.queue-leave-to .queue-panel {
+  transform: translateX(100%);
 }
 
 /* 收起途中面板已经没用了，别再让它吃掉 140ms 的点击。
