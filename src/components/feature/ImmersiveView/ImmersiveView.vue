@@ -348,9 +348,14 @@ defineExpose({ coverElement: coverRef });
         <!-- 左侧：占位封面 + 歌曲信息（参考图）。封面图就在画面中央，这里
              不再放第二份，只给一个带缩放图标的占位块。 -->
         <div class="immersive-track">
-          <span class="immersive-track-cover" aria-hidden="true">
+          <button
+            type="button"
+            class="immersive-track-cover"
+            :aria-label="t('common.back')"
+            @click="emit('exit')"
+          >
             <CollapseIcon />
-          </span>
+          </button>
           <div class="immersive-track-text">
             <component
               :is="canNavigateAlbum ? 'button' : 'span'"

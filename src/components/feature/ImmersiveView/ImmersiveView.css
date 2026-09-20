@@ -693,7 +693,23 @@
   width: 36px;
   height: 36px;
   flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--app-radius-md);
+  background: transparent;
   color: var(--immersive-control-text);
+  cursor: pointer;
+  transition: color var(--app-control-transition);
+}
+
+/* 与全项目一致：裸图标，悬停只提亮字形 */
+.immersive-track-cover:hover {
+  color: var(--immersive-text-primary);
+}
+
+.immersive-track-cover:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
 }
 
 /* 绝对定位：svg 自带 300×150 的固有尺寸，留在流里会把整行撑高 */
@@ -713,7 +729,7 @@
 
 .immersive-track-title {
   display: block;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--immersive-text-primary);
   overflow: hidden;
