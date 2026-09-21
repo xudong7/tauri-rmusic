@@ -20,6 +20,10 @@ export interface SongInfo {
   duration: number; // 毫秒
   pic_url: string;
   file_hash: string; // 用于播放的稳定标识
+  /** 专辑 id（在线歌曲才有）：点歌名跳专辑页时直接用，不做名字搜索 */
+  album_id?: string;
+  /** 歌手 id，与 artists 一一对应（在线歌曲才有） */
+  artist_ids?: string[];
 }
 
 // 在线歌单（/toplist、/cloudsearch?type=1000、/playlist/detail 共用）
