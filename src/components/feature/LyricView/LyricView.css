@@ -139,7 +139,6 @@
 
 /* 歌词滚动视图 */
 .lyric-scroll-view {
-  scroll-behavior: smooth;
   width: 100%;
   text-align: left;
   margin: 0;
@@ -155,4 +154,13 @@
   max-width: 100%;
   /* 歌词只纵向滚动：横向留给「播放 + 时间」胶囊的槽位，不该被拖出来 */
   overflow-x: hidden;
+  /* 平滑滚动必须写在滚动盒上：真正滚动的是 wrap，view-class 落在外层 view
+     上，写在那里对 setScrollTop 无效——切行就成了硬跳。 */
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lyric-container :deep(.el-scrollbar__wrap) {
+    scroll-behavior: auto;
+  }
 }
