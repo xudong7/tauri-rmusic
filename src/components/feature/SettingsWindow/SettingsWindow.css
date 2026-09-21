@@ -242,10 +242,6 @@
 }
 
 @media (max-width: 600px) {
-  .settings-page-title {
-    margin-bottom: 18px;
-  }
-
   .settings-section {
     padding: 16px 0;
   }
