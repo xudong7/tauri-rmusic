@@ -10,76 +10,72 @@
   padding: 0 0 24px;
 }
 
-/* 不限宽：外层 .app-page 是竖向 flex 容器，本元素作为 flex 子项默认就横向
-   拉满，因此这里不再需要显式宽度——之前那行 min(100%, 1080px) 正是设置页
-   拉伸后右侧空出一大块、而列表页已经铺满的原因。 */
+/* 分节：左列是小节名，右列是设置项；节与节之间一条细分隔线，不再用卡片。
+   小节名与右列首行顶部对齐，整体读作「标签 → 内容」两栏。 */
 .settings-section {
-  margin: 0 0 22px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr);
+  align-items: start;
+  column-gap: clamp(20px, 4vw, 56px);
+  margin: 0;
+  padding: clamp(18px, 2.4vh, 26px) 0;
+  border-top: 1px solid var(--app-surface-border);
   background: transparent;
-  border: 0;
-  box-shadow: none;
+}
+
+.settings-section:first-of-type {
+  padding-top: 6px;
+  border-top: 0;
 }
 
 .settings-group {
-  overflow: hidden;
-  background: color-mix(in srgb, var(--app-card-bg) 86%, transparent);
-  border: 1px solid var(--app-surface-border);
-  border-radius: var(--app-radius-lg);
-  box-shadow: var(--app-surface-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(16px, 2vh, 22px);
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  overflow: visible;
 }
 
 .settings-section .section-title {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   margin: 0;
-  padding: 0 0 4px;
-  font-size: 15px;
+  padding: 1px 0 0;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--el-text-color-regular);
 }
 
 .settings-section .section-title .el-icon {
-  font-size: 17px;
+  font-size: 16px;
   color: var(--el-color-primary);
 }
 
+/* 行：左侧「标题 + 说明」，右侧控件。扁平化之后不再有行内分隔线与悬停底色 */
 .setting-row,
 .path-summary {
   display: flex;
   align-items: center;
-  min-height: 54px;
-  margin-top: 0;
-  padding: 0 14px;
+  gap: 20px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
   background: transparent;
   border: 0;
   border-radius: 0;
-  transition:
-    background var(--app-control-transition),
-    border-color var(--app-control-transition);
-}
-
-.settings-group > :not(:first-child) {
-  border-top: 1px solid var(--app-surface-border);
 }
 
 .setting-row {
   justify-content: space-between;
-  gap: 20px;
-}
-
-.setting-row:hover,
-.path-summary:hover {
-  background: color-mix(in srgb, var(--app-card-bg) 84%, var(--active-item-bg));
 }
 
 .setting-row > label,
 .path-summary-label {
-  flex: 0 0 176px;
+  flex: 0 1 176px;
   color: var(--el-text-color-primary);
   font-size: 14px;
   font-weight: 600;
@@ -208,7 +204,7 @@
 .settings-about .about-content {
   display: block;
   min-height: 0;
-  padding: 14px;
+  padding: 0;
   background: transparent;
   border: 0;
   border-radius: 0;
@@ -226,6 +222,12 @@
     padding-bottom: 16px;
   }
 
+  /* 窄窗口放不下两栏：小节名回到内容上方 */
+  .settings-section {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 10px;
+  }
+
   .setting-row > label,
   .path-summary-label {
     flex-basis: 132px;
@@ -238,14 +240,13 @@
   }
 
   .settings-section {
-    margin-bottom: 20px;
+    padding: 16px 0;
   }
 
   .setting-row {
     align-items: flex-start;
     flex-direction: column;
     gap: 8px;
-    padding: 12px 14px;
   }
 
   .setting-row > label,
@@ -264,7 +265,7 @@
     grid-template-columns: minmax(0, 1fr) 28px;
     min-height: 0;
     gap: 6px 8px;
-    padding: 12px 14px;
+    padding: 0;
   }
 
   .path-summary-label {
