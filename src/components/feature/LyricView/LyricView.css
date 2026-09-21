@@ -154,13 +154,7 @@
   max-width: 100%;
   /* 歌词只纵向滚动：横向留给「播放 + 时间」胶囊的槽位，不该被拖出来 */
   overflow-x: hidden;
-  /* 平滑滚动必须写在滚动盒上：真正滚动的是 wrap，view-class 落在外层 view
-     上，写在那里对 setScrollTop 无效——切行就成了硬跳。 */
-  scroll-behavior: smooth;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .lyric-container :deep(.el-scrollbar__wrap) {
-    scroll-behavior: auto;
-  }
+  /* 平滑滚动由 scrollLyricsTo 用 rAF 驱动（时长/曲线要可调），这里不能再写
+     scroll-behavior: smooth——两套动画会互相打断，滚动反而一顿一顿的。 */
+  scroll-behavior: auto;
 }
