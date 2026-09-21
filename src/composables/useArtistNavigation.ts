@@ -36,6 +36,14 @@ export function useArtistNavigation(args: {
     );
   });
 
+  /** 在线歌曲的歌手 id 与 artists 一一对应：点谁就用谁的 id */
+  function onlineArtistId(name: string): string {
+    const song = args.currentOnlineSong?.();
+    const index = song?.artists?.indexOf(name) ?? -1;
+    if (index < 0) return "";
+    return song?.artist_ids?.[index] ?? "";
+  }
+
   /** 返回是否真的发生了跳转（调用方据此决定要不要退出沉浸模式） */
   async function navigateArtistByName(name: string): Promise<boolean> {
     if (!name || name === t("common.unknownArtist")) return false;
@@ -46,6 +54,17 @@ export function useArtistNavigation(args: {
     } catch {
       ElMessage.error(t("onlineService.unavailable"));
       return false;
+    }
+
+    // 在线歌曲：直接用自带的歌手 id，按名字搜出来的可能是同名翻唱
+    const directId = onlineArtistId(name);
+    if (directId) {
+      await router.push({
+        name: "Artist",
+        params: { id: directId },
+        query: { name },
+      });
+      return true;
     }
 
     const artist = await resolveArtistByName(name, {

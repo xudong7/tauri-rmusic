@@ -52,17 +52,29 @@ export function useAlbumNavigation(args: {
     return splitArtistNames(args.localArtistDisplay?.() ?? "")[0] ?? "";
   });
 
-  const canNavigateAlbum = computed(() => Boolean(searchName.value));
+  /** 在线歌曲自带专辑 id：直接用，不走名字搜索 */
+  const onlineAlbumId = computed(() => args.currentOnlineSong?.()?.album_id ?? "");
+
+  const canNavigateAlbum = computed(
+    () => Boolean(onlineAlbumId.value) || Boolean(searchName.value)
+  );
 
   /** 返回是否真的发生了跳转（调用方据此决定要不要退出沉浸模式） */
   async function navigateAlbumByName(): Promise<boolean> {
-    if (!searchName.value) return false;
+    const directId = onlineAlbumId.value;
+    if (!directId && !searchName.value) return false;
 
     try {
       await onlineServiceStore.ensureStarted();
     } catch {
       ElMessage.error(t("onlineService.unavailable"));
       return false;
+    }
+
+    // 在线歌曲：id 就是答案，按名字搜出来的常是翻唱/合辑，只有几首曲子
+    if (directId) {
+      await router.push({ name: "OnlineAlbum", params: { id: directId } });
+      return true;
     }
 
     const album = await resolveAlbumByName(searchName.value, artistName.value, {

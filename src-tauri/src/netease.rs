@@ -11,6 +11,12 @@ pub struct SongInfo {
     pub duration: u64, // ms
     pub pic_url: String,
     pub file_hash: String, // file hash for the song
+    /// 专辑 id（`al.id`）：点歌名跳专辑页时直接用，省掉按名字模糊搜索
+    #[serde(default)]
+    pub album_id: String,
+    /// 歌手 id，与 `artists` 一一对应
+    #[serde(default)]
+    pub artist_ids: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -405,6 +411,18 @@ fn parse_song(song: &serde_json::Value) -> Option<SongInfo> {
         .unwrap_or("")
         .to_string();
 
+    // 专辑/歌手的 id 一起带走：前端「点歌名/歌手跳转」直接用 id 打开对应页面，
+    // 不必再按名字搜索——按名字搜出来的经常是翻唱、合辑，只有几首曲子。
+    let album_id = value_as_id(&song["al"]["id"])
+        .or_else(|| value_as_id(&song["album"]["id"]))
+        .unwrap_or_default();
+
+    let artist_ids: Vec<String> = song["ar"]
+        .as_array()
+        .or_else(|| song["artists"].as_array())
+        .map(|arr| arr.iter().filter_map(|a| value_as_id(&a["id"])).collect())
+        .unwrap_or_default();
+
     let duration = song["dt"]
         .as_u64()
         .or_else(|| song["duration"].as_u64())
@@ -425,6 +443,8 @@ fn parse_song(song: &serde_json::Value) -> Option<SongInfo> {
         duration,
         pic_url,
         file_hash: id,
+        album_id,
+        artist_ids,
     })
 }
 
@@ -680,6 +700,42 @@ mod tests {
         assert!(preview.len() < text.len());
         // 能取到合法的 &str 本身就是不 panic 的证明。
         assert!(preview.chars().all(|c| c == '中'));
+    }
+
+    /// 专辑/歌手 id 要一起带出来：前端点歌名/歌手跳转靠它，按名字搜出来的
+    /// 经常是翻唱、合辑，只有几首曲子。
+    #[test]
+    fn parse_song_keeps_album_and_artist_ids() {
+        let song = serde_json::json!({
+            "id": 123,
+            "name": "TOKYO-KICK-ASS",
+            "ar": [{ "id": 111, "name": "Daoko" }, { "id": "222", "name": "Guest" }],
+            "al": { "id": 999, "name": "TOKYO-KICK-ASS", "picUrl": "https://x/y.jpg" },
+            "dt": 200000
+        });
+
+        let parsed = parse_song(&song).expect("song parses");
+
+        assert_eq!(parsed.album_id, "999");
+        assert_eq!(parsed.artist_ids, vec!["111", "222"]);
+        assert_eq!(parsed.artists, vec!["Daoko", "Guest"]);
+    }
+
+    /// 旧接口用 `artists` / `album`，id 同样要能取到。
+    #[test]
+    fn parse_song_keeps_ids_from_the_legacy_field_names() {
+        let song = serde_json::json!({
+            "id": "7",
+            "name": "Legacy",
+            "artists": [{ "id": 3, "name": "A" }],
+            "album": { "id": 4, "name": "B" },
+            "duration": 1000
+        });
+
+        let parsed = parse_song(&song).expect("song parses");
+
+        assert_eq!(parsed.album_id, "4");
+        assert_eq!(parsed.artist_ids, vec!["3"]);
     }
 
     #[test]
