@@ -65,7 +65,7 @@
   width: 100%;
   text-align: left;
   margin: 14px 0;
-  font-size: 18px;
+  font-size: 19px;
   line-height: 1.6;
   transition: all 0.4s ease;
   padding: 4px 8px;
@@ -122,11 +122,11 @@
   font-size: 10px;
 }
 
-/* 当前播放的歌词行 */
+/* 当前播放的歌词行：比前后行更大更亮更粗，层次一眼能看出来 */
 .active-lyric {
   color: var(--immersive-text-primary, #fff);
-  font-size: 17px;
-  font-weight: 600;
+  font-size: 22px;
+  font-weight: 700;
   opacity: 1;
   letter-spacing: 0;
 }
