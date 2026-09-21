@@ -440,21 +440,6 @@ html.theme-warm {
   transform: none;
 }
 
-.app-icon-button--primary.el-button {
-  color: var(--app-play-button-color);
-  background: var(--app-play-button-bg);
-  border-color: transparent;
-  box-shadow: var(--app-play-button-shadow);
-}
-
-.app-icon-button--primary.el-button:not(:disabled):hover,
-.app-icon-button--primary.el-button:not(:disabled):focus-visible {
-  color: var(--app-play-button-color);
-  background: var(--el-color-primary-hover);
-  border-color: transparent;
-  box-shadow: var(--app-play-button-hover-shadow);
-}
-
 .app-icon-button--danger.el-button:not(:disabled) {
   color: var(--el-color-danger);
 }
