@@ -215,7 +215,7 @@ async function scrollToCurrentLine(requestId: number) {
       const itemTop = activeItem.offsetTop;
       const itemHeight = activeItem.clientHeight;
 
-      scrollLyricsTo(lyricScrollRef.value, itemTop - containerHeight / 2 + itemHeight);
+      scrollLyricsTo(container, itemTop - containerHeight / 2 + itemHeight);
     }
   }
 }
@@ -229,20 +229,23 @@ let lyricScrollAnimationId = 0;
  * 自己用 rAF 驱动而不是交给 scroll-behavior: smooth：原生时长不可调，
  * 切行偏快；这里按距离给时长（近处干脆、远处从容）并走减速曲线，接得丝滑。
  * 新目标会打断上一段动画，从当前位置重新出发。
+ *
+ * 注意读写都必须落在 .el-scrollbar__wrap 上：真正滚动的是它，根节点
+ * .el-scrollbar 自己 overflow: hidden、scrollTop 恒为 0，从那里读起点会让
+ * 每句歌词先跳回顶部再滚过去。
  */
-function scrollLyricsTo(
-  scrollbar: { setScrollTop: (value: number) => void; $el: HTMLElement },
-  target: number
-) {
-  const container = scrollbar.$el;
-  const start = container.scrollTop;
+function scrollLyricsTo(scrollbarEl: HTMLElement, target: number) {
+  const wrap = scrollbarEl.querySelector<HTMLElement>(".el-scrollbar__wrap");
+  if (!wrap) return;
+
+  const start = wrap.scrollTop;
   const distance = target - start;
   const animationId = ++lyricScrollAnimationId;
 
   if (Math.abs(distance) < 1) return;
 
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    scrollbar.setScrollTop(target);
+    wrap.scrollTop = target;
     return;
   }
 
@@ -253,7 +256,7 @@ function scrollLyricsTo(
     if (animationId !== lyricScrollAnimationId) return;
     const progress = Math.min(1, (now - startTime) / duration);
     const eased = 1 - (1 - progress) ** 3;
-    scrollbar.setScrollTop(start + distance * eased);
+    wrap.scrollTop = start + distance * eased;
     if (progress < 1) requestAnimationFrame(step);
   };
 
