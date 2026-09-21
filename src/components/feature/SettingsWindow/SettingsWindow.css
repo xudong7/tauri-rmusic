@@ -73,9 +73,19 @@
   justify-content: space-between;
 }
 
+/* 标签列吃掉剩余宽度、控件列只占自身宽度：英文说明比中文长得多，固定
+   176px 会把它们折成两行，整页跟着长出一条滚动条。 */
+.setting-row > label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.path-summary-label {
+  flex: 0 0 176px;
+}
+
 .setting-row > label,
 .path-summary-label {
-  flex: 0 1 176px;
   color: var(--el-text-color-primary);
   font-size: 14px;
   font-weight: 600;
@@ -99,8 +109,7 @@
 .setting-control,
 .setting-actions {
   display: flex;
-  flex: 1;
-  min-width: 140px;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: flex-end;
 }
@@ -163,8 +172,11 @@
   background: #d9cec4;
 }
 
+/* 占一个图标按钮的槽位并居中：缓存大小才能和上一行「下载」的文件夹图标
+   竖直对齐——右边那排控件都是右对齐的，只差这一处宽度不同。 */
 .cache-size {
-  margin-right: 4px;
+  min-width: var(--app-icon-btn-md);
+  text-align: center;
   color: var(--el-text-color-secondary);
   font-size: 13px;
   font-variant-numeric: tabular-nums;
@@ -226,11 +238,6 @@
   .settings-section {
     grid-template-columns: minmax(0, 1fr);
     row-gap: 10px;
-  }
-
-  .setting-row > label,
-  .path-summary-label {
-    flex-basis: 132px;
   }
 }
 

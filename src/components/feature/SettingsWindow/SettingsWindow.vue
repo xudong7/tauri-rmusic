@@ -302,10 +302,9 @@ onMounted(async () => {
               <el-tooltip :content="t('common.browse')" placement="top">
                 <el-button
                   circle
-                  type="primary"
                   :icon="FolderOpened"
                   :aria-label="t('common.browse')"
-                  class="settings-action-btn app-icon-button app-icon-button--primary"
+                  class="settings-action-btn app-icon-button"
                   @click="selectDownloadPath"
                 />
               </el-tooltip>
