@@ -32,9 +32,11 @@ npm run format:check
 
 ## Git Workflow
 
-- **Feature branches**: Every feature development must start from a new branch checked out from `main` (e.g. `perf/`, `feat/`, `fix/` prefixes).
-- **Gate**: Pushing to remote, creating a PR, and merging/releasing into `main` must ONLY be done after the user explicitly instructs it — never proactively.
+- **Feature branches**: Every feature development must start from a new branch checked out from `main` (e.g. `perf/`, `feat/`, `fix/` prefixes). Never develop directly on `main`.
+- **Commits**: Commit automatically once a complete feature is finished — local commits need no confirmation. Commit per completed feature, not per edit.
+- **Gate**: Pushing to remote, creating a PR, and merging/releasing into `main` must ONLY be done after the user explicitly instructs it — never proactively. Pushing always means opening a PR against remote `main`; never push directly to `main`.
 - **Merge style**: When merging a PR, use **squash** merge.
+- **Release**: Publishing a release is part of the merge — do both together, in the same approved step. Every PR bumps the version in all three files together: `package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`. Merging to `main` makes CI build the three platforms and create tag `app-v<version>` plus a **draft** GitHub release; publishing that draft (`gh release edit app-v<version> --draft=false`) is the final step.
 - **Cleanup**: Delete the feature branch (local and remote) after the merge is complete.
 
 Note: Online music requires a local API proxy running at `http://localhost:3000` (see [nooblong/NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup)).
