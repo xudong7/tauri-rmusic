@@ -369,6 +369,14 @@ function handleActivate() {
     box-shadow var(--app-control-transition);
 }
 
+/* 加载中的按钮会被 Element Plus 盖一层 --el-mask-color-extra-light
+   （rgba(255,255,255,.3)）的遮罩。浅色下看不出来，深色下是一整块发白圆斑，
+   而这一簇的按钮约定是只有图标、不浮出底色（见下面的 hover 规则），
+   遮罩在这里没有存在意义。 */
+:deep(.track-row__actions .el-button.is-loading::before) {
+  display: none;
+}
+
 /* 与全项目一致：悬停只让图标亮起来，不浮出底色方块。
    显式写 background/border 是为了压过全局 .el-button.is-link:hover 的底色。 */
 :deep(.track-row__actions .el-button:hover) {
