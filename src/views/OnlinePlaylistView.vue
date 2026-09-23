@@ -54,9 +54,7 @@
       :hasMore="store.hasMoreTracks"
       @play="playSong"
       @toggle-current="playerStore.togglePlay"
-      @download="downloadOnlineSong"
       @load-more="store.loadMoreTracks"
-      @add-to-playlist="addOnlineSongToPlaylist"
     >
       <template #loading><el-skeleton :rows="6" animated /></template>
       <template #empty>
@@ -85,7 +83,6 @@ import OnlineMusicList from "@/components/feature/OnlineMusicList/OnlineMusicLis
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
 import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
-import { useOnlinePlaylistActions } from "@/composables/useOnlinePlaylistActions";
 
 const { t, locale } = useI18n();
 const route = useRoute();
@@ -94,7 +91,6 @@ const store = useOnlinePlaylistStore();
 const collectedStore = useCollectedPlaylistStore();
 const playerStore = usePlayerStore();
 const viewStore = useViewStore();
-const { downloadOnlineSong, addOnlineSongToPlaylist } = useOnlinePlaylistActions();
 
 const playlistId = computed(() => String(route.params.id || ""));
 const isCollected = computed(() => collectedStore.isCollected(playlistId.value));

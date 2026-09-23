@@ -17,6 +17,11 @@ const props = withDefaults(
     isCurrent?: boolean;
     /** 是否正在播放；只在 isCurrent 时有意义。 */
     isPlaying?: boolean;
+    /**
+     * 操作簇要常驻。槽内容里有东西正在进行/刚完成/待重试时由调用方置真——
+     * 操作簇默认悬停才显示，鼠标一移开，进度或结果就跟着消失了。
+     */
+    busy?: boolean;
     rowHeight?: number;
   }>(),
   {
@@ -25,6 +30,7 @@ const props = withDefaults(
     selected: false,
     isCurrent: false,
     isPlaying: false,
+    busy: false,
     rowHeight: undefined,
   }
 );
@@ -60,6 +66,7 @@ function handleActivate() {
       'is-selected': selected,
       'is-disabled': item.disabled,
       'is-striped': props.index % 2 === 0,
+      'is-busy': busy,
     }"
     :style="
       rowHeight ? { height: `${rowHeight}px`, minHeight: `${rowHeight}px` } : undefined
@@ -336,6 +343,13 @@ function handleActivate() {
 
 .track-row:hover .track-row__actions,
 .track-row:focus-within .track-row__actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* 槽内容标记为进行中的行，操作簇常驻：鼠标一移开，进度或结果就跟着消失，
+   而这些恰恰是用户要看的（成功提示已经没有 toast 兜底了）。 */
+.track-row.is-busy .track-row__actions {
   opacity: 1;
   pointer-events: auto;
 }
