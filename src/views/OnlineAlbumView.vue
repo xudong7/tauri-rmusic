@@ -1,22 +1,19 @@
 <template>
   <PageLayout class="online-album-view">
-    <PageHeader v-if="store.album" :title="store.album.name" :subtitle="subtitle">
-      <template #before-title>
-        <CoverImage
-          :src="store.album.pic_url"
-          alt=""
-          :size="64"
-          :radius="10"
-          variant="album"
-          class="online-album-view__cover"
-        />
-      </template>
-      <template #actions>
-        <el-button text :icon="ArrowLeft" @click="goBack">{{
-          t("onlineAlbum.back")
-        }}</el-button>
-      </template>
-    </PageHeader>
+    <DetailHero
+      v-if="store.album"
+      :cover-url="store.album.pic_url"
+      variant="album"
+      :eyebrow="t('onlineAlbum.kind')"
+      :title="store.album.name"
+      :meta="subtitle"
+      :play-label="t('common.playAll')"
+      :shuffle-label="t('common.shufflePlay')"
+      :back-label="t('onlineAlbum.back')"
+      @play="playAll"
+      @shuffle="shuffleAll"
+      @back="goBack"
+    />
     <!-- 加载中先占住标题位，专辑头到位前页面不再整体跳动 -->
     <div v-else-if="store.isLoading" class="detail-header-skeleton" aria-hidden="true">
       <el-skeleton :rows="2" animated />
@@ -48,15 +45,14 @@
 import { computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
-import { ArrowLeft } from "@element-plus/icons-vue";
 import type { SongInfo } from "@/types/model";
 import { formatPublishDate } from "@/utils/songUtils";
 import { useOnlineAlbumStore } from "@/stores/onlineAlbumStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useViewStore } from "@/stores/viewStore";
+import { useDetailPlayback } from "@/composables/useDetailPlayback";
 import OnlineMusicList from "@/components/feature/OnlineMusicList/OnlineMusicList.vue";
-import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
-import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
+import DetailHero from "@/components/layout/DetailHero/DetailHero.vue";
 import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
 
 const { t, locale } = useI18n();
@@ -78,6 +74,8 @@ const subtitle = computed(() => {
     .filter(Boolean)
     .join(" · ");
 });
+
+const { playAll, shuffleAll } = useDetailPlayback(() => store.songs);
 
 function playSong(song: SongInfo) {
   // 专辑曲目一次性取全，队列即整张专辑
@@ -108,14 +106,11 @@ watch(() => route.fullPath, load, { immediate: true });
   overflow: hidden;
 }
 
-.online-album-view__cover {
-  margin-right: 12px;
-}
-
-/* 与 PageHeader 高度一致，加载时占位不跳动 */
+/* 骨架屏要与 DetailHero 占同样的高度，否则详情到位时整页会跳一下。
+   高度 = 封面 168 + 返回行（约 28 + 14 外边距）+ 头部下外边距 20。
+   改动 DetailHero 的封面尺寸或行高时，这里要跟着改。 */
 .detail-header-skeleton {
-  min-height: var(--app-page-header-height);
-  margin-bottom: var(--app-page-header-gap);
+  min-height: 230px;
   flex-shrink: 0;
 }
 </style>
