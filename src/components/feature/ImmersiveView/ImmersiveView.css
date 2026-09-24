@@ -660,9 +660,12 @@
 }
 
 /* ---------- 底部播放栏 ----------
-   控制与进度收进底部横条，像常规播放栏一样居中排两行；默认藏起来，
-   鼠标移进底部热区（或键盘聚焦其中）才滑出——沉浸模式下封面与歌词
-   是主角，控制条只在需要时出现。 */
+   控制与进度收进底部横条，像常规播放栏一样居中排两行。
+
+   默认可见、闲置一段时间才藏起来（见 ImmersiveView.vue 的 is-controls-idle），
+   而不是默认藏起来等悬停。原来的做法要用户先「发现」底部能悬停：进沉浸页的
+   第一眼没有任何播放控件，触屏上更是永远拿不到——那条 hover 规则没有对应的
+   (hover: none) 兜底，而 TrackRow 那边是有的。 */
 .immersive-bottom-zone {
   position: absolute;
   left: 0;
@@ -689,9 +692,9 @@
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: stretch;
   column-gap: clamp(12px, 2vw, 28px);
-  opacity: 0;
-  transform: translateY(14px);
-  pointer-events: none;
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
   transition:
     opacity 0.24s ease,
     transform 0.24s ease;
@@ -832,11 +835,31 @@
   outline-offset: 2px;
 }
 
-.immersive-bottom-zone:hover .immersive-bottom-bar,
-.immersive-bottom-zone:focus-within .immersive-bottom-bar {
+/* 闲置才藏。指针停在底部热区里、或键盘焦点还在其中时都不藏——否则鼠标正悬在
+   进度条上它却淡出了，接着一点就落到下面去了。 */
+.immersive-view.is-controls-idle .immersive-bottom-bar {
+  opacity: 0;
+  transform: translateY(14px);
+  pointer-events: none;
+}
+
+.immersive-view.is-controls-idle .immersive-bottom-zone:hover .immersive-bottom-bar,
+.immersive-view.is-controls-idle
+  .immersive-bottom-zone:focus-within
+  .immersive-bottom-bar {
   opacity: 1;
   transform: none;
   pointer-events: auto;
+}
+
+/* 没有悬停能力的设备（触屏）不存在「闲置」这回事，控制条必须常驻，否则播放
+   控件永远不可见也不可点。与 TrackRow.vue 里那条同源。 */
+@media (hover: none) {
+  .immersive-view.is-controls-idle .immersive-bottom-bar {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
 }
 
 /* 响应式适配 */

@@ -71,6 +71,16 @@ export const QUEUE_COVER_SIZE = 40;
  *  CoverImage 的 :radius 和封面容器的 borderRadius，保证两处不会写岔。 */
 export const QUEUE_COVER_RADIUS = 6;
 
+/* ---------- 沉浸页 ---------- */
+/**
+ * 底部控制条闲置多久后淡出（ms）。
+ *
+ * 控制条默认可见、闲置才隐藏，方向不能反过来：默认藏起来的话，进沉浸页的
+ * 第一眼没有任何播放控件，触屏上更是永远拿不到。取值参考视频播放器与
+ * Apple Music 的全屏播放器：3 秒左右足够看清控制条在哪，又不至于长期占着画面。
+ */
+export const IMMERSIVE_CONTROLS_IDLE_MS = 3000;
+
 /* ---------- 封面实体网格（歌单 / 专辑 / 排行榜） ---------- */
 /**
  * 网格条数软上限。超出后不再加载，改为提示用户细化搜索。

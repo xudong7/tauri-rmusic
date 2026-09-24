@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   ArrowDown,
@@ -17,6 +17,7 @@ import SkipPreviousIcon from "@/components/base/icons/SkipPreviousIcon.vue";
 import SkipNextIcon from "@/components/base/icons/SkipNextIcon.vue";
 import VolumeIcon from "@/components/base/icons/VolumeIcon.vue";
 import { PlayMode, type SongInfo, type MusicFile } from "@/types/model";
+import { IMMERSIVE_CONTROLS_IDLE_MS } from "@/constants";
 import { playModeIcon, playModeLabelKey } from "@/utils/playModeUtils";
 import LyricView from "@/components/feature/LyricView/LyricView.vue";
 import { useCoverPalette } from "@/composables/useCoverPalette";
@@ -224,6 +225,47 @@ function handleImmersiveClick(event: MouseEvent) {
   if (target?.closest("button, a, input, .el-slider")) return;
   viewStore.closePlaybackQueue();
 }
+
+/**
+ * 底部控制条的闲置隐藏。
+ *
+ * 默认可见、闲置 IMMERSIVE_CONTROLS_IDLE_MS 之后才淡出，任何指针移动或按键
+ * 立刻叫回来。这个方向不能反过来（默认藏、悬停才出）：那样进沉浸页的第一眼
+ * 没有任何播放控件，用户得先猜到"底部能悬停"，触屏上更是永远拿不到。
+ *
+ * 触屏那边由 CSS 的 (hover: none) 兜底常驻，这里不必特判。
+ */
+const controlsIdle = ref(false);
+let controlsIdleTimer: ReturnType<typeof setTimeout> | null = null;
+
+function scheduleControlsIdle() {
+  if (controlsIdleTimer) clearTimeout(controlsIdleTimer);
+  controlsIdleTimer = setTimeout(() => {
+    controlsIdleTimer = null;
+    controlsIdle.value = true;
+  }, IMMERSIVE_CONTROLS_IDLE_MS);
+}
+
+function wakeControls() {
+  controlsIdle.value = false;
+  scheduleControlsIdle();
+}
+
+onMounted(() => {
+  // 监听 window 而不是根元素：沉浸页铺满整个窗口，指针不会落在它外面
+  window.addEventListener("pointermove", wakeControls, { passive: true });
+  window.addEventListener("pointerdown", wakeControls, { passive: true });
+  window.addEventListener("keydown", wakeControls);
+  scheduleControlsIdle();
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("pointermove", wakeControls);
+  window.removeEventListener("pointerdown", wakeControls);
+  window.removeEventListener("keydown", wakeControls);
+  if (controlsIdleTimer) clearTimeout(controlsIdleTimer);
+  controlsIdleTimer = null;
+});
 </script>
 
 <template>
@@ -232,6 +274,7 @@ function handleImmersiveClick(event: MouseEvent) {
     :class="{
       'is-mac-platform': isMacPlatform,
       'uses-dark-foreground': usesDarkForeground,
+      'is-controls-idle': controlsIdle,
     }"
     :style="paletteStyle"
     @click="handleImmersiveClick"
