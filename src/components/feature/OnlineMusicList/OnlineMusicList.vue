@@ -194,21 +194,22 @@ onBeforeUnmount(() => {
             (cmd: string) => handleAddToPlaylist(cmd, onlineSongs[item.sourceIndex])
           "
         >
-          <el-tooltip
-            :content="
+          <!-- 这里不套 tooltip：el-dropdown 把触发事件绑在**直接子元素**上，
+               中间隔一层组件就绑不上——真实浏览器里点了没有任何反应，菜单
+               永远不弹，而且 jsdom 抓不到（测试的 trigger("click") 是直接派发
+               到按钮节点上的，绕过了「点击到底落在谁身上」这一层）。
+               曲库那个加号正是 el-dropdown 直接包 el-button，所以它能弹。
+               语义交给 aria-label，与曲库那处保持一致。 -->
+          <el-button
+            circle
+            size="small"
+            link
+            class="playlist-action"
+            :icon="flashedKey === item.key ? CheckIcon : Plus"
+            :aria-label="
               flashedKey === item.key ? flashedLabel : t('playlist.addToPlaylist')
             "
-            placement="top"
-          >
-            <el-button
-              circle
-              size="small"
-              link
-              class="playlist-action"
-              :icon="flashedKey === item.key ? CheckIcon : Plus"
-              :aria-label="t('playlist.addToPlaylist')"
-            />
-          </el-tooltip>
+          />
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="new">{{

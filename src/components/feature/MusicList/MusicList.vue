@@ -267,7 +267,13 @@ function scheduleVisibleCovers(items: TrackRowModel[]) {
             (cmd: string) => handleAddToPlaylist(cmd, musicFiles[item.sourceIndex])
           "
         >
-          <el-button circle size="small" :icon="Plus" link />
+          <el-button
+            circle
+            size="small"
+            :icon="Plus"
+            link
+            :aria-label="t('playlist.addToPlaylist')"
+          />
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="new">{{

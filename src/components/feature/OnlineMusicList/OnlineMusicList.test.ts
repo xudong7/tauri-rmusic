@@ -10,6 +10,7 @@ import { DONE_FLASH_MS } from "@/stores/downloadStore";
 import type { SongInfo } from "@/types/model";
 import TrackList from "@/components/feature/TrackList/TrackList.vue";
 import OnlineMusicList from "./OnlineMusicList.vue";
+import onlineMusicListSource from "./OnlineMusicList.vue?raw";
 
 const commandMocks = vi.hoisted(() => ({
   downloadMusic: vi.fn(),
@@ -215,6 +216,22 @@ describe("OnlineMusicList 的下载按钮", () => {
     await flushPromises();
 
     expect(wrapper.get(".playlist-action").find(".check-icon").exists()).toBe(true);
+  });
+
+  // 一个在真实浏览器里完全失效、jsdom 里却全绿的坑：el-dropdown 把触发事件
+  // 绑在**直接子元素**上，中间隔一层组件（这里曾经是 <el-tooltip>）就绑不上，
+  // 点下去菜单永远不弹。而 VTU 的 trigger("click") 是把事件直接派发到按钮
+  // 节点上的，绕过了「点击到底落在谁身上」这一层，所以测不出来。
+  // 曲库那个能用的加号正是 el-dropdown 直接包 el-button，这里钉住同一种结构。
+  it("加号的下拉菜单直接包住按钮，中间不夹任何组件", () => {
+    // 注释里会原样提到这些标签名，先去掉再找
+    const source = onlineMusicListSource.replace(/<!--[\s\S]*?-->/g, "");
+    const start = source.indexOf("<el-dropdown");
+    const buttonStart = source.indexOf("<el-button", start);
+
+    expect(start).toBeGreaterThan(-1);
+    expect(buttonStart).toBeGreaterThan(start);
+    expect(source.slice(start, buttonStart).match(/<el-(?!dropdown)[a-z-]*/)).toBeNull();
   });
 
   it("加入歌单失败时按钮不显示成功", async () => {
