@@ -1,5 +1,7 @@
 <template>
   <PageLayout class="online-music-view">
+    <PageHeader :title="headerTitle" :subtitle="headerSubtitle" />
+
     <div class="online-music-view__tabs">
       <el-segmented v-model="activeTabModel" :options="tabOptions" />
     </div>
@@ -57,6 +59,7 @@ import { useViewStore } from "@/stores/viewStore";
 import OnlineMusicList from "@/components/feature/OnlineMusicList/OnlineMusicList.vue";
 import EntityGrid from "@/components/feature/EntityGrid/EntityGrid.vue";
 import type { EntityCardModel } from "@/components/feature/EntityGrid/types";
+import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
 import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
 
 const { t, locale } = useI18n();
@@ -85,6 +88,27 @@ const activeTabModel = computed({
       void playlistStore.loadToplist();
     }
   },
+});
+
+/**
+ * 页面标题：搜过什么就显示什么。
+ *
+ * 原先这一页只有一个 tab 条，答不出"我在看什么"——搜索词只留在顶栏的输入框
+ * 里，结果数更是完全看不到（而曲库页是有「曲库 · 14 首歌曲 · 56 分钟」的，
+ * 同一个应用里两套做法）。
+ */
+const headerTitle = computed(() =>
+  onlineStore.searchKeyword ? onlineStore.searchKeyword : t("onlineMusic.title")
+);
+
+/** 当前页签的结果数。榜单的数据在另一个 store，这里不掺和。 */
+const headerSubtitle = computed(() => {
+  if (!onlineStore.searchKeyword) return undefined;
+  const tab = onlineStore.activeTab;
+  if (tab === "toplist") return undefined;
+  const { total } = onlineStore.tabMeta[tab];
+  if (total <= 0) return undefined;
+  return t("onlineMusic.resultCount", { count: total });
 });
 
 const gridLoading = computed(() =>

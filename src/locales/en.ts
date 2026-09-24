@@ -114,6 +114,7 @@ export default {
     tabAlbum: "Albums",
     tabPlaylist: "Playlists",
     tabToplist: "Charts",
+    resultCount: "{count} results",
     refineHint: "Too many results — try a more specific keyword",
   },
   onlineService: {
