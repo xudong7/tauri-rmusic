@@ -6,7 +6,6 @@ import { ElMessage } from "element-plus";
 import { i18n } from "@/i18n";
 import { TauriCommandError } from "@/api/client";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
-import { DONE_FLASH_MS } from "@/stores/downloadStore";
 import type { SongInfo } from "@/types/model";
 import TrackList from "@/components/feature/TrackList/TrackList.vue";
 import OnlineMusicList from "./OnlineMusicList.vue";
@@ -158,28 +157,18 @@ describe("OnlineMusicList 的下载按钮", () => {
     expect(commandMocks.downloadMusic).toHaveBeenCalledTimes(2);
   });
 
-  // 同一个事实不该有两套显示规矩：闪完之后，刚下载的和以前下载的完全一样。
-  it("闪现结束后归位成「已在曲库」：同一个图标、同样不常驻", async () => {
-    vi.useFakeTimers();
-    try {
-      commandMocks.downloadMusic.mockResolvedValue(EXPECTED_NAME);
-      commandMocks.scanFiles.mockResolvedValue([{ id: 1, file_name: EXPECTED_NAME }]);
-      const { wrapper } = mountList();
+  // 用户要求：点完下载，成功的图标就常驻，不需要悬停。
+  it("下载成功后打勾常驻，不会随时间或曲库刷新消失", async () => {
+    commandMocks.downloadMusic.mockResolvedValue(EXPECTED_NAME);
+    commandMocks.scanFiles.mockResolvedValue([{ id: 1, file_name: EXPECTED_NAME }]);
+    const { wrapper } = mountList();
 
-      await downloadButton(wrapper).trigger("click");
-      await flushPromises();
-      expect(downloadButton(wrapper).find(".check-icon").exists()).toBe(true);
+    await downloadButton(wrapper).trigger("click");
+    await flushPromises();
+    await new Promise((resolve) => setTimeout(resolve, 5));
 
-      await vi.advanceTimersByTimeAsync(DONE_FLASH_MS);
-      await flushPromises();
-
-      const settled = downloadButton(wrapper);
-      expect(settled.find(".check-icon").exists()).toBe(false);
-      expect(settled.find(".in-library-icon").exists()).toBe(true);
-      expect(busyKeysOf(wrapper).has(song.id)).toBe(false);
-    } finally {
-      vi.useRealTimers();
-    }
+    expect(downloadButton(wrapper).find(".check-icon").exists()).toBe(true);
+    expect(busyKeysOf(wrapper).has(song.id)).toBe(true);
   });
 
   it("下载中与刚完成的行都交给 TrackList 去钉住操作簇", async () => {
@@ -197,12 +186,14 @@ describe("OnlineMusicList 的下载按钮", () => {
     expect(busyKeysOf(wrapper).has(song.id)).toBe(true);
   });
 
-  it("「已在曲库」的行不钉住，避免整列表常驻按钮", async () => {
+  // 以前下载的与刚下载的用同一套规矩：都常驻，都要能一眼看见。
+  it("以前下载过的行也钉住操作簇，图标常驻", async () => {
     const { wrapper, localStore } = mountList();
     localStore.musicFiles = [{ id: 1, file_name: EXPECTED_NAME }];
     await flushPromises();
 
-    expect(busyKeysOf(wrapper).size).toBe(0);
+    expect(busyKeysOf(wrapper).has(song.id)).toBe(true);
+    expect(downloadButton(wrapper).find(".in-library-icon").exists()).toBe(true);
   });
 
   it("加入歌单后 Plus 闪一下打勾", async () => {

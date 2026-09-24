@@ -1,8 +1,8 @@
 import { createPinia, setActivePinia } from "pinia";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ElMessage } from "element-plus";
 import { TauriCommandError } from "@/api/client";
-import { DONE_FLASH_MS, useDownloadStore } from "./downloadStore";
+import { useDownloadStore } from "./downloadStore";
 import { useLocalMusicStore } from "./localMusicStore";
 import type { SongInfo } from "@/types/model";
 
@@ -52,16 +52,9 @@ describe("downloadStore", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.restoreAllMocks();
-    // 打勾的闪现是个定时器，不接管的话每个用例都要真等 1.6 秒。
-    // 只影响 setTimeout，promise 的微任务照常推进。
-    vi.useFakeTimers();
     commandMocks.downloadMusic.mockReset();
     commandMocks.scanFiles.mockReset();
     commandMocks.scanFiles.mockResolvedValue([]);
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
   });
 
   async function setup(currentDirectory = "/music") {
@@ -170,28 +163,28 @@ describe("downloadStore", () => {
     expect(store.statusFor(song)).toBe("done");
   });
 
-  it("闪现结束后归位成「已在曲库」，与以前下载的显示一致", async () => {
+  // 打勾是会话级的、不过期：用户要求下载成功后图标常驻，不再依赖悬停。
+  it("打勾常驻，不会随时间降级成「已在曲库」", async () => {
     commandMocks.downloadMusic.mockResolvedValue(EXPECTED_NAME);
     commandMocks.scanFiles.mockResolvedValue([libraryFile(EXPECTED_NAME)]);
     const { store } = await setup();
 
     await store.download(song);
-    vi.advanceTimersByTime(DONE_FLASH_MS);
+    await new Promise((resolve) => setTimeout(resolve, 5));
 
-    expect(store.statusFor(song)).toBe("inLibrary");
+    expect(store.statusFor(song)).toBe("done");
   });
 
   // 重扫有可能被并发的另一次加载顶掉（localMusicStore 的 requestId 守卫会
   // 静默丢弃结果），那时曲库查不到这首，但文件确实在磁盘上——不能退回未下载。
-  it("重扫没带回这个文件时，闪现结束后仍算「已在曲库」", async () => {
+  it("重扫没带回这个文件时，仍显示为已下载而不是退回未下载", async () => {
     commandMocks.downloadMusic.mockResolvedValue(EXPECTED_NAME);
     commandMocks.scanFiles.mockResolvedValue([]);
     const { store } = await setup();
 
     await store.download(song);
-    vi.advanceTimersByTime(DONE_FLASH_MS);
 
-    expect(store.statusFor(song)).toBe("inLibrary");
+    expect(store.statusFor(song)).toBe("done");
   });
 
   it("没有下载过也不在曲库时是 idle", async () => {

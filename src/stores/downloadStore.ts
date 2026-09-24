@@ -7,24 +7,11 @@ import { parseErrorMessage } from "@/utils/errorUtils";
 import { getExpectedDownloadFileName, getLocalFileNameForSong } from "@/utils/songUtils";
 import { useLocalMusicStore } from "./localMusicStore";
 
-/**
- * store 内部记的状态。
- *
- * done 与 downloaded 的差别只是「多久以前」：done 是刚下完的闪现，稍后转成
- * downloaded，两者在界面上先后是打勾与「已在曲库」。之所以分开，是因为前者
- * 要常驻可见（成功提示已经没有 toast 兜底了），后者与以前下载的歌一样只在
- * 悬停时显示——同一件事在界面上不该有两套规矩。
- */
-export type DownloadStatus = "downloading" | "done" | "failed" | "downloaded";
+/** 会话内需要记着的下载状态。inLibrary 不在这里——它由曲库派生，见 statusFor。 */
+export type DownloadStatus = "downloading" | "done" | "failed";
 
 /** 行上最终展示的状态。 */
 export type DownloadState = "downloading" | "done" | "failed" | "inLibrary" | "idle";
-
-/**
- * 打勾常驻的时长。到点后这一行归位成「已在曲库」，从此与以前下载的完全一样：
- * 同一个图标、同样要悬停才显示。
- */
-export const DONE_FLASH_MS = 1600;
 
 /**
  * 下载状态。
@@ -60,29 +47,6 @@ export const useDownloadStore = defineStore("download", () => {
     statuses.value = { ...statuses.value, [key]: status };
   }
 
-  const doneTimers = new Map<string, ReturnType<typeof setTimeout>>();
-
-  /**
-   * 打勾闪一下：常驻可见一小段时间（成功提示已经没有 toast 兜底了，
-   * 操作簇默认悬停才显示，不钉住的话鼠标一移开就什么都看不到），
-   * 到点后降级成 downloaded —— 也就是归位成「已在曲库」的样子。
-   */
-  function flashDone(key: string) {
-    setStatus(key, "done");
-    const running = doneTimers.get(key);
-    if (running) clearTimeout(running);
-    doneTimers.set(
-      key,
-      setTimeout(() => {
-        doneTimers.delete(key);
-        // 只降级、不清空：清空会让这一行回到「只认曲库」的判定，而那次重扫
-        // 不保证一定落地（见 statusFor）。闪现期间用户又点了一次的话，
-        // 状态已经是 downloading，这里不能覆盖。
-        if (statuses.value[key] === "done") setStatus(key, "downloaded");
-      }, DONE_FLASH_MS)
-    );
-  }
-
   /**
    * 下载后刷新曲库。
    *
@@ -111,14 +75,14 @@ export const useDownloadStore = defineStore("download", () => {
         defaultDirectory: localStore.defaultDirectory,
       });
       await refreshLibrary();
-      flashDone(key);
+      setStatus(key, "done");
       return resolveFileName(song, downloaded);
     } catch (error) {
       // 文件已经在磁盘上，这是幂等的成功而不是失败：原先它会弹一句
       // 「文件已存在，无需重复下载」的错误提示，而用户要的结果已经达成了。
       if (isAlreadyExistsError(error)) {
         await refreshLibrary();
-        flashDone(key);
+        setStatus(key, "done");
         return resolveFileName(song, getExpectedDownloadFileName(song));
       }
       console.error("下载歌曲失败:", error);
@@ -143,12 +107,11 @@ export const useDownloadStore = defineStore("download", () => {
   }
 
   /**
-   * 行上要展示的状态。优先级：下载中 > 刚下完 > 已下载 > 失败 > 空闲。
+   * 行上要展示的状态。优先级：下载中 > 本次下过 > 曲库已有 > 失败 > 空闲。
    *
-   * 「已下载」有两个来源，同一个展示：本次会话下过的（downloaded），以及
-   * 曲库里探到的（inLibrary）。之所以不只认曲库：重扫有可能被并发的另一次
-   * 加载顶掉（localMusicStore 的 requestId 守卫会静默丢弃结果），那时刚下好
-   * 的行会闪回下载箭头，而它明明就在磁盘上。
+   * done 是会话级的、不过期：下载成功后打勾就常驻，不再需要悬停。它排在
+   * inLibrary 之前，否则下载成功会立刻自降级成「已在曲库」，把用户要的那个
+   * 打勾弄丢。
    *
    * 「已下载」排在 failed 之前：文件就在曲库里却显示「重试」是错的，那个
    * 操作也没有意义。
@@ -160,7 +123,6 @@ export const useDownloadStore = defineStore("download", () => {
     const status = statuses.value[song.file_hash];
     if (status === "downloading") return "downloading";
     if (status === "done") return "done";
-    if (status === "downloaded") return "inLibrary";
     if (localStore.hasMusicFile(getExpectedDownloadFileName(song))) return "inLibrary";
     if (status === "failed") return "failed";
     return "idle";
@@ -172,8 +134,13 @@ export const useDownloadStore = defineStore("download", () => {
   };
 });
 
-/** 需要让行的操作簇常驻的状态：进行中、刚完成、待重试。
- *  inLibrary 不在其中——那是环境状态，常驻反而让每个下过的行都多出两个按钮。 */
+/**
+ * 需要让行的操作簇常驻的状态：除了「未下载」都常驻。
+ *
+ * 操作簇默认悬停才显示，而下载进度与结果都不再有 toast 兜底——鼠标一移开就
+ * 什么都看不到。「已下载」也同样常驻：不管什么时候下的，同一件事在界面上只
+ * 该有一套规矩。
+ */
 export function pinsRowActions(state: DownloadState): boolean {
-  return state !== "idle" && state !== "inLibrary";
+  return state !== "idle";
 }
