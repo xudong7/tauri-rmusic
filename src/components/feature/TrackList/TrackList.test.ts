@@ -116,5 +116,22 @@ describe("TrackList", () => {
         );
       }
     });
+
+    // jsdom 不计算 scoped 样式的层叠，「常驻」这个效果只能从源码层面钉住：
+    // 少了 pointer-events 那一句，操作簇会看得见却点不动。
+    it("is-busy 同时恢复可见与可点击", () => {
+      const rule = trackRowSource.match(/\.track-row\.is-busy[^{]*\{[^}]*\}/)?.[0] ?? "";
+
+      expect(rule).toContain("opacity: 1");
+      expect(rule).toContain("pointer-events: auto");
+    });
+
+    // 虚拟滚动与普通列表是两个分支，各写一遍 :busy。漏掉一处，长列表里
+    // 那些行就不会常驻，而这类漏改在测试里没有别的办法发现。
+    it("两个分支都传 busy", () => {
+      expect(trackListSource.match(/:busy="busyKeys\.has\(item\.key\)"/g)).toHaveLength(
+        2
+      );
+    });
   });
 });

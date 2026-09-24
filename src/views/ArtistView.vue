@@ -36,9 +36,7 @@
       :hasMore="artistStore.artistSongsHasMore"
       @play="playArtistSong"
       @toggle-current="playerStore.togglePlay"
-      @download="downloadOnlineSong"
       @load-more="artistStore.loadMoreArtistSongs"
-      @add-to-playlist="addOnlineSongToPlaylist"
     >
       <template #loading><el-skeleton :rows="6" animated /></template>
       <template #empty>
@@ -81,7 +79,6 @@ import { useViewStore } from "@/stores/viewStore";
 import OnlineMusicList from "@/components/feature/OnlineMusicList/OnlineMusicList.vue";
 import EntityGrid from "@/components/feature/EntityGrid/EntityGrid.vue";
 import type { EntityCardModel } from "@/components/feature/EntityGrid/types";
-import { useOnlinePlaylistActions } from "@/composables/useOnlinePlaylistActions";
 import type { AlbumInfo, SongInfo } from "@/types/model";
 import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
 import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
@@ -94,7 +91,6 @@ const router = useRouter();
 const artistStore = useArtistStore();
 const playerStore = usePlayerStore();
 const viewStore = useViewStore();
-const { downloadOnlineSong, addOnlineSongToPlaylist } = useOnlinePlaylistActions();
 
 const activeTab = ref<"songs" | "albums">("songs");
 

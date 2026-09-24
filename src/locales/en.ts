@@ -37,7 +37,6 @@ export default {
     addToPlaylist: "Add to playlist",
     added: 'Added to "{name}"',
     alreadyInPlaylist: 'Already in "{name}"',
-    downloadedAndAdded: 'Downloaded and added to "{name}"',
     removeSelected: "Remove selected from playlist",
     trackCount: "{count} tracks",
     browseLibrary: "Open library",
@@ -180,11 +179,12 @@ export default {
     openDialogFailed: "Failed to open file dialog",
   },
   download: {
-    starting: "Downloading, please wait...",
-    done: "Downloaded: {fileName}",
+    downloading: "Downloading",
+    done: "Downloaded",
+    inLibrary: "Already in library",
+    failed: "Download failed, click to retry",
   },
   messages: {
-    playing: "Now playing: {name}",
     noLocalMusic: "No local music to play",
     noOnlineMusic: "No online music to play",
     noSearchResult: "No songs found",

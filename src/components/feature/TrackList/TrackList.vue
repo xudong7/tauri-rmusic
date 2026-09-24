@@ -10,6 +10,9 @@ const props = withDefaults(
     items: TrackRowModel[];
     selectionMode?: boolean;
     selectedKeys?: Set<string>;
+    /** 操作簇要常驻的行 key（下载中/刚完成/待重试）。与 selectedKeys 同样
+        只是个 key 集合，行的具体状态由槽内容自己表达。 */
+    busyKeys?: Set<string>;
     loading?: boolean;
     nearEndThreshold?: number;
     /** 当前曲目的行 key；行的 is-current 样式由它与 item.key 比较得出，
@@ -21,6 +24,7 @@ const props = withDefaults(
   {
     selectionMode: false,
     selectedKeys: () => new Set<string>(),
+    busyKeys: () => new Set<string>(),
     loading: false,
     nearEndThreshold: 220,
     currentKey: null,
@@ -121,6 +125,7 @@ function handleListKeydown(event: KeyboardEvent) {
           :selected="selectedKeys.has(item.key)"
           :is-current="item.key === currentKey"
           :is-playing="isPlaying && item.key === currentKey"
+          :busy="busyKeys.has(item.key)"
           :row-height="rowHeight"
           @activate="handleActivate"
           @toggle-select="emit('toggleSelect', $event)"
@@ -149,6 +154,7 @@ function handleListKeydown(event: KeyboardEvent) {
           :selected="selectedKeys.has(item.key)"
           :is-current="item.key === currentKey"
           :is-playing="isPlaying && item.key === currentKey"
+          :busy="busyKeys.has(item.key)"
           @activate="handleActivate"
           @toggle-select="emit('toggleSelect', $event)"
         >

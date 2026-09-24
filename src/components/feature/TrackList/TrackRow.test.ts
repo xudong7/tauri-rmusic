@@ -96,6 +96,15 @@ describe("TrackRow", () => {
     );
   });
 
+  // 操作簇默认悬停才显示，而进行中/刚完成的行必须让它常驻——成功提示已经没有
+  // toast 兜底了，鼠标一移开就什么都看不到。
+  it("busy 为真时标出 is-busy，缺省不标", () => {
+    expect(mount(TrackRow, { props: { item, busy: true } }).classes()).toContain(
+      "is-busy"
+    );
+    expect(mount(TrackRow, { props: { item } }).classes()).not.toContain("is-busy");
+  });
+
   it("emits activate from the play control", async () => {
     const wrapper = mount(TrackRow, { props: { item } });
     await wrapper.find("button").trigger("click");

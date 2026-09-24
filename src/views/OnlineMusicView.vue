@@ -13,9 +13,7 @@
       :totalCount="onlineStore.onlineSongsTotal"
       @play="playOnlineSongFromSearch"
       @toggle-current="playerStore.togglePlay"
-      @download="downloadOnlineSong"
       @load-more="onlineStore.loadMoreActiveTab"
-      @add-to-playlist="addOnlineSongToPlaylist"
     />
 
     <EntityGrid
@@ -60,7 +58,6 @@ import OnlineMusicList from "@/components/feature/OnlineMusicList/OnlineMusicLis
 import EntityGrid from "@/components/feature/EntityGrid/EntityGrid.vue";
 import type { EntityCardModel } from "@/components/feature/EntityGrid/types";
 import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
-import { useOnlinePlaylistActions } from "@/composables/useOnlinePlaylistActions";
 
 const { t, locale } = useI18n();
 const router = useRouter();
@@ -68,7 +65,6 @@ const onlineStore = useOnlineMusicStore();
 const playlistStore = useOnlinePlaylistStore();
 const playerStore = usePlayerStore();
 const viewStore = useViewStore();
-const { downloadOnlineSong, addOnlineSongToPlaylist } = useOnlinePlaylistActions();
 
 const tabOptions = computed(() => [
   { label: t("onlineMusic.tabSong"), value: "song" },

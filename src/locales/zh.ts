@@ -37,7 +37,6 @@ export default {
     addToPlaylist: "添加到播放列表",
     added: "已添加到「{name}」",
     alreadyInPlaylist: "该歌曲已在「{name}」中",
-    downloadedAndAdded: "已下载并已添加到「{name}」",
     removeSelected: "从播放列表移除选中",
     trackCount: "{count} 首歌曲",
     browseLibrary: "前往曲库",
@@ -180,11 +179,12 @@ export default {
     openDialogFailed: "打开文件选择对话框失败",
   },
   download: {
-    starting: "开始下载歌曲，请稍候...",
-    done: "歌曲已下载: {fileName}",
+    downloading: "下载中",
+    done: "已下载",
+    inLibrary: "已在曲库中",
+    failed: "下载失败，点击重试",
   },
   messages: {
-    playing: "正在播放: {name}",
     noLocalMusic: "没有可播放的本地音乐",
     noOnlineMusic: "没有可播放的在线音乐",
     noSearchResult: "未找到相关歌曲",

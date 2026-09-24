@@ -7,6 +7,7 @@ import { i18n } from "@/i18n";
 import { parseErrorMessage } from "@/utils/errorUtils";
 import { getDefaultMusicDir, loadCachedMusicFiles, scanFiles } from "@/api/commands/file";
 import { joinPathSegment } from "@/utils/pathUtils";
+import { getFileName } from "@/utils/songUtils";
 
 export const useLocalMusicStore = defineStore("localMusic", () => {
   const musicFiles = ref<MusicFile[]>([]);
@@ -50,6 +51,27 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
     }
     return map;
   });
+
+  /**
+   * 曲库文件的「基名」集合，用来回答「这个文件名在不在曲库里」。
+   *
+   * 不能复用 musicFilesByName：它的键是 file_name，而 file_name 等于
+   * relative_path，可能带子目录（扫描子目录时是 `专辑/歌手 - 歌名.mp3`）。
+   * 下载写入的是 `<root>/music/<歌手> - <歌名>.mp3`，判定时手上只有纯文件名，
+   * 只能拿最后一段去比——这也正是 songUtils 里 getLocalFileNameForSong 那套
+   * `=== / endsWith("/"+x) / endsWith("\\"+x)` 的语义，这里是它的 O(1) 版本。
+   */
+  const musicFileNames = computed(() => {
+    const names = new Set<string>();
+    for (const file of musicFiles.value) {
+      names.add(getFileName(file.file_name));
+    }
+    return names;
+  });
+
+  function hasMusicFile(name: string): boolean {
+    return musicFileNames.value.has(name);
+  }
 
   async function loadMusicFiles(path?: string, options?: { restoreCache?: boolean }) {
     const requestId = ++latestLoadRequestId;
@@ -201,6 +223,7 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
   return {
     musicFiles,
     musicFilesByName,
+    hasMusicFile,
     filteredMusicFiles,
     searchKeyword,
     currentDirectory,

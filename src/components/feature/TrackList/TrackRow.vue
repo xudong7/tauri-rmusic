@@ -17,6 +17,11 @@ const props = withDefaults(
     isCurrent?: boolean;
     /** 是否正在播放；只在 isCurrent 时有意义。 */
     isPlaying?: boolean;
+    /**
+     * 操作簇要常驻。槽内容里有东西正在进行/刚完成/待重试时由调用方置真——
+     * 操作簇默认悬停才显示，鼠标一移开，进度或结果就跟着消失了。
+     */
+    busy?: boolean;
     rowHeight?: number;
   }>(),
   {
@@ -25,6 +30,7 @@ const props = withDefaults(
     selected: false,
     isCurrent: false,
     isPlaying: false,
+    busy: false,
     rowHeight: undefined,
   }
 );
@@ -60,6 +66,7 @@ function handleActivate() {
       'is-selected': selected,
       'is-disabled': item.disabled,
       'is-striped': props.index % 2 === 0,
+      'is-busy': busy,
     }"
     :style="
       rowHeight ? { height: `${rowHeight}px`, minHeight: `${rowHeight}px` } : undefined
@@ -340,6 +347,13 @@ function handleActivate() {
   pointer-events: auto;
 }
 
+/* 槽内容标记为进行中的行，操作簇常驻：鼠标一移开，进度或结果就跟着消失，
+   而这些恰恰是用户要看的（成功提示已经没有 toast 兜底了）。 */
+.track-row.is-busy .track-row__actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 :deep(.track-row__actions .el-button) {
   width: var(--list-row-btn-size);
   height: var(--list-row-btn-size);
@@ -353,6 +367,14 @@ function handleActivate() {
     color var(--app-control-transition),
     transform var(--app-control-transition),
     box-shadow var(--app-control-transition);
+}
+
+/* 加载中的按钮会被 Element Plus 盖一层 --el-mask-color-extra-light
+   （rgba(255,255,255,.3)）的遮罩。浅色下看不出来，深色下是一整块发白圆斑，
+   而这一簇的按钮约定是只有图标、不浮出底色（见下面的 hover 规则），
+   遮罩在这里没有存在意义。 */
+:deep(.track-row__actions .el-button.is-loading::before) {
+  display: none;
 }
 
 /* 与全项目一致：悬停只让图标亮起来，不浮出底色方块。
