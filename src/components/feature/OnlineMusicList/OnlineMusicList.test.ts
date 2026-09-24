@@ -6,6 +6,7 @@ import { ElMessage } from "element-plus";
 import { i18n } from "@/i18n";
 import { TauriCommandError } from "@/api/client";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
+import { DONE_FLASH_MS } from "@/stores/downloadStore";
 import type { SongInfo } from "@/types/model";
 import TrackList from "@/components/feature/TrackList/TrackList.vue";
 import OnlineMusicList from "./OnlineMusicList.vue";
@@ -154,6 +155,30 @@ describe("OnlineMusicList 的下载按钮", () => {
     await flushPromises();
 
     expect(commandMocks.downloadMusic).toHaveBeenCalledTimes(2);
+  });
+
+  // 同一个事实不该有两套显示规矩：闪完之后，刚下载的和以前下载的完全一样。
+  it("闪现结束后归位成「已在曲库」：同一个图标、同样不常驻", async () => {
+    vi.useFakeTimers();
+    try {
+      commandMocks.downloadMusic.mockResolvedValue(EXPECTED_NAME);
+      commandMocks.scanFiles.mockResolvedValue([{ id: 1, file_name: EXPECTED_NAME }]);
+      const { wrapper } = mountList();
+
+      await downloadButton(wrapper).trigger("click");
+      await flushPromises();
+      expect(downloadButton(wrapper).find(".check-icon").exists()).toBe(true);
+
+      await vi.advanceTimersByTimeAsync(DONE_FLASH_MS);
+      await flushPromises();
+
+      const settled = downloadButton(wrapper);
+      expect(settled.find(".check-icon").exists()).toBe(false);
+      expect(settled.find(".in-library-icon").exists()).toBe(true);
+      expect(busyKeysOf(wrapper).has(song.id)).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("下载中与刚完成的行都交给 TrackList 去钉住操作簇", async () => {
