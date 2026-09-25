@@ -156,8 +156,8 @@ function goToCollectedPlaylist(id: string) {
             >
               <PlaylistCover
                 :item="pl.items[0]"
-                :size="20"
-                :radius="5"
+                :size="36"
+                :radius="8"
                 aria-hidden="true"
               />
               <span class="nav-label" :title="pl.name">{{
@@ -185,8 +185,8 @@ function goToCollectedPlaylist(id: string) {
                 <CoverImage
                   :src="al.pic_url"
                   alt=""
-                  :size="20"
-                  :radius="5"
+                  :size="36"
+                  :radius="8"
                   variant="album"
                   class="playlist-cover"
                 />
@@ -208,8 +208,8 @@ function goToCollectedPlaylist(id: string) {
                 <CoverImage
                   :src="pl.cover_url"
                   alt=""
-                  :size="20"
-                  :radius="5"
+                  :size="36"
+                  :radius="8"
                   variant="playlist"
                   class="playlist-cover"
                 />

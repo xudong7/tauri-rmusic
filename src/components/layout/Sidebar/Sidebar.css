@@ -26,10 +26,10 @@
 
 /* 收藏页里的小组标题（专辑 / 歌单）。比歌单名更轻，只做分隔用。 */
 .playlist-group-title {
-  margin: 6px 0 2px;
+  margin: 8px 0 3px;
   padding: 0 11px;
   color: var(--el-text-color-secondary);
-  font-size: 10.5px;
+  font-size: 11.5px;
   font-weight: 600;
   letter-spacing: 0.04em;
 }
@@ -230,25 +230,29 @@ html.dark .playlist-section,
     transparent;
 }
 
-/* 歌单行与上方导航项同一套几何：左内边距、封面/图标尺寸、间距全部对齐，
-   封面与图标因此落在同一条竖线上，标签也与导航文字同一条竖线。 */
+/* 库行（歌单 / 专辑）刻意比上方的导航项大一号：封面 36px、名称 14px，
+   而行高只比导航项高一点。两者是两种东西——上面是导航（小图标 + 文字），
+   下面是内容（封面缩略图），而封面正是最快认出「这是哪张」的东西。
+   原先封面只有 20px、名称 13.5px，和导航项同一套尺度，于是内容看起来
+   像「更多导航项」；封面又远小于 44px 的行高，四周全是留白，显得很空。
+   左内边距仍是 11px，所以行首与上方导航项对齐。 */
 .nav-item-playlist {
-  min-height: 44px;
-  gap: 11px;
+  min-height: 52px;
+  gap: 12px;
   padding: 0 11px;
   border-radius: var(--app-radius-md);
-  margin-bottom: 1px;
+  margin-bottom: 2px;
 }
 
 .nav-item-playlist .nav-label {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 500;
   letter-spacing: 0;
 }
 
 .nav-item-playlist :deep(.playlist-cover) {
-  /* 与 .nav-icon 的 font-size（20px）同尺寸 */
-  flex: 0 0 20px;
+  /* 与模板里 CoverImage/PlaylistCover 的 :size 一致 */
+  flex: 0 0 36px;
 }
 
 /* 收藏歌单的封面直接由 CoverImage 渲染，不会带上 PlaylistCover 的组件样式，

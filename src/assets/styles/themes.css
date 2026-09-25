@@ -52,7 +52,10 @@ html {
   /* 主布局尺寸 */
   --app-header-height: 56px;
   --app-player-height: 80px;
-  --app-sidebar-width: 192px;
+  /* 232px：库行（歌单/专辑）的封面提到 36px 之后，192px 下名称只剩约 100px，
+     稍长的名字就只剩「日语流行…」这样的残片。参考 Spotify（约 280）与
+     Apple Music（约 230）。窗口最小宽度 1200，加宽后列表仍有充足余量。 */
+  --app-sidebar-width: 232px;
   --app-sidebar-width-compact: 156px;
   --app-search-max-width: 400px;
 
