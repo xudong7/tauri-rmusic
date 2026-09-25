@@ -25,6 +25,7 @@ export default {
     collectedEmpty: "Nothing collected yet",
     albums: "Albums",
     playlists: "Playlists",
+    songCount: "{count} songs",
   },
   playlist: {
     title: "Playlists",
@@ -40,7 +41,6 @@ export default {
     added: 'Added to "{name}"',
     alreadyInPlaylist: 'Already in "{name}"',
     removeSelected: "Remove selected from playlist",
-    trackCount: "{count} tracks",
     browseLibrary: "Open library",
     browseOnline: "Search online",
   },
@@ -137,14 +137,12 @@ export default {
   onlinePlaylist: {
     kind: "Playlist",
     back: "Back to search",
-    trackCount: "{count} songs",
     notFound: "This playlist is unavailable or was deleted",
   },
   onlineAlbum: {
     kind: "Album",
     empty: "No matching albums",
     back: "Back to search",
-    songCount: "{count} songs",
     notFound: "This album is unavailable or was deleted",
   },
   toplist: {

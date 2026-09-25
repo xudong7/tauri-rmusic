@@ -81,7 +81,7 @@ const subtitle = computed(() => {
   if (!album) return undefined;
   return [
     album.artist,
-    t("onlineAlbum.songCount", { count: album.size }),
+    t("common.songCount", { count: album.size }),
     formatPublishDate(album.publish_time, locale.value),
     album.company,
   ]

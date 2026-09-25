@@ -137,7 +137,7 @@ function albumCard(item: AlbumInfo): EntityCardModel {
     kind: "album",
     title: item.name,
     subtitle: item.artist || undefined,
-    metaLabel: t("onlineAlbum.songCount", { count: item.size }),
+    metaLabel: t("common.songCount", { count: item.size }),
     coverUrl: item.pic_url,
   };
 }

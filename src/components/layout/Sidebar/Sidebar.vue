@@ -160,14 +160,9 @@ function goToCollectedPlaylist(id: string) {
                 :radius="5"
                 aria-hidden="true"
               />
-              <span class="nav-label-group">
-                <span class="nav-label" :title="pl.name">{{
-                  pl.name || t("playlist.unnamed")
-                }}</span>
-                <span class="nav-sublabel">{{
-                  t("playlist.trackCount", { count: pl.items.length })
-                }}</span>
-              </span>
+              <span class="nav-label" :title="pl.name">{{
+                pl.name || t("playlist.unnamed")
+              }}</span>
             </button>
           </template>
 
@@ -195,12 +190,7 @@ function goToCollectedPlaylist(id: string) {
                   variant="album"
                   class="playlist-cover"
                 />
-                <span class="nav-label-group">
-                  <span class="nav-label" :title="al.name">{{ al.name }}</span>
-                  <span class="nav-sublabel">{{
-                    t("onlineAlbum.songCount", { count: al.size })
-                  }}</span>
-                </span>
+                <span class="nav-label" :title="al.name">{{ al.name }}</span>
               </button>
             </template>
 
@@ -223,12 +213,7 @@ function goToCollectedPlaylist(id: string) {
                   variant="playlist"
                   class="playlist-cover"
                 />
-                <span class="nav-label-group">
-                  <span class="nav-label" :title="pl.name">{{ pl.name }}</span>
-                  <span class="nav-sublabel">{{
-                    t("playlist.trackCount", { count: pl.track_count })
-                  }}</span>
-                </span>
+                <span class="nav-label" :title="pl.name">{{ pl.name }}</span>
               </button>
             </template>
 

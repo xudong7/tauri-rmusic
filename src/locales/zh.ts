@@ -25,6 +25,7 @@ export default {
     collectedEmpty: "还没有收藏的内容",
     albums: "专辑",
     playlists: "歌单",
+    songCount: "{count} 首",
   },
   playlist: {
     title: "播放列表",
@@ -40,7 +41,6 @@ export default {
     added: "已添加到「{name}」",
     alreadyInPlaylist: "该歌曲已在「{name}」中",
     removeSelected: "从播放列表移除选中",
-    trackCount: "{count} 首歌曲",
     browseLibrary: "前往曲库",
     browseOnline: "在线搜索",
   },
@@ -137,14 +137,12 @@ export default {
   onlinePlaylist: {
     kind: "歌单",
     back: "返回搜索",
-    trackCount: "{count} 首",
     notFound: "歌单不存在或已被删除",
   },
   onlineAlbum: {
     kind: "专辑",
     empty: "未找到相关专辑",
     back: "返回搜索",
-    songCount: "{count} 首",
     notFound: "专辑不存在或已被删除",
   },
   toplist: {

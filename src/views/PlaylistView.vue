@@ -6,7 +6,7 @@
     <template v-else>
       <PageHeader
         :title="displayName"
-        :subtitle="t('playlist.trackCount', { count: playlist.items.length })"
+        :subtitle="t('common.songCount', { count: playlist.items.length })"
       >
         <template #before-title>
           <PlaylistCover

@@ -130,7 +130,7 @@ const subtitle = computed(() => {
   const detail = store.detail;
   if (!detail) return undefined;
   const parts = [
-    t("onlinePlaylist.trackCount", { count: detail.track_count }),
+    t("common.songCount", { count: detail.track_count }),
     detail.creator,
     formatCompactNumber(detail.play_count, locale.value),
   ].filter(Boolean);
