@@ -2,7 +2,8 @@
 import { ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { Folder, Search, Setting, Plus } from "@element-plus/icons-vue";
+import { Folder, Setting, Plus } from "@element-plus/icons-vue";
+import OnlineMusicIcon from "@/components/base/icons/OnlineMusicIcon.vue";
 import { useViewStore } from "@/stores/viewStore";
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { useCollectedPlaylistStore } from "@/stores/collectedPlaylistStore";
@@ -21,7 +22,12 @@ const playlistTab = ref<"created" | "collected">("created");
 
 const navItems = [
   { path: "/", name: "LocalMusic", labelKey: "common.localMusic", icon: Folder },
-  { path: "/online", name: "OnlineMusic", labelKey: "common.onlineSearch", icon: Search },
+  {
+    path: "/online",
+    name: "OnlineMusic",
+    labelKey: "common.onlineSearch",
+    icon: OnlineMusicIcon,
+  },
   { path: "/settings", name: "Settings", labelKey: "common.settings", icon: Setting },
 ];
 

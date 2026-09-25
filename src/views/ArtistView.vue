@@ -1,26 +1,16 @@
 <template>
   <PageLayout class="artist-view">
-    <PageHeader v-if="artistStore.currentArtist" :title="artistStore.currentArtist.name">
-      <template #before-title>
-        <CoverImage
-          :src="artistStore.currentArtist.pic_url"
-          alt=""
-          :size="40"
-          :radius="999"
-          variant="artist"
-          class="artist-avatar"
-        />
-      </template>
-      <template #actions>
-        <el-button class="back-to-search" text :icon="ArrowLeft" @click="goBackToSearch">
-          {{ t("artist.backToSearch") }}
-        </el-button>
-      </template>
-    </PageHeader>
-
-    <!-- 计数放在 header 之外：PageHeader 的 title/after-title 是同一行 flex，
-         把额外内容塞进 after-title 会挤占标题空间。 -->
-    <p v-if="countsLabel" class="artist-view__counts">{{ countsLabel }}</p>
+    <DetailHero
+      v-if="artistStore.currentArtist"
+      :cover-url="artistStore.currentArtist.pic_url"
+      variant="artist"
+      :eyebrow="t('onlineMusic.tabArtist')"
+      :title="artistStore.currentArtist.name"
+      :meta="countsLabel"
+      :play-label="t('artist.playHotSongs')"
+      :back-label="t('artist.backToSearch')"
+      @back="goBackToSearch"
+    />
 
     <div class="artist-view__tabs">
       <el-segmented v-model="activeTab" :options="tabOptions" />
@@ -72,7 +62,6 @@
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { ArrowLeft } from "@element-plus/icons-vue";
 import { useArtistStore } from "@/stores/artistStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useViewStore } from "@/stores/viewStore";
@@ -80,9 +69,8 @@ import OnlineMusicList from "@/components/feature/OnlineMusicList/OnlineMusicLis
 import EntityGrid from "@/components/feature/EntityGrid/EntityGrid.vue";
 import type { EntityCardModel } from "@/components/feature/EntityGrid/types";
 import type { AlbumInfo, SongInfo } from "@/types/model";
-import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
+import DetailHero from "@/components/layout/DetailHero/DetailHero.vue";
 import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
-import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import { formatPublishDate } from "@/utils/songUtils";
 
 const { t, locale } = useI18n();
@@ -177,27 +165,5 @@ watch(() => route.fullPath, load, { immediate: true });
 .artist-view__tabs {
   padding: 0 4px 12px;
   flex-shrink: 0;
-}
-
-.artist-view__counts {
-  flex-shrink: 0;
-  margin: 0 4px 12px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.back-to-search {
-  flex-shrink: 0;
-  margin-left: auto;
-  color: var(--el-text-color-secondary);
-  transition: color 0.2s ease;
-}
-.back-to-search:hover {
-  color: var(--el-color-primary);
-}
-
-.artist-avatar {
-  flex-shrink: 0;
-  box-shadow: var(--app-button-shadow);
 }
 </style>

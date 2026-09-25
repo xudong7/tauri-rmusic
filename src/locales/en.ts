@@ -17,8 +17,6 @@ export default {
     confirmDelete: "Delete",
     download: "Download",
     retry: "Retry",
-    playAll: "Play all",
-    shufflePlay: "Shuffle play",
   },
   playlist: {
     title: "Playlists",

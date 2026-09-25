@@ -17,8 +17,6 @@ export default {
     confirmDelete: "确定删除",
     download: "下载",
     retry: "重试",
-    playAll: "播放全部",
-    shufflePlay: "随机播放",
   },
   playlist: {
     title: "播放列表",

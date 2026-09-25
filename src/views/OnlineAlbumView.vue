@@ -7,11 +7,7 @@
       :eyebrow="t('onlineAlbum.kind')"
       :title="store.album.name"
       :meta="subtitle"
-      :play-label="t('common.playAll')"
-      :shuffle-label="t('common.shufflePlay')"
       :back-label="t('onlineAlbum.back')"
-      @play="playAll"
-      @shuffle="shuffleAll"
       @back="goBack"
     />
     <!-- 加载中先占住标题位，专辑头到位前页面不再整体跳动 -->
@@ -50,7 +46,6 @@ import { formatPublishDate } from "@/utils/songUtils";
 import { useOnlineAlbumStore } from "@/stores/onlineAlbumStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useViewStore } from "@/stores/viewStore";
-import { useDetailPlayback } from "@/composables/useDetailPlayback";
 import OnlineMusicList from "@/components/feature/OnlineMusicList/OnlineMusicList.vue";
 import DetailHero from "@/components/layout/DetailHero/DetailHero.vue";
 import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
@@ -74,8 +69,6 @@ const subtitle = computed(() => {
     .filter(Boolean)
     .join(" · ");
 });
-
-const { playAll, shuffleAll } = useDetailPlayback(() => store.songs);
 
 function playSong(song: SongInfo) {
   // 专辑曲目一次性取全，队列即整张专辑

@@ -7,11 +7,7 @@
         :eyebrow="t('onlinePlaylist.kind')"
         :title="store.detail.name"
         :meta="subtitle"
-        :play-label="t('common.playAll')"
-        :shuffle-label="t('common.shufflePlay')"
         :back-label="t('onlinePlaylist.back')"
-        @play="playAll"
-        @shuffle="shuffleAll"
         @back="goBack"
       >
         <template #actions>
@@ -79,7 +75,6 @@ import { useOnlinePlaylistStore } from "@/stores/onlinePlaylistStore";
 import { useCollectedPlaylistStore } from "@/stores/collectedPlaylistStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useViewStore } from "@/stores/viewStore";
-import { useDetailPlayback } from "@/composables/useDetailPlayback";
 import OnlineMusicList from "@/components/feature/OnlineMusicList/OnlineMusicList.vue";
 import DetailHero from "@/components/layout/DetailHero/DetailHero.vue";
 import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
@@ -141,8 +136,6 @@ const subtitle = computed(() => {
   ].filter(Boolean);
   return parts.join(" · ");
 });
-
-const { playAll, shuffleAll } = useDetailPlayback(() => store.songs);
 
 function playSong(song: SongInfo) {
   // 队列用当前已加载的曲目。首屏按 PLAYLIST_TRACKS_PAGE_SIZE 一次取满，
