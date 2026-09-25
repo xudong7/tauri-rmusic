@@ -116,6 +116,7 @@ export default {
     tabAlbum: "专辑",
     tabPlaylist: "歌单",
     tabToplist: "排行榜",
+    resultCount: "共 {count} 条结果",
     refineHint: "结果过多，请细化搜索关键词",
   },
   onlineService: {
