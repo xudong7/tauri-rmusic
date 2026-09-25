@@ -105,16 +105,22 @@ html {
      没有断点变体（见下面的说明），组件里也不要再写 grid-template-columns。
 
      只有歌名与专辑两列伸缩，封面与时长固定——所以窗口拉宽时动的是这两列的
-     宽度，时长与右侧留白纹丝不动。专辑取 0.45fr 而不是 1fr：两列当前的宽度比
-     是 500:220，按这个比例分配，本窗口下与之前的外观一致（约 498 / 224），
-     再宽下去两列按同样比例一起长。
+     宽度，时长与右侧留白纹丝不动。
+
+     专辑那一列的系数从 0.45 提到 0.62（下限 140 → 160）：在线列表里的专辑名
+     普遍很长（"Blood Blockade Battlefront (Original Soundtrack)"），0.45 下
+     几乎每行都被截断，而那一半的内容才是用来区分同名曲目的。歌名仍占大头。
 
      时长那一列右边必须留出 --app-track-end-gap 的空档（见下面那个 token）：
      它是最后一格，右边缘就是网格的右边缘，不留空档就会贴着行尾。 */
-  --app-track-grid: 40px minmax(180px, 1fr) minmax(140px, 0.45fr) 48px;
+  --app-track-grid: 40px minmax(180px, 1fr) minmax(160px, 0.62fr) 48px;
   /* 网格右边缘到行尾的空档。时长列不贴边靠它；行盒本身仍铺满整行，
-     底色与悬停不受影响。 */
-  --app-track-end-gap: 80px;
+     底色与悬停不受影响。
+
+     从 80px 收到 24px：那个值是在操作按钮还占着网格最后一列时定的，后来
+     按钮挪进了歌名那一列，这段空档就没人再用了——实测时长右侧空了约 80px，
+     而专辑名正在被截断。24px 仍够让时长不贴边。 */
+  --app-track-end-gap: 24px;
 
   /* 按钮与控件：macOS / Apple Music 风格 */
   --app-button-height: 32px;
@@ -460,6 +466,47 @@ html.theme-warm {
     --sidebar-width: var(--app-sidebar-width-compact);
     --app-search-max-width: 280px;
   }
+}
+
+/* ---------- 分段控件（Element Plus 映射）----------
+   el-segmented 默认是一个填了底色的胶囊，里面还有一块实心滑块。用在页签上
+   时它是整页最重的控件，比周围所有元素都抢眼——而它表达的只是一次筛选。
+
+   改成 Apple Music 那种「文字 + 选中下划线」：容器底色去掉，那块绝对定位的
+   滑动块压成底部一条 2px 的线。滑块本来就带 transition，所以下划线会跟着
+   选中项滑过去，组件本身的无障碍与键盘导航也一并保留——完全没有必要为了
+   这点外观自己写一套按钮。 */
+.el-segmented {
+  --el-segmented-bg-color: transparent;
+  --el-segmented-padding: 0;
+  --el-segmented-color: var(--el-text-color-secondary);
+  --el-segmented-item-selected-color: var(--el-color-primary);
+  --el-segmented-item-selected-bg-color: var(--el-color-primary);
+  --el-segmented-item-hover-bg-color: transparent;
+  --el-segmented-item-active-bg-color: transparent;
+  --el-segmented-item-hover-color: var(--el-text-color-primary);
+  min-height: 30px;
+  border-radius: 0;
+}
+
+.el-segmented__item {
+  padding: 0 12px;
+}
+
+.el-segmented__item-selected {
+  /* 从「填满的滑块」压成「底部的一条线」。
+     height 必须 !important：组件把这个高度作为**行内样式**写死在元素上
+     （`height: 100%`，见 segmented.vue2.mjs 的 selectedStyle），样式表里的
+     普通声明压不过行内。宽度同理也是行内的，那正好——它量的是每个页签的
+     实际宽度，下划线才能跟页签等宽。 */
+  height: 2px !important;
+  top: auto;
+  bottom: 0;
+  border-radius: var(--app-radius-full) !important;
+}
+
+.el-segmented__item-selected:not(.is-disabled) {
+  background: var(--el-color-primary) !important;
 }
 
 /* ---------- 按钮组件（Element Plus 映射）---------- */

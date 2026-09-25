@@ -171,14 +171,14 @@ function handleActivate() {
   background: var(--hover-bg-color);
 }
 
-.track-row.is-current,
+/* 选中态仍然给底色——它是用户刚做的一个动作，值得一整行来确认 */
 .track-row.is-selected {
   background: var(--active-item-bg);
 }
 
-.track-row.is-current {
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--el-color-primary) 14%, transparent);
-}
+/* 当前曲目只留两处信号：左边那条竖条，以及标题变色加粗。
+   这里原本还有整行底色和一圈内描边，四处在说同一句话——结果是整行被涂满，
+   反而盖住了悬停与选中的底色，那两处才是用户当下在操作的状态。 */
 
 .track-row:focus-visible {
   background: var(--hover-bg-color);
