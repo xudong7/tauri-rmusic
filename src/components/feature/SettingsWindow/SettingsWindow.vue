@@ -28,6 +28,9 @@ import {
 import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
 import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
 
+/** 构建时注入（见 vite.config.ts 的 define），值取自 package.json */
+const appVersion = __APP_VERSION__;
+
 const { t } = useI18n();
 const themeStore = useThemeStore();
 const localStore = useLocalMusicStore();
@@ -385,6 +388,7 @@ onMounted(async () => {
         <div class="settings-group">
           <div class="setting-row about-content">
             <p class="about-desc">{{ t("settings.aboutDesc") }}</p>
+            <span class="about-version">v{{ appVersion }}</span>
           </div>
         </div>
       </div>

@@ -1,14 +1,25 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
+import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const host = process.env.TAURI_DEV_HOST;
 
+// 版本号只在「关于」里显示一处，用 define 编进去就够，
+// 不必为了它把整个 package.json 打进 bundle（或再加一个运行时依赖）。
+const { version: appVersion } = JSON.parse(
+  readFileSync(resolve(__dirname, "package.json"), "utf-8")
+);
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [vue()],
+
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
+  },
 
   // 路径别名：用 config 所在目录作为项目根，避免 Tauri dev 下 cwd 不同导致 @ 解析成 /src
   resolve: {
