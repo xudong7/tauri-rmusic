@@ -17,6 +17,8 @@ export default {
     confirmDelete: "Delete",
     download: "Download",
     retry: "Retry",
+    playAll: "Play all",
+    shufflePlay: "Shuffle play",
   },
   playlist: {
     title: "Playlists",
@@ -132,11 +134,13 @@ export default {
     songCount: "{count} songs",
   },
   onlinePlaylist: {
+    kind: "Playlist",
     back: "Back to search",
     trackCount: "{count} songs",
     notFound: "This playlist is unavailable or was deleted",
   },
   onlineAlbum: {
+    kind: "Album",
     empty: "No matching albums",
     back: "Back to search",
     songCount: "{count} songs",

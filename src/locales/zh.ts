@@ -17,6 +17,8 @@ export default {
     confirmDelete: "确定删除",
     download: "下载",
     retry: "重试",
+    playAll: "播放全部",
+    shufflePlay: "随机播放",
   },
   playlist: {
     title: "播放列表",
@@ -132,11 +134,13 @@ export default {
     songCount: "{count} 首歌曲",
   },
   onlinePlaylist: {
+    kind: "歌单",
     back: "返回搜索",
     trackCount: "{count} 首",
     notFound: "歌单不存在或已被删除",
   },
   onlineAlbum: {
+    kind: "专辑",
     empty: "未找到相关专辑",
     back: "返回搜索",
     songCount: "{count} 首",
