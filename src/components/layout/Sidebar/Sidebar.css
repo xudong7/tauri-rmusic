@@ -42,8 +42,8 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 11px;
-  min-height: 42px;
+  gap: 12px;
+  min-height: 48px;
   padding: 0 11px;
   width: 100%;
   border: 0;
@@ -102,7 +102,7 @@
 }
 
 .nav-icon {
-  font-size: 20px;
+  font-size: 24px;
   flex-shrink: 0;
   opacity: 0.92;
 }
@@ -111,8 +111,11 @@
   opacity: 1;
 }
 
+/* 与库行的名称同号（14px）。库行现在是 36px 封面 + 14px 名称，导航项若还停
+   在 13.5px，侧栏上半部分会显得比下半部分「小一号」。但图标仍比封面小一档
+   （24 vs 36）——导航与内容是两层，尺度不必相同。 */
 .nav-label {
-  font-size: 13.5px;
+  font-size: 14px;
   letter-spacing: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -148,7 +151,7 @@ html.dark .playlist-section,
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  min-height: 28px;
+  min-height: 34px;
   padding: 2px 6px 8px 8px;
 }
 
@@ -165,7 +168,7 @@ html.dark .playlist-section,
   background: transparent;
   color: var(--el-text-color-secondary);
   font: inherit;
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 600;
   letter-spacing: 0;
   cursor: pointer;
@@ -194,12 +197,12 @@ html.dark .playlist-section,
 }
 
 .playlist-section-add {
-  font-size: 14px;
+  font-size: 15px;
   color: inherit;
   opacity: 0.8;
   cursor: pointer;
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   padding: 0;
   margin: -3px -3px -3px 0;
   border-radius: var(--app-radius-sm);
