@@ -24,3 +24,7 @@ coverage
 *.njsproj
 *.sln
 *.sw?
+
+# 设计评审用的临时渲染台（可随时删除）
+probe.html
+probe/
