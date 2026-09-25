@@ -2,6 +2,9 @@
   <PageLayout class="online-music-view">
     <div class="online-music-view__tabs">
       <el-segmented v-model="activeTabModel" :options="tabOptions" />
+      <span v-if="searchSummary" class="online-music-view__summary">
+        {{ searchSummary }}
+      </span>
     </div>
 
     <OnlineMusicList
@@ -85,6 +88,26 @@ const activeTabModel = computed({
       void playlistStore.loadToplist();
     }
   },
+});
+
+/**
+ * 搜索词与结果数，推到页签行的右端。
+ *
+ * 原先这一页只有一个 tab 条，答不出"我在看什么"。但为此单开一行标题会白白
+ * 吃掉一条横向空白——页签右边本来就空着一大片。放在那一端既补上了信息，又
+ * 不占额外的垂直空间。
+ *
+ * 榜单页只有搜索词没有条数：它的数据在另一个 store 里，不进这套分页元信息。
+ */
+const searchSummary = computed(() => {
+  const keyword = onlineStore.searchKeyword;
+  if (!keyword) return "";
+  const tab = onlineStore.activeTab;
+  if (tab === "toplist") return keyword;
+  const { total } = onlineStore.tabMeta[tab];
+  return total > 0
+    ? `${keyword} · ${t("onlineMusic.resultCount", { count: total })}`
+    : keyword;
 });
 
 const gridLoading = computed(() =>
@@ -184,8 +207,22 @@ onMounted(() => {
 }
 
 .online-music-view__tabs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   padding: 0 4px 12px;
   flex-shrink: 0;
+}
+
+/* 与页签同排、贴右端。关键字很长时截断，不把页签挤走。 */
+.online-music-view__summary {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--el-text-color-secondary);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .online-music-view__refine {

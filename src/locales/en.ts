@@ -114,6 +114,7 @@ export default {
     tabAlbum: "Albums",
     tabPlaylist: "Playlists",
     tabToplist: "Charts",
+    resultCount: "{count} results",
     refineHint: "Too many results — try a more specific keyword",
   },
   onlineService: {
@@ -132,11 +133,13 @@ export default {
     songCount: "{count} songs",
   },
   onlinePlaylist: {
+    kind: "Playlist",
     back: "Back to search",
     trackCount: "{count} songs",
     notFound: "This playlist is unavailable or was deleted",
   },
   onlineAlbum: {
+    kind: "Album",
     empty: "No matching albums",
     back: "Back to search",
     songCount: "{count} songs",

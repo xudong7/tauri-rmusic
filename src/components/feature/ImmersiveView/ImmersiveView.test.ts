@@ -3,6 +3,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
 import { describe, expect, it, vi } from "vitest";
 import { i18n } from "@/i18n";
+import { IMMERSIVE_CONTROLS_IDLE_MS } from "@/constants";
 import type { SongInfo } from "@/types/model";
 import ImmersiveView from "./ImmersiveView.vue";
 
@@ -119,6 +120,67 @@ describe("ImmersiveView 退出入口", () => {
     await wrapper.get(".immersive-volume-btn").trigger("click");
 
     expect(wrapper.emitted("volume-change")).toEqual([[0]]);
+  });
+});
+
+describe("ImmersiveView 底部控制条的闲置隐藏", () => {
+  // 控制条默认可见、闲置才隐藏。反过来的做法（默认藏、悬停才出）要用户先猜到
+  // 「底部能悬停」，而进沉浸页的第一眼是没有播放控件的。
+  it("刚进入时不隐藏", async () => {
+    const wrapper = await mountImmersiveView();
+
+    expect(wrapper.classes()).not.toContain("is-controls-idle");
+  });
+
+  it("闲置一段时间后隐藏", async () => {
+    vi.useFakeTimers();
+    try {
+      const wrapper = await mountImmersiveView();
+
+      vi.advanceTimersByTime(IMMERSIVE_CONTROLS_IDLE_MS);
+      await flushPromises();
+
+      expect(wrapper.classes()).toContain("is-controls-idle");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("指针一动立刻叫回来，并重新计时", async () => {
+    vi.useFakeTimers();
+    try {
+      const wrapper = await mountImmersiveView();
+      vi.advanceTimersByTime(IMMERSIVE_CONTROLS_IDLE_MS);
+      await flushPromises();
+      expect(wrapper.classes()).toContain("is-controls-idle");
+
+      window.dispatchEvent(new Event("pointermove"));
+      await flushPromises();
+      expect(wrapper.classes()).not.toContain("is-controls-idle");
+
+      // 重新计时：还没到点就不该再次隐藏
+      vi.advanceTimersByTime(IMMERSIVE_CONTROLS_IDLE_MS / 2);
+      await flushPromises();
+      expect(wrapper.classes()).not.toContain("is-controls-idle");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // 沉浸页是 v-if 挂载的，每进出一次就多一份全局监听——正是 useWindowControls
+  // 那个 onResized 泄漏的同款问题，这里从一开始就守住。
+  it("卸载时摘掉全局监听", async () => {
+    const addSpy = vi.spyOn(window, "addEventListener");
+    const removeSpy = vi.spyOn(window, "removeEventListener");
+    const wrapper = await mountImmersiveView();
+
+    wrapper.unmount();
+
+    const count = (spy: typeof addSpy, type: string) =>
+      spy.mock.calls.filter(([event]) => event === type).length;
+    for (const type of ["pointermove", "pointerdown", "keydown"]) {
+      expect(count(removeSpy, type), `${type} 应被摘掉`).toBe(count(addSpy, type));
+    }
   });
 });
 

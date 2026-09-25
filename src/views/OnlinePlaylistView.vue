@@ -1,34 +1,30 @@
 <template>
   <PageLayout class="online-playlist-view">
     <template v-if="store.detail">
-      <PageHeader :title="store.detail.name" :subtitle="subtitle">
-        <template #before-title>
-          <CoverImage
-            :src="store.detail.cover_url"
-            alt=""
-            :size="64"
-            :radius="10"
-            variant="playlist"
-            class="online-playlist-view__cover"
-          />
-        </template>
+      <DetailHero
+        :cover-url="store.detail.cover_url"
+        variant="playlist"
+        :eyebrow="t('onlinePlaylist.kind')"
+        :title="store.detail.name"
+        :meta="subtitle"
+        :back-label="t('onlinePlaylist.back')"
+        @back="goBack"
+      >
         <template #actions>
           <el-tooltip :content="collectLabel" placement="bottom">
+            <!-- circle 而非 link + app-icon-button：这一排是两枚 32px 胶囊，
+                 裸图标按钮夹在中间尺寸和形状都对不上，看着像走失的图标。 -->
             <el-button
-              link
-              size="small"
-              :icon="collectIcon"
-              class="app-icon-button online-playlist-view__collect"
+              circle
+              class="online-playlist-view__collect"
               :class="{ 'is-collected': isCollected }"
+              :icon="collectIcon"
               :aria-label="collectLabel"
               @click="toggleCollect"
             />
           </el-tooltip>
-          <el-button text :icon="ArrowLeft" @click="goBack">{{
-            t("onlinePlaylist.back")
-          }}</el-button>
         </template>
-      </PageHeader>
+      </DetailHero>
     </template>
     <!-- 加载中先占住标题位，歌单头到位前页面不再整体跳动 -->
     <div
@@ -39,8 +35,8 @@
       <el-skeleton :rows="2" animated />
     </div>
 
-    <!-- 放在 header 之外：PageHeader 的 title/after-title 是同一行 flex，
-         长简介塞进 after-title 会把标题挤成省略号。 -->
+    <!-- 放在 hero 之外：hero 的元信息行是单行截断，长简介塞进去会被吃掉 -->
+    <!-- 简介独立成行，最多两行截断，避免把列表挤下去 -->
     <p v-if="store.detail?.description" class="online-playlist-view__desc">
       {{ store.detail.description }}
     </p>
@@ -71,7 +67,7 @@
 import { computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
-import { ArrowLeft, Star, StarFilled } from "@element-plus/icons-vue";
+import { Star, StarFilled } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import type { SongInfo } from "@/types/model";
 import { formatCompactNumber } from "@/utils/songUtils";
@@ -80,8 +76,7 @@ import { useCollectedPlaylistStore } from "@/stores/collectedPlaylistStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useViewStore } from "@/stores/viewStore";
 import OnlineMusicList from "@/components/feature/OnlineMusicList/OnlineMusicList.vue";
-import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
-import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
+import DetailHero from "@/components/layout/DetailHero/DetailHero.vue";
 import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
 
 const { t, locale } = useI18n();
@@ -173,20 +168,25 @@ watch(() => route.fullPath, load, { immediate: true });
   overflow: hidden;
 }
 
-.online-playlist-view__cover {
-  margin-right: 12px;
+/* 与两枚胶囊同高，圆角也跟齐 */
+.online-playlist-view__collect {
+  width: var(--app-button-height);
+  height: var(--app-button-height);
+  padding: 0;
 }
 
-/* 已收藏：图标常驻主色。悬停也保持，压过全局图标按钮的悬停色。 */
+/* 已收藏：图标常驻主色。悬停也保持，压过 EP 默认的悬停色。 */
 .online-playlist-view__collect.is-collected,
 .online-playlist-view__collect.is-collected:hover {
   color: var(--el-color-primary) !important;
+  border-color: var(--el-color-primary) !important;
 }
 
-/* 与 PageHeader 高度一致，加载时占位不跳动 */
+/* 骨架屏要与 DetailHero 占同样的高度，否则详情到位时整页会跳一下。
+   高度 = 封面 168 + 返回行（约 28 + 14 外边距）+ 头部下外边距 20。
+   改动 DetailHero 的封面尺寸或行高时，这里要跟着改。 */
 .detail-header-skeleton {
-  min-height: var(--app-page-header-height);
-  margin-bottom: var(--app-page-header-gap);
+  min-height: 230px;
   flex-shrink: 0;
 }
 

@@ -114,6 +114,7 @@ export default {
     tabAlbum: "专辑",
     tabPlaylist: "歌单",
     tabToplist: "排行榜",
+    resultCount: "共 {count} 条结果",
     refineHint: "结果过多，请细化搜索关键词",
   },
   onlineService: {
@@ -132,11 +133,13 @@ export default {
     songCount: "{count} 首歌曲",
   },
   onlinePlaylist: {
+    kind: "歌单",
     back: "返回搜索",
     trackCount: "{count} 首",
     notFound: "歌单不存在或已被删除",
   },
   onlineAlbum: {
+    kind: "专辑",
     empty: "未找到相关专辑",
     back: "返回搜索",
     songCount: "{count} 首",
