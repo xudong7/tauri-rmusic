@@ -6,6 +6,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { i18n } from "@/i18n";
 import { PlayMode, type SongInfo } from "@/types/model";
 import PlayerBar from "./PlayerBar.vue";
+import playerBarCss from "./PlayerBar.css?raw";
+import immersiveCss from "@/components/feature/ImmersiveView/ImmersiveView.css?raw";
 
 const router = createRouter({
   history: createMemoryHistory(),
@@ -151,5 +153,35 @@ describe("PlayerBar", () => {
 
     expect(linked.get(".song-name-text").classes()).toContain("is-link");
     expect(mountBar().get(".song-name-text").classes()).toContain("is-link");
+  });
+});
+
+describe("两条播放栏的歌名必须同号", () => {
+  /** 取某条 CSS 里某个选择器的规则体 */
+  function ruleOf(css: string, selector: string): string {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return css.match(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+  }
+
+  function declarations(body: string) {
+    return Object.fromEntries(
+      body
+        .split(";")
+        .map((line) => line.split(":"))
+        .filter((parts) => parts.length === 2)
+        .map(([prop, value]) => [prop.trim(), value.trim()])
+    );
+  }
+
+  // 这两处显示的是同一首歌的同一个字段，分别在正常播放栏与沉浸页的播放栏里。
+  // 它们曾经一个是 14px/500、一个是 13px/600，看上去就是两个大小——而 jsdom
+  // 不算排版，这类不一致只能从源码层面钉住。
+  it("字号与字重都一致", () => {
+    const bottomBar = declarations(ruleOf(playerBarCss, ".song-name"));
+    const immersive = declarations(ruleOf(immersiveCss, ".immersive-track-title"));
+
+    expect(bottomBar["font-size"]).toBeTruthy();
+    expect(bottomBar["font-size"]).toBe(immersive["font-size"]);
+    expect(bottomBar["font-weight"]).toBe(immersive["font-weight"]);
   });
 });
