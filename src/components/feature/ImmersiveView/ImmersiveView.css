@@ -759,9 +759,11 @@
   min-width: 0;
 }
 
+/* 与底部播放栏的歌名（PlayerBar.css 的 .song-name）严格对齐：15px / 600。
+   改这里要同步改那一处，反之亦然。 */
 .immersive-track-title {
   display: block;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--immersive-text-primary);
   overflow: hidden;

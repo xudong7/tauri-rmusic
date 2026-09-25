@@ -104,9 +104,14 @@ html.dark .player-bar {
   min-width: 0;
 }
 
+/* 与沉浸页底部播放栏的歌名（.immersive-track-title）严格对齐：15px / 600。
+   两处显示的是同一首歌的同一个字段，分别在两条播放栏里，不一致时最容易被
+   看出来。字重也必须一起对齐——只对字号的话，一处更重、看上去仍然更大。
+   改这里要同步改 ImmersiveView.css 的那一处，反之亦然；歌手行两边本来就
+   都是 12px，无需改动。 */
 .song-name {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
