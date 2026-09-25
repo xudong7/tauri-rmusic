@@ -24,6 +24,24 @@
   gap: 3px;
 }
 
+/* 歌单行是两行文字：名称 + 曲目数。名称太长时截断，不把行撑高——
+   两行加起来仍低于 .nav-item 的 42px 最小高度，所以整排不会变形。 */
+.nav-label-group {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.nav-sublabel {
+  overflow: hidden;
+  color: var(--el-text-color-secondary);
+  font-size: 10.5px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .nav-item {
   position: relative;
   display: flex;

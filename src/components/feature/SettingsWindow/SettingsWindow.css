@@ -214,12 +214,23 @@
 }
 
 .settings-about .about-content {
-  display: block;
+  /* 说明在左、版本号贴右：这一行本来就空着，版本号正好落在那儿 */
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
   min-height: 0;
   padding: 0;
   background: transparent;
   border: 0;
   border-radius: 0;
+}
+
+.about-version {
+  flex-shrink: 0;
+  color: var(--el-text-color-secondary);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
 }
 
 .about-desc {

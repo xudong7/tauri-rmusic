@@ -142,9 +142,14 @@ function goToCollectedPlaylist(id: string) {
                 :radius="5"
                 aria-hidden="true"
               />
-              <span class="nav-label" :title="pl.name">{{
-                pl.name || t("playlist.unnamed")
-              }}</span>
+              <span class="nav-label-group">
+                <span class="nav-label" :title="pl.name">{{
+                  pl.name || t("playlist.unnamed")
+                }}</span>
+                <span class="nav-sublabel">{{
+                  t("playlist.trackCount", { count: pl.items.length })
+                }}</span>
+              </span>
             </button>
           </template>
 
@@ -166,7 +171,12 @@ function goToCollectedPlaylist(id: string) {
                 variant="playlist"
                 class="playlist-cover"
               />
-              <span class="nav-label" :title="pl.name">{{ pl.name }}</span>
+              <span class="nav-label-group">
+                <span class="nav-label" :title="pl.name">{{ pl.name }}</span>
+                <span class="nav-sublabel">{{
+                  t("playlist.trackCount", { count: pl.track_count })
+                }}</span>
+              </span>
             </button>
             <p
               v-if="collectedStore.collectedPlaylists.length === 0"
