@@ -26,6 +26,20 @@
 
 /* 歌单行是两行文字：名称 + 曲目数。名称太长时截断，不把行撑高——
    两行加起来仍低于 .nav-item 的 42px 最小高度，所以整排不会变形。 */
+/* 收藏页里的小组标题（专辑 / 歌单）。比歌单名更轻，只做分隔用。 */
+.playlist-group-title {
+  margin: 6px 0 2px;
+  padding: 0 11px;
+  color: var(--el-text-color-secondary);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.playlist-group-title:first-child {
+  margin-top: 0;
+}
+
 .nav-label-group {
   min-width: 0;
   display: flex;

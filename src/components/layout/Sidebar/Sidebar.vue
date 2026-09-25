@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { Folder, Setting, Plus } from "@element-plus/icons-vue";
@@ -7,6 +7,7 @@ import OnlineMusicIcon from "@/components/base/icons/OnlineMusicIcon.vue";
 import { useViewStore } from "@/stores/viewStore";
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { useCollectedPlaylistStore } from "@/stores/collectedPlaylistStore";
+import { useCollectedAlbumStore } from "@/stores/collectedAlbumStore";
 import PlaylistCover from "@/components/feature/PlaylistCover/PlaylistCover.vue";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 
@@ -16,6 +17,7 @@ const route = useRoute();
 const viewStore = useViewStore();
 const playlistStore = usePlaylistStore();
 const collectedStore = useCollectedPlaylistStore();
+const collectedAlbumStore = useCollectedAlbumStore();
 
 /** 侧边栏歌单区分栏：自建 / 收藏 */
 const playlistTab = ref<"created" | "collected">("created");
@@ -65,6 +67,21 @@ function goToPlaylist(id: string) {
   router.push(`/playlist/${id}`);
 }
 
+function isCollectedAlbumActive(id: string): boolean {
+  return route.name === "OnlineAlbum" && String(route.params.id || "") === id;
+}
+
+function goToCollectedAlbum(id: string) {
+  if (isCollectedAlbumActive(id)) return;
+  router.push({ name: "OnlineAlbum", params: { id } });
+}
+
+const hasNothingCollected = computed(
+  () =>
+    collectedAlbumStore.collectedAlbums.length === 0 &&
+    collectedStore.collectedPlaylists.length === 0
+);
+
 function goToCollectedPlaylist(id: string) {
   if (isCollectedPlaylistActive(id)) return;
   router.push({ name: "OnlinePlaylist", params: { id } });
@@ -88,7 +105,8 @@ function goToCollectedPlaylist(id: string) {
       </button>
 
       <div class="playlist-section">
-        <!-- 分栏栏：与参考图一致的「自建歌单 | 收藏歌单」，右侧是新建键 -->
+        <!-- 分栏栏：「自建歌单 | 收藏」，右侧是新建键（只在自建那一栏显示）。
+             第二栏叫「收藏」而不是「收藏歌单」：它现在同时装收藏的专辑与歌单。 -->
         <div class="playlist-section-header">
           <div class="playlist-tabs" role="tablist">
             <button
@@ -110,7 +128,7 @@ function goToCollectedPlaylist(id: string) {
               :aria-selected="playlistTab === 'collected'"
               @click="playlistTab = 'collected'"
             >
-              {{ t("playlist.collected") }}
+              {{ t("common.collected") }}
             </button>
           </div>
           <button
@@ -153,36 +171,69 @@ function goToCollectedPlaylist(id: string) {
             </button>
           </template>
 
+          <!-- 收藏页把两种收藏分两组列出。专辑在前：它的条目更少、也更容易找，
+               而歌单可能很多，放在下面滚动时先看到专辑不会挡路。
+               分组的另一个好处是以后再加别的收藏类型不必再动页签栏——
+               侧栏只有 192px，塞不下第三个页签。 -->
           <template v-else>
-            <button
-              v-for="pl in collectedStore.collectedPlaylists"
-              :key="pl.id"
-              type="button"
-              class="nav-item nav-item-playlist"
-              :class="{ 'is-active': isCollectedPlaylistActive(pl.id) }"
-              :aria-current="isCollectedPlaylistActive(pl.id) ? 'page' : undefined"
-              @click="goToCollectedPlaylist(pl.id)"
-            >
-              <CoverImage
-                :src="pl.cover_url"
-                alt=""
-                :size="20"
-                :radius="5"
-                variant="playlist"
-                class="playlist-cover"
-              />
-              <span class="nav-label-group">
-                <span class="nav-label" :title="pl.name">{{ pl.name }}</span>
-                <span class="nav-sublabel">{{
-                  t("playlist.trackCount", { count: pl.track_count })
-                }}</span>
-              </span>
-            </button>
-            <p
-              v-if="collectedStore.collectedPlaylists.length === 0"
-              class="playlist-empty-hint"
-            >
-              {{ t("playlist.collectedEmpty") }}
+            <template v-if="collectedAlbumStore.collectedAlbums.length > 0">
+              <p class="playlist-group-title">{{ t("common.albums") }}</p>
+              <button
+                v-for="al in collectedAlbumStore.collectedAlbums"
+                :key="al.id"
+                type="button"
+                class="nav-item nav-item-playlist"
+                :class="{ 'is-active': isCollectedAlbumActive(al.id) }"
+                :aria-current="isCollectedAlbumActive(al.id) ? 'page' : undefined"
+                @click="goToCollectedAlbum(al.id)"
+              >
+                <CoverImage
+                  :src="al.pic_url"
+                  alt=""
+                  :size="20"
+                  :radius="5"
+                  variant="album"
+                  class="playlist-cover"
+                />
+                <span class="nav-label-group">
+                  <span class="nav-label" :title="al.name">{{ al.name }}</span>
+                  <span class="nav-sublabel">{{
+                    t("onlineAlbum.songCount", { count: al.size })
+                  }}</span>
+                </span>
+              </button>
+            </template>
+
+            <template v-if="collectedStore.collectedPlaylists.length > 0">
+              <p class="playlist-group-title">{{ t("common.playlists") }}</p>
+              <button
+                v-for="pl in collectedStore.collectedPlaylists"
+                :key="pl.id"
+                type="button"
+                class="nav-item nav-item-playlist"
+                :class="{ 'is-active': isCollectedPlaylistActive(pl.id) }"
+                :aria-current="isCollectedPlaylistActive(pl.id) ? 'page' : undefined"
+                @click="goToCollectedPlaylist(pl.id)"
+              >
+                <CoverImage
+                  :src="pl.cover_url"
+                  alt=""
+                  :size="20"
+                  :radius="5"
+                  variant="playlist"
+                  class="playlist-cover"
+                />
+                <span class="nav-label-group">
+                  <span class="nav-label" :title="pl.name">{{ pl.name }}</span>
+                  <span class="nav-sublabel">{{
+                    t("playlist.trackCount", { count: pl.track_count })
+                  }}</span>
+                </span>
+              </button>
+            </template>
+
+            <p v-if="hasNothingCollected" class="playlist-empty-hint">
+              {{ t("common.collectedEmpty") }}
             </p>
           </template>
         </div>

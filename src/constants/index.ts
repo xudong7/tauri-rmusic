@@ -8,6 +8,7 @@ export const STORAGE_KEY_LOCALE = "locale";
 export const STORAGE_KEY_PLAYER_VOLUME = "player_volume";
 export const STORAGE_KEY_PLAY_MODE = "play_mode";
 export const STORAGE_KEY_COLLECTED_PLAYLISTS = "rmusic-collected-playlists";
+export const STORAGE_KEY_COLLECTED_ALBUMS = "rmusic-collected-albums";
 
 /* ---------- 搜索历史 ---------- */
 /** 单模式（本地/在线）最多保留条数 */
