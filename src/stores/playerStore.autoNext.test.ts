@@ -1,4 +1,6 @@
+import { nextTick } from "vue";
 import { createPinia, setActivePinia } from "pinia";
+import { ElMessage } from "element-plus";
 import { flushPromises } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MusicFile } from "@/types/model";
@@ -33,6 +35,7 @@ vi.mock("@/api/commands/music", () => ({
 }));
 
 import { usePlayerStore } from "./playerStore";
+import { useLocalMusicStore } from "./localMusicStore";
 
 const fileA: MusicFile = {
   id: 1,
@@ -157,5 +160,78 @@ describe("播放进度与时长", () => {
     await playing;
     expect(store.currentTrackDuration).toBe(200000);
     store.stopPlayTimeTracking();
+  });
+
+  // 队列是「开始播放那一刻」的快照。删歌之后快照就过期了：不摘掉的话，
+  // 「下一首」会撞上那个不存在的文件、失败、再跳过——用户只是按了一下下一首，
+  // 却收到两条弹窗。
+  describe("曲库变动后，队列要跟着更新", () => {
+    beforeEach(() => {
+      endedListeners.length = 0;
+      playTrackMock.mockReset();
+      getPlaybackStateMock.mockReset().mockResolvedValue(backendState());
+      setActivePinia(createPinia());
+    });
+
+    it("已删除的文件从本地队列里摘掉", async () => {
+      const store = usePlayerStore();
+      const localStore = useLocalMusicStore();
+
+      playTrackMock.mockResolvedValueOnce(playResult(1, 100000));
+      localStore.musicFiles = [fileA, fileB];
+      await store.playMusic(fileA, { queue: [fileA, fileB] });
+      expect(store.currentLocalQueue).toHaveLength(2);
+
+      // 删掉 a.mp3 之后曲库重扫的结果
+      localStore.musicFiles = [fileB];
+      await nextTick();
+
+      expect(store.currentLocalQueue.map((f) => f.file_name)).toEqual(["b.mp3"]);
+      store.stopPlayTimeTracking();
+    });
+
+    it("仍在曲库里的文件不受影响", async () => {
+      const store = usePlayerStore();
+      const localStore = useLocalMusicStore();
+
+      playTrackMock.mockResolvedValueOnce(playResult(1, 100000));
+      localStore.musicFiles = [fileA, fileB];
+      await store.playMusic(fileA, { queue: [fileA, fileB] });
+
+      // 重扫结果一样（只是换了新数组）
+      localStore.musicFiles = [{ ...fileA }, { ...fileB }];
+      await nextTick();
+
+      expect(store.currentLocalQueue).toHaveLength(2);
+      store.stopPlayTimeTracking();
+    });
+
+    // 跳过链每首失败都会失败，逐首弹一遍「播放失败」之后还会再弹一句
+    // 「已跳过 N 首」——同一件事说两遍，而用户只是按了一下下一首。
+    it("跳过链里的失败不弹错误提示，由「已跳过」统一交代", async () => {
+      const errorSpy = vi
+        .spyOn(ElMessage, "error")
+        .mockImplementation(() => ({}) as never);
+      const warningSpy = vi
+        .spyOn(ElMessage, "warning")
+        .mockImplementation(() => ({}) as never);
+
+      const store = usePlayerStore();
+      const localStore = useLocalMusicStore();
+      localStore.musicFiles = [fileA, fileB];
+
+      playTrackMock.mockResolvedValueOnce(playResult(1, 100000));
+      await store.playMusic(fileA, { queue: [fileA, fileB] });
+
+      // b.mp3 放不出来 → 跳过 → 绕回 a.mp3
+      playTrackMock
+        .mockRejectedValueOnce(new Error("File system error"))
+        .mockResolvedValueOnce(playResult(2, 100000));
+      await store.playNextOrPreviousMusic(1);
+
+      expect(errorSpy).not.toHaveBeenCalled();
+      expect(warningSpy).toHaveBeenCalled();
+      store.stopPlayTimeTracking();
+    });
   });
 });

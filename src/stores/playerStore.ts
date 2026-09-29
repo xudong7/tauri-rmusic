@@ -61,6 +61,8 @@ function readStoredPlayMode(): PlayMode {
 interface PlayLocalOptions {
   fromPlaylistId?: string;
   queue?: MusicFile[];
+  /** 失败时不弹提示。只给跳过链用，理由见 PlayOnlineOptions.quiet。 */
+  quiet?: boolean;
 }
 
 export const usePlayerStore = defineStore("player", () => {
@@ -315,6 +317,26 @@ export const usePlayerStore = defineStore("player", () => {
     onEnded: handlePlaybackEnded,
   });
 
+  // 队列是「开始播放那一刻」的快照。曲库变了（删歌、重新扫描）之后，快照里可能
+  // 留着已经不在磁盘上的文件——「下一首」撞上它、失败、再跳过，用户看到两条
+  // 弹窗说同一件事，而他只是按了一下下一首。
+  //
+  // 摘掉的只是队列里的引用：正在播的那一首不动（音频已经在内存里，让它放完比
+  // 半路掐断自然），而它之后「下一首」不会再撞上不存在的东西。
+  watch(
+    () => localStore.musicFiles,
+    (files) => {
+      if (currentLocalQueue.value.length === 0) return;
+      const alive = new Set(files.map(getLocalTrackKey));
+      const pruned = currentLocalQueue.value.filter((file) =>
+        alive.has(getLocalTrackKey(file))
+      );
+      if (pruned.length !== currentLocalQueue.value.length) {
+        currentLocalQueue.value = pruned;
+      }
+    }
+  );
+
   // isPlaying 与时钟保持同步：任何路径把状态置为「播放中」，时钟都必须跑起来；
   // 反之停表。这样即便某条异常路径漏了 start/stop（或被取代的播放请求中途返回），
   // 也不会出现「歌在放、进度条冻结」。
@@ -382,9 +404,11 @@ export const usePlayerStore = defineStore("player", () => {
         return "aborted";
       }
       console.error("[播放控制] 播放本地音乐失败:", error);
-      ElMessage.error(
-        `${i18n.global.t("errors.playFailed")}: ${parseErrorMessage(error)}`
-      );
+      if (!options?.quiet) {
+        ElMessage.error(
+          `${i18n.global.t("errors.playFailed")}: ${parseErrorMessage(error)}`
+        );
+      }
       playbackRequest.fail(requestId);
       return "failed";
     }
@@ -474,9 +498,11 @@ export const usePlayerStore = defineStore("player", () => {
         return "aborted";
       }
       console.error("[播放控制] 播放在线歌曲失败:", error);
-      ElMessage.error(
-        `${i18n.global.t("errors.playFailedOnline")}: ${parseErrorMessage(error)}`
-      );
+      if (!options?.quiet) {
+        ElMessage.error(
+          `${i18n.global.t("errors.playFailedOnline")}: ${parseErrorMessage(error)}`
+        );
+      }
       playbackRequest.fail(requestId);
       return "failed";
     }
@@ -484,7 +510,8 @@ export const usePlayerStore = defineStore("player", () => {
 
   async function playFromPlaylist(
     playlistId: string,
-    index: number
+    index: number,
+    quiet = false
   ): Promise<PlaybackAttempt> {
     const list = playlistStore.getPlaylist(playlistId);
     if (!list || index < 0 || index >= list.items.length) return "failed";
@@ -495,9 +522,9 @@ export const usePlayerStore = defineStore("player", () => {
         ElMessage.warning(i18n.global.t("messages.noLocalMusic"));
         return "failed";
       }
-      return playMusic(file, { fromPlaylistId: playlistId });
+      return playMusic(file, { fromPlaylistId: playlistId, quiet });
     }
-    return playOnlineSong(item.song, { fromPlaylistId: playlistId });
+    return playOnlineSong(item.song, { fromPlaylistId: playlistId, quiet });
   }
 
   async function playQueueItem(index: number) {
@@ -712,7 +739,7 @@ export const usePlayerStore = defineStore("player", () => {
               list.items.length,
               getSequentialIndex(currentIndex, step, list.items.length),
               step,
-              (index) => playFromPlaylist(playlistId, index)
+              (index) => playFromPlaylist(playlistId, index, true)
             )
           );
           return;
@@ -742,7 +769,7 @@ export const usePlayerStore = defineStore("player", () => {
             queue.length,
             getSequentialIndex(currentIndex, step, queue.length),
             step,
-            (index) => playMusic(queue[index], { queue })
+            (index) => playMusic(queue[index], { queue, quiet: true })
           )
         );
       } else if (currentOnlineSong.value) {
@@ -762,7 +789,7 @@ export const usePlayerStore = defineStore("player", () => {
             queue.length,
             getSequentialIndex(currentIndex, step, queue.length),
             step,
-            (index) => playOnlineSong(queue[index], { queue })
+            (index) => playOnlineSong(queue[index], { queue, quiet: true })
           )
         );
       }
