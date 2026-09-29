@@ -104,7 +104,7 @@ const albumCards = computed<EntityCardModel[]>(() =>
     kind: "album",
     title: album.name,
     subtitle: formatPublishDate(album.publish_time, locale.value) || undefined,
-    metaLabel: t("onlineAlbum.songCount", { count: album.size }),
+    metaLabel: t("common.songCount", { count: album.size }),
     coverUrl: album.pic_url,
   }))
 );
