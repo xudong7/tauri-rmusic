@@ -27,8 +27,30 @@ function countTracks(value: string): number {
   return tracks;
 }
 
+/** 把一条 grid-template-columns 切成各条轨道，同样按括号深度判断分隔。 */
+function tracksOf(value: string): string[] {
+  const tracks: string[] = [];
+  let depth = 0;
+  let current = "";
+  for (const char of value) {
+    if (char === "(") depth += 1;
+    else if (char === ")") depth -= 1;
+    if (depth === 0 && char === " ") {
+      if (current) tracks.push(current);
+      current = "";
+      continue;
+    }
+    current += char;
+  }
+  if (current) tracks.push(current);
+  return tracks;
+}
+
 /** themes.css 里第一条（不带断点的那条）--app-track-grid */
 const baseGrid = themesCss.match(/--app-track-grid:\s*([^;]+);/)?.[1] ?? "";
+
+/** 去掉专辑列的三列版本，给专辑详情页用 */
+const compactGrid = themesCss.match(/--app-track-grid-compact:\s*([^;]+);/)?.[1] ?? "";
 
 function rows(count: number): TrackRowModel[] {
   return Array.from({ length: count }, (_, index) => ({
@@ -132,6 +154,55 @@ describe("TrackList", () => {
       expect(trackListSource.match(/:busy="busyKeys\.has\(item\.key\)"/g)).toHaveLength(
         2
       );
+    });
+  });
+
+  describe("隐藏专辑列", () => {
+    // 专辑详情页每一行的专辑名就是页面标题，重复 N 遍还占着本该给歌名的宽度。
+    it("列头只剩歌曲与时长，行里也没有专辑那一格", () => {
+      const wrapper = mount(TrackList, {
+        props: { items: rows(3), hideAlbum: true },
+      });
+
+      const cells = wrapper.findAll(".track-list__columns > *");
+      expect(cells.map((cell) => cell.classes()[0])).toEqual([
+        "track-list__column-song",
+        "track-list__column-duration",
+      ]);
+      expect(wrapper.get(".track-list__columns").classes()).toContain("is-album-hidden");
+      expect(wrapper.find(".track-row__album").exists()).toBe(false);
+      expect(wrapper.get(".track-row").classes()).toContain("is-album-hidden");
+    });
+
+    it("默认仍然显示专辑列", () => {
+      const wrapper = mount(TrackList, { props: { items: rows(3) } });
+
+      expect(wrapper.findAll(".track-list__columns > *")).toHaveLength(3);
+      expect(wrapper.get(".track-list__columns").classes()).not.toContain(
+        "is-album-hidden"
+      );
+    });
+
+    // 两份网格是同一个东西的两个形态。封面与时长两格逐字相同，只有专辑那格消失——
+    // 分开演进的话，改了一处就会出现「列头与行错位」那类只在真实浏览器里看得见的错。
+    it("三列版本正好是四列版本去掉专辑那一格", () => {
+      const base = tracksOf(baseGrid);
+      const compact = tracksOf(compactGrid);
+
+      expect(base).toHaveLength(4);
+      expect(compact).toHaveLength(3);
+      expect(compact[0]).toBe(base[0]); // 封面
+      expect(compact[1]).toBe(base[1]); // 歌名
+      expect(compact[2]).toBe(base[3]); // 时长
+    });
+
+    // 时长那一格用的是 -2 / -1。三轨下它正好还是最后一格，所以不必重排；
+    // 这一条把这个前提钉住，免得将来有人改了网格却忘了这里。
+    it("时长仍用 -2 / -1，在三轨下依然是最后一格", () => {
+      const durationRule =
+        trackRowSource.match(/\.track-row__duration\s*\{[^}]*\}/)?.[0] ?? "";
+      expect(durationRule).toContain("grid-column: -2 / -1");
+      expect(tracksOf(compactGrid)).toHaveLength(3);
     });
   });
 });

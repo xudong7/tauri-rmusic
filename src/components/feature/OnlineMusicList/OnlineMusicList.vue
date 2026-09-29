@@ -34,9 +34,12 @@ const props = withDefaults(
      * 沿用 `length >= totalCount` 会导致 load-more 永不触发。
      */
     hasMore?: boolean;
+    /** 隐藏专辑列。专辑详情页传 true——那里每一行的专辑名就是页面标题。 */
+    hideAlbum?: boolean;
   }>(),
   {
     hasMore: undefined,
+    hideAlbum: false,
   }
 );
 
@@ -156,6 +159,7 @@ onBeforeUnmount(() => {
       :current-key="currentKey"
       :is-playing="props.isPlaying"
       :busy-keys="busyKeys"
+      :hide-album="hideAlbum"
       @activate="emit('play', onlineSongs[$event.sourceIndex])"
       @toggle-current="emit('toggle-current')"
       @near-end="requestLoadMore"

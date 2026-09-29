@@ -20,6 +20,9 @@ const props = withDefaults(
     currentKey?: string | null;
     /** 是否正在播放；只对 currentKey 那行生效。 */
     isPlaying?: boolean;
+    /** 隐藏专辑列。给「已经在这张专辑里」的页面用——那里每一行的专辑列都写着
+        页面标题本身，重复 N 遍还占着本该给歌名的宽度。 */
+    hideAlbum?: boolean;
   }>(),
   {
     selectionMode: false,
@@ -29,6 +32,7 @@ const props = withDefaults(
     nearEndThreshold: 220,
     currentKey: null,
     isPlaying: false,
+    hideAlbum: false,
   }
 );
 const columnLabels = computed(() => {
@@ -100,9 +104,16 @@ function handleListKeydown(event: KeyboardEvent) {
     <!-- 「歌曲」列头跨封面与标题两列，左边沿因此落在封面左边缘，与行里的
          封面左对齐（而不是缩进到歌名文字的位置）。专辑、时长各占一列，
          由下面 CSS 里的 grid-column 钉死。 -->
-    <div v-if="items.length > 0" class="track-list__columns" aria-hidden="true">
+    <div
+      v-if="items.length > 0"
+      class="track-list__columns"
+      :class="{ 'is-album-hidden': hideAlbum }"
+      aria-hidden="true"
+    >
       <span class="track-list__column-song">{{ columnLabels.song }}</span>
-      <span class="track-list__column-album">{{ columnLabels.album }}</span>
+      <span v-if="!hideAlbum" class="track-list__column-album">{{
+        columnLabels.album
+      }}</span>
       <span class="track-list__column-duration">{{ columnLabels.duration }}</span>
     </div>
 
@@ -126,6 +137,7 @@ function handleListKeydown(event: KeyboardEvent) {
           :is-current="item.key === currentKey"
           :is-playing="isPlaying && item.key === currentKey"
           :busy="busyKeys.has(item.key)"
+          :hide-album="hideAlbum"
           :row-height="rowHeight"
           @activate="handleActivate"
           @toggle-select="emit('toggleSelect', $event)"
@@ -155,6 +167,7 @@ function handleListKeydown(event: KeyboardEvent) {
           :is-current="item.key === currentKey"
           :is-playing="isPlaying && item.key === currentKey"
           :busy="busyKeys.has(item.key)"
+          :hide-album="hideAlbum"
           @activate="handleActivate"
           @toggle-select="emit('toggleSelect', $event)"
         >
@@ -220,8 +233,13 @@ function handleListKeydown(event: KeyboardEvent) {
   letter-spacing: 0.02em;
 }
 
+.track-list__columns.is-album-hidden {
+  grid-template-columns: var(--app-track-grid-compact);
+}
+
 .track-list__column-song {
-  /* 跨封面与标题两列：起点与行里封面的左边缘同一条竖线 */
+  /* 跨封面与标题两列：起点与行里封面的左边缘同一条竖线。
+     隐藏专辑列时网格只剩三轨，这个 1/3 仍然正好是封面 + 歌名。 */
   grid-column: 1 / 3;
 }
 
