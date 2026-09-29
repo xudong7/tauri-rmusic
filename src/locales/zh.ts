@@ -186,7 +186,6 @@ export default {
   download: {
     downloading: "下载中",
     done: "已下载",
-    inLibrary: "已在曲库中",
     failed: "下载失败，点击重试",
   },
   messages: {

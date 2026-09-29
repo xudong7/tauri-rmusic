@@ -12,7 +12,6 @@ import {
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { useOnlinePlaylistActions } from "@/composables/useOnlinePlaylistActions";
 import CheckIcon from "@/components/base/icons/CheckIcon.vue";
-import InLibraryIcon from "@/components/base/icons/InLibraryIcon.vue";
 import TrackList from "@/components/feature/TrackList/TrackList.vue";
 import type { TrackRowModel } from "@/components/feature/TrackList/types";
 
@@ -86,11 +85,10 @@ function stateOfRow(key: string): DownloadState {
 }
 
 /**
- * 让操作簇常驻的行：下载中、刚完成、待重试。
+ * 让操作簇常驻的行：下载中、已下载、待重试。
  *
  * 操作簇默认悬停才显示，而这些是用户要盯着看的进度/结果——成功提示已经没有
- * toast 兜底了，鼠标一移开就什么都看不到。inLibrary 不算：那是环境状态，
- * 常驻只会让每个下过的行都多出两个按钮。
+ * toast 兜底了，鼠标一移开就什么都看不到。
  */
 const busyKeys = computed(() => {
   const keys = new Set<string>();
@@ -105,16 +103,14 @@ const busyKeys = computed(() => {
 const downloadIcons: Record<DownloadState, Component> = {
   idle: Download,
   downloading: Download,
-  done: CheckIcon,
-  inLibrary: InLibraryIcon,
+  downloaded: CheckIcon,
   failed: Refresh,
 };
 
 const downloadLabels = computed<Record<DownloadState, string>>(() => ({
   idle: t("common.download"),
   downloading: t("download.downloading"),
-  done: t("download.done"),
-  inLibrary: t("download.inLibrary"),
+  downloaded: t("download.done"),
   failed: t("download.failed"),
 }));
 
@@ -178,7 +174,7 @@ onBeforeUnmount(() => {
         </slot>
       </template>
       <template #actions="{ item }">
-        <!-- 下载按钮在五种状态下始终是同一个按钮，从不 v-if 移除：
+        <!-- 下载按钮在四种状态下始终是同一个按钮，从不 v-if 移除：
              否则旁边 Plus 的位置会跟着跳。状态只体现在图标与 tooltip 上。 -->
         <el-tooltip :content="downloadLabels[stateOfRow(item.key)]" placement="top">
           <el-button

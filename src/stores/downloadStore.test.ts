@@ -63,7 +63,7 @@ describe("downloadStore", () => {
     return { store: useDownloadStore(), localStore };
   }
 
-  it("下载成功后置为 done，并刷新当前目录", async () => {
+  it("下载成功后状态是 downloaded，并刷新当前目录", async () => {
     commandMocks.downloadMusic.mockResolvedValue(EXPECTED_NAME);
     const { store } = await setup();
 
@@ -75,7 +75,7 @@ describe("downloadStore", () => {
       defaultDirectory: null,
     });
     expect(fileName).toBe(EXPECTED_NAME);
-    expect(store.statusFor(song)).toBe("done");
+    expect(store.statusFor(song)).toBe("downloaded");
   });
 
   it("文件已存在视为成功，且不弹错误提示", async () => {
@@ -92,7 +92,7 @@ describe("downloadStore", () => {
     const fileName = await store.download(song);
 
     expect(fileName).toBe(EXPECTED_NAME);
-    expect(store.statusFor(song)).toBe("done");
+    expect(store.statusFor(song)).toBe("downloaded");
     expect(errorSpy).not.toHaveBeenCalled();
   });
 
@@ -138,33 +138,24 @@ describe("downloadStore", () => {
     await store.download(song);
 
     expect(commandMocks.downloadMusic).toHaveBeenCalledTimes(2);
-    expect(store.statusFor(song)).toBe("done");
+    expect(store.statusFor(song)).toBe("downloaded");
   });
 
   // 基名匹配：曲库里的 file_name 是 relative_path，可能带子目录且分隔符两种都有，
   // 而判定时手上只有下载产生的纯文件名。
   it.each(["Album/Artist - Track.mp3", "Album\\Artist - Track.mp3"])(
-    "曲库里已有同名文件即为 inLibrary：%s",
+    "曲库里已有同名文件即显示为已下载：%s",
     async (fileName) => {
       const { store, localStore } = await setup();
       localStore.musicFiles = [libraryFile(fileName)];
 
-      expect(store.statusFor(song)).toBe("inLibrary");
+      expect(store.statusFor(song)).toBe("downloaded");
     }
   );
 
-  it("刚下完是打勾，不会被立刻降级成「已在曲库」", async () => {
-    commandMocks.downloadMusic.mockResolvedValue(EXPECTED_NAME);
-    commandMocks.scanFiles.mockResolvedValue([libraryFile(EXPECTED_NAME)]);
-    const { store } = await setup();
-
-    await store.download(song);
-
-    expect(store.statusFor(song)).toBe("done");
-  });
-
-  // 打勾是会话级的、不过期：用户要求下载成功后图标常驻，不再依赖悬停。
-  it("打勾常驻，不会随时间降级成「已在曲库」", async () => {
+  // 两种来源（本次会话下过 / 曲库里本来就有）对外是同一个状态，界面因此只有
+  // 一个打勾图标——重启之后不再有「怎么换了个图标」。
+  it("下载成功后即为已下载，并保持住（不随时间或重扫变化）", async () => {
     commandMocks.downloadMusic.mockResolvedValue(EXPECTED_NAME);
     commandMocks.scanFiles.mockResolvedValue([libraryFile(EXPECTED_NAME)]);
     const { store } = await setup();
@@ -172,7 +163,7 @@ describe("downloadStore", () => {
     await store.download(song);
     await new Promise((resolve) => setTimeout(resolve, 5));
 
-    expect(store.statusFor(song)).toBe("done");
+    expect(store.statusFor(song)).toBe("downloaded");
   });
 
   // 重扫有可能被并发的另一次加载顶掉（localMusicStore 的 requestId 守卫会
@@ -184,7 +175,7 @@ describe("downloadStore", () => {
 
     await store.download(song);
 
-    expect(store.statusFor(song)).toBe("done");
+    expect(store.statusFor(song)).toBe("downloaded");
   });
 
   it("没有下载过也不在曲库时是 idle", async () => {

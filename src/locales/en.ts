@@ -186,7 +186,6 @@ export default {
   download: {
     downloading: "Downloading",
     done: "Downloaded",
-    inLibrary: "Already in library",
     failed: "Download failed, click to retry",
   },
   messages: {
