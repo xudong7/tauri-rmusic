@@ -48,7 +48,7 @@ const emit = defineEmits<{
     <div class="detail-hero__body">
       <!-- #cover 插槽给那些封面不是「一个地址」的调用方（自建歌单的封面来自
            第一首歌，要经 useCoverLoader 异步解析）。默认仍是按地址渲染。 -->
-      <div class="detail-hero__cover">
+      <div class="detail-hero__cover" :class="`is-${variant}`">
         <slot name="cover">
           <CoverImage
             :src="coverUrl"
@@ -102,11 +102,18 @@ const emit = defineEmits<{
   gap: 20px;
 }
 
-/* 投影挂在包装层上，插槽内容因此不必各自记一遍尺寸与阴影 */
+/* 投影挂在包装层上，插槽内容因此不必各自记一遍尺寸与阴影。
+   圆角必须与里面那层一致：歌手用的是圆形封面（radius 999），包装层若还是
+   12px 圆角，投影就按圆角方块的轮廓画出来——圆形照片外面套一个浅色方块，
+   正是这么来的。 */
 .detail-hero__cover {
   flex-shrink: 0;
   box-shadow: 0 8px 22px rgba(15, 23, 42, 0.14);
   border-radius: 12px;
+}
+
+.detail-hero__cover.is-artist {
+  border-radius: 50%;
 }
 
 .detail-hero__text {
