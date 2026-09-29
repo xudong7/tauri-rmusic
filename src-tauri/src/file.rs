@@ -2,12 +2,13 @@ use crate::fs_util::{commit_temp_file, unique_temp_path_for};
 use crate::music::MusicFile;
 use crate::netease;
 use crate::netease::{get_song_cover, get_song_lyric, get_song_url};
+use id3::{Tag, TagLike, Version};
 use rodio::{Decoder, Source};
 use serde::{Deserialize, Serialize};
 use sha1::{Digest, Sha1};
 use std::collections::HashMap;
 use std::fs::{self, create_dir_all, read_dir, File};
-use std::io::{BufReader, ErrorKind, Write};
+use std::io::{BufReader, ErrorKind, Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, UNIX_EPOCH};
 use symphonia::core::formats::FormatOptions;
@@ -289,6 +290,56 @@ fn music_file_from_path(id: i32, absolute_path: &Path, relative_path: &Path) -> 
         album: None,
         duration_ms: 0,
     })
+}
+
+/// 这个文件是不是 MP3。
+///
+/// 守卫是必要的：id3 crate 对无法识别的容器（既不是 ID3 头、也不是 RIFF/WAVE 或
+/// AIFF）会**直接在文件开头插一段 ID3**，而 FLAC 必须以 "fLaC" 开头——那样写就是
+/// 毁文件。它自己支持 MP3（裸 ID3）、WAV、AIFF 三种，我们只下载 MP3。
+fn is_mp3_file(path: &Path) -> bool {
+    let Ok(mut file) = File::open(path) else {
+        return false;
+    };
+    let mut head = [0u8; 3];
+    if file.read_exact(&mut head).is_err() {
+        return false;
+    }
+    // 已经带 ID3 标签的，或直接以 MPEG 帧同步开头的
+    head == *b"ID3" || (head[0] == 0xFF && (head[1] & 0xE0) == 0xE0)
+}
+
+/// 把标题 / 歌手 / 专辑写进 MP3 的 ID3 标签。
+///
+/// 起因：网易云 CDN 给的音频**带 ID3 头、但里面没有任何标签帧**——实测一份 44 首
+/// 的曲库只有 1 首能读出标签。于是「歌手 - 歌名」只能从文件名里拆（是在猜），而
+/// 专辑名无处可拆，曲库里的专辑列永远是空的。
+///
+/// 写进文件而不是另存一份 sidecar：标题/歌手/专辑是**所有**软件都关心的信息，
+/// 写进去之后访达、手机、别的播放器都看得到，而 sidecar 只有本应用认。封面与歌词
+/// 不同——那两样是播放器才关心的，继续走 sidecar。
+fn write_id3_tags(path: &Path, title: &str, artist: &str, album: &str) -> Result<(), String> {
+    if !is_mp3_file(path) {
+        return Err("not an mp3 file, skip ID3 tags".to_string());
+    }
+
+    let mut tag = Tag::new();
+    // 空字段不写：写进去等于声称「这首歌的专辑就叫空字符串」，而缺字段本身
+    // 是有意义的（扫描时会回落到文件名解析）。
+    if !title.trim().is_empty() {
+        tag.set_title(title.trim());
+    }
+    if !artist.trim().is_empty() {
+        tag.set_artist(artist.trim());
+    }
+    if !album.trim().is_empty() {
+        tag.set_album(album.trim());
+    }
+
+    // 写 v2.3 而不是 crate 默认的 v2.4：兼容面更广（Windows 资源管理器、
+    // 老播放器都认 v2.3），而源文件本身也是 v2.3。
+    tag.write_to_path(path, Version::Id3v23)
+        .map_err(|e| format!("write id3 tags: {}", e))
 }
 
 async fn write_response_to_file(
@@ -706,6 +757,7 @@ pub async fn download_music(
     song_hash: String,
     song_name: String,
     artist: String,
+    album: String,
     default_directory: Option<String>,
 ) -> Result<String, String> {
     let song_url = get_song_url(song_hash.clone()).await?;
@@ -750,6 +802,12 @@ pub async fn download_music(
         return Err(format!("file already exists: {}", file_path.display()));
     }
     write_response_to_file(response, &file_path).await?;
+    // 标签是锦上添花：写不进去不该让整次下载失败（音频本身是好的）。与封面/歌词
+    // 一样按「尽力而为」处理，区别只是这里失败会留下日志——写不进去通常意味着
+    // 代理给的不是 MP3，那是值得知道的。
+    if let Err(e) = write_id3_tags(&file_path, &song_name, &artist, &album) {
+        eprintln!("write id3 tags failed: {}", e);
+    }
     let base_filename = file_name.replace(".mp3", "");
 
     let cover_url_result =
@@ -873,6 +931,74 @@ fn sanitize_filename(name: &str) -> String {
 
 fn music_dir_from_library_root(root_dir: &Path) -> PathBuf {
     root_dir.join("music")
+}
+
+/// 从曲库里删掉一首歌：音频文件，连同它的封面与歌词旁挂文件。
+///
+/// 这是**唯一**会删用户文件的命令，所以两处都要紧：
+///
+/// - `file_name` 来自前端，必须挡住路径穿越。只接受相对路径且每一段都是普通
+///   名字（`Album/song.mp3` 可以，`../x`、`/etc/passwd` 一律拒绝），拼出来之后
+///   再确认一次结果仍在 music 目录里。
+/// - 只删本应用自己写的那三样，不递归、不碰别的。曲库里的东西都是应用管的：
+///   下载是写进去的新文件，导入是**复制**进来的副本，删掉都不会动用户的原件。
+///
+/// 旁挂文件一起删，否则每删一首就留下两份孤儿（cover/ 与 lyrics/）。
+#[tauri::command]
+pub fn delete_music_file(
+    app_handle: AppHandle,
+    file_name: String,
+    default_directory: Option<String>,
+) -> Result<(), String> {
+    let base_dir = if let Some(custom_dir) = default_directory {
+        PathBuf::from(custom_dir)
+    } else {
+        app_handle
+            .path()
+            .app_data_dir()
+            .map_err(|e| format!("unable to get app data dir: {}", e))?
+    };
+    delete_music_at(&base_dir, &file_name)
+}
+
+/// 删除的实际逻辑。与命令分开只为可测：命令要 AppHandle，测试构造不出来。
+fn delete_music_at(base_dir: &Path, file_name: &str) -> Result<(), String> {
+    let music_dir = music_dir_from_library_root(base_dir);
+
+    if !is_safe_library_relative_path(file_name) {
+        return Err(format!("refuse to delete outside the library: {}", file_name));
+    }
+    let target = music_dir.join(file_name);
+    if !target.starts_with(&music_dir) {
+        return Err(format!("refuse to delete outside the library: {}", file_name));
+    }
+    if !target.is_file() {
+        return Err(format!("file not found: {}", target.display()));
+    }
+
+    fs::remove_file(&target).map_err(|e| format!("delete file error: {}", e))?;
+
+    // 旁挂文件是尽力而为：删不掉也不该让「音频已经删了」这件事报成失败。
+    let stem = sidecar_stem(file_name);
+    let _ = fs::remove_file(base_dir.join("lyrics").join(format!("{}.lrc", stem)));
+    for ext in ["jpg", "jpeg", "png", "webp"] {
+        let _ = fs::remove_file(base_dir.join("cover").join(format!("{}.{}", stem, ext)));
+    }
+
+    Ok(())
+}
+
+/// 这个字符串能不能安全地当作「曲库内的相对路径」。
+///
+/// 只允许普通名字组成的相对路径：拒绝绝对路径与任何 `..`（根、父目录、前缀）。
+/// 曲库确实会有子目录（`Album/song.mp3`），所以不能一刀切成「只许纯文件名」。
+fn is_safe_library_relative_path(file_name: &str) -> bool {
+    let path = Path::new(file_name);
+    !file_name.is_empty()
+        && !path.is_absolute()
+        && path
+            .components()
+            .all(|part| matches!(part, std::path::Component::Normal(_)))
 }
 
 /// import music files from a directory into the default music directory
@@ -1196,5 +1322,202 @@ mod tests {
             music_dir_from_library_root(Path::new("/tmp/rmusic-library")),
             Path::new("/tmp/rmusic-library").join("music")
         );
+    }
+
+    /// 造一个假 MP3：ID3v2.3 的空标签头（10 字节）+ 一段假的音频数据。
+    /// 真实下载回来的文件就是这个样子——有 ID3 头、里面没有标签帧。
+    fn fake_mp3_with_empty_id3() -> Vec<u8> {
+        let mut bytes = b"ID3\x03\x00\x00\x00\x00\x00\x00".to_vec();
+        bytes.extend(std::iter::repeat(0xAA).take(64));
+        bytes
+    }
+
+
+    /// 拿一个**真实的**下载文件验证：写完之后连 macOS 的 Spotlight 都能读到。
+    ///
+    /// 与 netease.rs 里那些对着 sidecar 跑的测试同规矩：需要外部资源，默认 ignore。
+    /// 用法：
+    ///   RMUSIC_TEST_MP3=/path/to/real.mp3 cargo test -- --ignored real_download_can_be_tagged
+    #[test]
+    #[ignore]
+    fn real_download_can_be_tagged() {
+        let Ok(path) = std::env::var("RMUSIC_TEST_MP3") else {
+            panic!("需要 RMUSIC_TEST_MP3 指向一个真实的下载文件");
+        };
+        let path = PathBuf::from(path);
+
+        assert!(is_mp3_file(&path), "真实下载文件应当被认作 MP3");
+        write_id3_tags(&path, "Tagged Title", "Tagged Artist", "Tagged Album").unwrap();
+
+        let tag = Tag::read_from_path(&path).unwrap();
+        assert_eq!(tag.title(), Some("Tagged Title"));
+        assert_eq!(tag.artist(), Some("Tagged Artist"));
+        assert_eq!(tag.album(), Some("Tagged Album"));
+    }
+
+    #[test]
+    fn recognizes_mp3_but_not_other_containers() {
+        let dir = unique_test_dir("id3-guard");
+
+        let with_id3 = dir.join("a.mp3");
+        std::fs::write(&with_id3, fake_mp3_with_empty_id3()).unwrap();
+        assert!(is_mp3_file(&with_id3), "带 ID3 头的应认作 MP3");
+
+        // 没有标签、直接以 MPEG 帧同步开头
+        let raw = dir.join("b.mp3");
+        std::fs::write(&raw, [0xFFu8, 0xFB, 0x90, 0x00, 0x11, 0x22]).unwrap();
+        assert!(is_mp3_file(&raw), "帧同步开头的应认作 MP3");
+
+        // 这几种绝不能写 ID3：往 FLAC 开头插一段标签会毁掉文件
+        for (name, head) in [
+            ("c.flac", b"fLaC\x00\x00\x00\x22".to_vec()),
+            ("d.wav", b"RIFF\x24\x08\x00\x00WAVE".to_vec()),
+            ("e.ogg", b"OggS\x00\x02\x00\x00".to_vec()),
+        ] {
+            let path = dir.join(name);
+            std::fs::write(&path, &head).unwrap();
+            assert!(!is_mp3_file(&path), "{name} 不该被认作 MP3");
+        }
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn writes_and_reads_back_the_tags() {
+        let dir = unique_test_dir("id3-write");
+        let path = dir.join("a.mp3");
+        std::fs::write(&path, fake_mp3_with_empty_id3()).unwrap();
+
+        write_id3_tags(&path, "My jealousy", "DJMAX", "DJMAX RESPECT V").unwrap();
+
+        let tag = Tag::read_from_path(&path).unwrap();
+        assert_eq!(tag.title(), Some("My jealousy"));
+        assert_eq!(tag.artist(), Some("DJMAX"));
+        assert_eq!(tag.album(), Some("DJMAX RESPECT V"));
+
+        // 音频数据必须原样留着——写标签只该替换文件开头那一小段
+        let after = std::fs::read(&path).unwrap();
+        assert!(
+            after.ends_with(&[0xAAu8; 64]),
+            "写入标签后音频内容不能变"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn refuses_to_write_tags_onto_a_non_mp3() {
+        let dir = unique_test_dir("id3-refuse");
+        let path = dir.join("a.flac");
+        let original = b"fLaC\x00\x00\x00\x22tune".to_vec();
+        std::fs::write(&path, &original).unwrap();
+
+        assert!(write_id3_tags(&path, "T", "A", "Al").is_err());
+        assert_eq!(
+            std::fs::read(&path).unwrap(),
+            original,
+            "拒绝之后文件必须一个字节都没动"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn empty_fields_are_left_unset() {
+        let dir = unique_test_dir("id3-empty");
+        let path = dir.join("a.mp3");
+        std::fs::write(&path, fake_mp3_with_empty_id3()).unwrap();
+
+        // 专辑缺失时（本地歌或接口没给）不该写一个空字符串进去，
+        // 缺字段本身有意义——扫描时会回落到文件名解析。
+        write_id3_tags(&path, "Title", "Artist", "   ").unwrap();
+
+        let tag = Tag::read_from_path(&path).unwrap();
+        assert_eq!(tag.title(), Some("Title"));
+        assert_eq!(tag.album(), None);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// 删文件是唯一会动用户数据的命令，路径判定必须严。
+    /// 曲库确实有子目录（扫描子目录时 relative_path 带一段父目录），所以不能
+    /// 一刀切成「只许纯文件名」——但 `..` 与绝对路径必须挡住。
+    #[test]
+    fn library_relative_path_guard() {
+        for ok in [
+            "Artist - Song.mp3",
+            "Album/Artist - Song.mp3",
+            "a/b/c.flac",
+            "名字 带空格.mp3",
+        ] {
+            assert!(is_safe_library_relative_path(ok), "{ok} 应当放行");
+        }
+
+        for bad in [
+            "",
+            "..",
+            "../outside.mp3",
+            "../../etc/passwd",
+            "Album/../../outside.mp3",
+            "/etc/passwd",
+            "Album/../Album/song.mp3",
+        ] {
+            assert!(!is_safe_library_relative_path(bad), "{bad} 必须拒绝");
+        }
+    }
+
+    /// 端到端：删掉音频，同时把它的封面与歌词一起带走，别的文件不动。
+    #[test]
+    fn delete_removes_audio_and_its_sidecars_only() {
+        let root = unique_test_dir("delete-music");
+        let music = root.join("music");
+        let cover = root.join("cover");
+        let lyrics = root.join("lyrics");
+        create_dir_all(&music).unwrap();
+        create_dir_all(&cover).unwrap();
+        create_dir_all(&lyrics).unwrap();
+
+        let victim = music.join("Artist - Song.mp3");
+        let bystander = music.join("Other - Track.mp3");
+        fs::write(&victim, b"audio").unwrap();
+        fs::write(&bystander, b"audio").unwrap();
+        fs::write(cover.join("Artist - Song.jpg"), b"pic").unwrap();
+        fs::write(lyrics.join("Artist - Song.lrc"), b"lrc").unwrap();
+        fs::write(cover.join("Other - Track.jpg"), b"pic").unwrap();
+
+        delete_music_at(&root, "Artist - Song.mp3").unwrap();
+
+        assert!(!victim.exists(), "音频该删掉");
+        assert!(!cover.join("Artist - Song.jpg").exists(), "封面该一起走");
+        assert!(!lyrics.join("Artist - Song.lrc").exists(), "歌词该一起走");
+        assert!(bystander.exists(), "别的歌不能动");
+        assert!(cover.join("Other - Track.jpg").exists(), "别的封面不能动");
+
+        // 再删一次：文件已经不在了，应当报错而不是静默成功
+        assert!(delete_music_at(&root, "Artist - Song.mp3").is_err());
+
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    /// 路径穿越必须被挡住，且**目录外那个文件一个字节都不能动**。
+    #[test]
+    fn delete_refuses_to_touch_files_outside_the_library() {
+        let root = unique_test_dir("delete-guard");
+        let music = root.join("music");
+        create_dir_all(&music).unwrap();
+
+        let outside = root.join("outside.mp3");
+        fs::write(&outside, b"precious").unwrap();
+
+        assert!(delete_music_at(&root, "../outside.mp3").is_err());
+        assert!(delete_music_at(&root, "/etc/hosts").is_err());
+
+        assert_eq!(
+            fs::read(&outside).unwrap(),
+            b"precious",
+            "库外的文件必须一个字节都没动"
+        );
+
+        let _ = fs::remove_dir_all(&root);
     }
 }

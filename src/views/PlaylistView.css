@@ -2,12 +2,24 @@
   overflow: hidden;
 }
 
+/* 就地重命名的输入框。落在标题那一行，所以高度要接近 26px 的标题，
+   否则切换编辑态时整块 hero 会跳一下。 */
 .name-input {
-  width: 200px;
+  width: min(420px, 100%);
+  margin: -4px 0;
 }
 
-.playlist-header-cover {
-  margin-right: 2px;
+.name-input :deep(.el-input__wrapper) {
+  height: 38px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+/* hero 右端那三个操作：与两枚胶囊同高的圆形按钮，和在线歌单页的收藏星同一形 */
+.playlist-header-action {
+  width: var(--app-button-height);
+  height: var(--app-button-height);
+  padding: 0;
 }
 
 .header-actions {

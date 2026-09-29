@@ -90,6 +90,12 @@
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
+  /* 行高必须写明。留默认的 normal，行高就由字体决定：中文字体（PingFang SC）
+     的 normal 约 1.4、拉丁约 1.2，同样一行字中文比英文高 3px。六行累起来
+     18px，正好把这一页顶出滚动条——中文有、英文没有，就是它造成的。
+     取 1.2（≈16.8px）：与拉丁字体 normal 的行高一致，于是中英文两版的整页
+     高度回到同一水平，也回到改动之前的高度。 */
+  line-height: 1.2;
 }
 
 .setting-row > label {

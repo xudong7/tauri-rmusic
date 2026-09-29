@@ -55,6 +55,8 @@ export function useOnlinePlaylistActions() {
       const added = playlistStore.addToPlaylist(playlistId, {
         type: "local",
         file_name: fileName,
+        // 记下来源：文件被删之后，这一行才有「重新下载」可点
+        source: song,
       });
       return {
         outcome: added ? "added" : "already",

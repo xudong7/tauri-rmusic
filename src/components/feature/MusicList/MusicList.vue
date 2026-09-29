@@ -2,9 +2,13 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { Upload, Plus } from "@element-plus/icons-vue";
+import TrashIcon from "@/components/base/icons/TrashIcon.vue";
+import { deleteMusicFile } from "@/api/commands/file";
+import { parseErrorMessage } from "@/utils/errorUtils";
 import MultiSelectIcon from "@/components/base/icons/MultiSelectIcon.vue";
 import type { MusicFile } from "@/types/model";
 import { usePlaylistStore } from "@/stores/playlistStore";
+import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { ElMessage } from "element-plus";
 import { formatDurationLabel, getLocalMusicDisplayInfo } from "@/utils/songUtils";
 import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
@@ -16,6 +20,7 @@ import type { TrackRowModel } from "@/components/feature/TrackList/types";
 
 const { t } = useI18n();
 const playlistStore = usePlaylistStore();
+const localStore = useLocalMusicStore();
 
 function getFileKey(file: MusicFile): string {
   return file.relative_path || file.file_name;
@@ -91,6 +96,9 @@ const props = withDefaults(
 
 const librarySubtitle = computed(() => {
   if (props.refreshing && props.musicFiles.length) return t("musicList.updating");
+  // 空曲库时不显示「0 首歌曲 · 0 分钟」：零个东西的统计不是信息，只是噪音，
+  // 而下面正中央已经有一句「曲库还是空的」在说同一件事。
+  if (props.musicFiles.length === 0) return undefined;
   const totalDuration = props.musicFiles.reduce(
     (total, file) => total + Math.max(0, file.duration_ms ?? 0),
     0
@@ -136,6 +144,25 @@ function toTrackRow(music: MusicFile, sourceIndex: number): TrackRowModel {
     source: "local",
     sourceIndex,
   };
+}
+
+/**
+ * 从曲库删除一首歌：音频文件连同它的封面与歌词一起删，不可撤销。
+ *
+ * 在这之前只能去访达里手动删——下载回来的歌只会越积越多。
+ */
+async function handleDelete(row: MusicFile) {
+  try {
+    await deleteMusicFile({
+      fileName: row.file_name,
+      defaultDirectory: localStore.defaultDirectory,
+    });
+    await localStore.refreshCurrentDirectory();
+    ElMessage.success(t("musicList.deleted", { name: getDisplayInfo(row).title }));
+  } catch (error) {
+    console.error("删除歌曲失败:", error);
+    ElMessage.error(`${t("errors.deleteMusicFailed")}: ${parseErrorMessage(error)}`);
+  }
 }
 
 function handleAddToPlaylist(command: string, row: MusicFile) {
@@ -217,7 +244,7 @@ function scheduleVisibleCovers(items: TrackRowModel[]) {
         <template v-else>
           <el-tooltip
             v-if="showImportButton"
-            :content="t('musicList.importFolder')"
+            :content="t('musicList.importMusic')"
             placement="bottom"
           >
             <!-- 只留图标：与同排的多选键外观一致，含义由 tooltip 交代 -->
@@ -257,8 +284,22 @@ function scheduleVisibleCovers(items: TrackRowModel[]) {
       <template #loading>
         <el-skeleton :rows="6" animated />
       </template>
+      <!-- 空状态自带动作：原先它写着「点击「导入音乐」添加」，而那个按钮只有
+           一个 ↑ 图标、在页面右上角，界面上任何地方都没有「导入音乐」这四个字
+           （tooltip 当时还写成「从文件夹导入音乐」，而它打开的是多选文件对话框）。
+           与其让用户去找，不如把动作放在他正在读的那句话旁边。 -->
       <template #empty>
-        <el-empty :description="t('musicList.empty')" />
+        <el-empty :description="t('musicList.empty')" :image-size="96">
+          <p class="music-list__empty-hint">{{ t("musicList.emptyHint") }}</p>
+          <el-button
+            v-if="showImportButton"
+            type="primary"
+            :icon="Upload"
+            @click="emit('import')"
+          >
+            {{ t("musicList.importMusic") }}
+          </el-button>
+        </el-empty>
       </template>
       <template #actions="{ item }">
         <el-dropdown
@@ -289,6 +330,29 @@ function scheduleVisibleCovers(items: TrackRowModel[]) {
             </el-dropdown-menu>
           </template>
         </el-dropdown>
+
+        <!-- 删除要二次确认，而且文案必须写明「从磁盘删除、不可恢复」——
+             这是全应用唯一会动用户文件的操作。 -->
+        <el-popconfirm
+          :title="t('musicList.deleteConfirm')"
+          :confirm-button-text="t('common.confirmDelete')"
+          :cancel-button-text="t('common.cancel')"
+          width="300"
+          trigger="click"
+          @confirm="handleDelete(musicFiles[item.sourceIndex])"
+        >
+          <template #reference>
+            <el-button
+              circle
+              size="small"
+              link
+              class="delete-action app-icon-button--danger"
+              :icon="TrashIcon"
+              :aria-label="t('musicList.delete')"
+              @click.stop
+            />
+          </template>
+        </el-popconfirm>
       </template>
     </TrackList>
   </PageLayout>

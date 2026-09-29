@@ -7,6 +7,14 @@ const MAX_CONCURRENT_ONLINE_PREFETCHES = 2;
 export interface PlayOnlineOptions {
   fromPlaylistId?: string;
   queue?: SongInfo[];
+  /**
+   * 失败时不弹错误提示。
+   *
+   * 给「下一首/上一首」的跳过链用：那一链每首失败都会失败，逐首弹一遍
+   * 「播放失败」之后还会再弹一句「已跳过 N 首」，同一件事说了两遍。
+   * 用户直接点某一首时不传它——那是明确意图，失败了要如实报错。
+   */
+  quiet?: boolean;
 }
 
 export function usePlaybackQueue(options: {

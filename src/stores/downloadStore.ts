@@ -2,16 +2,24 @@ import { ref } from "vue";
 import { defineStore } from "pinia";
 import { ElMessage } from "element-plus";
 import type { SongInfo } from "@/types/model";
+import { STORAGE_KEY_DOWNLOAD_SOURCES } from "@/constants";
 import { downloadMusic } from "@/api/commands/music";
 import { parseErrorMessage } from "@/utils/errorUtils";
+import { readJsonFromStorage, writeJsonToStorage } from "@/utils/storage";
 import { getExpectedDownloadFileName, getLocalFileNameForSong } from "@/utils/songUtils";
 import { useLocalMusicStore } from "./localMusicStore";
 
 /** 会话内需要记着的下载状态。inLibrary 不在这里——它由曲库派生，见 statusFor。 */
 export type DownloadStatus = "downloading" | "done" | "failed";
 
-/** 行上最终展示的状态。 */
-export type DownloadState = "downloading" | "done" | "failed" | "inLibrary" | "idle";
+/**
+ * 行上最终展示的状态。
+ *
+ * 内部记着 done 与「曲库里已有」两件事，但对外的状态**只有一种「已下载」**：
+ * 两者的区别只是「什么时候下的」，而那是时间，不是用户要看的信息——一个会话级、
+ * 一个由曲库派生，重启之后前者会全部变成后者，图标会无缘无故地换一个。
+ */
+export type DownloadState = "downloading" | "downloaded" | "failed" | "idle";
 
 /**
  * 下载状态。
@@ -38,6 +46,30 @@ export const useDownloadStore = defineStore("download", () => {
    * initializePromise。
    */
   const inflight = new Map<string, Promise<string | null>>();
+
+  /**
+   * 下载过的歌曲：**文件名 → 来源**。
+   *
+   * 歌单条目自己也会存一份来源，但那只覆盖「从在线搜索加进歌单」的路径；
+   * 从**曲库**把一首歌加进歌单时，那条路径手上只有文件名，造不出来源。而这首歌
+   * 当初是本应用下载的——下载那一刻 SongInfo 就在手上，顺手记一份，两条路径
+   * 就都能在文件被删之后重新下载了。
+   *
+   * 覆盖不到的是用户自己导入的文件：它们从来没有过来源。
+   */
+  const sources = ref<Record<string, SongInfo>>(
+    readJsonFromStorage<Record<string, SongInfo>>(STORAGE_KEY_DOWNLOAD_SOURCES, {})
+  );
+
+  function rememberSource(fileName: string, song: SongInfo) {
+    sources.value = { ...sources.value, [fileName]: song };
+    writeJsonToStorage(STORAGE_KEY_DOWNLOAD_SOURCES, sources.value);
+  }
+
+  /** 这个文件当初是从哪首歌下载来的（没有就返回 null）。 */
+  function sourceFor(fileName: string): SongInfo | null {
+    return sources.value[fileName] ?? null;
+  }
 
   function isAlreadyExistsError(error: unknown): boolean {
     return String(error ?? "").includes("file already exists");
@@ -72,11 +104,15 @@ export const useDownloadStore = defineStore("download", () => {
         songHash: key,
         songName: song.name,
         artist: song.artists.join(", "),
+        album: song.album ?? "",
         defaultDirectory: localStore.defaultDirectory,
       });
       await refreshLibrary();
       setStatus(key, "done");
-      return resolveFileName(song, downloaded);
+      const fileName = resolveFileName(song, downloaded);
+      // 记下文件名 → 来源：以后这份文件被删了，歌单里那一行才有得救
+      rememberSource(fileName, song);
+      return fileName;
     } catch (error) {
       // 文件已经在磁盘上，这是幂等的成功而不是失败：原先它会弹一句
       // 「文件已存在，无需重复下载」的错误提示，而用户要的结果已经达成了。
@@ -107,11 +143,7 @@ export const useDownloadStore = defineStore("download", () => {
   }
 
   /**
-   * 行上要展示的状态。优先级：下载中 > 本次下过 > 曲库已有 > 失败 > 空闲。
-   *
-   * done 是会话级的、不过期：下载成功后打勾就常驻，不再需要悬停。它排在
-   * inLibrary 之前，否则下载成功会立刻自降级成「已在曲库」，把用户要的那个
-   * 打勾弄丢。
+   * 行上要展示的状态。优先级：下载中 > 已下载 > 失败 > 空闲。
    *
    * 「已下载」排在 failed 之前：文件就在曲库里却显示「重试」是错的，那个
    * 操作也没有意义。
@@ -122,8 +154,9 @@ export const useDownloadStore = defineStore("download", () => {
   function statusFor(song: SongInfo): DownloadState {
     const status = statuses.value[song.file_hash];
     if (status === "downloading") return "downloading";
-    if (status === "done") return "done";
-    if (localStore.hasMusicFile(getExpectedDownloadFileName(song))) return "inLibrary";
+    // 本次会话下过的、或曲库里本来就有——对外都是「已下载」
+    if (status === "done") return "downloaded";
+    if (localStore.hasMusicFile(getExpectedDownloadFileName(song))) return "downloaded";
     if (status === "failed") return "failed";
     return "idle";
   }
@@ -131,11 +164,13 @@ export const useDownloadStore = defineStore("download", () => {
   return {
     download,
     statusFor,
+    sourceFor,
   };
 });
 
 /**
  * 需要让行的操作簇常驻的状态：除了「未下载」都常驻。
+ * 已下载也常驻——不管什么时候下的，同一件事在界面上只有一套规矩。
  *
  * 操作簇默认悬停才显示，而下载进度与结果都不再有 toast 兜底——鼠标一移开就
  * 什么都看不到。「已下载」也同样常驻：不管什么时候下的，同一件事在界面上只

@@ -103,7 +103,6 @@ describe("OnlineMusicList 的下载按钮", () => {
 
     expect(button.attributes("aria-label")).toBe(t("common.download"));
     expect(button.find(".check-icon").exists()).toBe(false);
-    expect(button.find(".in-library-icon").exists()).toBe(false);
   });
 
   it("点击后转圈，完成后变成打勾", async () => {
@@ -128,14 +127,17 @@ describe("OnlineMusicList 的下载按钮", () => {
     expect(done.classes()).not.toContain("is-loading");
   });
 
-  it("曲库里已有的歌显示「已在曲库」", async () => {
+  // 曲库里本来就有、与本次会话下过，对外是同一个状态、同一个图标。
+  // 两者只差「什么时候下的」——那是时间，不是用户要看的信息，而且重启之后
+  // 前者会全部变成后者，图标会无缘无故地换一个。
+  it("曲库里已有的歌与刚下完的显示一致：同一个打勾", async () => {
     const { wrapper, localStore } = mountList();
     localStore.musicFiles = [{ id: 1, file_name: EXPECTED_NAME }];
     await flushPromises();
 
     const button = downloadButton(wrapper);
-    expect(button.attributes("aria-label")).toBe(t("download.inLibrary"));
-    expect(button.find(".in-library-icon").exists()).toBe(true);
+    expect(button.attributes("aria-label")).toBe(t("download.done"));
+    expect(button.find(".check-icon").exists()).toBe(true);
   });
 
   it("失败后显示可重试，再点一次会重发请求", async () => {
@@ -193,7 +195,7 @@ describe("OnlineMusicList 的下载按钮", () => {
     await flushPromises();
 
     expect(busyKeysOf(wrapper).has(song.id)).toBe(true);
-    expect(downloadButton(wrapper).find(".in-library-icon").exists()).toBe(true);
+    expect(downloadButton(wrapper).find(".check-icon").exists()).toBe(true);
   });
 
   it("加入歌单后 Plus 闪一下打勾", async () => {

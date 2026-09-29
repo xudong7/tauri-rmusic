@@ -37,6 +37,7 @@
       :loading="store.isLoading"
       :totalCount="store.songs.length"
       :hasMore="false"
+      hide-album
       @play="playSong"
       @toggle-current="playerStore.togglePlay"
       @load-more="() => {}"

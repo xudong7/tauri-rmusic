@@ -22,6 +22,9 @@ const props = withDefaults(
      * 操作簇默认悬停才显示，鼠标一移开，进度或结果就跟着消失了。
      */
     busy?: boolean;
+    /** 隐藏专辑列。调用方（TrackList）已经据此换过网格了，这里只负责不渲染
+        那一格——留着空位会让歌名那列和时长之间多出一段空白。 */
+    hideAlbum?: boolean;
     rowHeight?: number;
   }>(),
   {
@@ -31,6 +34,7 @@ const props = withDefaults(
     isCurrent: false,
     isPlaying: false,
     busy: false,
+    hideAlbum: false,
     rowHeight: undefined,
   }
 );
@@ -67,6 +71,7 @@ function handleActivate() {
       'is-disabled': item.disabled,
       'is-striped': props.index % 2 === 0,
       'is-busy': busy,
+      'is-album-hidden': hideAlbum,
     }"
     :style="
       rowHeight ? { height: `${rowHeight}px`, minHeight: `${rowHeight}px` } : undefined
@@ -124,7 +129,7 @@ function handleActivate() {
       </div>
     </div>
 
-    <div v-if="item.album" class="track-row__album" :title="item.album">
+    <div v-if="item.album && !hideAlbum" class="track-row__album" :title="item.album">
       {{ item.album }}
     </div>
 
@@ -159,6 +164,12 @@ function handleActivate() {
     background var(--app-control-transition),
     color var(--app-control-transition);
   outline: none;
+}
+
+/* 隐藏专辑列时换成三轨版本。时长那一格用的是 -2 / -1，三轨下正好还是最后一格，
+   所以只需要换网格本身，不必重排任何一格。 */
+.track-row.is-album-hidden {
+  grid-template-columns: var(--app-track-grid-compact);
 }
 
 /* 隔行底色。必须排在这一组的最前面：悬停、选中、聚焦与它特异性相同
