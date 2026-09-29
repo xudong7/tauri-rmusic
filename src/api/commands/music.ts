@@ -52,6 +52,9 @@ export async function downloadMusic(args: {
   songHash: string;
   songName: string;
   artist: string;
+  /** 专辑名。网易云 CDN 给的音频里没有任何标签帧，所以这三样要由后端写进 ID3，
+       否则下载回来的曲子只有文件名可读，曲库里的专辑列永远是空的。 */
+  album: string;
   defaultDirectory: string | null;
 }): Promise<string> {
   return await invokeCommand("download_music", args);

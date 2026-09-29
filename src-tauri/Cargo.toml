@@ -48,6 +48,7 @@ rand = "0.8.5"
 hmac = "0.12.1"
 sha2 = "0.10.6"
 sha1 = "0.10.5"
+id3 = { version = "1.17.2", default-features = false }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-autostart = "2"

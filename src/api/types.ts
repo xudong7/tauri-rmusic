@@ -60,6 +60,7 @@ export interface TauriCommandParamsMap {
     songHash: string;
     songName: string;
     artist: string;
+    album: string;
     defaultDirectory: string | null;
   };
   search_online_mix: {

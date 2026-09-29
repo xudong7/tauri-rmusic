@@ -72,6 +72,7 @@ export const useDownloadStore = defineStore("download", () => {
         songHash: key,
         songName: song.name,
         artist: song.artists.join(", "),
+        album: song.album ?? "",
         defaultDirectory: localStore.defaultDirectory,
       });
       await refreshLibrary();

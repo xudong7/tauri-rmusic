@@ -2,12 +2,13 @@ use crate::fs_util::{commit_temp_file, unique_temp_path_for};
 use crate::music::MusicFile;
 use crate::netease;
 use crate::netease::{get_song_cover, get_song_lyric, get_song_url};
+use id3::{Tag, TagLike, Version};
 use rodio::{Decoder, Source};
 use serde::{Deserialize, Serialize};
 use sha1::{Digest, Sha1};
 use std::collections::HashMap;
 use std::fs::{self, create_dir_all, read_dir, File};
-use std::io::{BufReader, ErrorKind, Write};
+use std::io::{BufReader, ErrorKind, Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, UNIX_EPOCH};
 use symphonia::core::formats::FormatOptions;
@@ -289,6 +290,56 @@ fn music_file_from_path(id: i32, absolute_path: &Path, relative_path: &Path) -> 
         album: None,
         duration_ms: 0,
     })
+}
+
+/// 这个文件是不是 MP3。
+///
+/// 守卫是必要的：id3 crate 对无法识别的容器（既不是 ID3 头、也不是 RIFF/WAVE 或
+/// AIFF）会**直接在文件开头插一段 ID3**，而 FLAC 必须以 "fLaC" 开头——那样写就是
+/// 毁文件。它自己支持 MP3（裸 ID3）、WAV、AIFF 三种，我们只下载 MP3。
+fn is_mp3_file(path: &Path) -> bool {
+    let Ok(mut file) = File::open(path) else {
+        return false;
+    };
+    let mut head = [0u8; 3];
+    if file.read_exact(&mut head).is_err() {
+        return false;
+    }
+    // 已经带 ID3 标签的，或直接以 MPEG 帧同步开头的
+    head == *b"ID3" || (head[0] == 0xFF && (head[1] & 0xE0) == 0xE0)
+}
+
+/// 把标题 / 歌手 / 专辑写进 MP3 的 ID3 标签。
+///
+/// 起因：网易云 CDN 给的音频**带 ID3 头、但里面没有任何标签帧**——实测一份 44 首
+/// 的曲库只有 1 首能读出标签。于是「歌手 - 歌名」只能从文件名里拆（是在猜），而
+/// 专辑名无处可拆，曲库里的专辑列永远是空的。
+///
+/// 写进文件而不是另存一份 sidecar：标题/歌手/专辑是**所有**软件都关心的信息，
+/// 写进去之后访达、手机、别的播放器都看得到，而 sidecar 只有本应用认。封面与歌词
+/// 不同——那两样是播放器才关心的，继续走 sidecar。
+fn write_id3_tags(path: &Path, title: &str, artist: &str, album: &str) -> Result<(), String> {
+    if !is_mp3_file(path) {
+        return Err("not an mp3 file, skip ID3 tags".to_string());
+    }
+
+    let mut tag = Tag::new();
+    // 空字段不写：写进去等于声称「这首歌的专辑就叫空字符串」，而缺字段本身
+    // 是有意义的（扫描时会回落到文件名解析）。
+    if !title.trim().is_empty() {
+        tag.set_title(title.trim());
+    }
+    if !artist.trim().is_empty() {
+        tag.set_artist(artist.trim());
+    }
+    if !album.trim().is_empty() {
+        tag.set_album(album.trim());
+    }
+
+    // 写 v2.3 而不是 crate 默认的 v2.4：兼容面更广（Windows 资源管理器、
+    // 老播放器都认 v2.3），而源文件本身也是 v2.3。
+    tag.write_to_path(path, Version::Id3v23)
+        .map_err(|e| format!("write id3 tags: {}", e))
 }
 
 async fn write_response_to_file(
@@ -706,6 +757,7 @@ pub async fn download_music(
     song_hash: String,
     song_name: String,
     artist: String,
+    album: String,
     default_directory: Option<String>,
 ) -> Result<String, String> {
     let song_url = get_song_url(song_hash.clone()).await?;
@@ -750,6 +802,12 @@ pub async fn download_music(
         return Err(format!("file already exists: {}", file_path.display()));
     }
     write_response_to_file(response, &file_path).await?;
+    // 标签是锦上添花：写不进去不该让整次下载失败（音频本身是好的）。与封面/歌词
+    // 一样按「尽力而为」处理，区别只是这里失败会留下日志——写不进去通常意味着
+    // 代理给的不是 MP3，那是值得知道的。
+    if let Err(e) = write_id3_tags(&file_path, &song_name, &artist, &album) {
+        eprintln!("write id3 tags failed: {}", e);
+    }
     let base_filename = file_name.replace(".mp3", "");
 
     let cover_url_result =
@@ -1196,5 +1254,120 @@ mod tests {
             music_dir_from_library_root(Path::new("/tmp/rmusic-library")),
             Path::new("/tmp/rmusic-library").join("music")
         );
+    }
+
+    /// 造一个假 MP3：ID3v2.3 的空标签头（10 字节）+ 一段假的音频数据。
+    /// 真实下载回来的文件就是这个样子——有 ID3 头、里面没有标签帧。
+    fn fake_mp3_with_empty_id3() -> Vec<u8> {
+        let mut bytes = b"ID3\x03\x00\x00\x00\x00\x00\x00".to_vec();
+        bytes.extend(std::iter::repeat(0xAA).take(64));
+        bytes
+    }
+
+
+    /// 拿一个**真实的**下载文件验证：写完之后连 macOS 的 Spotlight 都能读到。
+    ///
+    /// 与 netease.rs 里那些对着 sidecar 跑的测试同规矩：需要外部资源，默认 ignore。
+    /// 用法：
+    ///   RMUSIC_TEST_MP3=/path/to/real.mp3 cargo test -- --ignored real_download_can_be_tagged
+    #[test]
+    #[ignore]
+    fn real_download_can_be_tagged() {
+        let Ok(path) = std::env::var("RMUSIC_TEST_MP3") else {
+            panic!("需要 RMUSIC_TEST_MP3 指向一个真实的下载文件");
+        };
+        let path = PathBuf::from(path);
+
+        assert!(is_mp3_file(&path), "真实下载文件应当被认作 MP3");
+        write_id3_tags(&path, "Tagged Title", "Tagged Artist", "Tagged Album").unwrap();
+
+        let tag = Tag::read_from_path(&path).unwrap();
+        assert_eq!(tag.title(), Some("Tagged Title"));
+        assert_eq!(tag.artist(), Some("Tagged Artist"));
+        assert_eq!(tag.album(), Some("Tagged Album"));
+    }
+
+    #[test]
+    fn recognizes_mp3_but_not_other_containers() {
+        let dir = unique_test_dir("id3-guard");
+
+        let with_id3 = dir.join("a.mp3");
+        std::fs::write(&with_id3, fake_mp3_with_empty_id3()).unwrap();
+        assert!(is_mp3_file(&with_id3), "带 ID3 头的应认作 MP3");
+
+        // 没有标签、直接以 MPEG 帧同步开头
+        let raw = dir.join("b.mp3");
+        std::fs::write(&raw, [0xFFu8, 0xFB, 0x90, 0x00, 0x11, 0x22]).unwrap();
+        assert!(is_mp3_file(&raw), "帧同步开头的应认作 MP3");
+
+        // 这几种绝不能写 ID3：往 FLAC 开头插一段标签会毁掉文件
+        for (name, head) in [
+            ("c.flac", b"fLaC\x00\x00\x00\x22".to_vec()),
+            ("d.wav", b"RIFF\x24\x08\x00\x00WAVE".to_vec()),
+            ("e.ogg", b"OggS\x00\x02\x00\x00".to_vec()),
+        ] {
+            let path = dir.join(name);
+            std::fs::write(&path, &head).unwrap();
+            assert!(!is_mp3_file(&path), "{name} 不该被认作 MP3");
+        }
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn writes_and_reads_back_the_tags() {
+        let dir = unique_test_dir("id3-write");
+        let path = dir.join("a.mp3");
+        std::fs::write(&path, fake_mp3_with_empty_id3()).unwrap();
+
+        write_id3_tags(&path, "My jealousy", "DJMAX", "DJMAX RESPECT V").unwrap();
+
+        let tag = Tag::read_from_path(&path).unwrap();
+        assert_eq!(tag.title(), Some("My jealousy"));
+        assert_eq!(tag.artist(), Some("DJMAX"));
+        assert_eq!(tag.album(), Some("DJMAX RESPECT V"));
+
+        // 音频数据必须原样留着——写标签只该替换文件开头那一小段
+        let after = std::fs::read(&path).unwrap();
+        assert!(
+            after.ends_with(&[0xAAu8; 64]),
+            "写入标签后音频内容不能变"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn refuses_to_write_tags_onto_a_non_mp3() {
+        let dir = unique_test_dir("id3-refuse");
+        let path = dir.join("a.flac");
+        let original = b"fLaC\x00\x00\x00\x22tune".to_vec();
+        std::fs::write(&path, &original).unwrap();
+
+        assert!(write_id3_tags(&path, "T", "A", "Al").is_err());
+        assert_eq!(
+            std::fs::read(&path).unwrap(),
+            original,
+            "拒绝之后文件必须一个字节都没动"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn empty_fields_are_left_unset() {
+        let dir = unique_test_dir("id3-empty");
+        let path = dir.join("a.mp3");
+        std::fs::write(&path, fake_mp3_with_empty_id3()).unwrap();
+
+        // 专辑缺失时（本地歌或接口没给）不该写一个空字符串进去，
+        // 缺字段本身有意义——扫描时会回落到文件名解析。
+        write_id3_tags(&path, "Title", "Artist", "   ").unwrap();
+
+        let tag = Tag::read_from_path(&path).unwrap();
+        assert_eq!(tag.title(), Some("Title"));
+        assert_eq!(tag.album(), None);
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
