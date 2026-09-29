@@ -69,7 +69,10 @@ describe("useOnlinePlaylistActions", () => {
     expect(commandMocks.downloadMusic).toHaveBeenCalledOnce();
     expect(result.outcome).toBe("added");
     const created = playlistStore.playlists[0];
-    expect(created.items).toEqual([{ type: "local", file_name: EXPECTED_NAME }]);
+    // 条目要带上来源：文件以后被删了，这一行才有「重新下载」可点
+    expect(created.items).toEqual([
+      { type: "local", file_name: EXPECTED_NAME, source: song },
+    ]);
   });
 
   it("曲库里已有这首歌时不再下载", async () => {

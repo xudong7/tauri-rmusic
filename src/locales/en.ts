@@ -41,6 +41,7 @@ export default {
     addToPlaylist: "Add to playlist",
     added: 'Added to "{name}"',
     alreadyInPlaylist: 'Already in "{name}"',
+    redownload: "Re-download",
     removeSelected: "Remove selected from playlist",
     browseLibrary: "Open library",
     browseOnline: "Search online",

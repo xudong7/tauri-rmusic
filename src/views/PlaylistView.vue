@@ -121,6 +121,25 @@
           <el-empty :description="t('messages.noSearchResult')" />
         </template>
         <template #actions="{ item }">
+          <!-- 文件被删了、而当初加入歌单时记住了来源：给一个重新下载。
+               来源是加入歌单那一刻顺手记下的（见 useOnlinePlaylistActions），
+               用户自己导入的本地文件没有来源，因此这里不会出现。 -->
+          <el-tooltip
+            v-if="item.disabled && sourceAt(item.sourceIndex)"
+            :content="t('playlist.redownload')"
+            placement="top"
+          >
+            <el-button
+              circle
+              size="small"
+              link
+              class="redownload-action"
+              :icon="Download"
+              :loading="isRedownloadingAt(item.sourceIndex)"
+              :aria-label="t('playlist.redownload')"
+              @click.stop="redownloadAt(item.sourceIndex)"
+            />
+          </el-tooltip>
           <el-button
             circle
             size="small"
@@ -141,7 +160,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
 import { useRowSelection } from "@/composables/useRowSelection";
 import { useI18n } from "vue-i18n";
-import { Minus, EditPen, Folder, Search } from "@element-plus/icons-vue";
+import { Download, Minus, EditPen, Folder, Search } from "@element-plus/icons-vue";
 import MultiSelectIcon from "@/components/base/icons/MultiSelectIcon.vue";
 import TrashIcon from "@/components/base/icons/TrashIcon.vue";
 import type { PlaylistItem, MusicFile, SongInfo } from "@/types/model";
@@ -154,6 +173,7 @@ import { usePlaylistStore } from "@/stores/playlistStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useViewStore } from "@/stores/viewStore";
+import { useDownloadStore } from "@/stores/downloadStore";
 import DetailHero from "@/components/layout/DetailHero/DetailHero.vue";
 import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
 import TrackList from "@/components/feature/TrackList/TrackList.vue";
@@ -164,6 +184,7 @@ const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const playlistStore = usePlaylistStore();
+const downloadStore = useDownloadStore();
 const localStore = useLocalMusicStore();
 const playerStore = usePlayerStore();
 const viewStore = useViewStore();
@@ -333,6 +354,31 @@ function toTrackRow(entry: ResolvedEntry): TrackRowModel {
     sourceIndex: entry.sourceIndex,
     disabled: entry.item.type === "local" && entry.musicFile === null,
   };
+}
+
+/** 这一行记下的来源（没有就返回 null：导入的本地文件没有来源）。 */
+function sourceAt(index: number): SongInfo | null {
+  const item = playlist.value?.items[index];
+  if (!item || item.type !== "local") return null;
+  return item.source ?? null;
+}
+
+/** 这一行是不是正在重新下载（转圈）。 */
+function isRedownloadingAt(index: number): boolean {
+  const source = sourceAt(index);
+  return source !== null && downloadStore.statusFor(source) === "downloading";
+}
+
+/**
+ * 重新下载这一行指向的歌。
+ *
+ * 下载走的是与搜索页同一个 store：它会顺带刷新曲库，而这一行的 musicFile 是从
+ * 曲库里查出来的 computed——下完自己就从灰色恢复成正常行，不必手动重算。
+ */
+async function redownloadAt(index: number) {
+  const source = sourceAt(index);
+  if (!source) return;
+  await downloadStore.download(source);
 }
 
 const trackRows = computed(() => filteredResolvedItems.value.map(toTrackRow));

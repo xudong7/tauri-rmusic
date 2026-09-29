@@ -41,6 +41,7 @@ export default {
     addToPlaylist: "添加到播放列表",
     added: "已添加到「{name}」",
     alreadyInPlaylist: "该歌曲已在「{name}」中",
+    redownload: "重新下载",
     removeSelected: "从播放列表移除选中",
     browseLibrary: "前往曲库",
     browseOnline: "在线搜索",

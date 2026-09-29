@@ -21,13 +21,26 @@ pub struct SongInfo {
     pub pic_url: String,
     #[serde(default)]
     pub file_hash: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub album_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artist_ids: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum PlaylistItem {
     #[serde(rename = "local")]
-    Local { file_name: String },
+    Local {
+        file_name: String,
+        /// 这首歌的来源（从在线搜索加进来的才有）。文件被删之后靠它重新下载；
+        /// 用户自己导入的本地文件没有来源，因此也没有这一项。
+        ///
+        /// `default` 让旧文件（没这个字段）照常读得出来，
+        /// `skip_serializing_if` 让不该有的时候不写 `"source": null`。
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        source: Option<SongInfo>,
+    },
     #[serde(rename = "online")]
     Online { song: SongInfo },
 }
@@ -135,6 +148,7 @@ mod tests {
             name: "Test".into(),
             items: vec![PlaylistItem::Local {
                 file_name: "Artist - Song.mp3".into(),
+                source: None,
             }],
             created_at: 123,
         }];
@@ -153,5 +167,72 @@ mod tests {
             != Some("tmp")));
 
         let _ = fs::remove_dir_all(dir);
+    }
+
+    /// 旧文件里没有 `source` 字段，必须照常读得出来——否则用户升级之后
+    /// 一打开应用就报「歌单读取失败」。
+    #[test]
+    fn reads_playlists_written_before_items_had_a_source() {
+        let legacy = r#"[
+          {
+            "id": "pl_1",
+            "name": "夜鹿",
+            "createdAt": 1,
+            "items": [{ "type": "local", "file_name": "a.mp3" }]
+          }
+        ]"#;
+        let list: Vec<Playlist> = serde_json::from_str(legacy).unwrap();
+
+        assert_eq!(list.len(), 1);
+        match &list[0].items[0] {
+            PlaylistItem::Local { file_name, source } => {
+                assert_eq!(file_name, "a.mp3");
+                assert!(source.is_none());
+            }
+            other => panic!("应当读成 local 条目，实际是 {other:?}"),
+        }
+    }
+
+    /// 有来源的条目要能原样往返——那是「重新下载」唯一的依据。
+    /// 没有来源的条目不写 `"source": null`（`skip_serializing_if`）。
+    #[test]
+    fn round_trips_the_source_but_omits_it_when_absent() {
+        let with_source = PlaylistItem::Local {
+            file_name: "a.mp3".into(),
+            source: Some(SongInfo {
+                id: "1".into(),
+                name: "Track".into(),
+                artists: vec!["Artist".into()],
+                album: "Album".into(),
+                duration: 1000,
+                pic_url: "http://x/p.jpg".into(),
+                file_hash: "hash".into(),
+                album_id: Some("al1".into()),
+                artist_ids: Some(vec!["ar1".into()]),
+            }),
+        };
+        let json = serde_json::to_string(&with_source).unwrap();
+        assert!(json.contains("\"source\""));
+        assert!(json.contains("\"album_id\""));
+        let back: PlaylistItem = serde_json::from_str(&json).unwrap();
+        match back {
+            PlaylistItem::Local { source, .. } => {
+                let source = source.expect("来源要能读回来");
+                assert_eq!(source.id, "1");
+                assert_eq!(source.album_id.as_deref(), Some("al1"));
+                assert_eq!(source.artist_ids, Some(vec!["ar1".to_string()]));
+            }
+            other => panic!("应当读成 local 条目，实际是 {other:?}"),
+        }
+
+        let without = PlaylistItem::Local {
+            file_name: "b.mp3".into(),
+            source: None,
+        };
+        let json = serde_json::to_string(&without).unwrap();
+        assert!(
+            !json.contains("source"),
+            "没有来源时不该写 null，那是噪音：{json}"
+        );
     }
 }

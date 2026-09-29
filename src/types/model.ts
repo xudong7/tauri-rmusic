@@ -183,7 +183,18 @@ export enum ViewMode {
 export type SearchScope = "local" | "online" | "playlist";
 
 export type PlaylistItem =
-  | { type: "local"; file_name: string }
+  | {
+      type: "local";
+      file_name: string;
+      /**
+       * 这首歌的来源（从在线搜索加进来的才有）。
+       *
+       * 加入歌单时是要先下载的，那一刻歌的 id/歌名/歌手都在手上——顺手记下来，
+       * 文件被删之后这一行才有救：靠它重新下载。用户自己导入的本地文件没有
+       * 来源，因此也没有这一项，删了就只能在歌单里移除。
+       */
+      source?: SongInfo;
+    }
   | { type: "online"; song: SongInfo };
 
 export interface Playlist {
