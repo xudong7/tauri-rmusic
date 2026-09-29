@@ -356,11 +356,17 @@ function toTrackRow(entry: ResolvedEntry): TrackRowModel {
   };
 }
 
-/** 这一行记下的来源（没有就返回 null：导入的本地文件没有来源）。 */
+/**
+ * 这一行的来源，两条路都查：
+ *  1. 条目自己记的——「从在线搜索加进歌单」时写下的
+ *  2. downloadStore 的索引——按文件名反查，「从曲库加进歌单」的歌靠这条
+ *
+ * 两条都查不到就是真的没有来源：用户自己导入的文件从来没有过。
+ */
 function sourceAt(index: number): SongInfo | null {
   const item = playlist.value?.items[index];
   if (!item || item.type !== "local") return null;
-  return item.source ?? null;
+  return item.source ?? downloadStore.sourceFor(item.file_name);
 }
 
 /** 这一行是不是正在重新下载（转圈）。 */

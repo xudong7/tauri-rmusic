@@ -2,6 +2,7 @@ import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ElMessage } from "element-plus";
 import { TauriCommandError } from "@/api/client";
+import { STORAGE_KEY_DOWNLOAD_SOURCES } from "@/constants";
 import { useDownloadStore } from "./downloadStore";
 import { useLocalMusicStore } from "./localMusicStore";
 import type { SongInfo } from "@/types/model";
@@ -182,5 +183,43 @@ describe("downloadStore", () => {
     const { store } = await setup();
 
     expect(store.statusFor(song)).toBe("idle");
+  });
+
+  // 歌单条目自己会存一份来源，但那只覆盖「从在线搜索加进歌单」的路径。从曲库
+  // 把歌加进歌单时手上只有文件名，所以下载那一刻要另记一份「文件名 → 来源」，
+  // 两条路径才都能在文件被删之后重新下载。
+  describe("下载来源索引", () => {
+    it("下载成功后按文件名记下来源", async () => {
+      commandMocks.downloadMusic.mockResolvedValue(EXPECTED_NAME);
+      const { store, localStore } = await setup();
+      localStore.musicFiles = [libraryFile(EXPECTED_NAME)];
+
+      await store.download(song);
+
+      expect(store.sourceFor(EXPECTED_NAME)).toEqual(song);
+      // 也要落到 localStorage：重启之后还得查得到
+      const raw = localStorage.getItem(STORAGE_KEY_DOWNLOAD_SOURCES);
+      expect(raw).toBeTruthy();
+      expect(JSON.parse(raw as string)[EXPECTED_NAME].id).toBe("1");
+    });
+
+    it("没下载过的文件名查不到来源", async () => {
+      const { store } = await setup();
+
+      expect(store.sourceFor("nope.mp3")).toBeNull();
+    });
+
+    it("重新加载后仍能查到（存储里读回来的）", async () => {
+      commandMocks.downloadMusic.mockResolvedValue(EXPECTED_NAME);
+      const first = await setup();
+      first.localStore.musicFiles = [libraryFile(EXPECTED_NAME)];
+      await first.store.download(song);
+
+      // 换一个 pinia，模拟重启
+      setActivePinia(createPinia());
+      const store = useDownloadStore();
+
+      expect(store.sourceFor(EXPECTED_NAME)?.id).toBe("1");
+    });
   });
 });

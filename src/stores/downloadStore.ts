@@ -2,8 +2,10 @@ import { ref } from "vue";
 import { defineStore } from "pinia";
 import { ElMessage } from "element-plus";
 import type { SongInfo } from "@/types/model";
+import { STORAGE_KEY_DOWNLOAD_SOURCES } from "@/constants";
 import { downloadMusic } from "@/api/commands/music";
 import { parseErrorMessage } from "@/utils/errorUtils";
+import { readJsonFromStorage, writeJsonToStorage } from "@/utils/storage";
 import { getExpectedDownloadFileName, getLocalFileNameForSong } from "@/utils/songUtils";
 import { useLocalMusicStore } from "./localMusicStore";
 
@@ -45,6 +47,30 @@ export const useDownloadStore = defineStore("download", () => {
    */
   const inflight = new Map<string, Promise<string | null>>();
 
+  /**
+   * 下载过的歌曲：**文件名 → 来源**。
+   *
+   * 歌单条目自己也会存一份来源，但那只覆盖「从在线搜索加进歌单」的路径；
+   * 从**曲库**把一首歌加进歌单时，那条路径手上只有文件名，造不出来源。而这首歌
+   * 当初是本应用下载的——下载那一刻 SongInfo 就在手上，顺手记一份，两条路径
+   * 就都能在文件被删之后重新下载了。
+   *
+   * 覆盖不到的是用户自己导入的文件：它们从来没有过来源。
+   */
+  const sources = ref<Record<string, SongInfo>>(
+    readJsonFromStorage<Record<string, SongInfo>>(STORAGE_KEY_DOWNLOAD_SOURCES, {})
+  );
+
+  function rememberSource(fileName: string, song: SongInfo) {
+    sources.value = { ...sources.value, [fileName]: song };
+    writeJsonToStorage(STORAGE_KEY_DOWNLOAD_SOURCES, sources.value);
+  }
+
+  /** 这个文件当初是从哪首歌下载来的（没有就返回 null）。 */
+  function sourceFor(fileName: string): SongInfo | null {
+    return sources.value[fileName] ?? null;
+  }
+
   function isAlreadyExistsError(error: unknown): boolean {
     return String(error ?? "").includes("file already exists");
   }
@@ -83,7 +109,10 @@ export const useDownloadStore = defineStore("download", () => {
       });
       await refreshLibrary();
       setStatus(key, "done");
-      return resolveFileName(song, downloaded);
+      const fileName = resolveFileName(song, downloaded);
+      // 记下文件名 → 来源：以后这份文件被删了，歌单里那一行才有得救
+      rememberSource(fileName, song);
+      return fileName;
     } catch (error) {
       // 文件已经在磁盘上，这是幂等的成功而不是失败：原先它会弹一句
       // 「文件已存在，无需重复下载」的错误提示，而用户要的结果已经达成了。
@@ -135,6 +164,7 @@ export const useDownloadStore = defineStore("download", () => {
   return {
     download,
     statusFor,
+    sourceFor,
   };
 });
 

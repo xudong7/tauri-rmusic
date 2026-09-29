@@ -9,6 +9,8 @@ export const STORAGE_KEY_PLAYER_VOLUME = "player_volume";
 export const STORAGE_KEY_PLAY_MODE = "play_mode";
 export const STORAGE_KEY_COLLECTED_PLAYLISTS = "rmusic-collected-playlists";
 export const STORAGE_KEY_COLLECTED_ALBUMS = "rmusic-collected-albums";
+/** 下载过的歌曲：文件名 → 来源，用于「删了之后重新下载」 */
+export const STORAGE_KEY_DOWNLOAD_SOURCES = "rmusic-download-sources";
 
 /* ---------- 搜索历史 ---------- */
 /** 单模式（本地/在线）最多保留条数 */
