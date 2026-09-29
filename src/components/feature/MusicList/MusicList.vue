@@ -91,6 +91,9 @@ const props = withDefaults(
 
 const librarySubtitle = computed(() => {
   if (props.refreshing && props.musicFiles.length) return t("musicList.updating");
+  // 空曲库时不显示「0 首歌曲 · 0 分钟」：零个东西的统计不是信息，只是噪音，
+  // 而下面正中央已经有一句「曲库还是空的」在说同一件事。
+  if (props.musicFiles.length === 0) return undefined;
   const totalDuration = props.musicFiles.reduce(
     (total, file) => total + Math.max(0, file.duration_ms ?? 0),
     0
@@ -217,7 +220,7 @@ function scheduleVisibleCovers(items: TrackRowModel[]) {
         <template v-else>
           <el-tooltip
             v-if="showImportButton"
-            :content="t('musicList.importFolder')"
+            :content="t('musicList.importMusic')"
             placement="bottom"
           >
             <!-- 只留图标：与同排的多选键外观一致，含义由 tooltip 交代 -->
@@ -257,8 +260,22 @@ function scheduleVisibleCovers(items: TrackRowModel[]) {
       <template #loading>
         <el-skeleton :rows="6" animated />
       </template>
+      <!-- 空状态自带动作：原先它写着「点击「导入音乐」添加」，而那个按钮只有
+           一个 ↑ 图标、在页面右上角，界面上任何地方都没有「导入音乐」这四个字
+           （tooltip 当时还写成「从文件夹导入音乐」，而它打开的是多选文件对话框）。
+           与其让用户去找，不如把动作放在他正在读的那句话旁边。 -->
       <template #empty>
-        <el-empty :description="t('musicList.empty')" />
+        <el-empty :description="t('musicList.empty')" :image-size="96">
+          <p class="music-list__empty-hint">{{ t("musicList.emptyHint") }}</p>
+          <el-button
+            v-if="showImportButton"
+            type="primary"
+            :icon="Upload"
+            @click="emit('import')"
+          >
+            {{ t("musicList.importMusic") }}
+          </el-button>
+        </el-empty>
       </template>
       <template #actions="{ item }">
         <el-dropdown

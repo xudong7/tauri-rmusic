@@ -32,3 +32,11 @@
   margin-right: 4px;
   font-size: 14px;
 }
+
+/* 空状态的补充说明。el-empty 的 description 偏标题性质、单行，第二句放这里，
+   与下方按钮一起构成「说明 + 动作」，而不是把两个意思塞进一句话。 */
+.music-list__empty-hint {
+  margin: -6px 0 16px;
+  color: var(--el-text-color-secondary);
+  font-size: 12.5px;
+}

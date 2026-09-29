@@ -33,7 +33,7 @@
         <el-empty v-if="artistStore.songsError" :description="t('errors.searchFailed')">
           <el-button type="primary" @click="reloadTab">{{ t("common.retry") }}</el-button>
         </el-empty>
-        <el-empty v-else :description="t('musicList.empty')" />
+        <el-empty v-else :description="t('artist.noSongs')" />
       </template>
     </OnlineMusicList>
 

@@ -93,8 +93,9 @@ export default {
   },
   musicList: {
     title: "曲库",
-    importFolder: "从文件夹导入音乐",
-    empty: "暂无音乐，点击「导入音乐」添加",
+    importMusic: "导入音乐",
+    empty: "曲库还是空的",
+    emptyHint: "导入本地的音频文件即可开始播放",
     multiSelect: "多选",
     selectAll: "全选",
     deselectAll: "取消全选",
@@ -127,6 +128,7 @@ export default {
     clickToRestart: "点击刷新服务",
   },
   artist: {
+    noSongs: "这位歌手暂无歌曲",
     backToSearch: "返回搜索",
     open: "查看歌手：{name}",
     albums: "专辑",

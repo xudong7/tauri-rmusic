@@ -93,8 +93,9 @@ export default {
   },
   musicList: {
     title: "Library",
-    importFolder: "Import music from a folder",
-    empty: 'No music yet. Click "Import Music" to add',
+    importMusic: "Import music",
+    empty: "Your library is empty",
+    emptyHint: "Import audio files from your computer to get started",
     multiSelect: "Multi-select",
     selectAll: "Select all",
     deselectAll: "Deselect all",
@@ -127,6 +128,7 @@ export default {
     clickToRestart: "Click to refresh service",
   },
   artist: {
+    noSongs: "No songs for this artist",
     backToSearch: "Back to search",
     open: "Open artist: {name}",
     albums: "Albums",
