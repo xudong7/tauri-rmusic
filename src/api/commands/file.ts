@@ -33,6 +33,14 @@ export async function loadLocalCoverPath(args: {
   return await invokeCommand("load_local_cover_path", args);
 }
 
+/** 从曲库删除一首歌（音频 + 它的封面与歌词）。不可撤销。 */
+export async function deleteMusicFile(args: {
+  fileName: string;
+  defaultDirectory: string | null;
+}): Promise<void> {
+  await invokeCommand("delete_music_file", args);
+}
+
 export async function loadLocalLyric(args: {
   fileName: string;
   defaultDirectory: string | null;

@@ -933,6 +933,74 @@ fn music_dir_from_library_root(root_dir: &Path) -> PathBuf {
     root_dir.join("music")
 }
 
+/// 从曲库里删掉一首歌：音频文件，连同它的封面与歌词旁挂文件。
+///
+/// 这是**唯一**会删用户文件的命令，所以两处都要紧：
+///
+/// - `file_name` 来自前端，必须挡住路径穿越。只接受相对路径且每一段都是普通
+///   名字（`Album/song.mp3` 可以，`../x`、`/etc/passwd` 一律拒绝），拼出来之后
+///   再确认一次结果仍在 music 目录里。
+/// - 只删本应用自己写的那三样，不递归、不碰别的。曲库里的东西都是应用管的：
+///   下载是写进去的新文件，导入是**复制**进来的副本，删掉都不会动用户的原件。
+///
+/// 旁挂文件一起删，否则每删一首就留下两份孤儿（cover/ 与 lyrics/）。
+#[tauri::command]
+pub fn delete_music_file(
+    app_handle: AppHandle,
+    file_name: String,
+    default_directory: Option<String>,
+) -> Result<(), String> {
+    let base_dir = if let Some(custom_dir) = default_directory {
+        PathBuf::from(custom_dir)
+    } else {
+        app_handle
+            .path()
+            .app_data_dir()
+            .map_err(|e| format!("unable to get app data dir: {}", e))?
+    };
+    delete_music_at(&base_dir, &file_name)
+}
+
+/// 删除的实际逻辑。与命令分开只为可测：命令要 AppHandle，测试构造不出来。
+fn delete_music_at(base_dir: &Path, file_name: &str) -> Result<(), String> {
+    let music_dir = music_dir_from_library_root(base_dir);
+
+    if !is_safe_library_relative_path(file_name) {
+        return Err(format!("refuse to delete outside the library: {}", file_name));
+    }
+    let target = music_dir.join(file_name);
+    if !target.starts_with(&music_dir) {
+        return Err(format!("refuse to delete outside the library: {}", file_name));
+    }
+    if !target.is_file() {
+        return Err(format!("file not found: {}", target.display()));
+    }
+
+    fs::remove_file(&target).map_err(|e| format!("delete file error: {}", e))?;
+
+    // 旁挂文件是尽力而为：删不掉也不该让「音频已经删了」这件事报成失败。
+    let stem = sidecar_stem(file_name);
+    let _ = fs::remove_file(base_dir.join("lyrics").join(format!("{}.lrc", stem)));
+    for ext in ["jpg", "jpeg", "png", "webp"] {
+        let _ = fs::remove_file(base_dir.join("cover").join(format!("{}.{}", stem, ext)));
+    }
+
+    Ok(())
+}
+
+/// 这个字符串能不能安全地当作「曲库内的相对路径」。
+///
+/// 只允许普通名字组成的相对路径：拒绝绝对路径与任何 `..`（根、父目录、前缀）。
+/// 曲库确实会有子目录（`Album/song.mp3`），所以不能一刀切成「只许纯文件名」。
+fn is_safe_library_relative_path(file_name: &str) -> bool {
+    let path = Path::new(file_name);
+    !file_name.is_empty()
+        && !path.is_absolute()
+        && path
+            .components()
+            .all(|part| matches!(part, std::path::Component::Normal(_)))
+}
+
 /// import music files from a directory into the default music directory
 #[tauri::command]
 pub async fn import_music(
@@ -1369,5 +1437,87 @@ mod tests {
         assert_eq!(tag.album(), None);
 
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// 删文件是唯一会动用户数据的命令，路径判定必须严。
+    /// 曲库确实有子目录（扫描子目录时 relative_path 带一段父目录），所以不能
+    /// 一刀切成「只许纯文件名」——但 `..` 与绝对路径必须挡住。
+    #[test]
+    fn library_relative_path_guard() {
+        for ok in [
+            "Artist - Song.mp3",
+            "Album/Artist - Song.mp3",
+            "a/b/c.flac",
+            "名字 带空格.mp3",
+        ] {
+            assert!(is_safe_library_relative_path(ok), "{ok} 应当放行");
+        }
+
+        for bad in [
+            "",
+            "..",
+            "../outside.mp3",
+            "../../etc/passwd",
+            "Album/../../outside.mp3",
+            "/etc/passwd",
+            "Album/../Album/song.mp3",
+        ] {
+            assert!(!is_safe_library_relative_path(bad), "{bad} 必须拒绝");
+        }
+    }
+
+    /// 端到端：删掉音频，同时把它的封面与歌词一起带走，别的文件不动。
+    #[test]
+    fn delete_removes_audio_and_its_sidecars_only() {
+        let root = unique_test_dir("delete-music");
+        let music = root.join("music");
+        let cover = root.join("cover");
+        let lyrics = root.join("lyrics");
+        create_dir_all(&music).unwrap();
+        create_dir_all(&cover).unwrap();
+        create_dir_all(&lyrics).unwrap();
+
+        let victim = music.join("Artist - Song.mp3");
+        let bystander = music.join("Other - Track.mp3");
+        fs::write(&victim, b"audio").unwrap();
+        fs::write(&bystander, b"audio").unwrap();
+        fs::write(cover.join("Artist - Song.jpg"), b"pic").unwrap();
+        fs::write(lyrics.join("Artist - Song.lrc"), b"lrc").unwrap();
+        fs::write(cover.join("Other - Track.jpg"), b"pic").unwrap();
+
+        delete_music_at(&root, "Artist - Song.mp3").unwrap();
+
+        assert!(!victim.exists(), "音频该删掉");
+        assert!(!cover.join("Artist - Song.jpg").exists(), "封面该一起走");
+        assert!(!lyrics.join("Artist - Song.lrc").exists(), "歌词该一起走");
+        assert!(bystander.exists(), "别的歌不能动");
+        assert!(cover.join("Other - Track.jpg").exists(), "别的封面不能动");
+
+        // 再删一次：文件已经不在了，应当报错而不是静默成功
+        assert!(delete_music_at(&root, "Artist - Song.mp3").is_err());
+
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    /// 路径穿越必须被挡住，且**目录外那个文件一个字节都不能动**。
+    #[test]
+    fn delete_refuses_to_touch_files_outside_the_library() {
+        let root = unique_test_dir("delete-guard");
+        let music = root.join("music");
+        create_dir_all(&music).unwrap();
+
+        let outside = root.join("outside.mp3");
+        fs::write(&outside, b"precious").unwrap();
+
+        assert!(delete_music_at(&root, "../outside.mp3").is_err());
+        assert!(delete_music_at(&root, "/etc/hosts").is_err());
+
+        assert_eq!(
+            fs::read(&outside).unwrap(),
+            b"precious",
+            "库外的文件必须一个字节都没动"
+        );
+
+        let _ = fs::remove_dir_all(&root);
     }
 }

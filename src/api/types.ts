@@ -97,6 +97,7 @@ export interface TauriCommandParamsMap {
   get_song_lyric: { id: string };
   load_local_cover_path: { fileName: string; defaultDirectory: string | null };
   load_local_lyric: { fileName: string; defaultDirectory: string | null };
+  delete_music_file: { fileName: string; defaultDirectory: string | null };
   get_playback_state: void;
   import_music: { files: string[]; defaultDirectory: string | null };
   read_playlists: void;
@@ -136,6 +137,7 @@ export interface TauriCommandResultMap {
   get_song_lyric: string;
   load_local_cover_path: string | null;
   load_local_lyric: string;
+  delete_music_file: void;
   get_playback_state: PlaybackStateResult;
   import_music: string;
   read_playlists: Playlist[];

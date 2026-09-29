@@ -40,3 +40,20 @@
   color: var(--el-text-color-secondary);
   font-size: 12.5px;
 }
+
+/* 删除键的危险色。TrackRow 里有一条 scoped 规则给操作簇里**所有**按钮设了
+   普通图标色（`.track-row__actions .el-button`），与全局的
+   `.app-icon-button--danger.el-button` 特异性相同而它注入得更晚，于是危险色
+   被压掉、垃圾桶显示成灰色。这里多带一个类把特异性提上去。
+   颜色写在 MusicList 而不是 TrackRow：TrackRow 是通用组件，它不该知道哪个
+   槽内容是「删除」。 */
+:deep(.track-row__actions .delete-action.el-button) {
+  color: var(--el-color-danger);
+}
+
+:deep(.track-row__actions .delete-action.el-button:hover),
+:deep(.track-row__actions .delete-action.el-button:focus-visible) {
+  color: color-mix(in srgb, var(--el-color-danger) 62%, #fff);
+  background: transparent;
+  border-color: transparent;
+}

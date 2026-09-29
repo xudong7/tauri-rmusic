@@ -1,6 +1,6 @@
 use file::{
-    download_music, get_default_music_dir, import_music, load_cached_music_files,
-    load_local_cover_path, load_local_lyric, scan_files,
+    delete_music_file, download_music, get_default_music_dir, import_music,
+    load_cached_music_files, load_local_cover_path, load_local_lyric, scan_files,
 };
 use music::{
     clear_online_audio_cache, get_online_audio_cache_path, get_online_audio_cache_size,
@@ -127,6 +127,7 @@ pub fn run() {
             seek_to,
             scan_files,
             load_cached_music_files,
+            delete_music_file,
             check_online_service_status,
             ensure_online_service,
             restart_online_service,
