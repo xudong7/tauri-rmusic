@@ -16,7 +16,8 @@
           "y": 14
         },
         "center": true,
-        "shadow": true
+        "shadow": true,
+        "visible": false
       }
     ]
   },

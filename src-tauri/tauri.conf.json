@@ -20,7 +20,8 @@
         "minHeight": 800,
         "decorations": false,
         "center": true,
-        "shadow": true
+        "shadow": true,
+        "visible": false
       }
     ],
     "security": {

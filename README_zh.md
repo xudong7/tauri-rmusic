@@ -104,7 +104,7 @@ npm run tauri build
 
 在线功能开箱即用，**不需要手动安装或启动任何服务**。
 
-Rmusic 将 [NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) 作为 Tauri sidecar 一并打包，并在你首次搜索或播放在线音乐时按需拉起。它监听 `http://localhost:3000`，应用退出时随之关闭。
+Rmusic 将 [NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) 作为 Tauri sidecar 一并打包，并在应用启动时拉起，与建窗并行。主窗口会压到服务就绪再显示，最多等 2 秒——所以你能看见界面的那一刻，在线功能就是可用的。它监听 `http://localhost:3000`，应用退出时随之关闭。
 
 几点需要留意：
 

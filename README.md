@@ -104,7 +104,7 @@ Output: `src-tauri/target/release/` (binary); installers in `src-tauri/target/re
 
 Online features work out of the box — there is no separate service to install or start by hand.
 
-Rmusic bundles [NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) as a Tauri sidecar and launches it on demand, the first time you search or play something online. It listens on `http://localhost:3000` and is stopped when the app exits.
+Rmusic bundles [NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) as a Tauri sidecar and starts it at launch, in parallel with the window. The main window stays hidden until the service is ready, or until 2 seconds have passed, so online features work the moment you can see the app. It listens on `http://localhost:3000` and is stopped when the app exits.
 
 Worth knowing:
 

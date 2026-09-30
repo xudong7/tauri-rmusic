@@ -3,7 +3,7 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 use tauri::Emitter;
 use tauri::Manager;
 use tauri::{App, AppHandle};
-use tauri_plugin_window_state::{AppHandleExt, StateFlags};
+use tauri_plugin_window_state::AppHandleExt;
 use tokio::sync::broadcast::Sender;
 
 use crate::music::MusicState;
@@ -15,7 +15,10 @@ use crate::service;
 const FRONTEND_QUIT_GRACE_MS: u64 = 3_000;
 
 pub fn quit_app(app: &AppHandle) {
-    if let Err(e) = app.save_window_state(StateFlags::all()) {
+    // 与插件自己在 RunEvent::Exit 上那次保存用同一份标志：带上 VISIBLE 会把
+    // 「退出时窗口是隐藏的」写进文件，而主窗口的隐藏/显示现在由预热流程掌管，
+    // 不该再让磁盘上的旧状态参与决定。
+    if let Err(e) = app.save_window_state(crate::window_state::restore_flags()) {
         eprintln!("Failed to save window state: {}", e);
     }
     if let Some(process) = app.try_state::<service::OnlineServiceProcess>() {
