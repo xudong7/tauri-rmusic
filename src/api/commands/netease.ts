@@ -131,6 +131,11 @@ export async function getSongLyric(args: { id: string }): Promise<string> {
   return await invokeCachedCommand("get_song_lyric", args);
 }
 
+/** 下载并缓存在线封面，返回本地文件路径（无缓存可回退时返回 null）。 */
+export async function cacheOnlineCover(args: { url: string }): Promise<string | null> {
+  return await invokeCommand("cache_online_cover", args);
+}
+
 export async function checkOnlineServiceStatus(): Promise<OnlineServiceStatus> {
   return await invokeCommand("check_online_service_status");
 }

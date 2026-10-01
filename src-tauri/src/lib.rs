@@ -1,3 +1,4 @@
+use cover_cache::cache_online_cover;
 use file::{
     delete_music_file, download_music, get_default_music_dir, import_music,
     load_cached_music_files, load_local_cover_path, load_local_lyric, scan_files,
@@ -22,6 +23,7 @@ use tauri_plugin_window_state::WindowExt;
 use tokio::sync::broadcast::Sender;
 use tray::{quit_app as quit_app_handle, setup_tray};
 
+mod cover_cache;
 mod file;
 mod fs_util;
 mod music;
@@ -203,6 +205,7 @@ pub fn run() {
             get_default_music_dir,
             download_music,
             get_song_lyric,
+            cache_online_cover,
             load_local_cover_path,
             load_local_lyric,
             get_song_cover,

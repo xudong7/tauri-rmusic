@@ -96,6 +96,7 @@ export interface TauriCommandParamsMap {
   get_artist_top_songs: { id: string; limit: number };
   get_default_music_dir: void;
   get_song_lyric: { id: string };
+  cache_online_cover: { url: string };
   load_local_cover_path: { fileName: string; defaultDirectory: string | null };
   load_local_lyric: { fileName: string; defaultDirectory: string | null };
   delete_music_file: { fileName: string; defaultDirectory: string | null };
@@ -137,6 +138,7 @@ export interface TauriCommandResultMap {
   get_artist_top_songs: ArtistSongsResult;
   get_default_music_dir: string;
   get_song_lyric: string;
+  cache_online_cover: string | null;
   load_local_cover_path: string | null;
   load_local_lyric: string;
   delete_music_file: void;
