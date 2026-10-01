@@ -2,7 +2,7 @@
   display: grid;
   grid-template-columns: minmax(200px, 1fr) minmax(320px, 560px) minmax(200px, 1fr);
   align-items: center;
-  height: var(--app-player-height, 64px);
+  height: var(--app-player-height, 80px);
   padding: 0 20px;
   background: var(--player-bg-color);
   backdrop-filter: blur(var(--app-glass-blur));

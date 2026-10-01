@@ -183,10 +183,10 @@ watch(() => route.fullPath, load, { immediate: true });
 }
 
 /* 骨架屏要与 DetailHero 占同样的高度，否则详情到位时整页会跳一下。
-   高度 = 封面 168 + 返回行（约 28 + 14 外边距）+ 头部下外边距 20。
-   改动 DetailHero 的封面尺寸或行高时，这里要跟着改。 */
+   高度 = 封面 124 + 头部下外边距 16 = 140。改动 DetailHero 的封面尺寸
+   或行高时，这里要跟着改。 */
 .detail-header-skeleton {
-  min-height: 230px;
+  min-height: 140px;
   flex-shrink: 0;
 }
 

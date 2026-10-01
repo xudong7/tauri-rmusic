@@ -136,15 +136,6 @@
   background: transparent;
 }
 
-html.dark .playlist-section,
-.dark-theme .playlist-section {
-  background: transparent;
-}
-
-.theme-warm .playlist-section {
-  background: transparent;
-}
-
 /* 分栏栏：与参考图一致的「自建歌单 | 收藏歌单」，右侧是新建键 */
 .playlist-section-header {
   display: flex;
