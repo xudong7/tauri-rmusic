@@ -61,7 +61,7 @@
 .nav-item:focus-visible,
 .playlist-section-toggle:focus-visible,
 .playlist-section-add:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--el-color-primary) 42%, transparent);
+  outline: 2px solid var(--app-focus-ring);
   outline-offset: 1px;
 }
 

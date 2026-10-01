@@ -130,7 +130,7 @@ html.dark .player-bar {
 
 .song-name-text.is-link:focus-visible {
   border-radius: 3px;
-  outline: 2px solid currentColor;
+  outline: 2px solid var(--app-focus-ring);
   outline-offset: 3px;
 }
 
@@ -167,7 +167,7 @@ html.dark .player-bar {
 
 .artist-link:focus-visible {
   border-radius: 2px;
-  outline: 2px solid color-mix(in srgb, var(--el-color-primary) 44%, transparent);
+  outline: 2px solid var(--app-focus-ring);
   outline-offset: 1px;
 }
 
@@ -294,7 +294,7 @@ html.dark .player-bar {
 .player-progress .time-display-toggle:hover,
 .player-progress .time-display-toggle:focus-visible {
   color: var(--el-color-primary);
-  outline: 2px solid color-mix(in srgb, var(--el-color-primary) 36%, transparent);
+  outline: 2px solid var(--app-focus-ring);
   outline-offset: 1px;
 }
 

@@ -122,7 +122,7 @@ function handleClick() {
 }
 
 .entity-card:focus-visible {
-  outline: 2px solid var(--el-color-primary);
+  outline: 2px solid var(--app-focus-ring);
   outline-offset: 2px;
   border-radius: 4px;
 }

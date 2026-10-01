@@ -193,7 +193,7 @@ function handleActivate() {
 
 .track-row:focus-visible {
   background: var(--hover-bg-color);
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--el-color-primary) 52%, transparent);
+  box-shadow: inset 0 0 0 2px var(--app-focus-ring);
 }
 
 .track-row.is-current::before {
