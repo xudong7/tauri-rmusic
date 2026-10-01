@@ -195,6 +195,12 @@ export default {
     cacheCleared: "缓存已清理",
     pathCopied: "路径已复制",
     skippedUnplayable: "已跳过 {count} 首无法播放的歌曲",
+    playNext: "已设为下一首播放",
+  },
+  contextMenu: {
+    playNext: "下一首播放",
+    revealInFolder: "在文件夹中显示",
+    removeFromPlaylist: "从歌单移除",
   },
   errors: {
     loadMusicFailed: "加载音乐文件失败",
@@ -216,6 +222,7 @@ export default {
     setDirFailed: "设置默认目录失败",
     resetDirFailed: "重置默认目录失败",
     deleteMusicFailed: "删除歌曲失败",
+    revealFailed: "在文件夹中显示失败",
     clearCacheFailed: "清理缓存失败",
     networkError: "网络错误，请检查网络连接",
     apiError: "API 返回错误",

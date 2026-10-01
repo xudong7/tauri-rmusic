@@ -2,6 +2,7 @@
 import { computed, watch } from "vue";
 import { i18n } from "@/i18n";
 import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
+import { useContextMenu, type ContextMenuItem } from "@/composables/useContextMenu";
 import TrackRow from "./TrackRow.vue";
 import type { TrackRowModel } from "./types";
 
@@ -23,6 +24,8 @@ const props = withDefaults(
     /** 隐藏专辑列。给「已经在这张专辑里」的页面用——那里每一行的专辑列都写着
         页面标题本身，重复 N 遍还占着本该给歌名的宽度。 */
     hideAlbum?: boolean;
+    /** 右键菜单项工厂。不传则行上没有右键菜单（如批量选择模式下的列表）。 */
+    contextMenuItems?: (item: TrackRowModel) => ContextMenuItem[];
   }>(),
   {
     selectionMode: false,
@@ -33,6 +36,7 @@ const props = withDefaults(
     currentKey: null,
     isPlaying: false,
     hideAlbum: false,
+    contextMenuItems: undefined,
   }
 );
 const columnLabels = computed(() => {
@@ -72,6 +76,13 @@ function handleScroll(event: Event) {
 function handleActivate(item: TrackRowModel) {
   if (item.key === props.currentKey) emit("toggleCurrent", item);
   else emit("activate", item);
+}
+
+const contextMenu = useContextMenu();
+
+function handleContextMenu(event: MouseEvent, item: TrackRowModel) {
+  if (props.selectionMode || !props.contextMenuItems) return;
+  contextMenu.open(event, props.contextMenuItems(item));
 }
 
 function handleListKeydown(event: KeyboardEvent) {
@@ -141,6 +152,7 @@ function handleListKeydown(event: KeyboardEvent) {
           :row-height="rowHeight"
           @activate="handleActivate"
           @toggle-select="emit('toggleSelect', $event)"
+          @context-menu="handleContextMenu"
         >
           <template v-if="$slots.actions" #actions="{ item: actionItem }">
             <slot name="actions" :item="actionItem" />
@@ -170,6 +182,7 @@ function handleListKeydown(event: KeyboardEvent) {
           :hide-album="hideAlbum"
           @activate="handleActivate"
           @toggle-select="emit('toggleSelect', $event)"
+          @context-menu="handleContextMenu"
         >
           <template v-if="$slots.actions" #actions="{ item: actionItem }">
             <slot name="actions" :item="actionItem" />

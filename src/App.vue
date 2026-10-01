@@ -18,6 +18,7 @@ import Sidebar from "./components/layout/Sidebar/Sidebar.vue";
 import PlayerBar from "./components/feature/PlayerBar/PlayerBar.vue";
 import PlaybackQueue from "./components/feature/PlaybackQueue/PlaybackQueue.vue";
 import ImmersiveView from "./components/feature/ImmersiveView/ImmersiveView.vue";
+import ContextMenu from "./components/base/ContextMenu/ContextMenu.vue";
 import type { SearchScope } from "./types/model";
 import { useAppKeyboardShortcuts } from "./composables/useAppKeyboardShortcuts";
 import { usePlaybackQueueRouteReset } from "./composables/usePlaybackQueueRouteReset";
@@ -349,6 +350,8 @@ async function handleExitImmersive() {
           @toggle-queue="viewStore.togglePlaybackQueue"
         />
       </Transition>
+      <!-- 全局唯一的右键菜单实例；行/卡片只负责 open() -->
+      <ContextMenu />
     </div>
   </el-config-provider>
 </template>

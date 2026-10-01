@@ -5,6 +5,7 @@ import type {
   MusicFile,
   PlaybackPhase,
   PlaybackQueueItem,
+  PlaylistItem,
   SongInfo,
 } from "@/types/model";
 import { PlayMode } from "@/types/model";
@@ -712,6 +713,105 @@ export const usePlayerStore = defineStore("player", () => {
     if (song) await playOnlineSong(song, { queue });
   }
 
+  type NextQueueTarget =
+    | { type: "local"; file: MusicFile }
+    | { type: "online"; song: SongInfo };
+
+  /**
+   * 「下一首播放」：把目标插到当前曲目之后。
+   *
+   * 语义按当前播放上下文分三种：
+   * - 歌单上下文：直接插进歌单（歌单就是持久化的播放顺序），已在列表里则移动；
+   * - 本地/在线队列：插进队列快照，已在队列里则先挪位再插；
+   * - 没有正在播放的曲目，或目标与当前上下文类型不同（在放本地却要插在线）：
+   *   直接播放目标——插到一个不存在的队列里没有意义。
+   */
+  async function playNextInQueue(target: NextQueueTarget): Promise<boolean> {
+    if (!hasCurrentTrack.value) {
+      return target.type === "local"
+        ? (await playMusic(target.file)) === "played"
+        : (await playOnlineSong(target.song)) === "played";
+    }
+
+    if (currentPlaylistId.value) {
+      const list = playlistStore.getPlaylist(currentPlaylistId.value);
+      if (list) {
+        const currentIndex = list.items.findIndex((item) =>
+          currentMusic.value
+            ? item.type === "local" && item.file_name === currentMusic.value.file_name
+            : item.type === "online" && item.song.id === currentOnlineSong.value?.id
+        );
+        const playlistItem: PlaylistItem =
+          target.type === "local"
+            ? { type: "local", file_name: target.file.file_name }
+            : { type: "online", song: target.song };
+        playlistStore.insertIntoPlaylist(
+          list.id,
+          currentIndex === -1 ? 0 : currentIndex + 1,
+          playlistItem
+        );
+        ElMessage.success(i18n.global.t("messages.playNext"));
+        return true;
+      }
+    }
+
+    if (currentMusic.value) {
+      // 在放本地、目标是在线：切换到在线上下文并直接播它
+      if (target.type !== "local") {
+        return (await playOnlineSong(target.song, { queue: [target.song] })) === "played";
+      }
+      const queue = currentLocalQueue.value.length
+        ? [...currentLocalQueue.value]
+        : [...localStore.musicFiles];
+      const currentIndex = queue.findIndex(
+        (file) =>
+          currentMusic.value !== null &&
+          getLocalTrackKey(file) === getLocalTrackKey(currentMusic.value)
+      );
+      const existingIndex = queue.findIndex(
+        (file) => getLocalTrackKey(file) === getLocalTrackKey(target.file)
+      );
+      if (existingIndex !== -1) queue.splice(existingIndex, 1);
+      const insertAfter =
+        currentIndex === -1
+          ? 0
+          : existingIndex !== -1 && existingIndex < currentIndex
+            ? currentIndex - 1
+            : currentIndex;
+      queue.splice(insertAfter + 1, 0, target.file);
+      currentLocalQueue.value = queue;
+      ElMessage.success(i18n.global.t("messages.playNext"));
+      return true;
+    }
+
+    if (currentOnlineSong.value) {
+      if (target.type !== "online") {
+        return (await playMusic(target.file, { queue: [target.file] })) === "played";
+      }
+      const queue = currentOnlineQueue.value.length
+        ? [...currentOnlineQueue.value]
+        : [currentOnlineSong.value];
+      const currentIndex = queue.findIndex(
+        (song) => song.id === currentOnlineSong.value?.id
+      );
+      const existingIndex = queue.findIndex((song) => song.id === target.song.id);
+      if (existingIndex !== -1) queue.splice(existingIndex, 1);
+      const insertAfter =
+        currentIndex === -1
+          ? 0
+          : existingIndex !== -1 && existingIndex < currentIndex
+            ? currentIndex - 1
+            : currentIndex;
+      queue.splice(insertAfter + 1, 0, target.song);
+      currentOnlineQueue.value = queue;
+      void playbackQueue.prefetchNextOnlineSong(currentOnlineSong.value);
+      ElMessage.success(i18n.global.t("messages.playNext"));
+      return true;
+    }
+
+    return false;
+  }
+
   async function togglePlay() {
     try {
       if (isLoadingSong.value) {
@@ -1112,6 +1212,7 @@ export const usePlayerStore = defineStore("player", () => {
     prefetchOnlineSong,
     playFromPlaylist,
     playQueueItem,
+    playNextInQueue,
     togglePlay,
     adjustVolume,
     syncVolumeToBackend,

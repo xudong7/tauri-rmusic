@@ -42,6 +42,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   activate: [item: TrackRowModel];
   toggleSelect: [item: TrackRowModel];
+  contextMenu: [event: MouseEvent, item: TrackRowModel];
 }>();
 
 const resolvedCoverUrl = computed(() =>
@@ -84,6 +85,7 @@ function handleActivate() {
     @click="handleRowClick"
     @keydown.enter.self.prevent="handleRowClick"
     @keydown.space.self.prevent="handleRowClick"
+    @contextmenu.prevent.stop="emit('contextMenu', $event, item)"
   >
     <!-- 封面兼作播放控件。播放键原先单独占最左侧一格，把封面挤离了行首，
          整行因此不是左对齐的；挪到封面上之后行首就是封面，也不需要再为

@@ -16,8 +16,26 @@ const commandMocks = vi.hoisted(() => ({
   scanFiles: vi.fn(),
 }));
 
+// playerStore 在 OnlineMusicList 里被用来提供右键「下一首播放」，
+// 它初始化时会解构这一组命令；少一个都会在 store 创建时报 undefined。
 vi.mock("@/api/commands/music", () => ({
   downloadMusic: commandMocks.downloadMusic,
+  playTrack: vi.fn(),
+  preparePlaybackRequest: vi.fn().mockResolvedValue(undefined),
+  getPlaybackState: vi.fn().mockResolvedValue({
+    position_ms: 0,
+    duration_ms: 0,
+    is_paused: false,
+    has_track: false,
+    track_id: 0,
+  }),
+  handleEvent: vi.fn().mockResolvedValue(undefined),
+  playNeteaseSong: vi.fn(),
+  prefetchNeteaseSong: vi.fn().mockResolvedValue(undefined),
+  seekTo: vi.fn(),
+  getOnlineAudioCacheSize: vi.fn(),
+  getOnlineAudioCachePath: vi.fn(),
+  clearOnlineAudioCache: vi.fn(),
 }));
 
 vi.mock("@/api/commands/file", () => ({
