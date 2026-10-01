@@ -66,6 +66,16 @@ fn quit_app(app_handle: tauri::AppHandle) {
     quit_app_handle(&app_handle);
 }
 
+/// 前端首帧就绪：窗口不必再等服务预热。
+///
+/// 本地功能（曲库、播放列表）与前端的挂载不依赖 sidecar，首帧已经可以用了。
+/// 线程/调用方幂等由 [`window_state::reveal_main_window`] 保证；预热路径稍后
+/// 再调用一次也不会重复显示。
+#[tauri::command]
+fn reveal_main_window(app_handle: tauri::AppHandle) {
+    window_state::reveal_main_window(&app_handle);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let music = match Music::new() {
@@ -112,10 +122,12 @@ pub fn run() {
                 eprintln!("Failed to start online service at launch: {}", e);
             }
 
-            // 主窗口在 conf 里是隐藏的（visible: false）。服务就绪即显示，最多压
-            // PREWARM_MAX_WAIT；到点无论就绪与否都要显示，否则应用会变成一个永不
-            // 露面的进程。这段时间里托盘图标已经在了（下面几行），用户仍有一个
-            // 「应用活着」的落点。
+            // 主窗口在 conf 里是隐藏的（visible: false）。显示时机取三者最早：
+            // 前端首帧就绪（reveal_main_window 命令，本地功能已经可用）、sidecar
+            // 就绪、或 PREWARM_MAX_WAIT 预算用尽。前两者谁先到都行，预算保证窗口
+            // 最终一定出现——包括前端脚本出错、根本没发首帧信号的情况，否则应用
+            // 会变成一个永不露面的进程。这段时间里托盘图标已经在了（下面几行），
+            // 用户仍有一个「应用活着」的落点。
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 let cause = service::with_deadline(
@@ -156,6 +168,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             quit_app,
+            reveal_main_window,
             control_playback,
             get_playback_state,
             play_track,

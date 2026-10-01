@@ -40,6 +40,7 @@ interface SeekResult {
 
 export interface TauriCommandParamsMap {
   quit_app: void;
+  reveal_main_window: void;
   scan_files: { path: string | null; defaultDirectory: string | null };
   load_cached_music_files: { path: string | null; defaultDirectory: string | null };
   control_playback: {
@@ -107,6 +108,7 @@ export interface TauriCommandParamsMap {
 
 export interface TauriCommandResultMap {
   quit_app: void;
+  reveal_main_window: void;
   scan_files: MusicFile[];
   load_cached_music_files: MusicFile[];
   control_playback: void;

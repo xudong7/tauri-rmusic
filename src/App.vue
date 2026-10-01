@@ -32,7 +32,7 @@ import { useOnlineMusicStore } from "./stores/onlineMusicStore";
 import { useOnlineServiceStore } from "./stores/onlineServiceStore";
 import { usePlayerStore } from "./stores/playerStore";
 import { usePlaylistStore } from "./stores/playlistStore";
-import { quitApp } from "./api/commands/system";
+import { quitApp, revealMainWindow } from "./api/commands/system";
 import { STORAGE_KEY_LAST_ROUTE, WINDOW_MIN_HEIGHT, WINDOW_MIN_WIDTH } from "./constants";
 
 const { locale, t } = useI18n();
@@ -176,6 +176,10 @@ function runInitTask(name: string, task: () => Promise<unknown>) {
 }
 
 onMounted(() => {
+  // 首帧已经画好：本地界面此刻可用，不必为了预热中的在线服务继续压着窗口。
+  // 后端最多等 2s 兜底；这里提前显示，纯本地用户不用对着空白等近 2 秒。
+  void runInitTask("reveal window", () => revealMainWindow());
+
   keyboardShortcuts.start();
   themeSync.start();
   window.addEventListener("beforeunload", handleBeforeUnload);
