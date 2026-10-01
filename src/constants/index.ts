@@ -11,6 +11,18 @@ export const STORAGE_KEY_COLLECTED_PLAYLISTS = "rmusic-collected-playlists";
 export const STORAGE_KEY_COLLECTED_ALBUMS = "rmusic-collected-albums";
 /** 下载过的歌曲：文件名 → 来源，用于「删了之后重新下载」 */
 export const STORAGE_KEY_DOWNLOAD_SOURCES = "rmusic-download-sources";
+/** 上次会话：曲目/队列/进度，启动时恢复 */
+export const STORAGE_KEY_PLAYER_SESSION = "rmusic-player-session";
+/** 上次所在路由，启动时恢复 */
+export const STORAGE_KEY_LAST_ROUTE = "rmusic-last-route";
+
+/* ---------- 播放会话 ---------- */
+/** 会话结构版本。字段不兼容变更时递增，旧版本直接丢弃。 */
+export const PLAYER_SESSION_VERSION = 1;
+/** 队列只持久化当前曲目两侧的这么多条，避免整库撑爆 localStorage */
+export const PLAYER_SESSION_QUEUE_LIMIT = 200;
+/** 播放中进度写盘的节流间隔（ms） */
+export const PLAYER_SESSION_WRITE_INTERVAL_MS = 3000;
 
 /* ---------- 搜索历史 ---------- */
 /** 单模式（本地/在线）最多保留条数 */

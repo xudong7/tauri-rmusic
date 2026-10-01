@@ -33,7 +33,7 @@ import { useOnlineServiceStore } from "./stores/onlineServiceStore";
 import { usePlayerStore } from "./stores/playerStore";
 import { usePlaylistStore } from "./stores/playlistStore";
 import { quitApp } from "./api/commands/system";
-import { WINDOW_MIN_HEIGHT, WINDOW_MIN_WIDTH } from "./constants";
+import { STORAGE_KEY_LAST_ROUTE, WINDOW_MIN_HEIGHT, WINDOW_MIN_WIDTH } from "./constants";
 
 const { locale, t } = useI18n();
 const elementLocale = computed(() => (locale.value === "zh" ? zhCn : en));
@@ -53,6 +53,7 @@ const route = useRoute();
 const router = useRouter();
 let isQuitting = false;
 let stopOnlineScopeWatch: WatchStopHandle | null = null;
+let stopRouteWatch: WatchStopHandle | null = null;
 
 // 在线相关的路由必须全部列在这里：未映射会返回 null，导致搜索框消失、
 // 在线服务状态灯隐藏，并且下方 watch 会停掉服务健康轮询。
@@ -126,6 +127,30 @@ function flushPlaylistSave() {
   void playlistStore.flushSave();
 }
 
+/** 退出前把播放进度落在盘上：pagehide/beforeunload 是最后的同步窗口。 */
+function persistSessionNow() {
+  playerStore.persistSession(true);
+}
+
+function handleBeforeUnload() {
+  flushPlaylistSave();
+  persistSessionNow();
+}
+
+/** 恢复上次所在的路由；新建歌单的中间态（PlaylistNew）不恢复。 */
+function restoreLastRoute() {
+  let saved: string | null = null;
+  try {
+    saved = localStorage.getItem(STORAGE_KEY_LAST_ROUTE);
+  } catch {
+    return;
+  }
+  if (!saved || saved === "/") return;
+  void router.replace(saved).catch((error) => {
+    console.warn("[app:init] restore last route failed:", error);
+  });
+}
+
 async function closePlaybackQueue() {
   viewStore.closePlaybackQueue();
   await nextTick();
@@ -153,13 +178,17 @@ function runInitTask(name: string, task: () => Promise<unknown>) {
 onMounted(() => {
   keyboardShortcuts.start();
   themeSync.start();
-  window.addEventListener("beforeunload", flushPlaylistSave);
-  window.addEventListener("pagehide", flushPlaylistSave);
+  window.addEventListener("beforeunload", handleBeforeUnload);
+  window.addEventListener("pagehide", handleBeforeUnload);
 
   void Promise.all([
     runInitTask("window constraints", () => windowSizeConstraints.apply()),
     runInitTask("local library", () => localStore.initializeLocalLibrary()),
     runInitTask("playlists", () => playlistStore.loadPlaylists()),
+    runInitTask("last route", async () => {
+      await router.isReady();
+      restoreLastRoute();
+    }),
     runInitTask("playback volume", () => playerStore.syncVolumeToBackend()),
     runInitTask("playback clock", async () => {
       // 组件重挂载（开发时的 HMR 等）会停掉播放时钟，但 store 仍是「播放中」。
@@ -170,7 +199,24 @@ onMounted(() => {
     }),
     runInitTask("playback events", () => playerStore.startPlaybackEventListening()),
     runInitTask("tray events", () => trayEvents.start()),
-  ]);
+  ]).then(() => {
+    // 曲库与歌单就绪之后才能把上次的曲目/队列还原成可播放的引用
+    playerStore.restoreSession();
+  });
+
+  stopRouteWatch = watch(
+    () => route.fullPath,
+    () => {
+      // PlaylistNew 只是个跳板，恢复它会在启动时凭空新建一个歌单
+      if (route.name === "PlaylistNew") return;
+      try {
+        localStorage.setItem(STORAGE_KEY_LAST_ROUTE, route.fullPath);
+      } catch (error) {
+        console.warn("[app] save last route failed:", error);
+      }
+    },
+    { immediate: true }
+  );
 
   stopOnlineScopeWatch = watch(
     searchScope,
@@ -187,12 +233,14 @@ onUnmounted(() => {
   themeSync.stop();
   stopOnlineScopeWatch?.();
   stopOnlineScopeWatch = null;
+  stopRouteWatch?.();
+  stopRouteWatch = null;
   onlineServiceStore.stop();
   trayEvents.stop();
   playerStore.stopPlayTimeTracking();
   playerStore.stopPlaybackEventListening();
-  window.removeEventListener("beforeunload", flushPlaylistSave);
-  window.removeEventListener("pagehide", flushPlaylistSave);
+  window.removeEventListener("beforeunload", handleBeforeUnload);
+  window.removeEventListener("pagehide", handleBeforeUnload);
   flushPlaylistSave();
 });
 
