@@ -89,7 +89,11 @@ const emit = defineEmits<{ play: [] }>();
 .queue-item:hover,
 .queue-item:focus-visible {
   background: var(--hover-bg-color);
+}
+
+.queue-item:focus-visible {
   outline: none;
+  box-shadow: inset 0 0 0 2px var(--app-focus-ring);
 }
 
 .queue-item.is-current {

@@ -8,9 +8,12 @@
       :refreshing="localStore.isRefreshing"
       :getDefaultDirectory="localStore.getDefaultDirectory"
       :showImportButton="true"
+      :search-keyword="localStore.searchKeyword"
+      :error-message="localStore.errorMessage"
       @play="playLocalMusic"
       @toggle-current="playerStore.togglePlay"
       @import="importMusic"
+      @retry="localStore.loadMusicFiles()"
     />
   </div>
 </template>

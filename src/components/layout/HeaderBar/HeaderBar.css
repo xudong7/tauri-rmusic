@@ -143,7 +143,13 @@
 .search-history-item:focus-within {
   background: var(--hover-bg-color);
   color: var(--el-color-primary);
-  outline: none;
+}
+
+/* 内层 action 按钮不画自己的焦点环（见下一条），由整行来画：
+   行是两列布局（文本 + 删除键），焦点落在删除键时也能标出所在的整条历史。 */
+.search-history-item:focus-within {
+  outline: 2px solid var(--app-focus-ring);
+  outline-offset: -2px;
 }
 
 .search-history-item-action {
@@ -277,7 +283,7 @@ html.dark .search-history-item:focus-within {
 
 .service-status:focus-visible,
 .window-button:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--el-color-primary) 38%, transparent);
+  outline: 2px solid var(--app-focus-ring);
   outline-offset: 2px;
 }
 
@@ -445,8 +451,8 @@ html.dark .search-input:deep(.el-input__wrapper:hover) {
 }
 
 .search-input:deep(.el-input__wrapper.is-focus) {
-  border-color: var(--el-color-primary);
-  box-shadow: 0 0 0 2px var(--el-color-primary-light-8, rgba(107, 158, 196, 0.15));
+  border-color: var(--app-focus-ring);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--app-focus-ring) 22%, transparent);
 }
 
 html.dark .search-input:deep(.el-input__wrapper.is-focus) {

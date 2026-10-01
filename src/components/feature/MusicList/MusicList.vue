@@ -85,12 +85,18 @@ const props = withDefaults(
     refreshing?: boolean;
     showImportButton?: boolean;
     getDefaultDirectory?: () => string | null;
+    /** 当前搜索词：曲库非空但没有命中时，空状态应说「没有匹配」而不是「曲库为空」 */
+    searchKeyword?: string;
+    /** 曲库加载/扫描失败的详情：有值时空状态展示错误与重试，而不是空的曲库 */
+    errorMessage?: string;
   }>(),
   {
     showImportButton: false,
     loading: false,
     refreshing: false,
     getDefaultDirectory: () => null,
+    searchKeyword: "",
+    errorMessage: "",
   }
 );
 
@@ -109,7 +115,7 @@ const librarySubtitle = computed(() => {
   });
 });
 
-const emit = defineEmits(["play", "toggle-current", "import"]);
+const emit = defineEmits(["play", "toggle-current", "import", "retry"]);
 
 const {
   selectionMode,
@@ -284,12 +290,30 @@ function scheduleVisibleCovers(items: TrackRowModel[]) {
       <template #loading>
         <el-skeleton :rows="6" animated />
       </template>
-      <!-- 空状态自带动作：原先它写着「点击「导入音乐」添加」，而那个按钮只有
-           一个 ↑ 图标、在页面右上角，界面上任何地方都没有「导入音乐」这四个字
-           （tooltip 当时还写成「从文件夹导入音乐」，而它打开的是多选文件对话框）。
-           与其让用户去找，不如把动作放在他正在读的那句话旁边。 -->
+      <!-- 空状态分三种，别混成一句「曲库还是空的」：
+           加载失败 → 报错 + 重试；搜索无命中 → 提示关键词；真为空 → 引导导入。 -->
       <template #empty>
-        <el-empty :description="t('musicList.empty')" :image-size="96">
+        <el-empty
+          v-if="errorMessage"
+          :description="t('errors.loadMusicFailed')"
+          :image-size="96"
+        >
+          <p class="music-list__empty-hint">{{ errorMessage }}</p>
+          <el-button type="primary" @click="emit('retry')">
+            {{ t("common.retry") }}
+          </el-button>
+        </el-empty>
+
+        <el-empty
+          v-else-if="searchKeyword.trim()"
+          :description="t('musicList.noSearchResult', { keyword: searchKeyword.trim() })"
+          :image-size="96"
+        />
+
+        <!-- 真·空曲库：动作放在用户正在读的那句话旁边。
+             右上角的导入按钮只有一个 ↑ 图标，界面上没有「导入音乐」四个字，
+             与其让用户去找，不如把按钮放在空状态里。 -->
+        <el-empty v-else :description="t('musicList.empty')" :image-size="96">
           <p class="music-list__empty-hint">{{ t("musicList.emptyHint") }}</p>
           <el-button
             v-if="showImportButton"

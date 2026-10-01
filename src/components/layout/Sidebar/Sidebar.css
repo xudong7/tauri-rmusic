@@ -61,7 +61,7 @@
 .nav-item:focus-visible,
 .playlist-section-toggle:focus-visible,
 .playlist-section-add:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--el-color-primary) 42%, transparent);
+  outline: 2px solid var(--app-focus-ring);
   outline-offset: 1px;
 }
 
@@ -133,15 +133,6 @@
   padding: 14px 0 0;
   border-top: 1px solid var(--sidebar-border-color, var(--el-border-color-lighter));
   border-radius: 0;
-  background: transparent;
-}
-
-html.dark .playlist-section,
-.dark-theme .playlist-section {
-  background: transparent;
-}
-
-.theme-warm .playlist-section {
   background: transparent;
 }
 

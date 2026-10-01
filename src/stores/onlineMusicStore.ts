@@ -32,10 +32,19 @@ interface TabMeta {
   loading: boolean;
   /** 该 tab 已加载的关键词。空串表示尚未加载过任何关键词。 */
   loadedKeyword: string;
+  /** 最近一次搜索失败的原因；新一轮搜索开始时清空。 */
+  error: string;
 }
 
 function createTabMeta(): TabMeta {
-  return { page: 1, total: 0, hasMore: false, loading: false, loadedKeyword: "" };
+  return {
+    page: 1,
+    total: 0,
+    hasMore: false,
+    loading: false,
+    loadedKeyword: "",
+    error: "",
+  };
 }
 
 export const useOnlineMusicStore = defineStore("onlineMusic", () => {
@@ -74,11 +83,10 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
     playlist: 0,
   };
 
-  function reportSearchError(error: unknown) {
+  /** 记录失败详情。返回给 TabMeta 供内联错误态展示——toast 会被下一轮操作淹没。 */
+  function reportSearchError(error: unknown): string {
     console.error("在线搜索失败:", error);
-    ElMessage.error(
-      `${i18n.global.t("errors.searchFailed")}: ${parseErrorMessage(error)}`
-    );
+    return parseErrorMessage(error);
   }
 
   /** 网格类 tab 达到软上限后不再翻页，由视图提示用户细化搜索。 */
@@ -90,6 +98,7 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
     const requestId = ++requestIds.song;
     const meta = tabMeta.value.song;
     meta.loading = true;
+    meta.error = "";
     try {
       const result = await searchOnlineMix({
         keywords: keyword,
@@ -120,7 +129,7 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
       }
     } catch (error) {
       if (requestId !== requestIds.song) return;
-      reportSearchError(error);
+      meta.error = reportSearchError(error);
     } finally {
       if (requestId === requestIds.song) meta.loading = false;
     }
@@ -130,6 +139,7 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
     const requestId = ++requestIds.artist;
     const meta = tabMeta.value.artist;
     meta.loading = true;
+    meta.error = "";
     try {
       const result = await searchOnlineArtists({
         keywords: keyword,
@@ -151,7 +161,7 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
       }
     } catch (error) {
       if (requestId !== requestIds.artist) return;
-      reportSearchError(error);
+      meta.error = reportSearchError(error);
     } finally {
       if (requestId === requestIds.artist) meta.loading = false;
     }
@@ -161,6 +171,7 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
     const requestId = ++requestIds.album;
     const meta = tabMeta.value.album;
     meta.loading = true;
+    meta.error = "";
     try {
       const result = await searchOnlineAlbums({
         keywords: keyword,
@@ -182,7 +193,7 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
       }
     } catch (error) {
       if (requestId !== requestIds.album) return;
-      reportSearchError(error);
+      meta.error = reportSearchError(error);
     } finally {
       if (requestId === requestIds.album) meta.loading = false;
     }
@@ -192,6 +203,7 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
     const requestId = ++requestIds.playlist;
     const meta = tabMeta.value.playlist;
     meta.loading = true;
+    meta.error = "";
     try {
       const result = await searchOnlinePlaylists({
         keywords: keyword,
@@ -213,7 +225,7 @@ export const useOnlineMusicStore = defineStore("onlineMusic", () => {
       }
     } catch (error) {
       if (requestId !== requestIds.playlist) return;
-      reportSearchError(error);
+      meta.error = reportSearchError(error);
     } finally {
       if (requestId === requestIds.playlist) meta.loading = false;
     }

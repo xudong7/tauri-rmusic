@@ -74,6 +74,17 @@ function handleClick() {
 .entity-card__cover {
   position: relative;
   width: 100%;
+  transition:
+    transform var(--app-control-transition),
+    filter var(--app-control-transition);
+}
+
+/* 悬停/聚焦时整块封面轻轻浮起：卡片此前唯一的反馈是标题变色，
+   在一屏几十张的网格里太弱。投影用 drop-shadow 以跟随圆形歌手头像。 */
+.entity-card:not(.is-disabled):hover .entity-card__cover,
+.entity-card:not(.is-disabled):focus-visible .entity-card__cover {
+  transform: translateY(-2px);
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.22));
 }
 
 .entity-card__badge {
@@ -122,7 +133,7 @@ function handleClick() {
 }
 
 .entity-card:focus-visible {
-  outline: 2px solid var(--el-color-primary);
+  outline: 2px solid var(--app-focus-ring);
   outline-offset: 2px;
   border-radius: 4px;
 }

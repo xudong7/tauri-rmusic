@@ -7,7 +7,6 @@
       :eyebrow="t('onlineMusic.tabArtist')"
       :title="artistStore.currentArtist.name"
       :meta="countsLabel"
-      :play-label="t('artist.playHotSongs')"
       :back-label="t('artist.backToSearch')"
       @back="goBackToSearch"
     />

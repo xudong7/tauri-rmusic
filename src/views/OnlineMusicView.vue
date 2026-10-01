@@ -17,7 +17,23 @@
       @play="playOnlineSongFromSearch"
       @toggle-current="playerStore.togglePlay"
       @load-more="onlineStore.loadMoreActiveTab"
-    />
+    >
+      <!-- 失败不再只留一个 toast：空状态原地给出原因和重试，toast 消失后
+           页面否则会显示成「搜索一个关键词开始」，像是用户没搜过。 -->
+      <template #empty>
+        <el-empty
+          v-if="songError"
+          :description="t('errors.searchFailed')"
+          :image-size="96"
+        >
+          <p class="online-music-view__error-detail">{{ songError }}</p>
+          <el-button type="primary" @click="retrySearch">
+            {{ t("common.retry") }}
+          </el-button>
+        </el-empty>
+        <el-empty v-else :description="t('onlineMusic.empty')" />
+      </template>
+    </OnlineMusicList>
 
     <EntityGrid
       v-else
@@ -28,7 +44,17 @@
     >
       <template #loading><el-skeleton :rows="5" animated /></template>
       <template #empty>
-        <el-empty :description="emptyDescription" />
+        <el-empty
+          v-if="gridError"
+          :description="t('errors.searchFailed')"
+          :image-size="96"
+        >
+          <p class="online-music-view__error-detail">{{ gridError }}</p>
+          <el-button type="primary" @click="retrySearch">
+            {{ t("common.retry") }}
+          </el-button>
+        </el-empty>
+        <el-empty v-else :description="emptyDescription" />
       </template>
       <template #footer>
         <p v-if="showRefineHint" class="online-music-view__refine">
@@ -119,6 +145,24 @@ const gridLoading = computed(() =>
 const emptyDescription = computed(() =>
   onlineStore.activeTab === "toplist" ? t("toplist.empty") : t("onlineMusic.empty")
 );
+
+/** 当前 tab 的搜索错误（榜单数据在另一个 store，不参与）。 */
+const activeSearchTab = computed<OnlineSearchTab | null>(() =>
+  onlineStore.activeTab === "toplist" ? null : (onlineStore.activeTab as OnlineSearchTab)
+);
+
+const songError = computed(() =>
+  activeSearchTab.value === "song" ? onlineStore.tabMeta.song.error : ""
+);
+
+const gridError = computed(() =>
+  activeSearchTab.value ? onlineStore.tabMeta[activeSearchTab.value].error : ""
+);
+
+function retrySearch() {
+  if (!onlineStore.searchKeyword) return;
+  void onlineStore.searchActiveTab(onlineStore.searchKeyword);
+}
 
 function playlistCard(item: PlaylistInfo): EntityCardModel {
   return {
@@ -230,5 +274,14 @@ onMounted(() => {
   text-align: center;
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+
+/* 错误详情：接口报错原文，与「搜索失败」标题搭配，长错误可换行 */
+.online-music-view__error-detail {
+  max-width: 420px;
+  margin: -6px 0 16px;
+  color: var(--el-text-color-secondary);
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
 }
 </style>
