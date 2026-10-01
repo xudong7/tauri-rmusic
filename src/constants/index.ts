@@ -126,3 +126,15 @@ export const GRID_NEAR_END_THRESHOLD = 220;
  * 若首屏只取 20 首，播放第 3 首时队列里就只有 20 首。
  */
 export const PLAYLIST_TRACKS_PAGE_SIZE = 200;
+
+/* ---------- 在线详情缓存 ---------- */
+/**
+ * 详情接口（专辑/歌单/歌手/榜单/歌词）的内存缓存时长。
+ *
+ * 这些数据在几分钟内不会变，而用户经常专辑页↔歌手页↔歌单页来回走；
+ * 取 5 分钟：既覆盖「退出去又进来」的典型路径，又不至于让歌单曲目更新
+ * 长时间不可见。失败不写入缓存，重试仍会真正发请求。
+ */
+export const DETAIL_CACHE_TTL_MS = 5 * 60 * 1000;
+/** 详情缓存条数上限（按 LRU 淘汰） */
+export const DETAIL_CACHE_MAX_ENTRIES = 80;
