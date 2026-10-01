@@ -32,6 +32,8 @@ const props = withDefaults(
 );
 
 const hasError = ref(false);
+/** 图片尚未 onload：此时压一层微光，避免大图或网络封面出现空白块 */
+const isLoaded = ref(false);
 
 const boxStyle = computed(() => {
   if (props.fluid) {
@@ -71,6 +73,7 @@ watch(
   () => props.src,
   () => {
     hasError.value = false;
+    isLoaded.value = false;
   }
 );
 </script>
@@ -80,14 +83,17 @@ watch(
     <img
       v-if="shouldShowImage"
       class="img"
+      :class="{ 'is-loaded': isLoaded }"
       :src="imageSrc"
       :alt="alt"
       :loading="lazy ? 'lazy' : 'eager'"
       :style="imageStyle"
       decoding="async"
+      @load="isLoaded = true"
       @error="hasError = true"
     />
-    <div v-else class="placeholder" :style="boxStyle">
+    <span v-if="shouldShowImage && !isLoaded" class="shimmer" aria-hidden="true" />
+    <div v-else-if="!shouldShowImage" class="placeholder" :style="boxStyle">
       <el-icon class="icon"><component :is="placeholderIcon" /></el-icon>
     </div>
   </div>
@@ -95,6 +101,7 @@ watch(
 
 <style scoped>
 .cover-image {
+  position: relative;
   overflow: hidden;
   flex-shrink: 0;
   background:
@@ -110,6 +117,45 @@ watch(
   width: 100%;
   height: 100%;
   display: block;
+  opacity: 0;
+  transition: opacity 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.img.is-loaded {
+  opacity: 1;
+}
+
+/* 图片解码完成前的微光扫过：底色之上盖一道随主题变亮的窄带。
+   浅色主题下是近白的浅灰，深色主题下提亮一档，不改变占位图的语气。 */
+.shimmer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 28%,
+    color-mix(in srgb, var(--el-fill-color-light) 70%, var(--el-text-color-secondary)) 50%,
+    transparent 72%
+  );
+  background-size: 220% 100%;
+  animation: cover-shimmer 1.2s linear infinite;
+}
+
+@keyframes cover-shimmer {
+  from {
+    background-position: 150% 0;
+  }
+
+  to {
+    background-position: -70% 0;
+  }
+}
+
+/* 静态环境里扫光会停在半途变成一块灰斑，直接不显示，占位底色已够 */
+@media (prefers-reduced-motion: reduce) {
+  .shimmer {
+    display: none;
+  }
 }
 
 .placeholder {

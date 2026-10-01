@@ -24,6 +24,7 @@ import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import { useArtistNavigation } from "@/composables/useArtistNavigation";
 import { useAlbumNavigation } from "@/composables/useAlbumNavigation";
 import { useCoverLoader } from "@/composables/useCoverLoader";
+import { useCoverPalette } from "@/composables/useCoverPalette";
 import { registerCoverFlightSource } from "@/composables/useCoverFlight";
 import { usePlaybackProgressSlider } from "@/composables/usePlaybackProgressSlider";
 import { useVolumeMute } from "@/composables/usePlaybackVolume";
@@ -142,6 +143,21 @@ const { coverUrl } = useCoverLoader({
   getDefaultDirectory: () => localStore.getDefaultDirectory(),
 });
 
+/**
+ * 播放栏的进度条与播放键辉光跟随封面主色——与沉浸页同一套取色，
+ * 未分析出结果（灰阶封面、加载失败）时由 CSS 回落到主题色。
+ */
+const { brightness: coverPaletteState } = useCoverPalette(coverUrl);
+const paletteStyle = computed(() => {
+  const palette = coverPaletteState.value;
+  if (!palette.isAnalyzed || !palette.accent) return undefined;
+  return {
+    "--player-progress-fill": `linear-gradient(90deg, color-mix(in srgb, ${palette.accent} 70%, #fff), ${palette.accent})`,
+    "--player-play-glow": `0 6px 18px color-mix(in srgb, ${palette.accent} 40%, transparent)`,
+    "--player-play-glow-hover": `0 10px 24px color-mix(in srgb, ${palette.accent} 52%, transparent)`,
+  };
+});
+
 const currentPlayModeIcon = computed(() => playModeIcon(props.playMode));
 const playModeTooltip = computed(() => t(playModeLabelKey(props.playMode)));
 
@@ -167,7 +183,7 @@ const {
 </script>
 
 <template>
-  <div class="player-bar" :class="{ 'is-empty': !hasTrack }">
+  <div class="player-bar" :class="{ 'is-empty': !hasTrack }" :style="paletteStyle">
     <!-- 左侧：封面 + 歌曲信息 -->
     <div class="player-left">
       <div ref="coverRef" class="cover-container" @click="enterImmersiveMode">
