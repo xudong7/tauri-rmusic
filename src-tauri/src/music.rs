@@ -855,6 +855,7 @@ pub fn clear_online_audio_cache(app_handle: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn play_track(
     app_handle: AppHandle,
     sink: tauri::State<'_, Arc<Mutex<Sink>>>,

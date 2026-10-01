@@ -966,11 +966,17 @@ fn delete_music_at(base_dir: &Path, file_name: &str) -> Result<(), String> {
     let music_dir = music_dir_from_library_root(base_dir);
 
     if !is_safe_library_relative_path(file_name) {
-        return Err(format!("refuse to delete outside the library: {}", file_name));
+        return Err(format!(
+            "refuse to delete outside the library: {}",
+            file_name
+        ));
     }
     let target = music_dir.join(file_name);
     if !target.starts_with(&music_dir) {
-        return Err(format!("refuse to delete outside the library: {}", file_name));
+        return Err(format!(
+            "refuse to delete outside the library: {}",
+            file_name
+        ));
     }
     if !target.is_file() {
         return Err(format!("file not found: {}", target.display()));
@@ -1328,10 +1334,9 @@ mod tests {
     /// 真实下载回来的文件就是这个样子——有 ID3 头、里面没有标签帧。
     fn fake_mp3_with_empty_id3() -> Vec<u8> {
         let mut bytes = b"ID3\x03\x00\x00\x00\x00\x00\x00".to_vec();
-        bytes.extend(std::iter::repeat(0xAA).take(64));
+        bytes.resize(bytes.len() + 64, 0xAA);
         bytes
     }
-
 
     /// 拿一个**真实的**下载文件验证：写完之后连 macOS 的 Spotlight 都能读到。
     ///
@@ -1397,10 +1402,7 @@ mod tests {
 
         // 音频数据必须原样留着——写标签只该替换文件开头那一小段
         let after = std::fs::read(&path).unwrap();
-        assert!(
-            after.ends_with(&[0xAAu8; 64]),
-            "写入标签后音频内容不能变"
-        );
+        assert!(after.ends_with(&[0xAAu8; 64]), "写入标签后音频内容不能变");
 
         let _ = std::fs::remove_dir_all(&dir);
     }
