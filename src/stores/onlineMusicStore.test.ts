@@ -226,6 +226,23 @@ describe("onlineMusicStore", () => {
     await store.searchActiveTab("jay");
 
     expect(store.tabMeta.album.loading).toBe(false);
+    // 失败原因要留在 tabMeta 上，供视图渲染内联错误 + 重试
+    expect(store.tabMeta.album.error).not.toBe("");
+    consoleError.mockRestore();
+  });
+
+  it("clears the previous error once a retry succeeds", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    api.searchOnlineAlbums.mockRejectedValueOnce(new Error("boom"));
+
+    const store = useOnlineMusicStore();
+    store.setTab("album");
+    await store.searchActiveTab("jay");
+    expect(store.tabMeta.album.error).not.toBe("");
+
+    api.searchOnlineAlbums.mockResolvedValueOnce({ albums: [album("2")], total: 1 });
+    await store.searchActiveTab("jay");
+    expect(store.tabMeta.album.error).toBe("");
     consoleError.mockRestore();
   });
 });

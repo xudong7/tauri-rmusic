@@ -15,6 +15,8 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
   const currentDirectory = ref("");
   const isLoading = ref(false);
   const isRefreshing = ref(false);
+  /** 最近一次扫描/加载的失败原因；界面用它区分「曲库为空」与「加载失败」 */
+  const errorMessage = ref("");
 
   const defaultDirectory = ref<string | null>(null);
   const isInitialized = ref(false);
@@ -76,6 +78,7 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
   async function loadMusicFiles(path?: string, options?: { restoreCache?: boolean }) {
     const requestId = ++latestLoadRequestId;
     let restoredCachedFiles = false;
+    errorMessage.value = "";
     isLoading.value = musicFiles.value.length === 0;
     try {
       if (path) currentDirectory.value = path;
@@ -101,6 +104,7 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
     } catch (error) {
       if (requestId !== latestLoadRequestId) return;
       console.error("加载音乐文件失败:", error);
+      errorMessage.value = parseErrorMessage(error);
       ElMessage.error(
         `${i18n.global.t("errors.loadMusicFailed")}: ${parseErrorMessage(error)}`
       );
@@ -120,9 +124,11 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
       });
       if (requestId !== latestLoadRequestId) return;
       musicFiles.value = files;
+      errorMessage.value = "";
     } catch (error) {
       if (requestId !== latestLoadRequestId) return;
       console.error("刷新音乐文件失败:", error);
+      errorMessage.value = parseErrorMessage(error);
       ElMessage.error(
         `${i18n.global.t("errors.loadMusicFailed")}: ${parseErrorMessage(error)}`
       );
@@ -229,6 +235,7 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
     currentDirectory,
     isLoading,
     isRefreshing,
+    errorMessage,
     defaultDirectory,
     isInitialized,
     loadMusicFiles,

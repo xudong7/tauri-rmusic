@@ -98,6 +98,7 @@ export default {
     importMusic: "导入音乐",
     empty: "曲库还是空的",
     emptyHint: "导入本地的音频文件即可开始播放",
+    noSearchResult: "没有匹配「{keyword}」的歌曲",
     multiSelect: "多选",
     selectAll: "全选",
     deselectAll: "取消全选",

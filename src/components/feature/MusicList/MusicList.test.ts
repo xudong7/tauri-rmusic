@@ -121,3 +121,64 @@ describe("MusicList 的删除", () => {
     expect(wrapper.get(".delete-action").classes()).toContain("app-icon-button--danger");
   });
 });
+
+// 空状态要能看到 description 与槽内按钮，因此不再用默认的空壳桩
+const EmptyStub = defineComponent({
+  name: "ElEmpty",
+  props: { description: { type: String, default: "" } },
+  template:
+    "<div class='empty-stub'><p class='empty-desc'>{{ description }}</p><slot /></div>",
+});
+
+const ButtonStub = defineComponent({
+  name: "ElButton",
+  emits: ["click"],
+  template: "<button type='button' @click=\"$emit('click')\"><slot /></button>",
+});
+
+function mountWithEmptyState(props: {
+  searchKeyword?: string;
+  errorMessage?: string;
+  showImportButton?: boolean;
+}) {
+  const pinia = createPinia();
+  return mount(MusicList, {
+    props: { musicFiles: [], currentMusic: null, isPlaying: false, ...props },
+    global: {
+      plugins: [pinia, i18n],
+      stubs: {
+        "el-popconfirm": PopconfirmStub,
+        "el-dropdown": true,
+        "el-dropdown-menu": true,
+        "el-dropdown-item": true,
+        "el-empty": EmptyStub,
+        "el-button": ButtonStub,
+        "el-skeleton": true,
+      },
+    },
+  });
+}
+
+describe("MusicList 的空状态", () => {
+  it("曲库为空时引导导入", () => {
+    const wrapper = mountWithEmptyState({ showImportButton: true });
+    expect(wrapper.get(".empty-desc").text()).toBe(i18n.global.t("musicList.empty"));
+  });
+
+  it("搜索无命中时提示关键词，而不是谎报曲库为空", () => {
+    const wrapper = mountWithEmptyState({ searchKeyword: "jay" });
+    expect(wrapper.get(".empty-desc").text()).toBe(
+      i18n.global.t("musicList.noSearchResult", { keyword: "jay" })
+    );
+  });
+
+  it("加载失败时给出错误与重试按钮", async () => {
+    const wrapper = mountWithEmptyState({ errorMessage: "boom", showImportButton: true });
+    expect(wrapper.get(".empty-desc").text()).toBe(
+      i18n.global.t("errors.loadMusicFailed")
+    );
+
+    await wrapper.get(".empty-stub button").trigger("click");
+    expect(wrapper.emitted("retry")).toBeTruthy();
+  });
+});

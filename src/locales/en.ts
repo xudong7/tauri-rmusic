@@ -98,6 +98,7 @@ export default {
     importMusic: "Import music",
     empty: "Your library is empty",
     emptyHint: "Import audio files from your computer to get started",
+    noSearchResult: 'No tracks match "{keyword}"',
     multiSelect: "Multi-select",
     selectAll: "Select all",
     deselectAll: "Deselect all",
