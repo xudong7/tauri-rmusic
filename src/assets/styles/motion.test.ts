@@ -51,6 +51,7 @@ describe("过渡类名", () => {
   // 这条钉死具体名字而不是「至少 N 个」：数量能被注释里的假命中凑出来。
   it("确实扫到了模板里的 <Transition>", () => {
     expect(declared.map(({ name }) => name).sort()).toEqual([
+      "drop",
       "history-dropdown",
       "immersive",
       "page",

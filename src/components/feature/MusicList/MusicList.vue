@@ -12,6 +12,7 @@ import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import type { ContextMenuItem } from "@/composables/useContextMenu";
 import { revealLocalFile } from "@/utils/revealInFolder";
+import { writeTrackDragPayload } from "@/utils/trackDrag";
 import { ElMessage } from "element-plus";
 import { formatDurationLabel, getLocalMusicDisplayInfo } from "@/utils/songUtils";
 import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
@@ -175,6 +176,13 @@ async function handleDelete(row: MusicFile) {
   }
 }
 
+/** 拖到侧栏歌单即添加：载荷只带文件名，曲库是本地数据的唯一来源。 */
+function handleRowDragStart(event: DragEvent, item: TrackRowModel) {
+  const file = props.musicFiles[item.sourceIndex];
+  if (!file) return;
+  writeTrackDragPayload(event, { type: "local", fileName: file.file_name });
+}
+
 function handleAddToPlaylist(command: string, row: MusicFile) {
   const item = { type: "local" as const, file_name: row.file_name };
   if (command === "new") {
@@ -314,6 +322,7 @@ function scheduleVisibleCovers(items: TrackRowModel[]) {
       @activate="emit('play', musicFiles[$event.sourceIndex])"
       @toggle-current="emit('toggle-current')"
       @toggle-select="toggleSelectRow(musicFiles[$event.sourceIndex])"
+      @row-drag-start="handleRowDragStart"
       @visible-items="scheduleVisibleCovers"
     >
       <template #loading>

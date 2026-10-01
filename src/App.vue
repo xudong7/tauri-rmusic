@@ -25,6 +25,7 @@ import { usePlaybackQueueRouteReset } from "./composables/usePlaybackQueueRouteR
 import { useStorageThemeSync } from "./composables/useStorageThemeSync";
 import { useTrayPlaybackEvents } from "./composables/useTrayPlaybackEvents";
 import { useWindowSizeConstraints } from "./composables/useWindowSizeConstraints";
+import { useFileDropImport } from "./composables/useFileDropImport";
 import { getCoverFlightSource, playCoverFlight } from "./composables/useCoverFlight";
 import { useThemeStore } from "./stores/themeStore";
 import { useViewStore } from "./stores/viewStore";
@@ -70,6 +71,12 @@ const searchScope = computed<SearchScope | null>(() => {
 const windowSizeConstraints = useWindowSizeConstraints({
   minWidth: WINDOW_MIN_WIDTH,
   minHeight: WINDOW_MIN_HEIGHT,
+});
+const { isDraggingAudioFiles, dragAudioCount } = useFileDropImport({
+  getDefaultDirectory: () => localStore.getDefaultDirectory(),
+  onImported: () => {
+    void localStore.refreshCurrentDirectory();
+  },
 });
 const keyboardShortcuts = useAppKeyboardShortcuts({
   onPrevious: () => playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1)),
@@ -352,6 +359,18 @@ async function handleExitImmersive() {
       </Transition>
       <!-- 全局唯一的右键菜单实例；行/卡片只负责 open() -->
       <ContextMenu />
+
+      <!-- 从系统拖音频进窗口：整屏提示，松手即导入曲库 -->
+      <Transition name="drop">
+        <div v-if="isDraggingAudioFiles" class="drop-overlay" aria-hidden="true">
+          <div class="drop-overlay__card">
+            <p class="drop-overlay__title">{{ t("import.dropTitle") }}</p>
+            <p class="drop-overlay__hint">
+              {{ t("import.dropHint", { count: dragAudioCount }) }}
+            </p>
+          </div>
+        </div>
+      </Transition>
     </div>
   </el-config-provider>
 </template>
@@ -434,5 +453,57 @@ async function handleExitImmersive() {
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
   pointer-events: none;
   will-change: transform;
+}
+
+/* 拖文件进窗口的整屏提示。pointer-events: none 是必须的：提示层出现时
+   鼠标还在拖拽中，命中原生 drop 的必须是 webview 本身而不是这层 UI。 */
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.34);
+  pointer-events: none;
+}
+
+.drop-overlay__card {
+  padding: 24px 32px;
+  border: 1px dashed var(--app-focus-ring);
+  border-radius: var(--app-radius-lg);
+  background: var(--el-bg-color-overlay);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
+  text-align: center;
+}
+
+.drop-overlay__title {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 650;
+  color: var(--el-text-color-primary);
+}
+
+.drop-overlay__hint {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+}
+
+.drop-enter-active,
+.drop-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.drop-enter-from,
+.drop-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drop-enter-active,
+  .drop-leave-active {
+    transition: none;
+  }
 }
 </style>

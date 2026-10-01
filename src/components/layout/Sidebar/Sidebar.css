@@ -267,6 +267,12 @@
   color: var(--el-text-color-primary);
 }
 
+/* 拖拽落点：加一整圈内描边 + 选中底色，与「当前播放」的左侧亮条语言区分开 */
+.nav-item-playlist.is-drop-target {
+  background: var(--active-item-bg);
+  box-shadow: inset 0 0 0 2px var(--app-focus-ring);
+}
+
 /* 选中态与导航项同一套语言：左侧主色亮条、主色文字、选中底色都由
    .nav-item.is-active 提供，歌单行不再单独改写。此前这里藏掉亮条并把
    标签加粗到 600，与上方导航项看起来像两套控件。 */

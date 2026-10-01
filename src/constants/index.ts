@@ -28,6 +28,10 @@ export const PLAYER_SESSION_WRITE_INTERVAL_MS = 3000;
 /** 单模式（本地/在线）最多保留条数 */
 export const SEARCH_HISTORY_MAX_ITEMS = 6;
 
+/* ---------- 导入 ---------- */
+/** 支持的音频扩展名：导入对话框与「拖文件进窗口」共用同一份 */
+export const AUDIO_FILE_EXTENSIONS = ["mp3", "wav", "ogg", "flac"];
+
 /* ---------- 播放列表 ---------- */
 /** 防抖写入延迟（ms），避免连续多次写入后端 */
 export const PLAYLIST_SAVE_DEBOUNCE_MS = 300;

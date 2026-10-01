@@ -178,6 +178,8 @@ export default {
     importing: "Importing {count} file(s)...",
     failed: "Import failed",
     openDialogFailed: "Failed to open file dialog",
+    dropTitle: "Drop to import",
+    dropHint: "{count} audio file(s) into your library",
   },
   download: {
     downloading: "Downloading",

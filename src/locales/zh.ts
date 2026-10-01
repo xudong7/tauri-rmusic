@@ -178,6 +178,8 @@ export default {
     importing: "正在导入 {count} 个文件...",
     failed: "导入失败",
     openDialogFailed: "打开文件选择对话框失败",
+    dropTitle: "松开以导入",
+    dropHint: "{count} 个音频文件将复制到曲库",
   },
   download: {
     downloading: "下载中",
