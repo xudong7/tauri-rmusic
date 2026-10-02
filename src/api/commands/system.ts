@@ -1,3 +1,4 @@
+import type { MediaMetadataUpdate } from "../types";
 import { invokeCommand } from "../client";
 
 export async function quitApp(): Promise<void> {
@@ -18,4 +19,11 @@ export async function revealMainWindow(): Promise<void> {
 /** 打开/关闭桌面歌词悬浮窗。后端幂等：已存在则显示/关闭，不存在且 open=false 时为 no-op。 */
 export async function setLyricsWindow(args: { open: boolean }): Promise<void> {
   await invokeCommand("set_lyrics_window", args);
+}
+
+/** 把当前曲目与播放状态推给系统媒体控制（macOS Now Playing / Windows SMTC / MPRIS） */
+export async function updateMediaMetadata(args: {
+  payload: MediaMetadataUpdate;
+}): Promise<void> {
+  await invokeCommand("update_media_metadata", args);
 }

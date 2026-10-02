@@ -49,6 +49,9 @@ hmac = "0.12.1"
 sha2 = "0.10.6"
 sha1 = "0.10.5"
 id3 = { version = "1.17.2", default-features = false }
+# 系统媒体控制（macOS Now Playing / Windows SMTC / Linux MPRIS）。
+# Linux 用纯 Rust 的 zbus 后端，避免引入 libdbus 本地依赖。
+souvlaki = { version = "0.8.3", default-features = false, features = ["use_zbus"] }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-autostart = "2"
