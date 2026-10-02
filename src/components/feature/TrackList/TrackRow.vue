@@ -26,6 +26,8 @@ const props = withDefaults(
         那一格——留着空位会让歌名那列和时长之间多出一段空白。 */
     hideAlbum?: boolean;
     rowHeight?: number;
+    /** 拖拽排序时的落点行：顶部画一条指示线 */
+    dropTarget?: boolean;
   }>(),
   {
     index: 0,
@@ -36,6 +38,7 @@ const props = withDefaults(
     busy: false,
     hideAlbum: false,
     rowHeight: undefined,
+    dropTarget: false,
   }
 );
 
@@ -74,7 +77,9 @@ function handleActivate() {
       'is-striped': props.index % 2 === 0,
       'is-busy': busy,
       'is-album-hidden': hideAlbum,
+      'is-drop-target': dropTarget,
     }"
+    :data-row-index="index"
     :style="
       rowHeight ? { height: `${rowHeight}px`, minHeight: `${rowHeight}px` } : undefined
     "
@@ -195,6 +200,11 @@ function handleActivate() {
 /* 当前曲目只留两处信号：左边那条竖条，以及标题变色加粗。
    这里原本还有整行底色和一圈内描边，四处在说同一句话——结果是整行被涂满，
    反而盖住了悬停与选中的底色，那两处才是用户当下在操作的状态。 */
+
+/* 拖拽排序的落点指示：整行顶部一条 2px 亮线，标记会插到这一行之前 */
+.track-row.is-drop-target {
+  box-shadow: inset 0 2px 0 0 var(--app-focus-ring);
+}
 
 .track-row:focus-visible {
   background: var(--hover-bg-color);

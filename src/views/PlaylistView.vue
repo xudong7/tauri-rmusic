@@ -105,53 +105,63 @@
         </div>
       </div>
 
-      <TrackList
+      <!-- 拖拽排序的落点检测挂在容器上：行本身不需要知道排序逻辑 -->
+      <div
         v-else
-        :items="trackRows"
-        :selection-mode="selectionMode"
-        :selected-keys="selectedRowKeys"
-        :current-key="currentRowKey"
-        :is-playing="playerStore.isPlaying"
-        :context-menu-items="contextMenuItems"
-        @activate="playAt($event.sourceIndex)"
-        @toggle-current="playerStore.togglePlay"
-        @toggle-select="toggleSelectRow($event.sourceIndex)"
-        @row-drag-start="handleRowDragStart"
-        @visible-items="scheduleVisibleLocalCovers"
+        class="playlist-view__list"
+        @dragover="handleListDragOver"
+        @dragleave="handleListDragLeave"
+        @drop="handleListDrop"
+        @dragend="handleListDragEnd"
       >
-        <template #empty>
-          <el-empty :description="t('messages.noSearchResult')" />
-        </template>
-        <template #actions="{ item }">
-          <!-- 文件被删了、而当初加入歌单时记住了来源：给一个重新下载。
-               来源是加入歌单那一刻顺手记下的（见 useOnlinePlaylistActions），
-               用户自己导入的本地文件没有来源，因此这里不会出现。 -->
-          <el-tooltip
-            v-if="item.disabled && sourceAt(item.sourceIndex)"
-            :content="t('playlist.redownload')"
-            placement="top"
-          >
+        <TrackList
+          :items="trackRows"
+          :selection-mode="selectionMode"
+          :selected-keys="selectedRowKeys"
+          :current-key="currentRowKey"
+          :is-playing="playerStore.isPlaying"
+          :context-menu-items="contextMenuItems"
+          :drop-indicator-index="dropIndicatorIndex"
+          @activate="playAt($event.sourceIndex)"
+          @toggle-current="playerStore.togglePlay"
+          @toggle-select="toggleSelectRow($event.sourceIndex)"
+          @row-drag-start="handleRowDragStart"
+          @visible-items="scheduleVisibleLocalCovers"
+        >
+          <template #empty>
+            <el-empty :description="t('messages.noSearchResult')" />
+          </template>
+          <template #actions="{ item }">
+            <!-- 文件被删了、而当初加入歌单时记住了来源：给一个重新下载。
+                 来源是加入歌单那一刻顺手记下的（见 useOnlinePlaylistActions），
+                 用户自己导入的本地文件没有来源，因此这里不会出现。 -->
+            <el-tooltip
+              v-if="item.disabled && sourceAt(item.sourceIndex)"
+              :content="t('playlist.redownload')"
+              placement="top"
+            >
+              <el-button
+                circle
+                size="small"
+                link
+                class="redownload-action"
+                :icon="Download"
+                :loading="isRedownloadingAt(item.sourceIndex)"
+                :aria-label="t('playlist.redownload')"
+                @click.stop="redownloadAt(item.sourceIndex)"
+              />
+            </el-tooltip>
             <el-button
               circle
               size="small"
+              :icon="Minus"
               link
-              class="redownload-action"
-              :icon="Download"
-              :loading="isRedownloadingAt(item.sourceIndex)"
-              :aria-label="t('playlist.redownload')"
-              @click.stop="redownloadAt(item.sourceIndex)"
+              type="default"
+              @click.stop="removeAt(item.sourceIndex)"
             />
-          </el-tooltip>
-          <el-button
-            circle
-            size="small"
-            :icon="Minus"
-            link
-            type="default"
-            @click.stop="removeAt(item.sourceIndex)"
-          />
-        </template>
-      </TrackList>
+          </template>
+        </TrackList>
+      </div>
     </template>
   </PageLayout>
 </template>
@@ -398,11 +408,61 @@ const trackRows = computed(() => filteredResolvedItems.value.map(toTrackRow));
 function handleRowDragStart(event: DragEvent, item: TrackRowModel) {
   const entry = resolvedItems.value.find((candidate) => candidate.key === item.key);
   if (!entry) return;
+  draggedIndex.value = entry.sourceIndex;
   if (entry.musicFile) {
     writeTrackDragPayload(event, { type: "local", fileName: entry.musicFile.file_name });
   } else if (entry.songInfo) {
     writeTrackDragPayload(event, { type: "online", song: entry.songInfo });
   }
+}
+
+/* ---------- 歌单内拖拽排序 ---------- */
+
+/** 正在被拖动的条目下标（原始歌单下标）；跨组件拖拽（侧栏加歌）时为 null */
+const draggedIndex = ref<number | null>(null);
+/** 落点行的位置（trackRows 下标）；映射回原始下标后才交给 reorderPlaylist */
+const dropIndicatorIndex = ref<number | null>(null);
+
+function handleListDragOver(event: DragEvent) {
+  if (draggedIndex.value === null) return;
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+  const row = (event.target as HTMLElement | null)?.closest<HTMLElement>(
+    "[data-row-index]"
+  );
+  const position = row ? Number(row.dataset.rowIndex) : NaN;
+  dropIndicatorIndex.value = Number.isNaN(position) ? null : position;
+}
+
+function handleListDragLeave(event: DragEvent) {
+  // dragleave 在子元素之间移动也会触发；只有真正离开列表容器才清除
+  const related = event.relatedTarget as Node | null;
+  const container = event.currentTarget as HTMLElement | null;
+  if (related && container?.contains(related)) return;
+  dropIndicatorIndex.value = null;
+}
+
+function handleListDrop(event: DragEvent) {
+  if (draggedIndex.value === null || !playlist.value) return;
+  event.preventDefault();
+  const row = (event.target as HTMLElement | null)?.closest<HTMLElement>(
+    "[data-row-index]"
+  );
+  const position = row ? Number(row.dataset.rowIndex) : NaN;
+  const fromIndex = draggedIndex.value;
+  draggedIndex.value = null;
+  dropIndicatorIndex.value = null;
+  if (Number.isNaN(position)) return;
+
+  // 行位置 → 原始歌单下标：搜索过滤时两者并不相等
+  const targetSourceIndex = trackRows.value[position]?.sourceIndex;
+  if (targetSourceIndex === undefined || targetSourceIndex === fromIndex) return;
+  playlistStore.reorderPlaylist(playlist.value.id, fromIndex, targetSourceIndex);
+}
+
+function handleListDragEnd() {
+  draggedIndex.value = null;
+  dropIndicatorIndex.value = null;
 }
 
 /** 行右键菜单：下一首播放 / 在文件夹中显示（本地）/ 从歌单移除。 */

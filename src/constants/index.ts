@@ -11,6 +11,8 @@ export const STORAGE_KEY_COLLECTED_PLAYLISTS = "rmusic-collected-playlists";
 export const STORAGE_KEY_COLLECTED_ALBUMS = "rmusic-collected-albums";
 /** 下载过的歌曲：文件名 → 来源，用于「删了之后重新下载」 */
 export const STORAGE_KEY_DOWNLOAD_SOURCES = "rmusic-download-sources";
+/** 本地曲库排序方式 */
+export const STORAGE_KEY_LIBRARY_SORT = "rmusic-library-sort";
 /** 上次会话：曲目/队列/进度，启动时恢复 */
 export const STORAGE_KEY_PLAYER_SESSION = "rmusic-player-session";
 /** 上次所在路由，启动时恢复 */

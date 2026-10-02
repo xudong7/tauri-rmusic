@@ -26,6 +26,8 @@ const props = withDefaults(
     hideAlbum?: boolean;
     /** 右键菜单项工厂。不传则行上没有右键菜单（如批量选择模式下的列表）。 */
     contextMenuItems?: (item: TrackRowModel) => ContextMenuItem[];
+    /** 拖拽排序的落点（items 中的下标）：对应行顶部显示指示线 */
+    dropIndicatorIndex?: number | null;
   }>(),
   {
     selectionMode: false,
@@ -37,6 +39,7 @@ const props = withDefaults(
     isPlaying: false,
     hideAlbum: false,
     contextMenuItems: undefined,
+    dropIndicatorIndex: null,
   }
 );
 const columnLabels = computed(() => {
@@ -151,6 +154,7 @@ function handleListKeydown(event: KeyboardEvent) {
           :busy="busyKeys.has(item.key)"
           :hide-album="hideAlbum"
           :row-height="rowHeight"
+          :drop-target="dropIndicatorIndex === index"
           @activate="handleActivate"
           @toggle-select="emit('toggleSelect', $event)"
           @context-menu="handleContextMenu"
@@ -184,6 +188,7 @@ function handleListKeydown(event: KeyboardEvent) {
           :is-playing="isPlaying && item.key === currentKey"
           :busy="busyKeys.has(item.key)"
           :hide-album="hideAlbum"
+          :drop-target="dropIndicatorIndex === index"
           @activate="handleActivate"
           @toggle-select="emit('toggleSelect', $event)"
           @context-menu="handleContextMenu"
