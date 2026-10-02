@@ -158,45 +158,26 @@ export const LIBRARY_SORT_MODES: LibrarySortMode[] = [
   "added",
 ];
 
-export type LibrarySortDirection = "asc" | "desc";
-
-export interface LibrarySortState {
-  mode: LibrarySortMode;
-  direction: LibrarySortDirection;
-}
-
-/** 每种模式的默认方向：最近添加习惯「新的在前」，其余升序 */
-export function defaultSortDirection(mode: LibrarySortMode): LibrarySortDirection {
-  return mode === "added" ? "desc" : "asc";
-}
-
 /**
- * 解析持久化的排序状态。
+ * 解析持久化的排序方式。
  *
- * 兼容旧格式（直接存 mode 字符串，没有方向）；损坏或未知值回落到默认。
+ * 兼容两种历史格式：直接存 mode 字符串，以及短暂出现过的
+ * `{ mode, direction }` JSON；损坏或未知值回落到默认。
  */
-export function parseStoredSort(raw: string | null): LibrarySortState {
-  const fallback: LibrarySortState = { mode: "default", direction: "asc" };
-  if (!raw) return fallback;
-
+export function parseStoredSortMode(raw: string | null): LibrarySortMode {
+  if (!raw) return "default";
   if (LIBRARY_SORT_MODES.includes(raw as LibrarySortMode)) {
-    const mode = raw as LibrarySortMode;
-    return { mode, direction: defaultSortDirection(mode) };
+    return raw as LibrarySortMode;
   }
 
   try {
-    const parsed = JSON.parse(raw) as Partial<LibrarySortState>;
-    const mode = LIBRARY_SORT_MODES.includes(parsed.mode as LibrarySortMode)
+    const parsed = JSON.parse(raw) as { mode?: unknown };
+    return LIBRARY_SORT_MODES.includes(parsed.mode as LibrarySortMode)
       ? (parsed.mode as LibrarySortMode)
       : "default";
-    return { mode, direction: parsed.direction === "desc" ? "desc" : "asc" };
   } catch {
-    return fallback;
+    return "default";
   }
-}
-
-export function serializeSort(state: LibrarySortState): string {
-  return JSON.stringify(state);
 }
 
 const UNKNOWN_SORT_SENTINEL = "\uffff";
@@ -223,25 +204,21 @@ function sortKeyOf(file: MusicFile, mode: LibrarySortMode): string {
   }
 }
 
-export function sortMusicFiles(
-  files: MusicFile[],
-  mode: LibrarySortMode,
-  direction: LibrarySortDirection = defaultSortDirection(mode)
-): MusicFile[] {
+export function sortMusicFiles(files: MusicFile[], mode: LibrarySortMode): MusicFile[] {
   if (mode === "default" || files.length <= 1) return files;
 
-  const sign = direction === "desc" ? -1 : 1;
   const sorted = [...files];
-
   if (mode === "duration") {
-    sorted.sort((a, b) => sign * ((a.duration_ms ?? 0) - (b.duration_ms ?? 0)));
+    // 时长升序：短歌在前，和列表点「时长」排序的直觉一致
+    sorted.sort((a, b) => (a.duration_ms ?? 0) - (b.duration_ms ?? 0));
     return sorted;
   }
   if (mode === "added") {
-    sorted.sort((a, b) => sign * ((a.modified_ms ?? 0) - (b.modified_ms ?? 0)));
+    // 最近添加在前
+    sorted.sort((a, b) => (b.modified_ms ?? 0) - (a.modified_ms ?? 0));
     return sorted;
   }
 
-  sorted.sort((a, b) => sign * compareNames(sortKeyOf(a, mode), sortKeyOf(b, mode)));
+  sorted.sort((a, b) => compareNames(sortKeyOf(a, mode), sortKeyOf(b, mode)));
   return sorted;
 }

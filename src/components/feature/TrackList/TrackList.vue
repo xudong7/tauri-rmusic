@@ -31,8 +31,8 @@ const props = withDefaults(
     scrollKey?: string;
     /** 列头是否可点击排序（只有本地曲库歌曲列表开启） */
     sortable?: boolean;
-    /** 当前排序状态：高亮对应列并显示方向箭头 */
-    sortState?: { key: string; direction: "asc" | "desc" } | null;
+    /** 当前排序的列 key：高亮该列 */
+    sortKey?: string;
   }>(),
   {
     selectionMode: false,
@@ -46,7 +46,7 @@ const props = withDefaults(
     contextMenuItems: undefined,
     scrollKey: "",
     sortable: false,
-    sortState: null,
+    sortKey: "",
   }
 );
 const columnLabels = computed(() => {
@@ -66,12 +66,6 @@ const emit = defineEmits<{
   visibleItems: [items: TrackRowModel[]];
   sort: [key: string];
 }>();
-
-/** 列头的 aria-sort 值；只有可排序且正按该列排序时才有 */
-function ariaSort(key: string): "ascending" | "descending" | undefined {
-  if (!props.sortable || props.sortState?.key !== key) return undefined;
-  return props.sortState.direction === "asc" ? "ascending" : "descending";
-}
 
 const itemsRef = computed(() => props.items);
 const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight, scrollTo } =
@@ -163,21 +157,15 @@ function handleListKeydown(event: KeyboardEvent) {
       :class="{ 'is-album-hidden': hideAlbum }"
       :aria-hidden="sortable ? undefined : 'true'"
     >
-      <span
-        class="track-list__column-song"
-        :role="sortable ? 'columnheader' : undefined"
-        :aria-sort="ariaSort('title')"
-      >
+      <span class="track-list__column-song" :role="sortable ? 'columnheader' : undefined">
         <button
           v-if="sortable"
           type="button"
           class="track-list__column-btn"
+          :class="{ 'is-active': sortKey === 'title' }"
           @click="emit('sort', 'title')"
         >
           {{ columnLabels.song }}
-          <span v-if="sortState?.key === 'title'" class="track-list__sort-arrow">{{
-            sortState.direction === "asc" ? "↑" : "↓"
-          }}</span>
         </button>
         <template v-else>{{ columnLabels.song }}</template>
       </span>
@@ -185,36 +173,30 @@ function handleListKeydown(event: KeyboardEvent) {
         v-if="!hideAlbum"
         class="track-list__column-album"
         :role="sortable ? 'columnheader' : undefined"
-        :aria-sort="ariaSort('album')"
       >
         <button
           v-if="sortable"
           type="button"
           class="track-list__column-btn"
+          :class="{ 'is-active': sortKey === 'album' }"
           @click="emit('sort', 'album')"
         >
           {{ columnLabels.album }}
-          <span v-if="sortState?.key === 'album'" class="track-list__sort-arrow">{{
-            sortState.direction === "asc" ? "↑" : "↓"
-          }}</span>
         </button>
         <template v-else>{{ columnLabels.album }}</template>
       </span>
       <span
         class="track-list__column-duration"
         :role="sortable ? 'columnheader' : undefined"
-        :aria-sort="ariaSort('duration')"
       >
         <button
           v-if="sortable"
           type="button"
           class="track-list__column-btn"
+          :class="{ 'is-active': sortKey === 'duration' }"
           @click="emit('sort', 'duration')"
         >
           {{ columnLabels.duration }}
-          <span v-if="sortState?.key === 'duration'" class="track-list__sort-arrow">{{
-            sortState.direction === "asc" ? "↑" : "↓"
-          }}</span>
         </button>
         <template v-else>{{ columnLabels.duration }}</template>
       </span>
@@ -371,13 +353,9 @@ function handleListKeydown(event: KeyboardEvent) {
   transition: color var(--app-control-transition);
 }
 
-.track-list__column-btn:hover {
+.track-list__column-btn:hover,
+.track-list__column-btn.is-active {
   color: var(--el-color-primary);
-}
-
-.track-list__sort-arrow {
-  font-size: 10px;
-  line-height: 1;
 }
 
 .track-list__state {
