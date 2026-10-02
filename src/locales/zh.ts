@@ -190,6 +190,13 @@ export default {
     offsetLater: "歌词延后 0.5 秒",
     offsetReset: "点击重置偏移",
   },
+  lyricsOverlay: {
+    toggle: "桌面歌词",
+    fontSizeSmaller: "减小字号",
+    fontSizeLarger: "增大字号",
+    close: "关闭桌面歌词",
+    idle: "未在播放",
+  },
   import: {
     audioFiles: "音频文件",
     importing: "正在导入 {count} 个文件...",

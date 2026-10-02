@@ -107,11 +107,12 @@ describe("PlayerBar", () => {
     );
   });
 
-  it("把播放队列单独留在右侧", () => {
+  it("右侧放桌面歌词开关与播放队列", () => {
     const wrapper = mountBar();
 
     expect(wrapper.find(".player-right .queue-btn").exists()).toBe(true);
-    expect(wrapper.findAll(".player-right > *")).toHaveLength(1);
+    expect(wrapper.find(".player-right .desktop-lyrics-btn").exists()).toBe(true);
+    expect(wrapper.findAll(".player-right > *")).toHaveLength(2);
   });
 
   // 图标是照参考图自绘的，不是 Element Plus 组件，所以不走 el-icon，

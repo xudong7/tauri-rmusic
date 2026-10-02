@@ -26,6 +26,8 @@ import { useStorageThemeSync } from "./composables/useStorageThemeSync";
 import { useTrayPlaybackEvents } from "./composables/useTrayPlaybackEvents";
 import { useWindowSizeConstraints } from "./composables/useWindowSizeConstraints";
 import { useFileDropImport } from "./composables/useFileDropImport";
+import { useLyricsBroadcast } from "./composables/useLyricsBroadcast";
+import { useLyricsOverlay } from "./composables/useLyricsOverlay";
 import { getCoverFlightSource, playCoverFlight } from "./composables/useCoverFlight";
 import { useThemeStore } from "./stores/themeStore";
 import { useViewStore } from "./stores/viewStore";
@@ -78,6 +80,10 @@ const { isDraggingAudioFiles, dragAudioCount } = useFileDropImport({
     void localStore.refreshCurrentDirectory();
   },
 });
+
+// 桌面歌词：主窗负责跟随进度推送当前歌词行
+const { isLyricsOverlayOpen } = useLyricsOverlay();
+useLyricsBroadcast(isLyricsOverlayOpen);
 const keyboardShortcuts = useAppKeyboardShortcuts({
   onPrevious: () => playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1)),
   onTogglePlay: () => playerStore.togglePlay(),

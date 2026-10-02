@@ -14,3 +14,8 @@ export async function quitApp(): Promise<void> {
 export async function revealMainWindow(): Promise<void> {
   await invokeCommand("reveal_main_window");
 }
+
+/** 打开/关闭桌面歌词悬浮窗。后端幂等：已存在则显示/关闭，不存在且 open=false 时为 no-op。 */
+export async function setLyricsWindow(args: { open: boolean }): Promise<void> {
+  await invokeCommand("set_lyrics_window", args);
+}

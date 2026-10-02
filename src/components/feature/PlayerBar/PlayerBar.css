@@ -358,12 +358,18 @@ html.dark .player-bar {
     0 0 0 2px color-mix(in srgb, var(--el-color-primary) 18%, transparent);
 }
 
-/* 右侧：只剩播放队列 */
+/* 右侧：桌面歌词 + 播放队列 */
 .player-right {
   display: flex;
   align-items: center;
   min-width: 0;
   justify-content: flex-end;
+  gap: 4px;
+}
+
+/* 桌面歌词开关：开启时常驻主色，与「当前正在生效」的语义一致 */
+.desktop-lyrics-btn.is-active {
+  color: var(--app-icon-button-hover-color) !important;
 }
 
 /* .play-mode-btn 已挪进控制行，跟着 .control-btn 走，不再需要单独定尺寸 */

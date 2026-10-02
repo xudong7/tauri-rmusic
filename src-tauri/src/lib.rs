@@ -3,6 +3,7 @@ use file::{
     delete_music_file, download_music, get_default_music_dir, import_music,
     load_cached_music_files, load_local_cover_path, load_local_lyric, scan_files,
 };
+use lyrics_window::set_lyrics_window;
 use music::{
     clear_online_audio_cache, get_online_audio_cache_path, get_online_audio_cache_size,
     get_playback_state, play_track, prefetch_netease_song, prepare_playback_request, seek_to,
@@ -26,6 +27,7 @@ use tray::{quit_app as quit_app_handle, setup_tray};
 mod cover_cache;
 mod file;
 mod fs_util;
+mod lyrics_window;
 mod music;
 mod netease;
 mod playlist;
@@ -205,6 +207,7 @@ pub fn run() {
             get_default_music_dir,
             download_music,
             get_song_lyric,
+            set_lyrics_window,
             cache_online_cover,
             load_local_cover_path,
             load_local_lyric,

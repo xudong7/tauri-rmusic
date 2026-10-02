@@ -190,6 +190,13 @@ export default {
     offsetLater: "Show lyrics 0.5s later",
     offsetReset: "Click to reset offset",
   },
+  lyricsOverlay: {
+    toggle: "Desktop lyrics",
+    fontSizeSmaller: "Smaller text",
+    fontSizeLarger: "Larger text",
+    close: "Close desktop lyrics",
+    idle: "Not playing",
+  },
   import: {
     audioFiles: "Audio files",
     importing: "Importing {count} file(s)...",

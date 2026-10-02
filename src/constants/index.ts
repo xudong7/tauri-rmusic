@@ -15,6 +15,8 @@ export const STORAGE_KEY_DOWNLOAD_SOURCES = "rmusic-download-sources";
 export const STORAGE_KEY_LIBRARY_SORT = "rmusic-library-sort";
 /** 歌词偏移（毫秒） */
 export const STORAGE_KEY_LYRIC_OFFSET = "rmusic-lyric-offset";
+/** 桌面歌词字号（px） */
+export const STORAGE_KEY_LYRICS_FONT_SIZE = "rmusic-lyrics-font-size";
 /** 上次会话：曲目/队列/进度，启动时恢复 */
 export const STORAGE_KEY_PLAYER_SESSION = "rmusic-player-session";
 /** 上次所在路由，启动时恢复 */
