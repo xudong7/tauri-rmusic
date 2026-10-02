@@ -9,6 +9,10 @@ import MultiSelectIcon from "@/components/base/icons/MultiSelectIcon.vue";
 import type { MusicFile } from "@/types/model";
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
+import { usePlayerStore } from "@/stores/playerStore";
+import type { ContextMenuItem } from "@/composables/useContextMenu";
+import { revealLocalFile } from "@/utils/revealInFolder";
+import { writeTrackDragPayload } from "@/utils/trackDrag";
 import { ElMessage } from "element-plus";
 import { formatDurationLabel, getLocalMusicDisplayInfo } from "@/utils/songUtils";
 import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
@@ -21,6 +25,7 @@ import type { TrackRowModel } from "@/components/feature/TrackList/types";
 const { t } = useI18n();
 const playlistStore = usePlaylistStore();
 const localStore = useLocalMusicStore();
+const playerStore = usePlayerStore();
 
 function getFileKey(file: MusicFile): string {
   return file.relative_path || file.file_name;
@@ -171,6 +176,13 @@ async function handleDelete(row: MusicFile) {
   }
 }
 
+/** 拖到侧栏歌单即添加：载荷只带文件名，曲库是本地数据的唯一来源。 */
+function handleRowDragStart(event: DragEvent, item: TrackRowModel) {
+  const file = props.musicFiles[item.sourceIndex];
+  if (!file) return;
+  writeTrackDragPayload(event, { type: "local", fileName: file.file_name });
+}
+
 function handleAddToPlaylist(command: string, row: MusicFile) {
   const item = { type: "local" as const, file_name: row.file_name };
   if (command === "new") {
@@ -194,6 +206,30 @@ const { getCover, scheduleMany: scheduleCoverLoadMany } = useLocalCoverCache<Mus
   getFileName: (file) => file.file_name,
   getDefaultDirectory: props.getDefaultDirectory,
 });
+
+/** 行右键菜单：下一首播放 / 在文件夹中显示 / 从曲库删除。 */
+function contextMenuItems(item: TrackRowModel): ContextMenuItem[] {
+  const file = props.musicFiles[item.sourceIndex];
+  if (!file) return [];
+  return [
+    {
+      key: "play-next",
+      label: t("contextMenu.playNext"),
+      action: () => void playerStore.playNextInQueue({ type: "local", file }),
+    },
+    {
+      key: "reveal",
+      label: t("contextMenu.revealInFolder"),
+      action: () => void revealLocalFile(file.file_name, localStore.currentDirectory),
+    },
+    {
+      key: "delete",
+      label: t("musicList.delete"),
+      danger: true,
+      action: () => void handleDelete(file),
+    },
+  ];
+}
 
 const trackRows = computed(() => props.musicFiles.map(toTrackRow));
 
@@ -282,9 +318,11 @@ function scheduleVisibleCovers(items: TrackRowModel[]) {
       :selected-keys="selectedKeys"
       :current-key="currentKey"
       :is-playing="props.isPlaying"
+      :context-menu-items="contextMenuItems"
       @activate="emit('play', musicFiles[$event.sourceIndex])"
       @toggle-current="emit('toggle-current')"
       @toggle-select="toggleSelectRow(musicFiles[$event.sourceIndex])"
+      @row-drag-start="handleRowDragStart"
       @visible-items="scheduleVisibleCovers"
     >
       <template #loading>

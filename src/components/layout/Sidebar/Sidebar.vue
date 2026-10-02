@@ -3,11 +3,14 @@ import { computed, ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { Folder, Setting, Plus } from "@element-plus/icons-vue";
+import { ElMessage } from "element-plus";
 import OnlineMusicIcon from "@/components/base/icons/OnlineMusicIcon.vue";
 import { useViewStore } from "@/stores/viewStore";
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { useCollectedPlaylistStore } from "@/stores/collectedPlaylistStore";
 import { useCollectedAlbumStore } from "@/stores/collectedAlbumStore";
+import { useOnlinePlaylistActions } from "@/composables/useOnlinePlaylistActions";
+import { hasTrackDragPayload, readTrackDragPayload } from "@/utils/trackDrag";
 import PlaylistCover from "@/components/feature/PlaylistCover/PlaylistCover.vue";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 
@@ -18,6 +21,47 @@ const viewStore = useViewStore();
 const playlistStore = usePlaylistStore();
 const collectedStore = useCollectedPlaylistStore();
 const collectedAlbumStore = useCollectedAlbumStore();
+const { addOnlineSongToPlaylist } = useOnlinePlaylistActions();
+
+/** 指针悬停在哪个歌单行上——拖拽时给该行点亮落点高亮 */
+const dropTargetPlaylistId = ref<string | null>(null);
+
+function handlePlaylistDragOver(event: DragEvent, playlistId: string) {
+  if (!hasTrackDragPayload(event)) return;
+  // 必须 preventDefault 才允许 drop；顺带把光标切成「复制」
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+  dropTargetPlaylistId.value = playlistId;
+}
+
+function handlePlaylistDragLeave(playlistId: string) {
+  if (dropTargetPlaylistId.value === playlistId) dropTargetPlaylistId.value = null;
+}
+
+async function handlePlaylistDrop(event: DragEvent, playlistId: string) {
+  dropTargetPlaylistId.value = null;
+  const payload = readTrackDragPayload(event);
+  if (!payload) return;
+
+  if (payload.type === "local") {
+    const name = playlistStore.getPlaylist(playlistId)?.name ?? "";
+    const added = playlistStore.addToPlaylist(playlistId, {
+      type: "local",
+      file_name: payload.fileName,
+    });
+    if (added) ElMessage.success(t("playlist.added", { name }));
+    else ElMessage.info(t("playlist.alreadyInPlaylist", { name }));
+    return;
+  }
+
+  // 在线歌曲：曲库里没有时先下载（downloadStore 负责进度与失败提示）
+  const result = await addOnlineSongToPlaylist(playlistId, payload.song);
+  if (result.outcome === "added") {
+    ElMessage.success(t("playlist.added", { name: result.playlistName }));
+  } else if (result.outcome === "already") {
+    ElMessage.info(t("playlist.alreadyInPlaylist", { name: result.playlistName }));
+  }
+}
 
 /** 侧边栏歌单区分栏：自建 / 收藏 */
 const playlistTab = ref<"created" | "collected">("created");
@@ -150,9 +194,15 @@ function goToCollectedPlaylist(id: string) {
               :key="pl.id"
               type="button"
               class="nav-item nav-item-playlist"
-              :class="{ 'is-active': isPlaylistActive(pl.id) }"
+              :class="{
+                'is-active': isPlaylistActive(pl.id),
+                'is-drop-target': dropTargetPlaylistId === pl.id,
+              }"
               :aria-current="isPlaylistActive(pl.id) ? 'page' : undefined"
               @click="goToPlaylist(pl.id)"
+              @dragover="handlePlaylistDragOver($event, pl.id)"
+              @dragleave="handlePlaylistDragLeave(pl.id)"
+              @drop="handlePlaylistDrop($event, pl.id)"
             >
               <PlaylistCover
                 :item="pl.items[0]"

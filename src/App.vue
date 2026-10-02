@@ -18,12 +18,14 @@ import Sidebar from "./components/layout/Sidebar/Sidebar.vue";
 import PlayerBar from "./components/feature/PlayerBar/PlayerBar.vue";
 import PlaybackQueue from "./components/feature/PlaybackQueue/PlaybackQueue.vue";
 import ImmersiveView from "./components/feature/ImmersiveView/ImmersiveView.vue";
+import ContextMenu from "./components/base/ContextMenu/ContextMenu.vue";
 import type { SearchScope } from "./types/model";
 import { useAppKeyboardShortcuts } from "./composables/useAppKeyboardShortcuts";
 import { usePlaybackQueueRouteReset } from "./composables/usePlaybackQueueRouteReset";
 import { useStorageThemeSync } from "./composables/useStorageThemeSync";
 import { useTrayPlaybackEvents } from "./composables/useTrayPlaybackEvents";
 import { useWindowSizeConstraints } from "./composables/useWindowSizeConstraints";
+import { useFileDropImport } from "./composables/useFileDropImport";
 import { getCoverFlightSource, playCoverFlight } from "./composables/useCoverFlight";
 import { useThemeStore } from "./stores/themeStore";
 import { useViewStore } from "./stores/viewStore";
@@ -32,8 +34,8 @@ import { useOnlineMusicStore } from "./stores/onlineMusicStore";
 import { useOnlineServiceStore } from "./stores/onlineServiceStore";
 import { usePlayerStore } from "./stores/playerStore";
 import { usePlaylistStore } from "./stores/playlistStore";
-import { quitApp } from "./api/commands/system";
-import { WINDOW_MIN_HEIGHT, WINDOW_MIN_WIDTH } from "./constants";
+import { quitApp, revealMainWindow } from "./api/commands/system";
+import { STORAGE_KEY_LAST_ROUTE, WINDOW_MIN_HEIGHT, WINDOW_MIN_WIDTH } from "./constants";
 
 const { locale, t } = useI18n();
 const elementLocale = computed(() => (locale.value === "zh" ? zhCn : en));
@@ -53,6 +55,7 @@ const route = useRoute();
 const router = useRouter();
 let isQuitting = false;
 let stopOnlineScopeWatch: WatchStopHandle | null = null;
+let stopRouteWatch: WatchStopHandle | null = null;
 
 // 在线相关的路由必须全部列在这里：未映射会返回 null，导致搜索框消失、
 // 在线服务状态灯隐藏，并且下方 watch 会停掉服务健康轮询。
@@ -68,6 +71,12 @@ const searchScope = computed<SearchScope | null>(() => {
 const windowSizeConstraints = useWindowSizeConstraints({
   minWidth: WINDOW_MIN_WIDTH,
   minHeight: WINDOW_MIN_HEIGHT,
+});
+const { isDraggingAudioFiles, dragAudioCount } = useFileDropImport({
+  getDefaultDirectory: () => localStore.getDefaultDirectory(),
+  onImported: () => {
+    void localStore.refreshCurrentDirectory();
+  },
 });
 const keyboardShortcuts = useAppKeyboardShortcuts({
   onPrevious: () => playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1)),
@@ -126,6 +135,30 @@ function flushPlaylistSave() {
   void playlistStore.flushSave();
 }
 
+/** 退出前把播放进度落在盘上：pagehide/beforeunload 是最后的同步窗口。 */
+function persistSessionNow() {
+  playerStore.persistSession(true);
+}
+
+function handleBeforeUnload() {
+  flushPlaylistSave();
+  persistSessionNow();
+}
+
+/** 恢复上次所在的路由；新建歌单的中间态（PlaylistNew）不恢复。 */
+function restoreLastRoute() {
+  let saved: string | null = null;
+  try {
+    saved = localStorage.getItem(STORAGE_KEY_LAST_ROUTE);
+  } catch {
+    return;
+  }
+  if (!saved || saved === "/") return;
+  void router.replace(saved).catch((error) => {
+    console.warn("[app:init] restore last route failed:", error);
+  });
+}
+
 async function closePlaybackQueue() {
   viewStore.closePlaybackQueue();
   await nextTick();
@@ -151,15 +184,23 @@ function runInitTask(name: string, task: () => Promise<unknown>) {
 }
 
 onMounted(() => {
+  // 首帧已经画好：本地界面此刻可用，不必为了预热中的在线服务继续压着窗口。
+  // 后端最多等 2s 兜底；这里提前显示，纯本地用户不用对着空白等近 2 秒。
+  void runInitTask("reveal window", () => revealMainWindow());
+
   keyboardShortcuts.start();
   themeSync.start();
-  window.addEventListener("beforeunload", flushPlaylistSave);
-  window.addEventListener("pagehide", flushPlaylistSave);
+  window.addEventListener("beforeunload", handleBeforeUnload);
+  window.addEventListener("pagehide", handleBeforeUnload);
 
   void Promise.all([
     runInitTask("window constraints", () => windowSizeConstraints.apply()),
     runInitTask("local library", () => localStore.initializeLocalLibrary()),
     runInitTask("playlists", () => playlistStore.loadPlaylists()),
+    runInitTask("last route", async () => {
+      await router.isReady();
+      restoreLastRoute();
+    }),
     runInitTask("playback volume", () => playerStore.syncVolumeToBackend()),
     runInitTask("playback clock", async () => {
       // 组件重挂载（开发时的 HMR 等）会停掉播放时钟，但 store 仍是「播放中」。
@@ -170,7 +211,24 @@ onMounted(() => {
     }),
     runInitTask("playback events", () => playerStore.startPlaybackEventListening()),
     runInitTask("tray events", () => trayEvents.start()),
-  ]);
+  ]).then(() => {
+    // 曲库与歌单就绪之后才能把上次的曲目/队列还原成可播放的引用
+    playerStore.restoreSession();
+  });
+
+  stopRouteWatch = watch(
+    () => route.fullPath,
+    () => {
+      // PlaylistNew 只是个跳板，恢复它会在启动时凭空新建一个歌单
+      if (route.name === "PlaylistNew") return;
+      try {
+        localStorage.setItem(STORAGE_KEY_LAST_ROUTE, route.fullPath);
+      } catch (error) {
+        console.warn("[app] save last route failed:", error);
+      }
+    },
+    { immediate: true }
+  );
 
   stopOnlineScopeWatch = watch(
     searchScope,
@@ -187,12 +245,14 @@ onUnmounted(() => {
   themeSync.stop();
   stopOnlineScopeWatch?.();
   stopOnlineScopeWatch = null;
+  stopRouteWatch?.();
+  stopRouteWatch = null;
   onlineServiceStore.stop();
   trayEvents.stop();
   playerStore.stopPlayTimeTracking();
   playerStore.stopPlaybackEventListening();
-  window.removeEventListener("beforeunload", flushPlaylistSave);
-  window.removeEventListener("pagehide", flushPlaylistSave);
+  window.removeEventListener("beforeunload", handleBeforeUnload);
+  window.removeEventListener("pagehide", handleBeforeUnload);
   flushPlaylistSave();
 });
 
@@ -297,6 +357,20 @@ async function handleExitImmersive() {
           @toggle-queue="viewStore.togglePlaybackQueue"
         />
       </Transition>
+      <!-- 全局唯一的右键菜单实例；行/卡片只负责 open() -->
+      <ContextMenu />
+
+      <!-- 从系统拖音频进窗口：整屏提示，松手即导入曲库 -->
+      <Transition name="drop">
+        <div v-if="isDraggingAudioFiles" class="drop-overlay" aria-hidden="true">
+          <div class="drop-overlay__card">
+            <p class="drop-overlay__title">{{ t("import.dropTitle") }}</p>
+            <p class="drop-overlay__hint">
+              {{ t("import.dropHint", { count: dragAudioCount }) }}
+            </p>
+          </div>
+        </div>
+      </Transition>
     </div>
   </el-config-provider>
 </template>
@@ -379,5 +453,57 @@ async function handleExitImmersive() {
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
   pointer-events: none;
   will-change: transform;
+}
+
+/* 拖文件进窗口的整屏提示。pointer-events: none 是必须的：提示层出现时
+   鼠标还在拖拽中，命中原生 drop 的必须是 webview 本身而不是这层 UI。 */
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.34);
+  pointer-events: none;
+}
+
+.drop-overlay__card {
+  padding: 24px 32px;
+  border: 1px dashed var(--app-focus-ring);
+  border-radius: var(--app-radius-lg);
+  background: var(--el-bg-color-overlay);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
+  text-align: center;
+}
+
+.drop-overlay__title {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 650;
+  color: var(--el-text-color-primary);
+}
+
+.drop-overlay__hint {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+}
+
+.drop-enter-active,
+.drop-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.drop-enter-from,
+.drop-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drop-enter-active,
+  .drop-leave-active {
+    transition: none;
+  }
 }
 </style>

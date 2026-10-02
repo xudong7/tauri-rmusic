@@ -24,6 +24,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { ElMessage } from "element-plus";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { usePlayerStore } from "@/stores/playerStore";
+import { AUDIO_FILE_EXTENSIONS } from "@/constants";
 import MusicList from "@/components/feature/MusicList/MusicList.vue";
 import { importMusic as importMusicCommand } from "@/api/commands/file";
 import { parseErrorMessage } from "@/utils/errorUtils";
@@ -42,7 +43,10 @@ async function importMusic() {
     const selected = await open({
       multiple: true,
       filters: [
-        { name: t("import.audioFiles"), extensions: ["mp3", "wav", "ogg", "flac"] },
+        {
+          name: t("import.audioFiles"),
+          extensions: [...AUDIO_FILE_EXTENSIONS],
+        },
       ],
     });
     if (!selected || (Array.isArray(selected) && selected.length === 0)) return;

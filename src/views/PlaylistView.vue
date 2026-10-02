@@ -112,9 +112,11 @@
         :selected-keys="selectedRowKeys"
         :current-key="currentRowKey"
         :is-playing="playerStore.isPlaying"
+        :context-menu-items="contextMenuItems"
         @activate="playAt($event.sourceIndex)"
         @toggle-current="playerStore.togglePlay"
         @toggle-select="toggleSelectRow($event.sourceIndex)"
+        @row-drag-start="handleRowDragStart"
         @visible-items="scheduleVisibleLocalCovers"
       >
         <template #empty>
@@ -174,6 +176,9 @@ import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useViewStore } from "@/stores/viewStore";
 import { useDownloadStore } from "@/stores/downloadStore";
+import type { ContextMenuItem } from "@/composables/useContextMenu";
+import { revealLocalFile } from "@/utils/revealInFolder";
+import { writeTrackDragPayload } from "@/utils/trackDrag";
 import DetailHero from "@/components/layout/DetailHero/DetailHero.vue";
 import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
 import TrackList from "@/components/feature/TrackList/TrackList.vue";
@@ -388,6 +393,53 @@ async function redownloadAt(index: number) {
 }
 
 const trackRows = computed(() => filteredResolvedItems.value.map(toTrackRow));
+
+/** 拖到另一个歌单：本地带文件名，在线带 SongInfo（接收方按需下载）。 */
+function handleRowDragStart(event: DragEvent, item: TrackRowModel) {
+  const entry = resolvedItems.value.find((candidate) => candidate.key === item.key);
+  if (!entry) return;
+  if (entry.musicFile) {
+    writeTrackDragPayload(event, { type: "local", fileName: entry.musicFile.file_name });
+  } else if (entry.songInfo) {
+    writeTrackDragPayload(event, { type: "online", song: entry.songInfo });
+  }
+}
+
+/** 行右键菜单：下一首播放 / 在文件夹中显示（本地）/ 从歌单移除。 */
+function contextMenuItems(item: TrackRowModel): ContextMenuItem[] {
+  const entry = resolvedItems.value.find((candidate) => candidate.key === item.key);
+  if (!entry) return [];
+  const items: ContextMenuItem[] = [];
+
+  if (entry.musicFile) {
+    const file = entry.musicFile;
+    items.push({
+      key: "play-next",
+      label: t("contextMenu.playNext"),
+      action: () => void playerStore.playNextInQueue({ type: "local", file }),
+    });
+    items.push({
+      key: "reveal",
+      label: t("contextMenu.revealInFolder"),
+      action: () => void revealLocalFile(file.file_name, localStore.currentDirectory),
+    });
+  } else if (entry.songInfo) {
+    const song = entry.songInfo;
+    items.push({
+      key: "play-next",
+      label: t("contextMenu.playNext"),
+      action: () => void playerStore.playNextInQueue({ type: "online", song }),
+    });
+  }
+
+  items.push({
+    key: "remove",
+    label: t("contextMenu.removeFromPlaylist"),
+    danger: true,
+    action: () => removeAt(entry.sourceIndex),
+  });
+  return items;
+}
 const selectedRowKeys = computed(
   () =>
     new Set(

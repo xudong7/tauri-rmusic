@@ -13,7 +13,34 @@ import type {
   SearchMixResult,
   ToplistResult,
 } from "@/types/model";
+import { DETAIL_CACHE_MAX_ENTRIES, DETAIL_CACHE_TTL_MS } from "@/constants";
+import { createTtlCache } from "@/utils/ttlCache";
+import type { TauriCommandParamsMap, TauriCommandResultMap } from "../types";
 import { invokeCommand } from "../client";
+
+/**
+ * 详情类命令的内存缓存。
+ *
+ * 专辑/歌单/歌手/榜单/歌词在一次会话里会被反复进出，数据却几乎不变；缓存
+ * 直接做在命令层，所有 store 与视图都受益，也不需要各自维护失效逻辑。
+ * 搜索与播放地址不在此列：前者由 store 按关键词缓存，后者的 URL 有时效。
+ */
+const detailCache = createTtlCache<unknown>(
+  DETAIL_CACHE_TTL_MS,
+  DETAIL_CACHE_MAX_ENTRIES
+);
+
+async function invokeCachedCommand<
+  K extends keyof TauriCommandParamsMap & keyof TauriCommandResultMap,
+>(name: K, args: TauriCommandParamsMap[K]): Promise<TauriCommandResultMap[K]> {
+  const key = `${name}:${JSON.stringify(args ?? null)}`;
+  const cached = detailCache.get(key);
+  if (cached !== undefined) return cached as TauriCommandResultMap[K];
+
+  const result = await invokeCommand(name, args);
+  detailCache.set(key, result);
+  return result;
+}
 
 export async function searchOnlineMix(args: {
   keywords: string;
@@ -52,7 +79,7 @@ export async function searchOnlineArtists(args: {
 export async function getPlaylistDetail(args: {
   id: string;
 }): Promise<PlaylistDetailResult> {
-  return await invokeCommand("get_playlist_detail", args);
+  return await invokeCachedCommand("get_playlist_detail", args);
 }
 
 export async function getPlaylistTracks(args: {
@@ -61,15 +88,15 @@ export async function getPlaylistTracks(args: {
   limit: number;
   trackCount: number;
 }): Promise<PlaylistTracksResult> {
-  return await invokeCommand("get_playlist_tracks", args);
+  return await invokeCachedCommand("get_playlist_tracks", args);
 }
 
 export async function getAlbumDetail(args: { id: string }): Promise<AlbumDetailResult> {
-  return await invokeCommand("get_album_detail", args);
+  return await invokeCachedCommand("get_album_detail", args);
 }
 
 export async function getToplist(): Promise<ToplistResult> {
-  return await invokeCommand("get_toplist");
+  return await invokeCachedCommand("get_toplist", undefined);
 }
 
 export async function getArtistAlbums(args: {
@@ -77,11 +104,11 @@ export async function getArtistAlbums(args: {
   page: number;
   pagesize: number;
 }): Promise<ArtistAlbumResult> {
-  return await invokeCommand("get_artist_albums", args);
+  return await invokeCachedCommand("get_artist_albums", args);
 }
 
 export async function getArtistDetail(args: { id: string }): Promise<ArtistDetailResult> {
-  return await invokeCommand("get_artist_detail", args);
+  return await invokeCachedCommand("get_artist_detail", args);
 }
 
 export async function getArtistSongs(args: {
@@ -90,18 +117,23 @@ export async function getArtistSongs(args: {
   pagesize: number;
   order: "hot" | "time";
 }): Promise<ArtistSongsPage> {
-  return await invokeCommand("get_artist_songs", args);
+  return await invokeCachedCommand("get_artist_songs", args);
 }
 
 export async function getArtistTopSongs(args: {
   id: string;
   limit: number;
 }): Promise<ArtistSongsResult> {
-  return await invokeCommand("get_artist_top_songs", args);
+  return await invokeCachedCommand("get_artist_top_songs", args);
 }
 
 export async function getSongLyric(args: { id: string }): Promise<string> {
-  return await invokeCommand("get_song_lyric", args);
+  return await invokeCachedCommand("get_song_lyric", args);
+}
+
+/** 下载并缓存在线封面，返回本地文件路径（无缓存可回退时返回 null）。 */
+export async function cacheOnlineCover(args: { url: string }): Promise<string | null> {
+  return await invokeCommand("cache_online_cover", args);
 }
 
 export async function checkOnlineServiceStatus(): Promise<OnlineServiceStatus> {

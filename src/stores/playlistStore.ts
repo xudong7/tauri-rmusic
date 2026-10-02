@@ -134,6 +134,39 @@ export const usePlaylistStore = defineStore("playlist", () => {
     if (list && index >= 0 && index < list.items.length) list.items.splice(index, 1);
   }
 
+  /**
+   * 插到指定位置；已在列表里的歌不重复添加，而是移动到目标位置。
+   *
+   * 给「下一首播放」用：歌单就是持久化的播放顺序，插进去才是真的下一首；
+   * 若那首歌已经在后面，把它挪过来而不是留下两份。
+   */
+  function insertIntoPlaylist(
+    playlistId: string,
+    index: number,
+    item: PlaylistItem
+  ): boolean {
+    const list = playlists.value.find((p) => p.id === playlistId);
+    if (!list) return false;
+
+    const existingIndex = list.items.findIndex((existing) =>
+      isSamePlaylistItem(existing, item)
+    );
+    if (existingIndex !== -1) {
+      const [existing] = list.items.splice(existingIndex, 1);
+      // 先删后插：目标下标在原位置之后时要左移一格，否则会插过目标一格
+      const safeIndex = Math.max(
+        0,
+        Math.min(existingIndex < index ? index - 1 : index, list.items.length)
+      );
+      list.items.splice(safeIndex, 0, existing);
+      return true;
+    }
+
+    const safeIndex = Math.max(0, Math.min(index, list.items.length));
+    list.items.splice(safeIndex, 0, item);
+    return true;
+  }
+
   function reorderPlaylist(playlistId: string, fromIndex: number, toIndex: number) {
     const list = playlists.value.find((p) => p.id === playlistId);
     if (!list || fromIndex < 0 || fromIndex >= list.items.length) return;
@@ -151,6 +184,7 @@ export const usePlaylistStore = defineStore("playlist", () => {
     renamePlaylist,
     getPlaylist,
     addToPlaylist,
+    insertIntoPlaylist,
     removeFromPlaylist,
     reorderPlaylist,
   };

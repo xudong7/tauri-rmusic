@@ -5,11 +5,17 @@ import type {
   MusicFile,
   PlaybackPhase,
   PlaybackQueueItem,
+  PlaylistItem,
   SongInfo,
 } from "@/types/model";
 import { PlayMode } from "@/types/model";
 import { i18n } from "@/i18n";
-import { STORAGE_KEY_PLAY_MODE } from "@/constants";
+import {
+  PLAYER_SESSION_QUEUE_LIMIT,
+  PLAYER_SESSION_VERSION,
+  PLAYER_SESSION_WRITE_INTERVAL_MS,
+  STORAGE_KEY_PLAY_MODE,
+} from "@/constants";
 import { parseErrorMessage } from "@/utils/errorUtils";
 import { joinPathSegment } from "@/utils/pathUtils";
 import { formatArtists, getLocalMusicDisplayInfo } from "@/utils/songUtils";
@@ -37,6 +43,13 @@ import { usePlaybackQueue, type PlayOnlineOptions } from "@/composables/usePlayb
 import { usePlaybackVolume } from "@/composables/usePlaybackVolume";
 import { createPlaybackEventListener } from "./player/playbackEvents";
 import { createPlaybackRequestController } from "./player/playbackRequest";
+import {
+  clearPlayerSession,
+  readPlayerSession,
+  windowQueue,
+  writePlayerSession,
+  type PlayerSessionSnapshot,
+} from "./player/sessionPersistence";
 import { useViewStore } from "./viewStore";
 import { useLocalMusicStore } from "./localMusicStore";
 import { useOnlineServiceStore } from "./onlineServiceStore";
@@ -83,6 +96,14 @@ export const usePlayerStore = defineStore("player", () => {
   const currentPlayTime = ref(0);
   const currentTrackDurationMs = ref(0);
   const currentBackendTrackId = ref(0);
+  /**
+   * 会话恢复后、真正开始播放前为 true。
+   *
+   * 恢复出来的曲目只是「摆在那里的记录」——后端 sink 里没有它。此时点播放
+   * 不能走 handleEvent("recovery")（那是在已加载的音频上继续），必须先按
+   * 正常路径重新加载，再 seek 回保存的位置。
+   */
+  const sessionResumePending = ref(false);
   let handlingEndedTrackId = 0;
   let shuffleContextKey = "";
   let shuffleHistory: string[] = [];
@@ -345,6 +366,151 @@ export const usePlayerStore = defineStore("player", () => {
     else stopPlayTimeTracking();
   });
 
+  // ---------- 播放会话：恢复与持久化 ----------
+
+  function buildSessionSnapshot(): PlayerSessionSnapshot | null {
+    if (!hasCurrentTrack.value) return null;
+
+    const localKey = currentMusic.value ? getLocalTrackKey(currentMusic.value) : null;
+    let localQueueKeys: string[] = [];
+    if (localKey && currentLocalQueue.value.length > 0) {
+      const keys = currentLocalQueue.value.map(getLocalTrackKey);
+      localQueueKeys = windowQueue(
+        keys,
+        keys.indexOf(localKey),
+        PLAYER_SESSION_QUEUE_LIMIT
+      );
+    }
+
+    // 歌单上下文不存队列：恢复时按 playlistId 从歌单现算，歌单本身有持久化。
+    let onlineQueue: SongInfo[] = [];
+    if (currentOnlineSong.value && !currentPlaylistId.value) {
+      const queue = currentOnlineQueue.value.length
+        ? currentOnlineQueue.value
+        : [currentOnlineSong.value];
+      const index = queue.findIndex((song) => song.id === currentOnlineSong.value?.id);
+      onlineQueue = windowQueue(queue, index, PLAYER_SESSION_QUEUE_LIMIT);
+    }
+
+    return {
+      version: PLAYER_SESSION_VERSION,
+      positionMs: currentPlayTime.value,
+      playlistId: currentPlaylistId.value,
+      localKey,
+      onlineSong: currentOnlineSong.value,
+      localQueueKeys,
+      onlineQueue,
+    };
+  }
+
+  let lastSessionWriteAt = 0;
+
+  /** 播放进度每 250ms 变化一次，按节流写盘；切歌/暂停等节点用 force 立即写。 */
+  function persistSession(force = false) {
+    const now = Date.now();
+    if (!force && now - lastSessionWriteAt < PLAYER_SESSION_WRITE_INTERVAL_MS) return;
+    lastSessionWriteAt = now;
+
+    const snapshot = buildSessionSnapshot();
+    if (!snapshot) {
+      clearPlayerSession();
+      return;
+    }
+    writePlayerSession(snapshot);
+  }
+
+  function restoreSession(): boolean {
+    const session = readPlayerSession();
+    if (!session) return false;
+
+    if (session.playlistId) {
+      const playlist = playlistStore.getPlaylist(session.playlistId);
+      currentPlaylistId.value = playlist ? playlist.id : null;
+    } else {
+      currentPlaylistId.value = null;
+    }
+
+    if (session.localKey) {
+      const file = localStore.musicFiles.find(
+        (candidate) => getLocalTrackKey(candidate) === session.localKey
+      );
+      // 上次放的文件已经不在曲库里（被删/换了曲库目录）：没有可恢复的东西。
+      if (!file) {
+        clearPlayerSession();
+        return false;
+      }
+      if (!currentPlaylistId.value) {
+        const byKey = new Map(
+          localStore.musicFiles.map((item) => [getLocalTrackKey(item), item])
+        );
+        currentLocalQueue.value = session.localQueueKeys
+          .map((key) => byKey.get(key))
+          .filter((item): item is MusicFile => Boolean(item));
+      }
+      currentMusic.value = file;
+      currentOnlineSong.value = null;
+      currentTrackDurationMs.value = Math.max(0, file.duration_ms ?? 0);
+    } else if (session.onlineSong) {
+      currentOnlineSong.value = session.onlineSong;
+      currentMusic.value = null;
+      currentLocalQueue.value = [];
+      if (!currentPlaylistId.value) {
+        currentOnlineQueue.value = session.onlineQueue.length
+          ? session.onlineQueue
+          : [session.onlineSong];
+      }
+      currentTrackDurationMs.value = Math.max(0, session.onlineSong.duration ?? 0);
+    } else {
+      return false;
+    }
+
+    // 恢复是「记起来」，不是「接着放」：不碰后端，等用户按播放。
+    isPlaying.value = false;
+    playbackPhase.value = "idle";
+    currentBackendTrackId.value = 0;
+    currentPlayTime.value = 0;
+    sessionResumePending.value = true;
+    if (session.positionMs > 0) currentPlayTime.value = clampPlayTime(session.positionMs);
+
+    debugPlaybackLog(
+      `[播放控制] 已恢复上次会话：${
+        currentMusic.value?.file_name ?? currentOnlineSong.value?.name ?? ""
+      } @ ${Math.round(currentPlayTime.value)}ms`
+    );
+    return true;
+  }
+
+  /** 恢复出来的曲目首次播放：重新加载音频，再跳回保存的位置。 */
+  async function resumeRestoredTrack() {
+    const targetPosition = clampPlayTime(currentPlayTime.value);
+    const playlistId = currentPlaylistId.value;
+    let attempt: PlaybackAttempt = "failed";
+
+    if (currentMusic.value) {
+      attempt = await playMusic(
+        currentMusic.value,
+        playlistId ? { fromPlaylistId: playlistId } : { queue: currentLocalQueue.value }
+      );
+    } else if (currentOnlineSong.value) {
+      attempt = await playOnlineSong(
+        currentOnlineSong.value,
+        playlistId ? { fromPlaylistId: playlistId } : { queue: currentOnlineQueue.value }
+      );
+    }
+
+    if (attempt === "played") {
+      if (targetPosition > 0) await seekToPosition(targetPosition);
+      return;
+    }
+    // 失败后保留待恢复标记：用户再点一次播放应该重试，而不是对空气恢复。
+    if (attempt === "failed") sessionResumePending.value = true;
+  }
+
+  watch(currentPlayTime, () => persistSession());
+  watch([currentMusic, currentOnlineSong, currentPlaylistId], () => persistSession(true));
+  watch([currentLocalQueue, currentOnlineQueue], () => persistSession(true));
+  watch(isPlaying, () => persistSession(true));
+
   function startPlayTimeTracking() {
     playbackClock.start();
   }
@@ -361,6 +527,7 @@ export const usePlayerStore = defineStore("player", () => {
     music: MusicFile,
     options?: PlayLocalOptions
   ): Promise<PlaybackAttempt> {
+    sessionResumePending.value = false;
     const requestId = playbackRequest.begin();
     try {
       if (options?.fromPlaylistId) {
@@ -418,6 +585,7 @@ export const usePlayerStore = defineStore("player", () => {
     song: SongInfo,
     options?: PlayOnlineOptions
   ): Promise<PlaybackAttempt> {
+    sessionResumePending.value = false;
     if (
       currentOnlineSong.value?.id === song.id &&
       isPlaying.value &&
@@ -545,6 +713,105 @@ export const usePlayerStore = defineStore("player", () => {
     if (song) await playOnlineSong(song, { queue });
   }
 
+  type NextQueueTarget =
+    | { type: "local"; file: MusicFile }
+    | { type: "online"; song: SongInfo };
+
+  /**
+   * 「下一首播放」：把目标插到当前曲目之后。
+   *
+   * 语义按当前播放上下文分三种：
+   * - 歌单上下文：直接插进歌单（歌单就是持久化的播放顺序），已在列表里则移动；
+   * - 本地/在线队列：插进队列快照，已在队列里则先挪位再插；
+   * - 没有正在播放的曲目，或目标与当前上下文类型不同（在放本地却要插在线）：
+   *   直接播放目标——插到一个不存在的队列里没有意义。
+   */
+  async function playNextInQueue(target: NextQueueTarget): Promise<boolean> {
+    if (!hasCurrentTrack.value) {
+      return target.type === "local"
+        ? (await playMusic(target.file)) === "played"
+        : (await playOnlineSong(target.song)) === "played";
+    }
+
+    if (currentPlaylistId.value) {
+      const list = playlistStore.getPlaylist(currentPlaylistId.value);
+      if (list) {
+        const currentIndex = list.items.findIndex((item) =>
+          currentMusic.value
+            ? item.type === "local" && item.file_name === currentMusic.value.file_name
+            : item.type === "online" && item.song.id === currentOnlineSong.value?.id
+        );
+        const playlistItem: PlaylistItem =
+          target.type === "local"
+            ? { type: "local", file_name: target.file.file_name }
+            : { type: "online", song: target.song };
+        playlistStore.insertIntoPlaylist(
+          list.id,
+          currentIndex === -1 ? 0 : currentIndex + 1,
+          playlistItem
+        );
+        ElMessage.success(i18n.global.t("messages.playNext"));
+        return true;
+      }
+    }
+
+    if (currentMusic.value) {
+      // 在放本地、目标是在线：切换到在线上下文并直接播它
+      if (target.type !== "local") {
+        return (await playOnlineSong(target.song, { queue: [target.song] })) === "played";
+      }
+      const queue = currentLocalQueue.value.length
+        ? [...currentLocalQueue.value]
+        : [...localStore.musicFiles];
+      const currentIndex = queue.findIndex(
+        (file) =>
+          currentMusic.value !== null &&
+          getLocalTrackKey(file) === getLocalTrackKey(currentMusic.value)
+      );
+      const existingIndex = queue.findIndex(
+        (file) => getLocalTrackKey(file) === getLocalTrackKey(target.file)
+      );
+      if (existingIndex !== -1) queue.splice(existingIndex, 1);
+      const insertAfter =
+        currentIndex === -1
+          ? 0
+          : existingIndex !== -1 && existingIndex < currentIndex
+            ? currentIndex - 1
+            : currentIndex;
+      queue.splice(insertAfter + 1, 0, target.file);
+      currentLocalQueue.value = queue;
+      ElMessage.success(i18n.global.t("messages.playNext"));
+      return true;
+    }
+
+    if (currentOnlineSong.value) {
+      if (target.type !== "online") {
+        return (await playMusic(target.file, { queue: [target.file] })) === "played";
+      }
+      const queue = currentOnlineQueue.value.length
+        ? [...currentOnlineQueue.value]
+        : [currentOnlineSong.value];
+      const currentIndex = queue.findIndex(
+        (song) => song.id === currentOnlineSong.value?.id
+      );
+      const existingIndex = queue.findIndex((song) => song.id === target.song.id);
+      if (existingIndex !== -1) queue.splice(existingIndex, 1);
+      const insertAfter =
+        currentIndex === -1
+          ? 0
+          : existingIndex !== -1 && existingIndex < currentIndex
+            ? currentIndex - 1
+            : currentIndex;
+      queue.splice(insertAfter + 1, 0, target.song);
+      currentOnlineQueue.value = queue;
+      void playbackQueue.prefetchNextOnlineSong(currentOnlineSong.value);
+      ElMessage.success(i18n.global.t("messages.playNext"));
+      return true;
+    }
+
+    return false;
+  }
+
   async function togglePlay() {
     try {
       if (isLoadingSong.value) {
@@ -553,6 +820,12 @@ export const usePlayerStore = defineStore("player", () => {
       }
       if (!hasCurrentTrack.value) {
         debugPlaybackLog("[播放控制] 没有当前曲目，忽略播放/暂停操作");
+        return;
+      }
+
+      // 恢复出来的曲目还没加载进后端：播放 = 重新加载 + 跳回原位
+      if (!isPlaying.value && sessionResumePending.value) {
+        await resumeRestoredTrack();
         return;
       }
 
@@ -863,6 +1136,11 @@ export const usePlayerStore = defineStore("player", () => {
   /** 仅同步播放状态（由托盘等外部触发播放/暂停时调用，不发起后端请求） */
   function syncPlaybackStateFromTray(playing: boolean) {
     if (!hasCurrentTrack.value) return;
+    // 恢复出来的曲目后端还没有音频：托盘的「播放」也要先加载再放
+    if (playing && sessionResumePending.value) {
+      void resumeRestoredTrack();
+      return;
+    }
     isPlaying.value = playing;
     if (playing) {
       startPlayTimeTracking();
@@ -882,6 +1160,11 @@ export const usePlayerStore = defineStore("player", () => {
 
   async function seekToPosition(positionMs: number) {
     try {
+      // 恢复出来的曲目还没加载：只更新显示位置，真正跳转在播放时补上
+      if (sessionResumePending.value) {
+        currentPlayTime.value = clampPlayTime(positionMs);
+        return;
+      }
       const result = await seekTo(positionMs);
       if (result.should_play_next) {
         await playNextOrPreviousMusic(getPlayStep(1));
@@ -921,11 +1204,15 @@ export const usePlayerStore = defineStore("player", () => {
     stopPlayTimeTracking,
     startPlaybackEventListening,
     stopPlaybackEventListening,
+    sessionResumePending,
+    restoreSession,
+    persistSession,
     playMusic,
     playOnlineSong,
     prefetchOnlineSong,
     playFromPlaylist,
     playQueueItem,
+    playNextInQueue,
     togglePlay,
     adjustVolume,
     syncVolumeToBackend,

@@ -10,6 +10,9 @@ import {
   type DownloadState,
 } from "@/stores/downloadStore";
 import { usePlaylistStore } from "@/stores/playlistStore";
+import { usePlayerStore } from "@/stores/playerStore";
+import type { ContextMenuItem } from "@/composables/useContextMenu";
+import { writeTrackDragPayload } from "@/utils/trackDrag";
 import { useOnlinePlaylistActions } from "@/composables/useOnlinePlaylistActions";
 import CheckIcon from "@/components/base/icons/CheckIcon.vue";
 import TrackList from "@/components/feature/TrackList/TrackList.vue";
@@ -17,6 +20,7 @@ import type { TrackRowModel } from "@/components/feature/TrackList/types";
 
 const { t } = useI18n();
 const playlistStore = usePlaylistStore();
+const playerStore = usePlayerStore();
 const downloadStore = useDownloadStore();
 const { addOnlineSongToPlaylist } = useOnlinePlaylistActions();
 
@@ -119,6 +123,35 @@ function requestDownload(song: SongInfo) {
   void downloadStore.download(song);
 }
 
+/** 拖到侧栏歌单即添加；在线歌曲会先走下载流程（由接收方处理）。 */
+function handleRowDragStart(event: DragEvent, item: TrackRowModel) {
+  const song = props.onlineSongs[item.sourceIndex];
+  if (!song) return;
+  writeTrackDragPayload(event, { type: "online", song });
+}
+
+/** 行右键菜单：下一首播放 / 下载（已下载时不出现）。 */
+function contextMenuItems(item: TrackRowModel): ContextMenuItem[] {
+  const song = props.onlineSongs[item.sourceIndex];
+  if (!song) return [];
+  const items: ContextMenuItem[] = [
+    {
+      key: "play-next",
+      label: t("contextMenu.playNext"),
+      action: () => void playerStore.playNextInQueue({ type: "online", song }),
+    },
+  ];
+  const state = stateOfRow(item.key);
+  if (state !== "downloaded" && state !== "downloading") {
+    items.push({
+      key: "download",
+      label: t("common.download"),
+      action: () => requestDownload(song),
+    });
+  }
+  return items;
+}
+
 /** 加入歌单后让 Plus 闪一下打勾。 */
 const FLASH_DURATION_MS = 1600;
 const flashedKey = ref<string | null>(null);
@@ -156,8 +189,10 @@ onBeforeUnmount(() => {
       :is-playing="props.isPlaying"
       :busy-keys="busyKeys"
       :hide-album="hideAlbum"
+      :context-menu-items="contextMenuItems"
       @activate="emit('play', onlineSongs[$event.sourceIndex])"
       @toggle-current="emit('toggle-current')"
+      @row-drag-start="handleRowDragStart"
       @near-end="requestLoadMore"
     >
       <!-- 透传父组件的同名插槽，未提供时回退到通用文案。

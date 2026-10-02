@@ -178,6 +178,8 @@ export default {
     importing: "Importing {count} file(s)...",
     failed: "Import failed",
     openDialogFailed: "Failed to open file dialog",
+    dropTitle: "Drop to import",
+    dropHint: "{count} audio file(s) into your library",
   },
   download: {
     downloading: "Downloading",
@@ -195,6 +197,12 @@ export default {
     cacheCleared: "Cache cleared",
     pathCopied: "Path copied",
     skippedUnplayable: "Skipped {count} unavailable track(s)",
+    playNext: "Will play next",
+  },
+  contextMenu: {
+    playNext: "Play next",
+    revealInFolder: "Show in folder",
+    removeFromPlaylist: "Remove from playlist",
   },
   errors: {
     loadMusicFailed: "Failed to load music files",
@@ -216,6 +224,7 @@ export default {
     setDirFailed: "Failed to set default directory",
     resetDirFailed: "Failed to reset directory",
     deleteMusicFailed: "Failed to delete song",
+    revealFailed: "Failed to show in folder",
     clearCacheFailed: "Failed to clear cache",
     networkError: "Network error, please check your connection",
     apiError: "API returned an error",

@@ -11,10 +11,26 @@ export const STORAGE_KEY_COLLECTED_PLAYLISTS = "rmusic-collected-playlists";
 export const STORAGE_KEY_COLLECTED_ALBUMS = "rmusic-collected-albums";
 /** 下载过的歌曲：文件名 → 来源，用于「删了之后重新下载」 */
 export const STORAGE_KEY_DOWNLOAD_SOURCES = "rmusic-download-sources";
+/** 上次会话：曲目/队列/进度，启动时恢复 */
+export const STORAGE_KEY_PLAYER_SESSION = "rmusic-player-session";
+/** 上次所在路由，启动时恢复 */
+export const STORAGE_KEY_LAST_ROUTE = "rmusic-last-route";
+
+/* ---------- 播放会话 ---------- */
+/** 会话结构版本。字段不兼容变更时递增，旧版本直接丢弃。 */
+export const PLAYER_SESSION_VERSION = 1;
+/** 队列只持久化当前曲目两侧的这么多条，避免整库撑爆 localStorage */
+export const PLAYER_SESSION_QUEUE_LIMIT = 200;
+/** 播放中进度写盘的节流间隔（ms） */
+export const PLAYER_SESSION_WRITE_INTERVAL_MS = 3000;
 
 /* ---------- 搜索历史 ---------- */
 /** 单模式（本地/在线）最多保留条数 */
 export const SEARCH_HISTORY_MAX_ITEMS = 6;
+
+/* ---------- 导入 ---------- */
+/** 支持的音频扩展名：导入对话框与「拖文件进窗口」共用同一份 */
+export const AUDIO_FILE_EXTENSIONS = ["mp3", "wav", "ogg", "flac"];
 
 /* ---------- 播放列表 ---------- */
 /** 防抖写入延迟（ms），避免连续多次写入后端 */
@@ -114,3 +130,15 @@ export const GRID_NEAR_END_THRESHOLD = 220;
  * 若首屏只取 20 首，播放第 3 首时队列里就只有 20 首。
  */
 export const PLAYLIST_TRACKS_PAGE_SIZE = 200;
+
+/* ---------- 在线详情缓存 ---------- */
+/**
+ * 详情接口（专辑/歌单/歌手/榜单/歌词）的内存缓存时长。
+ *
+ * 这些数据在几分钟内不会变，而用户经常专辑页↔歌手页↔歌单页来回走；
+ * 取 5 分钟：既覆盖「退出去又进来」的典型路径，又不至于让歌单曲目更新
+ * 长时间不可见。失败不写入缓存，重试仍会真正发请求。
+ */
+export const DETAIL_CACHE_TTL_MS = 5 * 60 * 1000;
+/** 详情缓存条数上限（按 LRU 淘汰） */
+export const DETAIL_CACHE_MAX_ENTRIES = 80;
