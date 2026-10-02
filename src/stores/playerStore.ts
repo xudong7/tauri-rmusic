@@ -1193,6 +1193,7 @@ export const usePlayerStore = defineStore("player", () => {
     currentPlaylistId,
     currentLocalQueue,
     currentOnlineQueue,
+    currentBackendTrackId,
 
     hasCurrentTrack,
     currentTrackDuration,

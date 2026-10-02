@@ -2,6 +2,7 @@ import { onMounted, onUnmounted, watch } from "vue";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { revealMainWindow, updateMediaMetadata } from "@/api/commands/system";
 import { cacheOnlineCover } from "@/api/commands/netease";
+import { getPlaybackState } from "@/api/commands/music";
 import type { MediaMetadataUpdate } from "@/api/types";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
@@ -65,6 +66,25 @@ export function useSystemMediaControls() {
       return;
     }
 
+    // 进度必须问后端要：主窗隐藏时播放时钟停摆，store 里的 currentPlayTime
+    // 是冻结值，暂停/跳转后推给系统会是一条很久以前的旧位置。
+    // track_id 对不上时（切歌窗口内后端还描述着上一首）回退到 store。
+    let positionMs = playerStore.currentPlayTime;
+    let durationMs = playerStore.currentTrackDuration;
+    try {
+      const state = await getPlaybackState();
+      if (
+        state.has_track &&
+        playerStore.currentBackendTrackId > 0 &&
+        state.track_id === playerStore.currentBackendTrackId
+      ) {
+        positionMs = state.position_ms;
+        if (state.duration_ms > 0) durationMs = state.duration_ms;
+      }
+    } catch (error) {
+      console.warn("[系统媒体控制] 读取播放进度失败:", error);
+    }
+
     /**
      * 封面统一转成本地 file:// 或 null。
      *
@@ -82,8 +102,8 @@ export function useSystemMediaControls() {
         artist: formatArtists(online.artists),
         album: online.album ?? "",
         coverUrl: null,
-        durationMs: playerStore.currentTrackDuration,
-        positionMs: playerStore.currentPlayTime,
+        durationMs,
+        positionMs,
         isPlaying: playerStore.isPlaying,
         volume: playerStore.volume / 100,
       };
@@ -103,8 +123,8 @@ export function useSystemMediaControls() {
         artist: info.artist,
         album: info.album ?? "",
         coverUrl: null,
-        durationMs: playerStore.currentTrackDuration,
-        positionMs: playerStore.currentPlayTime,
+        durationMs,
+        positionMs,
         isPlaying: playerStore.isPlaying,
         volume: playerStore.volume / 100,
       };
