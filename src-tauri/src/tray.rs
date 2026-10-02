@@ -1,4 +1,4 @@
-use tauri::menu::MenuBuilder;
+use tauri::menu::{MenuBuilder, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::Emitter;
 use tauri::Manager;
@@ -28,8 +28,18 @@ pub struct TrayLabels {
 fn build_tray_menu(
     app: &AppHandle,
     labels: &TrayLabels,
+    now_playing: Option<&str>,
 ) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
-    MenuBuilder::new(app)
+    let mut builder = MenuBuilder::new(app);
+
+    // 正在播放单独占一行（禁用项）：macOS 上 tooltip 不一定被看到，
+    // 菜单里直接写出来最直观
+    if let Some(text) = now_playing.filter(|value| !value.trim().is_empty()) {
+        let item = MenuItem::with_id(app, "now_playing", text, false, None::<&str>)?;
+        builder = builder.item(&item).separator();
+    }
+
+    builder
         .text("play", &labels.play)
         .text("pause", &labels.pause)
         .text("prev", &labels.previous)
@@ -55,7 +65,8 @@ pub fn update_tray_menu(
         return Ok(());
     };
 
-    let menu = build_tray_menu(&app, &labels).map_err(|e| format!("build tray menu: {}", e))?;
+    let menu = build_tray_menu(&app, &labels, now_playing.as_deref())
+        .map_err(|e| format!("build tray menu: {}", e))?;
     tray.set_menu(Some(menu))
         .map_err(|e| format!("set tray menu: {}", e))?;
 
@@ -99,7 +110,7 @@ pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
         show_hide: "Show / Hide".to_string(),
         quit: "Quit".to_string(),
     };
-    let menu = build_tray_menu(app.handle(), &initial_labels)?;
+    let menu = build_tray_menu(app.handle(), &initial_labels, None)?;
 
     let mut tray_builder = TrayIconBuilder::with_id(TRAY_ID)
         .menu(&menu)
