@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { extractArtistName, extractSongTitle, formatProgressTooltip } from "./songUtils";
+import {
+  extractArtistName,
+  extractSongTitle,
+  formatProgressTooltip,
+  upgradeCoverUrl,
+} from "./songUtils";
 
 describe("extractSongTitle / extractArtistName", () => {
   it("按「歌手 - 歌曲」切分", () => {
@@ -35,5 +40,23 @@ describe("formatProgressTooltip", () => {
   it("时长未知时返回 0:00", () => {
     expect(formatProgressTooltip(50, 0)).toBe("0:00");
     expect(formatProgressTooltip(50, Number.NaN)).toBe("0:00");
+  });
+});
+
+describe("upgradeCoverUrl", () => {
+  it("替换 param 尺寸参数", () => {
+    expect(upgradeCoverUrl("https://p1.music.126.net/a.jpg?param=300y300", 600)).toBe(
+      "https://p1.music.126.net/a.jpg?param=600y600"
+    );
+    expect(
+      upgradeCoverUrl("https://p1.music.126.net/a.jpg?id=1&param=130y130", 600)
+    ).toBe("https://p1.music.126.net/a.jpg?id=1&param=600y600");
+  });
+
+  it("没有尺寸参数或空地址时原样返回", () => {
+    expect(upgradeCoverUrl("https://p1.music.126.net/a.jpg", 600)).toBe(
+      "https://p1.music.126.net/a.jpg"
+    );
+    expect(upgradeCoverUrl("", 600)).toBe("");
   });
 });
