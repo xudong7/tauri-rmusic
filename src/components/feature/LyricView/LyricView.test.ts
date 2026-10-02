@@ -3,6 +3,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { i18n } from "@/i18n";
 import type { SongInfo } from "@/types/model";
+import { useLyricOffset } from "@/composables/useLyricOffset";
 import LyricView from "./LyricView.vue";
 
 const getSongLyricMock = vi.fn();
@@ -44,7 +45,11 @@ async function mountLyricView(id: string) {
 describe("LyricView 点击歌词跳转", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
-    getSongLyricMock.mockReset().mockResolvedValue("[00:01.00]First\n[00:12.50]Second");
+    // 偏移是模块级状态，清掉上一条用例的残留
+    useLyricOffset().resetOffset();
+    getSongLyricMock
+      .mockReset()
+      .mockResolvedValue({ lyric: "[00:01.00]First\n[00:12.50]Second", translation: "" });
   });
 
   it("点击歌词行 emit 该行时间", async () => {
@@ -58,11 +63,37 @@ describe("LyricView 点击歌词跳转", () => {
   });
 
   it("暂无歌词的占位行不可点击", async () => {
-    getSongLyricMock.mockResolvedValue("");
+    getSongLyricMock.mockResolvedValue({ lyric: "", translation: "" });
     const wrapper = await mountLyricView("empty");
 
     expect(wrapper.find(".lyric-line.is-seekable").exists()).toBe(false);
     await wrapper.get(".lyric-line").trigger("click");
     expect(wrapper.emitted("seek")).toBeUndefined();
+  });
+
+  it("翻译按时间戳合并，只显示有翻译的行", async () => {
+    getSongLyricMock.mockResolvedValue({
+      lyric: "[00:01.00]First\n[00:12.50]Second",
+      translation: "[00:01.00]第一句",
+    });
+    const wrapper = await mountLyricView("translated");
+
+    const translations = wrapper.findAll(".lyric-line-translation");
+    expect(translations).toHaveLength(1);
+    expect(translations[0].text()).toBe("第一句");
+  });
+
+  it("调整偏移后点歌词跳转补偿偏移，值可重置", async () => {
+    const wrapper = await mountLyricView("offset");
+
+    // 一次「歌词提前」= 偏移 -0.5s；点击跳转时补偿回 1000 - 500
+    await wrapper.get(".lyric-offset__btn").trigger("click");
+    expect(wrapper.get(".lyric-offset__value").text()).toBe("-0.5s");
+
+    await wrapper.findAll(".lyric-line.is-seekable")[0].trigger("click");
+    expect(wrapper.emitted("seek")).toEqual([[500]]);
+
+    await wrapper.get(".lyric-offset__value").trigger("click");
+    expect(wrapper.get(".lyric-offset__value").text()).toBe("0.0s");
   });
 });

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import { ChatLineSquare } from "@element-plus/icons-vue";
 import PlayIcon from "@/components/base/icons/PlayIcon.vue";
 import PauseIcon from "@/components/base/icons/PauseIcon.vue";
 import QueueIcon from "@/components/base/icons/QueueIcon.vue";
@@ -24,6 +25,7 @@ import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import { useArtistNavigation } from "@/composables/useArtistNavigation";
 import { useAlbumNavigation } from "@/composables/useAlbumNavigation";
 import { useCoverLoader } from "@/composables/useCoverLoader";
+import { useLyricsOverlay } from "@/composables/useLyricsOverlay";
 import { registerCoverFlightSource } from "@/composables/useCoverFlight";
 import { usePlaybackProgressSlider } from "@/composables/usePlaybackProgressSlider";
 import { useVolumeMute } from "@/composables/usePlaybackVolume";
@@ -63,6 +65,7 @@ const emit = defineEmits([
 const artistStore = useArtistStore();
 const onlineStore = useOnlineMusicStore();
 const localStore = useLocalMusicStore();
+const { isLyricsOverlayOpen, toggleLyricsOverlay } = useLyricsOverlay();
 const volumeSliderValue = ref(props.volume);
 const showRemainingTime = ref(false);
 
@@ -342,8 +345,20 @@ const {
       </div>
     </div>
 
-    <!-- 右侧：只剩播放队列。播放顺序与音量已归入控制行。 -->
+    <!-- 右侧：桌面歌词 + 播放队列 -->
     <div v-show="hasTrack" class="player-right">
+      <el-tooltip :content="t('lyricsOverlay.toggle')" placement="top" effect="light">
+        <el-button
+          class="desktop-lyrics-btn app-icon-button"
+          :class="{ 'is-active': isLyricsOverlayOpen }"
+          circle
+          :aria-label="t('lyricsOverlay.toggle')"
+          :aria-pressed="isLyricsOverlayOpen"
+          @click="toggleLyricsOverlay"
+        >
+          <el-icon><ChatLineSquare /></el-icon>
+        </el-button>
+      </el-tooltip>
       <el-tooltip :content="t('playerBar.queue')" placement="top" effect="light">
         <el-button
           class="queue-btn app-icon-button"

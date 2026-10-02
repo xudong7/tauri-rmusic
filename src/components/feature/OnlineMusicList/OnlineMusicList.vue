@@ -12,7 +12,6 @@ import {
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import type { ContextMenuItem } from "@/composables/useContextMenu";
-import { writeTrackDragPayload } from "@/utils/trackDrag";
 import { useOnlinePlaylistActions } from "@/composables/useOnlinePlaylistActions";
 import CheckIcon from "@/components/base/icons/CheckIcon.vue";
 import TrackList from "@/components/feature/TrackList/TrackList.vue";
@@ -123,13 +122,6 @@ function requestDownload(song: SongInfo) {
   void downloadStore.download(song);
 }
 
-/** 拖到侧栏歌单即添加；在线歌曲会先走下载流程（由接收方处理）。 */
-function handleRowDragStart(event: DragEvent, item: TrackRowModel) {
-  const song = props.onlineSongs[item.sourceIndex];
-  if (!song) return;
-  writeTrackDragPayload(event, { type: "online", song });
-}
-
 /** 行右键菜单：下一首播放 / 下载（已下载时不出现）。 */
 function contextMenuItems(item: TrackRowModel): ContextMenuItem[] {
   const song = props.onlineSongs[item.sourceIndex];
@@ -192,7 +184,6 @@ onBeforeUnmount(() => {
       :context-menu-items="contextMenuItems"
       @activate="emit('play', onlineSongs[$event.sourceIndex])"
       @toggle-current="emit('toggle-current')"
-      @row-drag-start="handleRowDragStart"
       @near-end="requestLoadMore"
     >
       <!-- 透传父组件的同名插槽，未提供时回退到通用文案。

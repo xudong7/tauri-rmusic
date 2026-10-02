@@ -831,10 +831,11 @@ pub async fn download_music(
     }
 
     match get_song_lyric(song_hash.clone()).await {
-        Ok(lyric_content) => {
-            if !lyric_content.is_empty() {
+        Ok(lyric_result) => {
+            // 本地歌词文件只存原文：翻译是显示层的事，写进 .lrc 反而破坏时间轴
+            if !lyric_result.lyric.is_empty() {
                 let lyric_path = lyrics_dir.join(format!("{}.lrc", base_filename));
-                if let Err(e) = write_bytes_to_file(lyric_content.as_bytes(), &lyric_path) {
+                if let Err(e) = write_bytes_to_file(lyric_result.lyric.as_bytes(), &lyric_path) {
                     eprintln!("write lyric failed: {}", e);
                 }
             }

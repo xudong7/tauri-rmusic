@@ -13,7 +13,11 @@ export interface EntityCardModel {
    * 刻意由视图格式化后再传入：数字与日期的本地化不该放进哑组件。
    */
   metaLabel?: string;
-  coverUrl: string;
+  /**
+   * 封面地址。传函数时每次渲染都会重新取值——本地封面的解析结果是
+   * 响应式缓存里的值，异步到位后卡片随之刷新（与 TrackRow 的 coverUrl 同理）。
+   */
+  coverUrl: string | (() => string);
   /** 角标，如榜单的「刚刚更新」 */
   badge?: string;
   disabled?: boolean;

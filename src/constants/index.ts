@@ -11,6 +11,12 @@ export const STORAGE_KEY_COLLECTED_PLAYLISTS = "rmusic-collected-playlists";
 export const STORAGE_KEY_COLLECTED_ALBUMS = "rmusic-collected-albums";
 /** 下载过的歌曲：文件名 → 来源，用于「删了之后重新下载」 */
 export const STORAGE_KEY_DOWNLOAD_SOURCES = "rmusic-download-sources";
+/** 本地曲库排序方式 */
+export const STORAGE_KEY_LIBRARY_SORT = "rmusic-library-sort";
+/** 歌词偏移（毫秒） */
+export const STORAGE_KEY_LYRIC_OFFSET = "rmusic-lyric-offset";
+/** 桌面歌词字号（px） */
+export const STORAGE_KEY_LYRICS_FONT_SIZE = "rmusic-lyrics-font-size";
 /** 上次会话：曲目/队列/进度，启动时恢复 */
 export const STORAGE_KEY_PLAYER_SESSION = "rmusic-player-session";
 /** 上次所在路由，启动时恢复 */
@@ -98,8 +104,7 @@ export const QUEUE_COVER_SIZE = 40;
  *  CoverImage 的 :radius 和封面容器的 borderRadius，保证两处不会写岔。 */
 export const QUEUE_COVER_RADIUS = 6;
 
-/* ---------- 沉浸页 ---------- */
-/**
+/* ---------- 沉浸页 ---------- */ /**
  * 底部控制条闲置多久后淡出（ms）。
  *
  * 控制条默认可见、闲置才隐藏，方向不能反过来：默认藏起来的话，进沉浸页的
@@ -107,6 +112,12 @@ export const QUEUE_COVER_RADIUS = 6;
  * Apple Music 的全屏播放器：3 秒左右足够看清控制条在哪，又不至于长期占着画面。
  */
 export const IMMERSIVE_CONTROLS_IDLE_MS = 3000;
+
+/* ---------- 歌词 ---------- */
+/** 每次调整的偏移步长（ms）：0.5s 是听感上能分辨、又不至于反复点的粒度 */
+export const LYRICS_OFFSET_STEP_MS = 500;
+/** 偏移上限（ms）：±10s 足够覆盖常见的音源/歌词错位，再大说明该换歌词源 */
+export const LYRICS_OFFSET_MAX_MS = 10_000;
 
 /* ---------- 封面实体网格（歌单 / 专辑 / 排行榜） ---------- */
 /**

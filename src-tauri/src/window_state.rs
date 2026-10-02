@@ -61,6 +61,18 @@ pub(crate) fn reveal_main_window(app: &tauri::AppHandle) -> bool {
     true
 }
 
+/// 隐藏主窗口（红灯 / 关闭键 / 托盘的显示隐藏）。
+///
+/// 只隐藏窗口，不隐藏整个应用：桌面歌词是独立窗口，整体 NSApp.hide 会把
+/// 它也一起藏掉——「主窗收起、歌词留在桌面」正是这个功能最常见的用法。
+pub(crate) fn hide_main_window(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        if let Err(e) = window.hide() {
+            eprintln!("Failed to hide main window: {}", e);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

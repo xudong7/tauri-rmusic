@@ -41,6 +41,66 @@
   font-size: 12.5px;
 }
 
+/* 分组详情的返回键：与 DetailHero 的返回键同一语言（‹ + 文字） */
+.music-list__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 4px;
+  border: none;
+  border-radius: var(--app-radius-sm);
+  color: var(--el-text-color-secondary);
+  background: transparent;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: color var(--app-control-transition);
+}
+
+.music-list__back:hover {
+  color: var(--el-color-primary);
+}
+
+.music-list__back-arrow {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* 浏览方式（页签）与排序同排：页签在左，排序贴右 */
+.music-list__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 4px 10px;
+  flex-shrink: 0;
+}
+
+.music-list__sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--app-radius-md);
+  color: var(--el-text-color-secondary);
+  background: transparent;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition:
+    color var(--app-control-transition),
+    background var(--app-control-transition);
+}
+
+.music-list__sort:hover {
+  color: var(--el-color-primary);
+  background: var(--hover-bg-color);
+}
+
+.music-list__sort .el-icon {
+  font-size: 14px;
+}
+
 /* 删除键的危险色。TrackRow 里有一条 scoped 规则给操作簇里**所有**按钮设了
    普通图标色（`.track-row__actions .el-button`），与全局的
    `.app-icon-button--danger.el-button` 特异性相同而它注入得更晚，于是危险色

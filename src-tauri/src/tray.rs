@@ -8,6 +8,7 @@ use tokio::sync::broadcast::Sender;
 
 use crate::music::MusicState;
 use crate::service;
+use crate::window_state;
 
 /// 托盘退出时留给前端 flush 歌单的窗口。
 /// 歌单落盘是本地 JSON 写入，正常情况下远小于这个值；留得宽裕是为了避免
@@ -54,10 +55,7 @@ pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
             } = event
             {
                 let app = tray.app_handle();
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                }
+                window_state::reveal_main_window(app);
             }
         })
         .on_menu_event(|app, event| match event.id.as_ref() {
@@ -82,21 +80,16 @@ pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
             "show_hide" => {
                 if let Some(window) = app.get_webview_window("main") {
                     match window.is_visible() {
-                        Ok(true) => {
-                            let _ = window.hide();
-                        }
+                        Ok(true) => window_state::hide_main_window(app),
                         _ => {
-                            let _ = window.show();
-                            let _ = window.set_focus();
+                            window_state::reveal_main_window(app);
                         }
                     }
                 }
             }
             "quit" => {
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                }
+                // 退出前先把窗口带回来（应用可能整体被隐藏），让前端完成 flush
+                window_state::reveal_main_window(app);
                 // 前端要先 flush 歌单再退出，所以这里先发事件等它。
                 // 但 emit 只是把消息投递出去，webview 正在重载或已崩溃时它照样
                 // 返回 Ok，而没有任何人处理——原来的 `if let Err` 兜底因此永远

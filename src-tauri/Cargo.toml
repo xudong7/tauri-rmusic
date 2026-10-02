@@ -1,6 +1,6 @@
 [package]
 name = "rmusic"
-version = "1.6.10"
+version = "1.6.11"
 description = "A modern, lightweight cross-platform desktop music player built with Tauri 2 and Vue 3. Play local audio files and stream online music through third-party API proxies."
 authors = ["xudong7"]
 edition = "2021"
@@ -19,7 +19,7 @@ tauri-build = { version = "2", features = [] }
 zip = "2"
 
 [dependencies]
-tauri = { version = "2", features = ["tray-icon", "protocol-asset"] }
+tauri = { version = "2", features = ["tray-icon", "protocol-asset", "macos-private-api"] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -49,6 +49,9 @@ hmac = "0.12.1"
 sha2 = "0.10.6"
 sha1 = "0.10.5"
 id3 = { version = "1.17.2", default-features = false }
+# 系统媒体控制（macOS Now Playing / Windows SMTC / Linux MPRIS）。
+# Linux 用纯 Rust 的 zbus 后端，避免引入 libdbus 本地依赖。
+souvlaki = { version = "0.8.3", default-features = false, features = ["use_zbus"] }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-autostart = "2"

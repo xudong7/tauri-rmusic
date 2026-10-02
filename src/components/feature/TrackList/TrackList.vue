@@ -52,7 +52,6 @@ const emit = defineEmits<{
   activate: [item: TrackRowModel];
   toggleCurrent: [item: TrackRowModel];
   toggleSelect: [item: TrackRowModel];
-  rowDragStart: [event: DragEvent, item: TrackRowModel];
   nearEnd: [];
   visibleItems: [items: TrackRowModel[]];
 }>();
@@ -154,9 +153,6 @@ function handleListKeydown(event: KeyboardEvent) {
           @activate="handleActivate"
           @toggle-select="emit('toggleSelect', $event)"
           @context-menu="handleContextMenu"
-          @drag-start="
-            (event: DragEvent, item: TrackRowModel) => emit('rowDragStart', event, item)
-          "
         >
           <template v-if="$slots.actions" #actions="{ item: actionItem }">
             <slot name="actions" :item="actionItem" />
@@ -187,9 +183,6 @@ function handleListKeydown(event: KeyboardEvent) {
           @activate="handleActivate"
           @toggle-select="emit('toggleSelect', $event)"
           @context-menu="handleContextMenu"
-          @drag-start="
-            (event: DragEvent, item: TrackRowModel) => emit('rowDragStart', event, item)
-          "
         >
           <template v-if="$slots.actions" #actions="{ item: actionItem }">
             <slot name="actions" :item="actionItem" />

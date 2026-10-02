@@ -3,6 +3,8 @@ use file::{
     delete_music_file, download_music, get_default_music_dir, import_music,
     load_cached_music_files, load_local_cover_path, load_local_lyric, scan_files,
 };
+use lyrics_window::set_lyrics_window;
+use media_controls::{update_media_metadata, MediaControlsState};
 use music::{
     clear_online_audio_cache, get_online_audio_cache_path, get_online_audio_cache_size,
     get_playback_state, play_track, prefetch_netease_song, prepare_playback_request, seek_to,
@@ -26,6 +28,8 @@ use tray::{quit_app as quit_app_handle, setup_tray};
 mod cover_cache;
 mod file;
 mod fs_util;
+mod lyrics_window;
+mod media_controls;
 mod music;
 mod netease;
 mod playlist;
@@ -101,16 +105,14 @@ pub fn run() {
                 .build(),
         )
         .manage(OnlineServiceProcess::default())
+        .manage(MediaControlsState::default())
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            let window = app
-                .get_webview_window("main")
-                .expect("failed to get main window");
-            // If the app is already running, we can just focus the main window
-            if let Err(e) = window.show() {
-                eprintln!("Failed to show main window: {}", e);
-            }
-            if let Err(e) = window.set_focus() {
-                eprintln!("Failed to focus main window: {}", e);
+            // 应用可能整体处于隐藏态（红灯 hide），reveal 会先取消隐藏
+            window_state::reveal_main_window(app);
+            if let Some(window) = app.get_webview_window("main") {
+                if let Err(e) = window.set_focus() {
+                    eprintln!("Failed to focus main window: {}", e);
+                }
             }
         }))
         .setup(|app| {
@@ -152,6 +154,9 @@ pub fn run() {
             if let Err(e) = setup_tray(app) {
                 eprintln!("Failed to setup tray: {}", e);
             }
+
+            // 系统媒体控制：失败只打日志，媒体键不可用不该挡住启动
+            media_controls::setup(app.handle());
 
             // Get the main window - use "main" as the default window label
             if let Some(window) = app.get_webview_window("main") {
@@ -205,6 +210,8 @@ pub fn run() {
             get_default_music_dir,
             download_music,
             get_song_lyric,
+            set_lyrics_window,
+            update_media_metadata,
             cache_online_cover,
             load_local_cover_path,
             load_local_lyric,
@@ -223,13 +230,34 @@ pub fn run() {
         .expect("error while building tauri application")
         .run(|app_handle, event| match event {
             tauri::RunEvent::Exit => shutdown_sidecar_on_exit(app_handle),
-            // 预热期间窗口还没出现，用户这时点 Dock 图标，macOS 只会走到这里。
-            // 没有这个分支，这段时间点图标毫无反应——最多 2s，但看起来像卡死。
-            #[cfg(target_os = "macos")]
-            tauri::RunEvent::Reopen {
-                has_visible_windows: false,
+            // 红灯 / Cmd+W = 隐藏，不是退出。关闭请求统一在这里拦截：
+            // 这是 Tauri 自己的事件回调，必然会被调用（窗口级 on_window_event
+            // 的注册时机依赖窗口已存在于运行时表里，不如这里可靠）。
+            // 桌面歌词窗（label=lyrics）不拦，它就是个普通窗口，正常关闭。
+            tauri::RunEvent::WindowEvent {
+                label,
+                event: tauri::WindowEvent::CloseRequested { api, .. },
                 ..
             } => {
+                if label == "main" {
+                    api.prevent_close();
+                    window_state::hide_main_window(app_handle);
+                }
+            }
+            // code=None 表示「所有窗口都关闭」触发的退出请求。本应用常驻托盘，
+            // 窗口全关也不该结束进程——比如主窗已隐藏、用户又关掉桌面歌词窗时。
+            // 显式退出（托盘 Quit → app.exit(0)、Cmd+Q）带 Some(code) 或直接
+            // 走 Exit，不受这里影响。
+            tauri::RunEvent::ExitRequested { api, code, .. } => {
+                if code.is_none() {
+                    api.prevent_exit();
+                }
+            }
+            // Dock 图标点击。不管 has_visible_windows 都要把主窗带回来：
+            // 桌面歌词可见时系统把这次点击当作「已有窗口」，只匹配 false
+            // 会完全没反应，用户只能去托盘菜单。
+            #[cfg(target_os = "macos")]
+            tauri::RunEvent::Reopen { .. } => {
                 window_state::reveal_main_window(app_handle);
             }
             _ => {}

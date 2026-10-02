@@ -1,13 +1,25 @@
 import { ref, computed } from "vue";
 import { defineStore } from "pinia";
 import { ElMessage } from "element-plus";
-import { STORAGE_KEY_DEFAULT_DIRECTORY } from "@/constants";
+import { STORAGE_KEY_DEFAULT_DIRECTORY, STORAGE_KEY_LIBRARY_SORT } from "@/constants";
 import type { MusicFile } from "@/types/model";
 import { i18n } from "@/i18n";
 import { parseErrorMessage } from "@/utils/errorUtils";
 import { getDefaultMusicDir, loadCachedMusicFiles, scanFiles } from "@/api/commands/file";
 import { joinPathSegment } from "@/utils/pathUtils";
 import { getFileName } from "@/utils/songUtils";
+import {
+  LIBRARY_SORT_MODES,
+  sortMusicFiles,
+  type LibrarySortMode,
+} from "@/utils/libraryGroups";
+
+function readStoredSortMode(): LibrarySortMode {
+  const stored = localStorage.getItem(STORAGE_KEY_LIBRARY_SORT);
+  return LIBRARY_SORT_MODES.includes(stored as LibrarySortMode)
+    ? (stored as LibrarySortMode)
+    : "default";
+}
 
 export const useLocalMusicStore = defineStore("localMusic", () => {
   const musicFiles = ref<MusicFile[]>([]);
@@ -15,6 +27,8 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
   const currentDirectory = ref("");
   const isLoading = ref(false);
   const isRefreshing = ref(false);
+  /** 排序方式跨会话保留：习惯按歌手/专辑浏览的用户不必每次重设 */
+  const sortMode = ref<LibrarySortMode>(readStoredSortMode());
   /** 最近一次扫描/加载的失败原因；界面用它区分「曲库为空」与「加载失败」 */
   const errorMessage = ref("");
 
@@ -31,13 +45,30 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
     return joinPathSegment(root, "music");
   }
 
+  /**
+   * 排序后的全量曲库。
+   *
+   * 分组视图与列表视图共用这一份顺序；筛选基于排序结果，保证「按歌手排序后
+   * 再搜索」仍然是歌手排序。
+   */
+  const sortedMusicFiles = computed(() =>
+    sortMusicFiles(musicFiles.value, sortMode.value)
+  );
+
   const filteredMusicFiles = computed(() => {
-    if (!searchKeyword.value.trim()) return musicFiles.value;
+    const files = sortedMusicFiles.value;
+    if (!searchKeyword.value.trim()) return files;
     const keyword = searchKeyword.value.trim().toLowerCase();
-    return musicFiles.value.filter((file) =>
+    return files.filter((file) =>
       (file.search_text || file.file_name.toLowerCase()).includes(keyword)
     );
   });
+
+  function setSortMode(mode: LibrarySortMode) {
+    if (!LIBRARY_SORT_MODES.includes(mode) || sortMode.value === mode) return;
+    sortMode.value = mode;
+    localStorage.setItem(STORAGE_KEY_LIBRARY_SORT, mode);
+  }
 
   /**
    * 按文件名索引曲库。
@@ -231,6 +262,9 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
     musicFilesByName,
     hasMusicFile,
     filteredMusicFiles,
+    sortedMusicFiles,
+    sortMode,
+    setSortMode,
     searchKeyword,
     currentDirectory,
     isLoading,

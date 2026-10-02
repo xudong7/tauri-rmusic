@@ -14,6 +14,11 @@ const emit = defineEmits<{
 // 歌手用圆形头像，歌单/专辑用圆角封面——与 OnlineMusicList 的歌手条一致。
 const coverRadius = computed(() => (props.item.kind === "artist" ? 999 : 10));
 
+// 本地分组的封面来自响应式缓存，函数形式每次渲染重新取值
+const resolvedCoverUrl = computed(() =>
+  typeof props.item.coverUrl === "function" ? props.item.coverUrl() : props.item.coverUrl
+);
+
 function handleClick() {
   if (props.item.disabled) return;
   emit("activate", props.item);
@@ -31,7 +36,7 @@ function handleClick() {
   >
     <div class="entity-card__cover">
       <CoverImage
-        :src="item.coverUrl"
+        :src="resolvedCoverUrl"
         alt=""
         :radius="coverRadius"
         :variant="item.kind"

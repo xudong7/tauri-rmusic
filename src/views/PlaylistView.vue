@@ -116,7 +116,6 @@
         @activate="playAt($event.sourceIndex)"
         @toggle-current="playerStore.togglePlay"
         @toggle-select="toggleSelectRow($event.sourceIndex)"
-        @row-drag-start="handleRowDragStart"
         @visible-items="scheduleVisibleLocalCovers"
       >
         <template #empty>
@@ -178,7 +177,6 @@ import { useViewStore } from "@/stores/viewStore";
 import { useDownloadStore } from "@/stores/downloadStore";
 import type { ContextMenuItem } from "@/composables/useContextMenu";
 import { revealLocalFile } from "@/utils/revealInFolder";
-import { writeTrackDragPayload } from "@/utils/trackDrag";
 import DetailHero from "@/components/layout/DetailHero/DetailHero.vue";
 import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
 import TrackList from "@/components/feature/TrackList/TrackList.vue";
@@ -393,17 +391,6 @@ async function redownloadAt(index: number) {
 }
 
 const trackRows = computed(() => filteredResolvedItems.value.map(toTrackRow));
-
-/** 拖到另一个歌单：本地带文件名，在线带 SongInfo（接收方按需下载）。 */
-function handleRowDragStart(event: DragEvent, item: TrackRowModel) {
-  const entry = resolvedItems.value.find((candidate) => candidate.key === item.key);
-  if (!entry) return;
-  if (entry.musicFile) {
-    writeTrackDragPayload(event, { type: "local", fileName: entry.musicFile.file_name });
-  } else if (entry.songInfo) {
-    writeTrackDragPayload(event, { type: "online", song: entry.songInfo });
-  }
-}
 
 /** 行右键菜单：下一首播放 / 在文件夹中显示（本地）/ 从歌单移除。 */
 function contextMenuItems(item: TrackRowModel): ContextMenuItem[] {

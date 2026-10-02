@@ -1392,9 +1392,16 @@ pub async fn get_song_cover(_id: String, name: String, artist: String) -> Result
     Ok(pic_url)
 }
 
+/// 歌词与翻译。翻译（tlyric）在代理响应里与原文 lrc 平行，可能为空。
+#[derive(serde::Serialize)]
+pub struct SongLyricResult {
+    pub lyric: String,
+    pub translation: String,
+}
+
 /// get song lyric text by id
 #[tauri::command]
-pub async fn get_song_lyric(id: String) -> Result<String, String> {
+pub async fn get_song_lyric(id: String) -> Result<SongLyricResult, String> {
     let client = get_client()?;
 
     let url = format!("{}/lyric?id={}", LOCAL_API_BASE, id);
@@ -1415,7 +1422,19 @@ pub async fn get_song_lyric(id: String) -> Result<String, String> {
         return Err("No lyrics available for this song".to_string());
     }
 
-    Ok(content)
+    // 纯音乐等没有翻译：tlyric 缺失或为空都按「无翻译」处理，不是错误
+    let translation = response_json
+        .get("tlyric")
+        .and_then(|v| v.get("lyric"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .trim()
+        .to_string();
+
+    Ok(SongLyricResult {
+        lyric: content,
+        translation,
+    })
 }
 
 /// 针对本地运行中的 sidecar 的实测。

@@ -26,6 +26,9 @@ import { useStorageThemeSync } from "./composables/useStorageThemeSync";
 import { useTrayPlaybackEvents } from "./composables/useTrayPlaybackEvents";
 import { useWindowSizeConstraints } from "./composables/useWindowSizeConstraints";
 import { useFileDropImport } from "./composables/useFileDropImport";
+import { useLyricsOverlayBridge } from "./composables/useLyricsOverlayBridge";
+import { useLyricsOverlay } from "./composables/useLyricsOverlay";
+import { useSystemMediaControls } from "./composables/useSystemMediaControls";
 import { getCoverFlightSource, playCoverFlight } from "./composables/useCoverFlight";
 import { useThemeStore } from "./stores/themeStore";
 import { useViewStore } from "./stores/viewStore";
@@ -78,6 +81,13 @@ const { isDraggingAudioFiles, dragAudioCount } = useFileDropImport({
     void localStore.refreshCurrentDirectory();
   },
 });
+
+// 桌面歌词：主窗只负责推「当前曲目 + 偏移」，进度由悬浮窗自己算
+const { isLyricsOverlayOpen } = useLyricsOverlay();
+useLyricsOverlayBridge(isLyricsOverlayOpen);
+
+// 系统媒体控制：推元数据、接媒体键
+useSystemMediaControls();
 const keyboardShortcuts = useAppKeyboardShortcuts({
   onPrevious: () => playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1)),
   onTogglePlay: () => playerStore.togglePlay(),

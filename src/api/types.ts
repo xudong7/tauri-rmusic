@@ -16,10 +16,23 @@ import type {
   PlaySongResult,
   OnlineServiceStatus,
   SearchMixResult,
+  SongLyricResult,
   ToplistResult,
 } from "@/types/model";
 
 export type HandleEventAction = "pause" | "recovery" | "volume";
+
+/** 推给系统媒体控制（Now Playing / SMTC / MPRIS）的元数据与播放状态 */
+export interface MediaMetadataUpdate {
+  title?: string | null;
+  artist?: string | null;
+  album?: string | null;
+  coverUrl?: string | null;
+  durationMs?: number | null;
+  positionMs?: number | null;
+  isPlaying: boolean;
+  volume?: number | null;
+}
 
 interface PlaybackProgressResult {
   position_ms: number;
@@ -41,6 +54,8 @@ interface SeekResult {
 export interface TauriCommandParamsMap {
   quit_app: void;
   reveal_main_window: void;
+  set_lyrics_window: { open: boolean };
+  update_media_metadata: { payload: MediaMetadataUpdate };
   scan_files: { path: string | null; defaultDirectory: string | null };
   load_cached_music_files: { path: string | null; defaultDirectory: string | null };
   control_playback: {
@@ -110,6 +125,8 @@ export interface TauriCommandParamsMap {
 export interface TauriCommandResultMap {
   quit_app: void;
   reveal_main_window: void;
+  set_lyrics_window: void;
+  update_media_metadata: void;
   scan_files: MusicFile[];
   load_cached_music_files: MusicFile[];
   control_playback: void;
@@ -137,7 +154,7 @@ export interface TauriCommandResultMap {
   get_artist_songs: ArtistSongsPage;
   get_artist_top_songs: ArtistSongsResult;
   get_default_music_dir: string;
-  get_song_lyric: string;
+  get_song_lyric: SongLyricResult;
   cache_online_cover: string | null;
   load_local_cover_path: string | null;
   load_local_lyric: string;
