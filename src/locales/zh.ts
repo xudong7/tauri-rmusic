@@ -217,6 +217,15 @@ export default {
     showHide: "显示 / 隐藏",
     quit: "退出",
   },
+  shortcuts: {
+    title: "键盘快捷键",
+    playPause: "播放 / 暂停",
+    previous: "上一首",
+    next: "下一首",
+    search: "聚焦搜索框",
+    closePanels: "关闭队列 / 浮层",
+    showHelp: "显示本帮助",
+  },
   import: {
     audioFiles: "音频文件",
     importing: "正在导入 {count} 个文件...",

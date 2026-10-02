@@ -2,6 +2,8 @@ export function useAppKeyboardShortcuts(options: {
   onPrevious: () => void;
   onTogglePlay: () => void;
   onNext: () => void;
+  /** 按 ? 打开快捷键帮助浮层 */
+  onToggleHelp?: () => void;
 }) {
   function isInteractiveTarget(target: EventTarget | null): boolean {
     if (!(target instanceof HTMLElement)) return false;
@@ -35,6 +37,11 @@ export function useAppKeyboardShortcuts(options: {
         break;
       case "ArrowRight":
         options.onNext();
+        event.preventDefault();
+        break;
+      case "?":
+        if (!options.onToggleHelp) break;
+        options.onToggleHelp();
         event.preventDefault();
         break;
     }

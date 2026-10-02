@@ -217,6 +217,15 @@ export default {
     showHide: "Show / Hide",
     quit: "Quit",
   },
+  shortcuts: {
+    title: "Keyboard shortcuts",
+    playPause: "Play / pause",
+    previous: "Previous track",
+    next: "Next track",
+    search: "Focus search",
+    closePanels: "Close queue / overlays",
+    showHelp: "Show this help",
+  },
   import: {
     audioFiles: "Audio files",
     importing: "Importing {count} file(s)...",
