@@ -4018,7 +4018,7 @@ dependencies = [
 
 [[package]]
 name = "rmusic"
-version = "1.6.10"
+version = "1.6.11"
 dependencies = [
  "hmac",
  "id3",
