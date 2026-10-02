@@ -232,6 +232,12 @@ pub struct MusicFile {
     pub title: Option<String>,
     pub artist: Option<String>,
     pub album: Option<String>,
+    /// 曲序（标签 TRACKNUMBER）；用于专辑内排序
+    #[serde(default)]
+    pub track_number: Option<u32>,
+    /// 碟号（标签 DISCNUMBER）；多碟专辑按它再按曲序排
+    #[serde(default)]
+    pub disc_number: Option<u32>,
     pub duration_ms: u64,
 }
 

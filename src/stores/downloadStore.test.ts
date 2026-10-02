@@ -223,3 +223,18 @@ describe("downloadStore", () => {
     });
   });
 });
+
+describe("下载来源索引上限", () => {
+  it("启动时裁剪到上限，保留最近写入的条目", () => {
+    const record: Record<string, SongInfo> = {};
+    for (let i = 0; i < 600; i++) {
+      record[`f${i}.mp3`] = { ...song, file_hash: `hash-${i}` };
+    }
+    localStorage.setItem(STORAGE_KEY_DOWNLOAD_SOURCES, JSON.stringify(record));
+    setActivePinia(createPinia());
+
+    const store = useDownloadStore();
+    expect(store.sourceFor("f0.mp3")).toBeNull();
+    expect(store.sourceFor("f599.mp3")).not.toBeNull();
+  });
+});

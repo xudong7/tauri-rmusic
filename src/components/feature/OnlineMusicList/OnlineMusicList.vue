@@ -38,10 +38,13 @@ const props = withDefaults(
     hasMore?: boolean;
     /** 隐藏专辑列。专辑详情页传 true——那里每一行的专辑名就是页面标题。 */
     hideAlbum?: boolean;
+    /** 滚动位置记忆的键（透传给 TrackList）；空串不记忆 */
+    scrollKey?: string;
   }>(),
   {
     hasMore: undefined,
     hideAlbum: false,
+    scrollKey: "",
   }
 );
 
@@ -132,6 +135,22 @@ function contextMenuItems(item: TrackRowModel): ContextMenuItem[] {
       label: t("contextMenu.playNext"),
       action: () => void playerStore.playNextInQueue({ type: "online", song }),
     },
+    {
+      key: "add-to-playlist",
+      label: t("playlist.addToPlaylist"),
+      children: [
+        {
+          key: "add-to-new",
+          label: t("playlist.newPlaylist"),
+          action: () => void handleAddToPlaylist("new", song),
+        },
+        ...playlistStore.playlists.map((pl) => ({
+          key: `add-to-${pl.id}`,
+          label: pl.name || t("playlist.unnamed"),
+          action: () => void handleAddToPlaylist(pl.id, song),
+        })),
+      ],
+    },
   ];
   const state = stateOfRow(item.key);
   if (state !== "downloaded" && state !== "downloading") {
@@ -181,6 +200,7 @@ onBeforeUnmount(() => {
       :is-playing="props.isPlaying"
       :busy-keys="busyKeys"
       :hide-album="hideAlbum"
+      :scroll-key="scrollKey"
       :context-menu-items="contextMenuItems"
       @activate="emit('play', onlineSongs[$event.sourceIndex])"
       @toggle-current="emit('toggle-current')"

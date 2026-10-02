@@ -48,6 +48,7 @@
       :loading="store.isDetailLoading || store.isLoadingMoreTracks"
       :totalCount="store.detail?.track_count ?? 0"
       :hasMore="store.hasMoreTracks"
+      :scroll-key="route.fullPath"
       @play="playSong"
       @toggle-current="playerStore.togglePlay"
       @load-more="store.loadMoreTracks"

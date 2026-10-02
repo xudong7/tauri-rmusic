@@ -3,11 +3,13 @@ import { computed, ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { Folder, Setting, Plus } from "@element-plus/icons-vue";
+import { ElMessage, ElMessageBox, type MessageBoxInputData } from "element-plus";
 import OnlineMusicIcon from "@/components/base/icons/OnlineMusicIcon.vue";
 import { useViewStore } from "@/stores/viewStore";
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { useCollectedPlaylistStore } from "@/stores/collectedPlaylistStore";
 import { useCollectedAlbumStore } from "@/stores/collectedAlbumStore";
+import { useContextMenu } from "@/composables/useContextMenu";
 import PlaylistCover from "@/components/feature/PlaylistCover/PlaylistCover.vue";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 
@@ -18,6 +20,64 @@ const viewStore = useViewStore();
 const playlistStore = usePlaylistStore();
 const collectedStore = useCollectedPlaylistStore();
 const collectedAlbumStore = useCollectedAlbumStore();
+const contextMenu = useContextMenu();
+
+/** 自建歌单的右键菜单：重命名 / 删除，不必先进详情页 */
+function openPlaylistMenu(event: MouseEvent, playlistId: string) {
+  contextMenu.open(event, [
+    {
+      key: "rename",
+      label: t("playlist.rename"),
+      action: () => void renamePlaylist(playlistId),
+    },
+    {
+      key: "delete",
+      label: t("playlist.delete"),
+      danger: true,
+      action: () => void deletePlaylist(playlistId),
+    },
+  ]);
+}
+
+async function renamePlaylist(playlistId: string) {
+  const current = playlistStore.getPlaylist(playlistId);
+  if (!current) return;
+  try {
+    const result = (await ElMessageBox.prompt(
+      t("playlist.renamePrompt"),
+      t("playlist.rename"),
+      {
+        inputValue: current.name,
+        confirmButtonText: t("common.confirm"),
+        cancelButtonText: t("common.cancel"),
+        inputValidator: (input: string) =>
+          input && input.trim() ? true : t("playlist.renameEmpty"),
+      }
+    )) as MessageBoxInputData;
+    playlistStore.renamePlaylist(playlistId, result.value);
+  } catch {
+    /* 用户取消 */
+  }
+}
+
+async function deletePlaylist(playlistId: string) {
+  const current = playlistStore.getPlaylist(playlistId);
+  if (!current) return;
+  try {
+    await ElMessageBox.confirm(t("playlist.deleteConfirm"), t("playlist.delete"), {
+      confirmButtonText: t("common.confirmDelete"),
+      cancelButtonText: t("common.cancel"),
+      type: "warning",
+    });
+  } catch {
+    return;
+  }
+  playlistStore.deletePlaylist(playlistId);
+  ElMessage.success(t("playlist.deleted", { name: current.name }));
+  if (route.name === "Playlist" && route.params.id === playlistId) {
+    router.push("/");
+  }
+}
 
 /** 侧边栏歌单区分栏：自建 / 收藏 */
 const playlistTab = ref<"created" | "collected">("created");
@@ -153,6 +213,7 @@ function goToCollectedPlaylist(id: string) {
               :class="{ 'is-active': isPlaylistActive(pl.id) }"
               :aria-current="isPlaylistActive(pl.id) ? 'page' : undefined"
               @click="goToPlaylist(pl.id)"
+              @contextmenu.prevent.stop="openPlaylistMenu($event, pl.id)"
             >
               <PlaylistCover
                 :item="pl.items[0]"

@@ -92,6 +92,25 @@ export function formatDurationLabel(ms: number | null | undefined): string | und
   return ms && ms > 0 ? formatDuration(ms) : undefined;
 }
 
+/** 进度条悬停预览：百分比 × 时长 → 时间文本 */
+export function formatProgressTooltip(percent: number, durationMs: number): string {
+  if (!Number.isFinite(durationMs) || durationMs <= 0) return "0:00";
+  const clamped = Math.min(100, Math.max(0, percent));
+  return formatDuration((clamped / 100) * durationMs);
+}
+
+/**
+ * 请求更高分辨率的封面。
+ *
+ * NetEase 的封面地址带 `param=300y300` 这类尺寸参数；沉浸页全屏展示时
+ * 300px 会明显发糊，替换成更大尺寸即可（CDN 支持按参数出图）。
+ * 没有该参数的地址原样返回。
+ */
+export function upgradeCoverUrl(url: string, size = 600): string {
+  if (!url) return url;
+  return url.replace(/([?&]param=)\d+y\d+/, `$1${size}y${size}`);
+}
+
 /**
  * 按 locale 压缩大数字，用于播放量、曲目数等。
  * 交给 Intl 而不是自己拼「万/亿」：中文得到 1.2万，英文得到 12K。

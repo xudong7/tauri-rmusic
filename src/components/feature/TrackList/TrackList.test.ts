@@ -1,4 +1,4 @@
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
 import themesCss from "@/assets/styles/themes.css?raw";
 import trackRowSource from "./TrackRow.vue?raw";
@@ -204,5 +204,63 @@ describe("TrackList", () => {
       expect(durationRule).toContain("grid-column: -2 / -1");
       expect(tracksOf(compactGrid)).toHaveLength(3);
     });
+  });
+});
+
+describe("滚动位置记忆", () => {
+  it("同一 key 重新挂载后恢复滚动位置", async () => {
+    const first = mount(TrackList, {
+      props: { items: rows(3), scrollKey: "list-restore-a" },
+    });
+    const scroller = first.get("[data-render-mode='standard']");
+    (scroller.element as HTMLElement).scrollTop = 120;
+    await scroller.trigger("scroll");
+    first.unmount();
+
+    const second = mount(TrackList, {
+      props: { items: rows(3), scrollKey: "list-restore-a" },
+    });
+    await flushPromises();
+
+    expect(
+      (second.get("[data-render-mode='standard']").element as HTMLElement).scrollTop
+    ).toBe(120);
+  });
+
+  it("不同 key 之间互不影响", async () => {
+    const first = mount(TrackList, {
+      props: { items: rows(3), scrollKey: "list-restore-b" },
+    });
+    const scroller = first.get("[data-render-mode='standard']");
+    (scroller.element as HTMLElement).scrollTop = 120;
+    await scroller.trigger("scroll");
+    first.unmount();
+
+    const second = mount(TrackList, {
+      props: { items: rows(3), scrollKey: "list-restore-c" },
+    });
+    await flushPromises();
+
+    expect(
+      (second.get("[data-render-mode='standard']").element as HTMLElement).scrollTop
+    ).toBe(0);
+  });
+});
+
+describe("列头排序", () => {
+  it("sortable 时列头是按钮，点击发出 sort 事件", async () => {
+    const wrapper = mount(TrackList, { props: { items: rows(3), sortable: true } });
+    const buttons = wrapper.findAll(".track-list__column-btn");
+    expect(buttons).toHaveLength(3);
+
+    await buttons[0].trigger("click");
+    await buttons[2].trigger("click");
+    expect(wrapper.emitted("sort")).toEqual([["title"], ["duration"]]);
+  });
+
+  it("不可排序时列头保持装饰性", () => {
+    const wrapper = mount(TrackList, { props: { items: rows(3) } });
+    expect(wrapper.find(".track-list__columns").attributes("aria-hidden")).toBe("true");
+    expect(wrapper.find(".track-list__column-btn").exists()).toBe(false);
   });
 });

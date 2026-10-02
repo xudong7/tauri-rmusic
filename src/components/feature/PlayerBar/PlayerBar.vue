@@ -18,10 +18,12 @@ import {
   ARTIST_SEPARATOR,
   formatArtists,
   formatDuration,
+  formatProgressTooltip,
   getLocalMusicDisplayInfo,
 } from "@/utils/songUtils";
 import { playModeIcon, playModeLabelKey } from "@/utils/playModeUtils";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
+import MarqueeText from "@/components/base/MarqueeText/MarqueeText.vue";
 import { useArtistNavigation } from "@/composables/useArtistNavigation";
 import { useAlbumNavigation } from "@/composables/useAlbumNavigation";
 import { useCoverLoader } from "@/composables/useCoverLoader";
@@ -113,6 +115,11 @@ const remainingTimeDisplay = computed(
     `-${formatDuration(Math.max(0, props.currentTrackDuration - props.currentPlayTime))}`
 );
 
+/** 进度条悬停预览：把百分比换算成目标时间 */
+function progressTooltip(percent: number) {
+  return formatProgressTooltip(percent, props.currentTrackDuration);
+}
+
 const currentArtistDisplay = computed(() => {
   void locale.value;
   if (props.currentOnlineSong?.artists?.length)
@@ -173,7 +180,14 @@ const {
   <div class="player-bar" :class="{ 'is-empty': !hasTrack }">
     <!-- 左侧：封面 + 歌曲信息 -->
     <div class="player-left">
-      <div ref="coverRef" class="cover-container" @click="enterImmersiveMode">
+      <button
+        ref="coverRef"
+        type="button"
+        class="cover-container"
+        :disabled="!hasTrack"
+        :aria-label="t('playerBar.openImmersive')"
+        @click="enterImmersiveMode"
+      >
         <CoverImage
           :src="coverUrl"
           :alt="t('playerBar.albumCover')"
@@ -183,9 +197,9 @@ const {
         />
         <!-- 悬停反馈：封面压暗 + 对角取景框（参考图），点开进入沉浸模式 -->
         <span class="cover-hover-frame" aria-hidden="true" />
-      </div>
+      </button>
       <div class="song-info">
-        <div class="song-name" :title="songTitle">
+        <MarqueeText class="song-name" :title="songTitle" :text="songTitle">
           <component
             :is="canNavigateAlbum ? 'button' : 'span'"
             :type="canNavigateAlbum ? 'button' : undefined"
@@ -195,7 +209,7 @@ const {
           >
             {{ songTitle }}
           </component>
-        </div>
+        </MarqueeText>
         <div v-if="isLoading" class="playback-status" role="status">
           {{ playbackStatus }}
         </div>
@@ -325,7 +339,8 @@ const {
           :max="100"
           :min="0"
           :step="0.1"
-          :show-tooltip="false"
+          :show-tooltip="true"
+          :format-tooltip="progressTooltip"
           :disabled="progressDisabled"
           class="progress-slider"
           @input="handleProgressInput"

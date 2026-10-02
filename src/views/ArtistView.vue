@@ -23,6 +23,7 @@
       :loading="artistStore.isArtistLoading"
       :totalCount="artistStore.artistSongsTotal"
       :hasMore="artistStore.artistSongsHasMore"
+      :scroll-key="`artist:${route.params.id}:songs`"
       @play="playArtistSong"
       @toggle-current="playerStore.togglePlay"
       @load-more="artistStore.loadMoreArtistSongs"
@@ -40,6 +41,7 @@
       v-else
       :items="albumCards"
       :loading="artistStore.isAlbumsLoading"
+      :scroll-key="`artist:${route.params.id}:albums`"
       @activate="openAlbum"
       @nearEnd="artistStore.loadMoreArtistAlbums"
     >

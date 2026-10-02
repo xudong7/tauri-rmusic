@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   revealMainWindow: vi.fn(),
   loadLocalCoverFileUrl: vi.fn(),
   cacheOnlineCover: vi.fn(),
+  getPlaybackState: vi.fn(),
   listeners: {} as Record<string, (event: { payload: unknown }) => void>,
 }));
 
@@ -25,6 +26,21 @@ vi.mock("@/api/commands/system", () => ({
 
 vi.mock("@/api/commands/netease", () => ({
   cacheOnlineCover: (...args: unknown[]) => mocks.cacheOnlineCover(...args),
+}));
+
+// playerStore 初始化时会解构这一组命令；getPlaybackState 供进度纠偏使用
+vi.mock("@/api/commands/music", () => ({
+  getPlaybackState: (...args: unknown[]) => mocks.getPlaybackState(...args),
+  playTrack: vi.fn(),
+  preparePlaybackRequest: vi.fn().mockResolvedValue(undefined),
+  handleEvent: vi.fn().mockResolvedValue(undefined),
+  playNeteaseSong: vi.fn(),
+  prefetchNeteaseSong: vi.fn().mockResolvedValue(undefined),
+  seekTo: vi.fn(),
+  getOnlineAudioCacheSize: vi.fn(),
+  getOnlineAudioCachePath: vi.fn(),
+  clearOnlineAudioCache: vi.fn(),
+  downloadMusic: vi.fn(),
 }));
 
 vi.mock("@/utils/coverUtils", () => ({
@@ -69,6 +85,13 @@ describe("useSystemMediaControls", () => {
     mocks.revealMainWindow.mockReset().mockResolvedValue(undefined);
     mocks.loadLocalCoverFileUrl.mockReset().mockResolvedValue("");
     mocks.cacheOnlineCover.mockReset().mockResolvedValue(null);
+    mocks.getPlaybackState.mockReset().mockResolvedValue({
+      position_ms: 0,
+      duration_ms: 0,
+      is_paused: false,
+      has_track: false,
+      track_id: 0,
+    });
     mocks.listeners = {};
     localStorage.clear();
   });
@@ -100,6 +123,31 @@ describe("useSystemMediaControls", () => {
     expect(payload.title).toBe("Song");
     expect(payload.artist).toBe("A / B");
     expect(payload.coverUrl).toBe("file:///cache/a.jpg");
+    expect(payload.durationMs).toBe(200000);
+    wrapper.unmount();
+  });
+
+  it("进度取后端真实位置，而不是冻结的本地时钟", async () => {
+    mocks.getPlaybackState.mockResolvedValue({
+      position_ms: 42000,
+      duration_ms: 200000,
+      is_paused: false,
+      has_track: true,
+      track_id: 7,
+    });
+    const pinia = createPinia();
+    const wrapper = mount(Harness, { global: { plugins: [pinia] } });
+    const playerStore = usePlayerStore();
+
+    playerStore.currentOnlineSong = song;
+    playerStore.currentBackendTrackId = 7;
+    playerStore.currentPlayTime = 1000; // 主窗隐藏时的冻结值
+    playerStore.isPlaying = true;
+    await flushPromises();
+
+    const calls = mocks.updateMediaMetadata.mock.calls;
+    const [{ payload }] = calls[calls.length - 1];
+    expect(payload.positionMs).toBe(42000);
     expect(payload.durationMs).toBe(200000);
     wrapper.unmount();
   });

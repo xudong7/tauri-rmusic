@@ -1074,6 +1074,103 @@ export const usePlayerStore = defineStore("player", () => {
     }
   }
 
+  /* ---------- 队列管理（队列面板的操作） ---------- */
+
+  function isCurrentQueueItem(item: PlaylistItem): boolean {
+    return item.type === "local"
+      ? currentMusic.value?.file_name === item.file_name
+      : currentOnlineSong.value?.id === item.song.id;
+  }
+
+  /** 从队列移除一项；正在播放的那首不允许移除 */
+  function removeQueueItem(index: number) {
+    if (index < 0) return;
+
+    if (currentPlaylistId.value) {
+      const list = playlistStore.getPlaylist(currentPlaylistId.value);
+      if (!list || index >= list.items.length) return;
+      if (isCurrentQueueItem(list.items[index])) return;
+      playlistStore.removeFromPlaylist(currentPlaylistId.value, index);
+      return;
+    }
+
+    if (currentMusic.value) {
+      const queue =
+        currentLocalQueue.value.length > 0
+          ? [...currentLocalQueue.value]
+          : [...localStore.musicFiles];
+      if (index >= queue.length) return;
+      if (getLocalTrackKey(queue[index]) === getLocalTrackKey(currentMusic.value)) return;
+      queue.splice(index, 1);
+      currentLocalQueue.value = queue;
+      return;
+    }
+
+    if (currentOnlineSong.value) {
+      const queue =
+        currentOnlineQueue.value.length > 0
+          ? [...currentOnlineQueue.value]
+          : [currentOnlineSong.value];
+      if (index >= queue.length) return;
+      if (queue[index].id === currentOnlineSong.value.id) return;
+      queue.splice(index, 1);
+      currentOnlineQueue.value = queue;
+    }
+  }
+
+  /**
+   * 清空队列，保留正在播放的那首。
+   *
+   * 歌单上下文会真的改写歌单（队列就是歌单本身），调用方要先让用户确认。
+   */
+  function clearQueue() {
+    if (currentPlaylistId.value) {
+      const list = playlistStore.getPlaylist(currentPlaylistId.value);
+      if (!list) return;
+      const currentIndex = list.items.findIndex((item) => isCurrentQueueItem(item));
+      const kept = currentIndex >= 0 ? [list.items[currentIndex]] : [];
+      list.items.splice(0, list.items.length, ...kept);
+      return;
+    }
+
+    if (currentMusic.value) {
+      currentLocalQueue.value = [currentMusic.value];
+    } else if (currentOnlineSong.value) {
+      currentOnlineQueue.value = [currentOnlineSong.value];
+    }
+  }
+
+  /** 把当前队列另存为新歌单；队列为空返回 null */
+  function saveQueueAsPlaylist(name: string): string | null {
+    const items: PlaylistItem[] = [];
+
+    if (currentPlaylistId.value) {
+      const list = playlistStore.getPlaylist(currentPlaylistId.value);
+      if (list) items.push(...list.items);
+    } else if (currentMusic.value) {
+      const queue =
+        currentLocalQueue.value.length > 0
+          ? currentLocalQueue.value
+          : localStore.musicFiles;
+      for (const file of queue) {
+        items.push({ type: "local", file_name: file.file_name });
+      }
+    } else if (currentOnlineSong.value) {
+      const queue =
+        currentOnlineQueue.value.length > 0
+          ? currentOnlineQueue.value
+          : [currentOnlineSong.value];
+      for (const song of queue) {
+        items.push({ type: "online", song });
+      }
+    }
+
+    if (items.length === 0) return null;
+    const playlist = playlistStore.createPlaylist(name);
+    for (const item of items) playlistStore.addToPlaylist(playlist.id, item);
+    return playlist.id;
+  }
+
   function getCurrentStepListLength(): number {
     if (currentPlaylistId.value) {
       const list = playlistStore.getPlaylist(currentPlaylistId.value);
@@ -1193,6 +1290,7 @@ export const usePlayerStore = defineStore("player", () => {
     currentPlaylistId,
     currentLocalQueue,
     currentOnlineQueue,
+    currentBackendTrackId,
 
     hasCurrentTrack,
     currentTrackDuration,
@@ -1213,6 +1311,9 @@ export const usePlayerStore = defineStore("player", () => {
     playFromPlaylist,
     playQueueItem,
     playNextInQueue,
+    removeQueueItem,
+    clearQueue,
+    saveQueueAsPlaylist,
     togglePlay,
     adjustVolume,
     syncVolumeToBackend,

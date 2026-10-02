@@ -19,6 +19,7 @@ import PlayerBar from "./components/feature/PlayerBar/PlayerBar.vue";
 import PlaybackQueue from "./components/feature/PlaybackQueue/PlaybackQueue.vue";
 import ImmersiveView from "./components/feature/ImmersiveView/ImmersiveView.vue";
 import ContextMenu from "./components/base/ContextMenu/ContextMenu.vue";
+import ShortcutsOverlay from "./components/base/ShortcutsOverlay/ShortcutsOverlay.vue";
 import type { SearchScope } from "./types/model";
 import { useAppKeyboardShortcuts } from "./composables/useAppKeyboardShortcuts";
 import { usePlaybackQueueRouteReset } from "./composables/usePlaybackQueueRouteReset";
@@ -29,6 +30,8 @@ import { useFileDropImport } from "./composables/useFileDropImport";
 import { useLyricsOverlayBridge } from "./composables/useLyricsOverlayBridge";
 import { useLyricsOverlay } from "./composables/useLyricsOverlay";
 import { useSystemMediaControls } from "./composables/useSystemMediaControls";
+import { useTrayMenu } from "./composables/useTrayMenu";
+import { useShortcutsHelp } from "./composables/useShortcutsHelp";
 import { getCoverFlightSource, playCoverFlight } from "./composables/useCoverFlight";
 import { useThemeStore } from "./stores/themeStore";
 import { useViewStore } from "./stores/viewStore";
@@ -88,10 +91,15 @@ useLyricsOverlayBridge(isLyricsOverlayOpen);
 
 // 系统媒体控制：推元数据、接媒体键
 useSystemMediaControls();
+
+// 托盘菜单：语言 + 当前曲目 tooltip
+useTrayMenu();
+const { toggleShortcutsHelp } = useShortcutsHelp();
 const keyboardShortcuts = useAppKeyboardShortcuts({
   onPrevious: () => playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1)),
   onTogglePlay: () => playerStore.togglePlay(),
   onNext: () => playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1)),
+  onToggleHelp: () => toggleShortcutsHelp(),
 });
 const themeSync = useStorageThemeSync({
   setThemeWithoutSave: themeStore.setThemeWithoutSave,
@@ -369,6 +377,9 @@ async function handleExitImmersive() {
       </Transition>
       <!-- 全局唯一的右键菜单实例；行/卡片只负责 open() -->
       <ContextMenu />
+
+      <!-- ? 打开的快捷键帮助 -->
+      <ShortcutsOverlay />
 
       <!-- 从系统拖音频进窗口：整屏提示，松手即导入曲库 -->
       <Transition name="drop">

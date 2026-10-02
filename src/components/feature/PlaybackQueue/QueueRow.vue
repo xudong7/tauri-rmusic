@@ -18,7 +18,10 @@ const props = withDefaults(
   { index: 0 }
 );
 
-const emit = defineEmits<{ play: [] }>();
+const emit = defineEmits<{
+  play: [];
+  contextMenu: [event: MouseEvent, item: PlaybackQueueItem];
+}>();
 </script>
 
 <template>
@@ -30,6 +33,7 @@ const emit = defineEmits<{ play: [] }>();
     :disabled="item.disabled"
     :aria-current="item.isCurrent ? 'true' : undefined"
     @click="emit('play')"
+    @contextmenu.prevent.stop="emit('contextMenu', $event, item)"
   >
     <!-- 尺寸与圆角都从常量来：CSS 读不到 TS 常量，写死在样式里迟早和
          CoverImage 的 :size/:radius 对不上。 -->

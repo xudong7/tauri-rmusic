@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, watch } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { i18n } from "@/i18n";
 import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
+import { getScrollPosition, saveScrollPosition } from "@/composables/useScrollMemory";
 import { useContextMenu, type ContextMenuItem } from "@/composables/useContextMenu";
 import TrackRow from "./TrackRow.vue";
 import type { TrackRowModel } from "./types";
@@ -26,6 +27,12 @@ const props = withDefaults(
     hideAlbum?: boolean;
     /** 右键菜单项工厂。不传则行上没有右键菜单（如批量选择模式下的列表）。 */
     contextMenuItems?: (item: TrackRowModel) => ContextMenuItem[];
+    /** 滚动位置记忆的键；空串表示不记忆 */
+    scrollKey?: string;
+    /** 列头是否可点击排序（只有本地曲库歌曲列表开启） */
+    sortable?: boolean;
+    /** 当前排序的列 key：高亮该列 */
+    sortKey?: string;
   }>(),
   {
     selectionMode: false,
@@ -37,6 +44,9 @@ const props = withDefaults(
     isPlaying: false,
     hideAlbum: false,
     contextMenuItems: undefined,
+    scrollKey: "",
+    sortable: false,
+    sortKey: "",
   }
 );
 const columnLabels = computed(() => {
@@ -54,10 +64,11 @@ const emit = defineEmits<{
   toggleSelect: [item: TrackRowModel];
   nearEnd: [];
   visibleItems: [items: TrackRowModel[]];
+  sort: [key: string];
 }>();
 
 const itemsRef = computed(() => props.items);
-const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight } =
+const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight, scrollTo } =
   useVirtualListWhenLong<TrackRowModel>({ source: itemsRef });
 
 const visibleItems = computed(() =>
@@ -69,9 +80,34 @@ watch(visibleItems, (items) => emit("visibleItems", items), { immediate: true })
 function handleScroll(event: Event) {
   const target = event.currentTarget as HTMLElement | null;
   if (!target) return;
+  saveScrollPosition(props.scrollKey, target.scrollTop);
   const remaining = target.scrollHeight - target.scrollTop - target.clientHeight;
   if (remaining < props.nearEndThreshold) emit("nearEnd");
 }
+
+/** 恢复滚动位置：虚拟列表按下标换算，普通列表直接写 scrollTop */
+const standardScrollRef = ref<HTMLElement | null>(null);
+
+function restoreScroll() {
+  const top = getScrollPosition(props.scrollKey);
+  if (top <= 0) return;
+  if (useVirtual.value) {
+    scrollTo(Math.floor(top / rowHeight));
+  } else if (standardScrollRef.value) {
+    standardScrollRef.value.scrollTop = top;
+  }
+}
+
+onMounted(() => {
+  void nextTick(restoreScroll);
+});
+
+watch(
+  () => props.scrollKey,
+  () => {
+    void nextTick(restoreScroll);
+  }
+);
 
 function handleActivate(item: TrackRowModel) {
   if (item.key === props.currentKey) emit("toggleCurrent", item);
@@ -119,13 +155,51 @@ function handleListKeydown(event: KeyboardEvent) {
       v-if="items.length > 0"
       class="track-list__columns"
       :class="{ 'is-album-hidden': hideAlbum }"
-      aria-hidden="true"
+      :aria-hidden="sortable ? undefined : 'true'"
     >
-      <span class="track-list__column-song">{{ columnLabels.song }}</span>
-      <span v-if="!hideAlbum" class="track-list__column-album">{{
-        columnLabels.album
-      }}</span>
-      <span class="track-list__column-duration">{{ columnLabels.duration }}</span>
+      <span class="track-list__column-song" :role="sortable ? 'columnheader' : undefined">
+        <button
+          v-if="sortable"
+          type="button"
+          class="track-list__column-btn"
+          :class="{ 'is-active': sortKey === 'title' }"
+          @click="emit('sort', 'title')"
+        >
+          {{ columnLabels.song }}
+        </button>
+        <template v-else>{{ columnLabels.song }}</template>
+      </span>
+      <span
+        v-if="!hideAlbum"
+        class="track-list__column-album"
+        :role="sortable ? 'columnheader' : undefined"
+      >
+        <button
+          v-if="sortable"
+          type="button"
+          class="track-list__column-btn"
+          :class="{ 'is-active': sortKey === 'album' }"
+          @click="emit('sort', 'album')"
+        >
+          {{ columnLabels.album }}
+        </button>
+        <template v-else>{{ columnLabels.album }}</template>
+      </span>
+      <span
+        class="track-list__column-duration"
+        :role="sortable ? 'columnheader' : undefined"
+      >
+        <button
+          v-if="sortable"
+          type="button"
+          class="track-list__column-btn"
+          :class="{ 'is-active': sortKey === 'duration' }"
+          @click="emit('sort', 'duration')"
+        >
+          {{ columnLabels.duration }}
+        </button>
+        <template v-else>{{ columnLabels.duration }}</template>
+      </span>
     </div>
 
     <div
@@ -163,6 +237,7 @@ function handleListKeydown(event: KeyboardEvent) {
 
     <div
       v-else-if="items.length > 0"
+      ref="standardScrollRef"
       class="track-list__scroll"
       data-render-mode="standard"
       @scroll.passive="handleScroll"
@@ -261,6 +336,26 @@ function handleListKeydown(event: KeyboardEvent) {
      单个 -1 是最后一条线，会让这一格落到显式网格之外，凭空多出一格。 */
   grid-column: -2 / -1;
   text-align: right;
+}
+
+/* 可排序时的列头按钮：外观与普通列头一致，悬停变色 */
+.track-list__column-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  transition: color var(--app-control-transition);
+}
+
+.track-list__column-btn:hover,
+.track-list__column-btn.is-active {
+  color: var(--el-color-primary);
 }
 
 .track-list__state {

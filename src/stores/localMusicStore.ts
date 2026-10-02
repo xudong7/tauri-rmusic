@@ -10,16 +10,10 @@ import { joinPathSegment } from "@/utils/pathUtils";
 import { getFileName } from "@/utils/songUtils";
 import {
   LIBRARY_SORT_MODES,
+  parseStoredSortMode,
   sortMusicFiles,
   type LibrarySortMode,
 } from "@/utils/libraryGroups";
-
-function readStoredSortMode(): LibrarySortMode {
-  const stored = localStorage.getItem(STORAGE_KEY_LIBRARY_SORT);
-  return LIBRARY_SORT_MODES.includes(stored as LibrarySortMode)
-    ? (stored as LibrarySortMode)
-    : "default";
-}
 
 export const useLocalMusicStore = defineStore("localMusic", () => {
   const musicFiles = ref<MusicFile[]>([]);
@@ -28,7 +22,9 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
   const isLoading = ref(false);
   const isRefreshing = ref(false);
   /** 排序方式跨会话保留：习惯按歌手/专辑浏览的用户不必每次重设 */
-  const sortMode = ref<LibrarySortMode>(readStoredSortMode());
+  const sortMode = ref<LibrarySortMode>(
+    parseStoredSortMode(localStorage.getItem(STORAGE_KEY_LIBRARY_SORT))
+  );
   /** 最近一次扫描/加载的失败原因；界面用它区分「曲库为空」与「加载失败」 */
   const errorMessage = ref("");
 
@@ -64,10 +60,15 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
     );
   });
 
+  function persistSort() {
+    localStorage.setItem(STORAGE_KEY_LIBRARY_SORT, sortMode.value);
+  }
+
+  /** 下拉或列头点击：换模式才生效，重复选择同一项不做事 */
   function setSortMode(mode: LibrarySortMode) {
     if (!LIBRARY_SORT_MODES.includes(mode) || sortMode.value === mode) return;
     sortMode.value = mode;
-    localStorage.setItem(STORAGE_KEY_LIBRARY_SORT, mode);
+    persistSort();
   }
 
   /**

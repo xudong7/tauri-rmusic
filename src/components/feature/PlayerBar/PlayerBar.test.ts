@@ -186,3 +186,18 @@ describe("两条播放栏的歌名必须同号", () => {
     expect(bottomBar["font-weight"]).toBe(immersive["font-weight"]);
   });
 });
+
+describe("PlayerBar 封面", () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
+  it("封面是真正的按钮：有 aria-label，点击进入沉浸页", async () => {
+    const wrapper = mountBar();
+    const cover = wrapper.get("button.cover-container");
+
+    expect(cover.attributes("aria-label")).toBeTruthy();
+    await cover.trigger("click");
+    expect(wrapper.emitted("show-immersive")).toBeTruthy();
+  });
+});

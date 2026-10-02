@@ -3,6 +3,7 @@ import type { MusicFile } from "@/types/model";
 import {
   groupMusicFilesByAlbum,
   groupMusicFilesByArtist,
+  parseStoredSortMode,
   sortMusicFiles,
 } from "./libraryGroups";
 
@@ -145,5 +146,56 @@ describe("sortMusicFiles", () => {
     const original = [...files];
     sortMusicFiles(files, "title");
     expect(files).toEqual(original);
+  });
+});
+
+describe("排序持久化解析", () => {
+  it("parseStoredSortMode 兼容字符串、历史 JSON 与损坏值", () => {
+    expect(parseStoredSortMode(null)).toBe("default");
+    expect(parseStoredSortMode("artist")).toBe("artist");
+    expect(
+      parseStoredSortMode(JSON.stringify({ mode: "album", direction: "desc" }))
+    ).toBe("album");
+    expect(parseStoredSortMode("{oops")).toBe("default");
+    expect(parseStoredSortMode(JSON.stringify({ mode: "nope" }))).toBe("default");
+  });
+
+  it("最近添加默认新的在前", () => {
+    const files = [
+      file({ file_name: "a.mp3", modified_ms: 1 }),
+      file({ file_name: "b.mp3", modified_ms: 2 }),
+    ];
+    expect(sortMusicFiles(files, "added").map((item) => item.file_name)).toEqual([
+      "b.mp3",
+      "a.mp3",
+    ]);
+  });
+});
+
+describe("专辑内按碟号/曲序排序", () => {
+  it("先按碟号再按曲序，缺失的排在碟内末尾", () => {
+    const groups = groupMusicFilesByAlbum([
+      file({ file_name: "b2.mp3", album: "A", track_number: 2 }),
+      file({ file_name: "a1.mp3", album: "A", track_number: 1 }),
+      file({ file_name: "no-tag.mp3", album: "A" }),
+      file({ file_name: "disc2-1.mp3", album: "A", disc_number: 2, track_number: 1 }),
+      file({ file_name: "b10.mp3", album: "A", track_number: 10 }),
+    ]);
+
+    expect(groups[0].tracks.map((track) => track.file_name)).toEqual([
+      "a1.mp3",
+      "b2.mp3",
+      "b10.mp3",
+      "no-tag.mp3",
+      "disc2-1.mp3",
+    ]);
+  });
+
+  it("完全没有标签时保持扫描顺序", () => {
+    const groups = groupMusicFilesByAlbum([
+      file({ file_name: "x.mp3", album: "A" }),
+      file({ file_name: "y.mp3", album: "A" }),
+    ]);
+    expect(groups[0].tracks.map((track) => track.file_name)).toEqual(["x.mp3", "y.mp3"]);
   });
 });

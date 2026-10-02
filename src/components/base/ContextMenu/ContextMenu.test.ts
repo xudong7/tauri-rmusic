@@ -51,3 +51,33 @@ describe("ContextMenu", () => {
     expect(wrapper.find(".context-menu").exists()).toBe(false);
   });
 });
+
+describe("ContextMenu 二级菜单", () => {
+  beforeEach(() => {
+    useContextMenu().close();
+  });
+
+  it("悬停展开子菜单，点击子项触发动作并关闭", async () => {
+    const wrapper = mountMenu();
+    const childAction = vi.fn();
+    useContextMenu().open(new MouseEvent("contextmenu"), [
+      {
+        key: "add",
+        label: "Add to playlist",
+        children: [{ key: "add-1", label: "List 1", action: childAction }],
+      },
+    ]);
+    await flushPromises();
+
+    await wrapper.get(".context-menu__item").trigger("mouseenter");
+    await flushPromises();
+
+    const submenuItems = wrapper.findAll(".context-menu__submenu .context-menu__item");
+    expect(submenuItems).toHaveLength(1);
+    expect(submenuItems[0].text()).toBe("List 1");
+
+    await submenuItems[0].trigger("click");
+    expect(childAction).toHaveBeenCalledOnce();
+    expect(wrapper.find(".context-menu").exists()).toBe(false);
+  });
+});

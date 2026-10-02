@@ -70,6 +70,18 @@ const isListView = computed(
     browseTab.value === "songs" || Boolean(selectedAlbum.value || selectedArtist.value)
 );
 
+/** 滚动位置按「页签 + 分组」分开记：歌曲列表与专辑网格互不干扰 */
+const listScrollKey = computed(() => {
+  if (!props.baseScrollKey) return "";
+  const scope =
+    browseTab.value === "albums"
+      ? (selectedAlbumKey.value ?? "")
+      : browseTab.value === "artists"
+        ? (selectedArtistKey.value ?? "")
+        : "";
+  return `${props.baseScrollKey}:${browseTab.value}:${scope}`;
+});
+
 /** 分组详情页的头部信息；不在详情时头部仍显示整个曲库 */
 const detailTitle = computed(() => {
   if (selectedAlbum.value) return selectedAlbum.value.name || t("common.unknownAlbum");
@@ -107,6 +119,11 @@ const sortLabel = computed(() => t(`musicList.sort_${localStore.sortMode}`));
 
 function handleSortCommand(mode: string) {
   localStore.setSortMode(mode as LibrarySortMode);
+}
+
+/** 列头点击：按该列排序（与下拉共用 store 状态） */
+function handleHeaderSort(key: string) {
+  localStore.setSortMode(key as LibrarySortMode);
 }
 
 function openGroup(card: EntityCardModel) {
@@ -189,6 +206,8 @@ const props = withDefaults(
     searchKeyword?: string;
     /** 曲库加载/扫描失败的详情：有值时空状态展示错误与重试，而不是空的曲库 */
     errorMessage?: string;
+    /** 滚动位置记忆的基础键（通常传路由 fullPath）；空串不记忆 */
+    baseScrollKey?: string;
   }>(),
   {
     showImportButton: false,
@@ -197,6 +216,7 @@ const props = withDefaults(
     getDefaultDirectory: () => null,
     searchKeyword: "",
     errorMessage: "",
+    baseScrollKey: "",
   }
 );
 
@@ -314,6 +334,22 @@ function contextMenuItems(item: TrackRowModel): ContextMenuItem[] {
       key: "play-next",
       label: t("contextMenu.playNext"),
       action: () => void playerStore.playNextInQueue({ type: "local", file }),
+    },
+    {
+      key: "add-to-playlist",
+      label: t("playlist.addToPlaylist"),
+      children: [
+        {
+          key: "add-to-new",
+          label: t("playlist.newPlaylist"),
+          action: () => handleAddToPlaylist("new", file),
+        },
+        ...playlistStore.playlists.map((pl) => ({
+          key: `add-to-${pl.id}`,
+          label: pl.name || t("playlist.unnamed"),
+          action: () => handleAddToPlaylist(pl.id, file),
+        })),
+      ],
     },
     {
       key: "reveal",
@@ -510,6 +546,10 @@ watch(
       :current-key="currentKey"
       :is-playing="props.isPlaying"
       :context-menu-items="contextMenuItems"
+      :scroll-key="listScrollKey"
+      :sortable="browseTab === 'songs'"
+      :sort-key="localStore.sortMode"
+      @sort="handleHeaderSort"
       @activate="emit('play', browseFiles[$event.sourceIndex])"
       @toggle-current="emit('toggle-current')"
       @toggle-select="toggleSelectRow(browseFiles[$event.sourceIndex])"
@@ -609,7 +649,13 @@ watch(
     </TrackList>
 
     <!-- 专辑/歌手网格：不参与多选与排序，点开进入分组详情 -->
-    <EntityGrid v-else :items="groupCards" :loading="loading" @activate="openGroup">
+    <EntityGrid
+      v-else
+      :items="groupCards"
+      :loading="loading"
+      :scroll-key="listScrollKey"
+      @activate="openGroup"
+    >
       <template #loading>
         <el-skeleton :rows="6" animated />
       </template>

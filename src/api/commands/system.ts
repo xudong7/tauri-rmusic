@@ -1,4 +1,4 @@
-import type { MediaMetadataUpdate } from "../types";
+import type { MediaMetadataUpdate, TrayLabels } from "../types";
 import { invokeCommand } from "../client";
 
 export async function quitApp(): Promise<void> {
@@ -26,4 +26,12 @@ export async function updateMediaMetadata(args: {
   payload: MediaMetadataUpdate;
 }): Promise<void> {
   await invokeCommand("update_media_metadata", args);
+}
+
+/** 更新托盘菜单语言与 tooltip（显示当前曲目） */
+export async function updateTrayMenu(args: {
+  labels: TrayLabels;
+  nowPlaying: string | null;
+}): Promise<void> {
+  await invokeCommand("update_tray_menu", args);
 }

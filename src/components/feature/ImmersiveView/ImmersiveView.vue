@@ -33,7 +33,9 @@ import {
   extractArtistName,
   extractSongTitle,
   formatArtists,
+  formatProgressTooltip,
   getLocalMusicDisplayInfo,
+  upgradeCoverUrl,
 } from "@/utils/songUtils";
 import { useWindowControls } from "@/composables/useWindowControls";
 import { useArtistStore } from "@/stores/artistStore";
@@ -87,6 +89,11 @@ const {
 const currentPlayModeIcon = computed(() => playModeIcon(props.playMode));
 const playModeTooltip = computed(() => t(playModeLabelKey(props.playMode)));
 
+/** 进度条悬停预览：把百分比换算成目标时间 */
+function progressTooltip(percent: number) {
+  return formatProgressTooltip(percent, props.currentTrackDuration ?? 0);
+}
+
 const volumeSliderValue = ref(props.volume);
 
 watch(
@@ -118,7 +125,9 @@ const { coverUrl: currentCoverUrl } = useCoverLoader({
   currentOnlineSong: () => props.currentSong,
   getDefaultDirectory: () => localStore.getDefaultDirectory(),
 });
-const { brightness: imageAnalysisState } = useCoverPalette(currentCoverUrl);
+/** 全屏展示请求更大尺寸的封面（在线封面 URL 带尺寸参数） */
+const immersiveCoverUrl = computed(() => upgradeCoverUrl(currentCoverUrl.value, 600));
+const { brightness: imageAnalysisState } = useCoverPalette(immersiveCoverUrl);
 
 /** 沉浸页强调色跟随封面色调；分析完成前由 CSS 里的主题色兜底 */
 const paletteStyle = computed(() => {
@@ -280,9 +289,9 @@ onBeforeUnmount(() => {
     @click="handleImmersiveClick"
   >
     <img
-      v-if="currentCoverUrl"
-      :key="currentCoverUrl"
-      :src="currentCoverUrl"
+      v-if="immersiveCoverUrl"
+      :key="immersiveCoverUrl"
+      :src="immersiveCoverUrl"
       class="background-cover"
       :style="{ filter: backgroundFilterStyle }"
       alt=""
@@ -330,9 +339,9 @@ onBeforeUnmount(() => {
       <div class="left-section">
         <div ref="coverRef" class="cover-container">
           <img
-            v-if="currentCoverUrl"
-            :key="currentCoverUrl"
-            :src="currentCoverUrl"
+            v-if="immersiveCoverUrl"
+            :key="immersiveCoverUrl"
+            :src="immersiveCoverUrl"
             class="song-cover"
             :alt="t('playerBar.albumCover')"
           />
@@ -511,7 +520,8 @@ onBeforeUnmount(() => {
               :max="100"
               :min="0"
               :step="0.1"
-              :show-tooltip="false"
+              :show-tooltip="true"
+              :format-tooltip="progressTooltip"
               :disabled="progressDisabled"
               class="progress-slider"
               @input="handleProgressInput"

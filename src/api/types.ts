@@ -34,6 +34,16 @@ export interface MediaMetadataUpdate {
   volume?: number | null;
 }
 
+/** 托盘菜单文案（由前端按当前语言下发） */
+export interface TrayLabels {
+  play: string;
+  pause: string;
+  previous: string;
+  next: string;
+  showHide: string;
+  quit: string;
+}
+
 interface PlaybackProgressResult {
   position_ms: number;
   duration_ms: number;
@@ -56,6 +66,7 @@ export interface TauriCommandParamsMap {
   reveal_main_window: void;
   set_lyrics_window: { open: boolean };
   update_media_metadata: { payload: MediaMetadataUpdate };
+  update_tray_menu: { labels: TrayLabels; nowPlaying: string | null };
   scan_files: { path: string | null; defaultDirectory: string | null };
   load_cached_music_files: { path: string | null; defaultDirectory: string | null };
   control_playback: {
@@ -127,6 +138,7 @@ export interface TauriCommandResultMap {
   reveal_main_window: void;
   set_lyrics_window: void;
   update_media_metadata: void;
+  update_tray_menu: void;
   scan_files: MusicFile[];
   load_cached_music_files: MusicFile[];
   control_playback: void;

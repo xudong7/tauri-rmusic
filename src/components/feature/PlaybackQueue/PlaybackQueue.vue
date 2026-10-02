@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from "vue";
-import { Headset } from "@element-plus/icons-vue";
+import { Headset, MoreFilled } from "@element-plus/icons-vue";
 import { useI18n } from "vue-i18n";
+import { ElMessage, ElMessageBox, type MessageBoxInputData } from "element-plus";
 import type { PlaybackQueueItem } from "@/types/model";
 import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
 import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
+import { useContextMenu } from "@/composables/useContextMenu";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
+import { usePlayerStore } from "@/stores/playerStore";
 import QueueRow from "./QueueRow.vue";
 import { QUEUE_ROW_HEIGHT } from "@/constants";
 
@@ -19,6 +22,67 @@ const emit = defineEmits<{
   close: [];
   play: [index: number];
 }>();
+
+const playerStore = usePlayerStore();
+const contextMenu = useContextMenu();
+
+/** 队列行右键：移除（正在播放的那首不可移除） */
+function openRowMenu(event: MouseEvent, item: PlaybackQueueItem) {
+  contextMenu.open(event, [
+    {
+      key: "remove",
+      label: t("playerBar.removeFromQueue"),
+      danger: true,
+      disabled: item.isCurrent,
+      action: () => playerStore.removeQueueItem(item.sourceIndex),
+    },
+  ]);
+}
+
+/** 队列面板头部的「更多」：另存为歌单 / 清空队列 */
+async function handleQueueCommand(command: string | number | object) {
+  const value = String(command);
+
+  if (value === "clear") {
+    try {
+      await ElMessageBox.confirm(
+        t("playerBar.clearQueueConfirm"),
+        t("playerBar.clearQueue"),
+        {
+          confirmButtonText: t("common.confirm"),
+          cancelButtonText: t("common.cancel"),
+          type: "warning",
+        }
+      );
+    } catch {
+      return;
+    }
+    playerStore.clearQueue();
+    ElMessage.success(t("messages.queueCleared"));
+    return;
+  }
+
+  if (value === "save") {
+    const defaultName = `${t("playerBar.queue")} ${new Date().toLocaleDateString()}`;
+    let name = defaultName;
+    try {
+      const result = (await ElMessageBox.prompt(
+        t("playerBar.saveQueuePrompt"),
+        t("playerBar.saveQueue"),
+        {
+          inputValue: defaultName,
+          confirmButtonText: t("common.confirm"),
+          cancelButtonText: t("common.cancel"),
+        }
+      )) as MessageBoxInputData;
+      name = result.value?.trim() || defaultName;
+    } catch {
+      return;
+    }
+    const playlistId = playerStore.saveQueueAsPlaylist(name);
+    if (playlistId) ElMessage.success(t("messages.queueSaved", { name }));
+  }
+}
 
 const panelRef = ref<HTMLElement | null>(null);
 const currentIndex = computed(() => props.items.findIndex((item) => item.isCurrent));
@@ -114,6 +178,21 @@ function handlePanelKeydown(event: KeyboardEvent) {
           <h2>{{ t("playerBar.queue") }}</h2>
           <p>{{ title || t("playerBar.currentQueue") }}</p>
         </div>
+        <el-dropdown v-if="items.length" trigger="click" @command="handleQueueCommand">
+          <button type="button" class="queue-more" :aria-label="t('playerBar.more')">
+            <el-icon><MoreFilled /></el-icon>
+          </button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="save">{{
+                t("playerBar.saveQueue")
+              }}</el-dropdown-item>
+              <el-dropdown-item command="clear" divided>{{
+                t("playerBar.clearQueue")
+              }}</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </header>
 
       <!-- tabindex 让滚动容器本身可聚焦：虚拟化之后只有可视窗口内的行在
@@ -138,6 +217,7 @@ function handlePanelKeydown(event: KeyboardEvent) {
             :is-playing="isPlaying"
             :cover-url="resolveCover(row.item)"
             @play="emit('play', row.item.sourceIndex)"
+            @context-menu="openRowMenu"
           />
         </div>
       </div>
@@ -181,13 +261,40 @@ function handlePanelKeydown(event: KeyboardEvent) {
   outline: none;
 }
 
-/* 只剩标题一块，不再需要两端对齐 */
+/* 标题在左，操作在右 */
 .queue-header {
   min-height: 64px;
   padding: 10px 16px 9px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   border-bottom: 1px solid var(--app-surface-border);
+}
+
+.queue-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--app-icon-btn-md);
+  height: var(--app-icon-btn-md);
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--app-radius-full);
+  background: transparent;
+  color: var(--app-icon-button-color);
+  cursor: pointer;
+  transition: color var(--app-control-transition);
+}
+
+.queue-more:hover,
+.queue-more:focus-visible {
+  color: var(--app-icon-button-hover-color);
+}
+
+.queue-more .el-icon {
+  font-size: 16px;
 }
 
 .queue-heading {
