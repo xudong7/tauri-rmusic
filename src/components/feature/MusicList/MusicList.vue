@@ -70,6 +70,18 @@ const isListView = computed(
     browseTab.value === "songs" || Boolean(selectedAlbum.value || selectedArtist.value)
 );
 
+/** 滚动位置按「页签 + 分组」分开记：歌曲列表与专辑网格互不干扰 */
+const listScrollKey = computed(() => {
+  if (!props.baseScrollKey) return "";
+  const scope =
+    browseTab.value === "albums"
+      ? (selectedAlbumKey.value ?? "")
+      : browseTab.value === "artists"
+        ? (selectedArtistKey.value ?? "")
+        : "";
+  return `${props.baseScrollKey}:${browseTab.value}:${scope}`;
+});
+
 /** 分组详情页的头部信息；不在详情时头部仍显示整个曲库 */
 const detailTitle = computed(() => {
   if (selectedAlbum.value) return selectedAlbum.value.name || t("common.unknownAlbum");
@@ -189,6 +201,8 @@ const props = withDefaults(
     searchKeyword?: string;
     /** 曲库加载/扫描失败的详情：有值时空状态展示错误与重试，而不是空的曲库 */
     errorMessage?: string;
+    /** 滚动位置记忆的基础键（通常传路由 fullPath）；空串不记忆 */
+    baseScrollKey?: string;
   }>(),
   {
     showImportButton: false,
@@ -197,6 +211,7 @@ const props = withDefaults(
     getDefaultDirectory: () => null,
     searchKeyword: "",
     errorMessage: "",
+    baseScrollKey: "",
   }
 );
 
@@ -510,6 +525,7 @@ watch(
       :current-key="currentKey"
       :is-playing="props.isPlaying"
       :context-menu-items="contextMenuItems"
+      :scroll-key="listScrollKey"
       @activate="emit('play', browseFiles[$event.sourceIndex])"
       @toggle-current="emit('toggle-current')"
       @toggle-select="toggleSelectRow(browseFiles[$event.sourceIndex])"
@@ -609,7 +625,13 @@ watch(
     </TrackList>
 
     <!-- 专辑/歌手网格：不参与多选与排序，点开进入分组详情 -->
-    <EntityGrid v-else :items="groupCards" :loading="loading" @activate="openGroup">
+    <EntityGrid
+      v-else
+      :items="groupCards"
+      :loading="loading"
+      :scroll-key="listScrollKey"
+      @activate="openGroup"
+    >
       <template #loading>
         <el-skeleton :rows="6" animated />
       </template>

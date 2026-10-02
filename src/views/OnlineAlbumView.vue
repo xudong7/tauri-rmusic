@@ -38,6 +38,7 @@
       :totalCount="store.songs.length"
       :hasMore="false"
       hide-album
+      :scroll-key="route.fullPath"
       @play="playSong"
       @toggle-current="playerStore.togglePlay"
       @load-more="() => {}"

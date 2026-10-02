@@ -113,6 +113,7 @@
         :current-key="currentRowKey"
         :is-playing="playerStore.isPlaying"
         :context-menu-items="contextMenuItems"
+        :scroll-key="route.fullPath"
         @activate="playAt($event.sourceIndex)"
         @toggle-current="playerStore.togglePlay"
         @toggle-select="toggleSelectRow($event.sourceIndex)"

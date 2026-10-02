@@ -10,6 +10,7 @@
       :showImportButton="true"
       :search-keyword="localStore.searchKeyword"
       :error-message="localStore.errorMessage"
+      :base-scroll-key="route.fullPath"
       @play="playLocalMusic"
       @toggle-current="playerStore.togglePlay"
       @import="importMusic"
@@ -20,6 +21,7 @@
 
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
+import { useRoute } from "vue-router";
 import { open } from "@tauri-apps/plugin-dialog";
 import { ElMessage } from "element-plus";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
@@ -31,6 +33,7 @@ import { parseErrorMessage } from "@/utils/errorUtils";
 import type { MusicFile } from "@/types/model";
 
 const { t } = useI18n();
+const route = useRoute();
 const localStore = useLocalMusicStore();
 const playerStore = usePlayerStore();
 

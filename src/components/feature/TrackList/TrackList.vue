@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, watch } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { i18n } from "@/i18n";
 import { useVirtualListWhenLong } from "@/composables/useVirtualListWhenLong";
+import { getScrollPosition, saveScrollPosition } from "@/composables/useScrollMemory";
 import { useContextMenu, type ContextMenuItem } from "@/composables/useContextMenu";
 import TrackRow from "./TrackRow.vue";
 import type { TrackRowModel } from "./types";
@@ -26,6 +27,8 @@ const props = withDefaults(
     hideAlbum?: boolean;
     /** 右键菜单项工厂。不传则行上没有右键菜单（如批量选择模式下的列表）。 */
     contextMenuItems?: (item: TrackRowModel) => ContextMenuItem[];
+    /** 滚动位置记忆的键；空串表示不记忆 */
+    scrollKey?: string;
   }>(),
   {
     selectionMode: false,
@@ -37,6 +40,7 @@ const props = withDefaults(
     isPlaying: false,
     hideAlbum: false,
     contextMenuItems: undefined,
+    scrollKey: "",
   }
 );
 const columnLabels = computed(() => {
@@ -57,7 +61,7 @@ const emit = defineEmits<{
 }>();
 
 const itemsRef = computed(() => props.items);
-const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight } =
+const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight, scrollTo } =
   useVirtualListWhenLong<TrackRowModel>({ source: itemsRef });
 
 const visibleItems = computed(() =>
@@ -69,9 +73,34 @@ watch(visibleItems, (items) => emit("visibleItems", items), { immediate: true })
 function handleScroll(event: Event) {
   const target = event.currentTarget as HTMLElement | null;
   if (!target) return;
+  saveScrollPosition(props.scrollKey, target.scrollTop);
   const remaining = target.scrollHeight - target.scrollTop - target.clientHeight;
   if (remaining < props.nearEndThreshold) emit("nearEnd");
 }
+
+/** 恢复滚动位置：虚拟列表按下标换算，普通列表直接写 scrollTop */
+const standardScrollRef = ref<HTMLElement | null>(null);
+
+function restoreScroll() {
+  const top = getScrollPosition(props.scrollKey);
+  if (top <= 0) return;
+  if (useVirtual.value) {
+    scrollTo(Math.floor(top / rowHeight));
+  } else if (standardScrollRef.value) {
+    standardScrollRef.value.scrollTop = top;
+  }
+}
+
+onMounted(() => {
+  void nextTick(restoreScroll);
+});
+
+watch(
+  () => props.scrollKey,
+  () => {
+    void nextTick(restoreScroll);
+  }
+);
 
 function handleActivate(item: TrackRowModel) {
   if (item.key === props.currentKey) emit("toggleCurrent", item);
@@ -163,6 +192,7 @@ function handleListKeydown(event: KeyboardEvent) {
 
     <div
       v-else-if="items.length > 0"
+      ref="standardScrollRef"
       class="track-list__scroll"
       data-render-mode="standard"
       @scroll.passive="handleScroll"

@@ -14,6 +14,7 @@
       :isPlaying="playerStore.isPlaying"
       :loading="onlineStore.tabMeta.song.loading"
       :totalCount="onlineStore.onlineSongsTotal"
+      :scroll-key="`online:song:${onlineStore.searchKeyword}`"
       @play="playOnlineSongFromSearch"
       @toggle-current="playerStore.togglePlay"
       @load-more="onlineStore.loadMoreActiveTab"
@@ -39,6 +40,7 @@
       v-else
       :items="gridItems"
       :loading="gridLoading"
+      :scroll-key="`online:${onlineStore.activeTab}:${onlineStore.searchKeyword}`"
       @activate="handleCardActivate"
       @nearEnd="onlineStore.loadMoreActiveTab"
     >

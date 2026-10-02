@@ -38,10 +38,13 @@ const props = withDefaults(
     hasMore?: boolean;
     /** 隐藏专辑列。专辑详情页传 true——那里每一行的专辑名就是页面标题。 */
     hideAlbum?: boolean;
+    /** 滚动位置记忆的键（透传给 TrackList）；空串不记忆 */
+    scrollKey?: string;
   }>(),
   {
     hasMore: undefined,
     hideAlbum: false,
+    scrollKey: "",
   }
 );
 
@@ -181,6 +184,7 @@ onBeforeUnmount(() => {
       :is-playing="props.isPlaying"
       :busy-keys="busyKeys"
       :hide-album="hideAlbum"
+      :scroll-key="scrollKey"
       :context-menu-items="contextMenuItems"
       @activate="emit('play', onlineSongs[$event.sourceIndex])"
       @toggle-current="emit('toggle-current')"
