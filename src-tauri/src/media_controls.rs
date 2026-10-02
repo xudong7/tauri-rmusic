@@ -145,11 +145,15 @@ pub fn update_media_metadata(
         return;
     };
 
+    // 封面 URL 必须先净化：macOS 的 souvlaki 对加载失败的 NSImage 不做空检查，
+    // 空串或指向不存在文件的 URL 会直接把进程打崩（objc 对 nil 的结构体返回解引用）。
+    let cover_url = sanitize_cover_url(payload.cover_url.as_deref());
+
     let _ = controls.set_metadata(MediaMetadata {
         title: payload.title.as_deref(),
         artist: payload.artist.as_deref(),
         album: payload.album.as_deref(),
-        cover_url: payload.cover_url.as_deref(),
+        cover_url: cover_url.as_deref(),
         duration: payload
             .duration_ms
             .map(|ms| Duration::from_millis(ms.max(0.0) as u64)),
@@ -171,4 +175,118 @@ pub fn update_media_metadata(
     }
     #[cfg(not(target_os = "linux"))]
     let _ = payload.volume;
+}
+
+/// 封面文件是否是解码器能识别的图片格式（JPEG / PNG / WebP 的魔数）。
+///
+/// 损坏或改了扩展名的文件会让 macOS 的 NSImage 返回 nil，而 souvlaki 对 nil
+/// 不做检查——所以宁可跳过封面，也不能把未知内容交给它。
+fn looks_like_supported_image(path: &std::path::Path) -> bool {
+    use std::io::Read;
+
+    let Ok(mut file) = std::fs::File::open(path) else {
+        return false;
+    };
+    let mut head = [0u8; 12];
+    let Ok(read) = file.read(&mut head) else {
+        return false;
+    };
+    let bytes = &head[..read];
+
+    bytes.starts_with(&[0xFF, 0xD8, 0xFF]) // JPEG
+        || bytes.starts_with(&[0x89, b'P', b'N', b'G']) // PNG
+        || (bytes.len() >= 12 && &bytes[0..4] == b"RIFF" && &bytes[8..12] == b"WEBP")
+}
+
+/// 封面 URL 净化：空串、无 scheme、指向不存在或非图片文件的一律丢弃。
+///
+/// macOS 的 souvlaki 在 `load_image_from_url` 里对 `NSImage` 不做空检查，
+/// 加载失败的 URL 会让 `[nil size]` 这样的结构体返回直接崩掉进程；因此
+/// macOS 上只接受已验证存在的本地 file:// 图片。其他平台（SMTC / MPRIS）
+/// 通过各自的异步机制取图，http(s) 可以安全透传。
+pub(crate) fn sanitize_cover_url(raw: Option<&str>) -> Option<String> {
+    let url = raw?.trim();
+    if url.is_empty() {
+        return None;
+    }
+
+    if let Some(path) = url.strip_prefix("file://") {
+        let decoded = urlencoding::decode(path)
+            .map(|value| value.into_owned())
+            .unwrap_or_else(|_| path.to_string());
+        let path = std::path::Path::new(&decoded);
+        return (path.is_file() && looks_like_supported_image(path)).then(|| url.to_string());
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        // macOS 只能安全使用本地文件
+        None
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        (url.starts_with("http://") || url.starts_with("https://")).then(|| url.to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sanitize_cover_url_drops_empty_and_untrusted_values() {
+        assert_eq!(sanitize_cover_url(None), None);
+        assert_eq!(sanitize_cover_url(Some("")), None);
+        assert_eq!(sanitize_cover_url(Some("   ")), None);
+        assert_eq!(
+            sanitize_cover_url(Some("file:///definitely/not/here.jpg")),
+            None
+        );
+        assert_eq!(sanitize_cover_url(Some("ftp://example.com/a.jpg")), None);
+    }
+
+    #[test]
+    fn sanitize_cover_url_keeps_existing_local_files() {
+        let dir = std::env::temp_dir().join(format!("rmusic-cover-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("a b.jpg");
+        // JPEG 魔数开头：内容不必是完整图片，但必须像图片
+        std::fs::write(&path, b"\xFF\xD8\xFF\xE0fake-jpeg").unwrap();
+
+        let url = format!("file://{}", path.to_string_lossy().replace(' ', "%20"));
+        let sanitized = sanitize_cover_url(Some(&url));
+        assert_eq!(sanitized.as_deref(), Some(url.as_str()));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn sanitize_cover_url_drops_non_image_files() {
+        let dir =
+            std::env::temp_dir().join(format!("rmusic-cover-test-bad-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("fake.jpg");
+        std::fs::write(&path, b"not an image at all").unwrap();
+
+        let url = format!("file://{}", path.to_string_lossy());
+        assert_eq!(sanitize_cover_url(Some(&url)), None);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    #[test]
+    fn sanitize_cover_url_keeps_remote_urls_off_macos() {
+        assert_eq!(
+            sanitize_cover_url(Some("https://example.com/a.jpg")).as_deref(),
+            Some("https://example.com/a.jpg")
+        );
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn sanitize_cover_url_rejects_remote_urls_on_macos() {
+        // macOS 的 souvlaki 对加载失败的远程图直接崩溃，宁可不显示封面
+        assert_eq!(sanitize_cover_url(Some("https://example.com/a.jpg")), None);
+    }
 }

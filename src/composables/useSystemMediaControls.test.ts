@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   updateMediaMetadata: vi.fn(),
   revealMainWindow: vi.fn(),
   loadLocalCoverFileUrl: vi.fn(),
+  cacheOnlineCover: vi.fn(),
   listeners: {} as Record<string, (event: { payload: unknown }) => void>,
 }));
 
@@ -17,14 +18,18 @@ vi.mock("@tauri-apps/api/event", () => ({
     return () => {};
   }),
 }));
-
 vi.mock("@/api/commands/system", () => ({
   updateMediaMetadata: (...args: unknown[]) => mocks.updateMediaMetadata(...args),
   revealMainWindow: (...args: unknown[]) => mocks.revealMainWindow(...args),
 }));
 
+vi.mock("@/api/commands/netease", () => ({
+  cacheOnlineCover: (...args: unknown[]) => mocks.cacheOnlineCover(...args),
+}));
+
 vi.mock("@/utils/coverUtils", () => ({
   loadLocalCoverFileUrl: (...args: unknown[]) => mocks.loadLocalCoverFileUrl(...args),
+  toFileUrl: (path: string) => `file://${path}`,
 }));
 
 import { usePlayerStore } from "@/stores/playerStore";
@@ -63,6 +68,7 @@ describe("useSystemMediaControls", () => {
     mocks.updateMediaMetadata.mockReset().mockResolvedValue(undefined);
     mocks.revealMainWindow.mockReset().mockResolvedValue(undefined);
     mocks.loadLocalCoverFileUrl.mockReset().mockResolvedValue("");
+    mocks.cacheOnlineCover.mockReset().mockResolvedValue(null);
     mocks.listeners = {};
     localStorage.clear();
   });
@@ -74,21 +80,26 @@ describe("useSystemMediaControls", () => {
     const [{ payload }] = mocks.updateMediaMetadata.mock.calls[0];
     expect(payload.isPlaying).toBe(false);
     expect(payload.title).toBe("");
+    // 空串会让 macOS 的 souvlaki 崩溃，必须是 null
+    expect(payload.coverUrl).toBeNull();
   });
 
-  it("有在线曲目时推送标题、歌手与封面", async () => {
+  it("有在线曲目时先落盘封面，再推送本地 file:// 地址", async () => {
     const pinia = createPinia();
     const wrapper = mount(Harness, { global: { plugins: [pinia] } });
     const playerStore = usePlayerStore();
+    mocks.cacheOnlineCover.mockResolvedValue("/cache/a.jpg");
     playerStore.currentOnlineSong = song;
     await flushPromises();
 
-    expect(mocks.updateMediaMetadata).toHaveBeenCalled();
+    expect(mocks.cacheOnlineCover).toHaveBeenCalledWith({
+      url: "http://localhost/a.jpg",
+    });
     const calls = mocks.updateMediaMetadata.mock.calls;
     const [{ payload }] = calls[calls.length - 1];
     expect(payload.title).toBe("Song");
     expect(payload.artist).toBe("A / B");
-    expect(payload.coverUrl).toBe("http://localhost/a.jpg");
+    expect(payload.coverUrl).toBe("file:///cache/a.jpg");
     expect(payload.durationMs).toBe(200000);
     wrapper.unmount();
   });

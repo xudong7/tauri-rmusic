@@ -72,7 +72,7 @@ function rememberOnlineCover(key: string, url: string) {
 }
 
 /** 本地路径 → 系统媒体控件可读的 file:// URL（转义 #/?，Windows 反斜杠转正） */
-function fileUrlFromPath(path: string): string {
+export function toFileUrl(path: string): string {
   const normalized = path.replace(/\\/g, "/");
   return `file://${encodeURI(normalized).replace(/#/g, "%23").replace(/\?/g, "%3F")}`;
 }
@@ -98,7 +98,7 @@ export async function loadLocalCoverFileUrl(
   const request = (async () => {
     try {
       const path = await loadLocalCoverPath({ fileName, defaultDirectory });
-      const url = path ? fileUrlFromPath(path) : "";
+      const url = path ? toFileUrl(path) : "";
       localCoverUrlCache.set(cacheKey, url);
       return url;
     } catch (error) {

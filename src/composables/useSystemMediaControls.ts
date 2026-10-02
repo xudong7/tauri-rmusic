@@ -1,10 +1,11 @@
 import { onMounted, onUnmounted, watch } from "vue";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { revealMainWindow, updateMediaMetadata } from "@/api/commands/system";
+import { cacheOnlineCover } from "@/api/commands/netease";
 import type { MediaMetadataUpdate } from "@/api/types";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
-import { loadLocalCoverFileUrl } from "@/utils/coverUtils";
+import { loadLocalCoverFileUrl, toFileUrl } from "@/utils/coverUtils";
 import { formatArtists, getLocalMusicDisplayInfo } from "@/utils/songUtils";
 
 /** 进度写回系统控件的节流间隔：系统只拿它做进度条，不需要跟到 250ms */
@@ -49,7 +50,8 @@ export function useSystemMediaControls() {
         title: "",
         artist: "",
         album: "",
-        coverUrl: "",
+        // 空串不是合法 URL：macOS 的 souvlaki 会因此崩溃，必须传 null
+        coverUrl: null,
         durationMs: 0,
         positionMs: 0,
         isPlaying: false,
@@ -63,39 +65,57 @@ export function useSystemMediaControls() {
       return;
     }
 
+    /**
+     * 封面统一转成本地 file:// 或 null。
+     *
+     * macOS 的 souvlaki 是同步加载封面的，且对加载失败的 NSImage 不做空检查
+     * ——远程 URL 取图失败或空串都会直接崩掉进程（见 Rust 侧 sanitize_cover_url）。
+     * 在线封面先经磁盘缓存落盘再传本地路径，顺带避免主线程同步网络请求。
+     */
+    const requestId = ++coverRequestId;
+    let coverUrl: string | null = null;
     let payload: MediaMetadataUpdate;
+
     if (online) {
       payload = {
         title: online.name,
         artist: formatArtists(online.artists),
         album: online.album ?? "",
-        coverUrl: online.pic_url ?? "",
+        coverUrl: null,
         durationMs: playerStore.currentTrackDuration,
         positionMs: playerStore.currentPlayTime,
         isPlaying: playerStore.isPlaying,
         volume: playerStore.volume / 100,
       };
+      if (online.pic_url) {
+        try {
+          const path = await cacheOnlineCover({ url: online.pic_url });
+          coverUrl = path ? toFileUrl(path) : null;
+        } catch (error) {
+          console.warn("[系统媒体控制] 缓存封面失败:", error);
+        }
+        if (requestId !== coverRequestId) return;
+      }
     } else {
       const info = getLocalMusicDisplayInfo(local!, "");
       payload = {
         title: info.title,
         artist: info.artist,
         album: info.album ?? "",
-        coverUrl: "",
+        coverUrl: null,
         durationMs: playerStore.currentTrackDuration,
         positionMs: playerStore.currentPlayTime,
         isPlaying: playerStore.isPlaying,
         volume: playerStore.volume / 100,
       };
-      // 本地封面要经 IPC 取路径；取回来时若已切歌就丢弃
-      const requestId = ++coverRequestId;
       const fileUrl = await loadLocalCoverFileUrl(local!.file_name, () =>
         localStore.getDefaultDirectory()
       );
       if (requestId !== coverRequestId) return;
-      payload.coverUrl = fileUrl;
+      coverUrl = fileUrl || null;
     }
 
+    payload.coverUrl = coverUrl;
     try {
       await updateMediaMetadata({ payload });
     } catch (error) {
