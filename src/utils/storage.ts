@@ -27,3 +27,21 @@ export function writeJsonToStorage(key: string, value: unknown): void {
     /* ignore */
   }
 }
+
+/**
+ * 把「键 → 值」的映射裁剪到最多 limit 条，保留最近插入的（对象键的插入顺序）。
+ * 用于那些只增不减的索引，避免 localStorage 在长期使用后越写越大。
+ */
+export function trimRecordToLimit<T>(
+  record: Record<string, T>,
+  limit: number
+): Record<string, T> {
+  const keys = Object.keys(record);
+  if (keys.length <= limit) return record;
+
+  const next: Record<string, T> = {};
+  for (const key of keys.slice(keys.length - limit)) {
+    next[key] = record[key];
+  }
+  return next;
+}

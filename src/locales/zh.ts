@@ -163,6 +163,7 @@ export default {
     noSong: "未选择歌曲",
     emptyHint: "从曲库选择一首歌曲开始播放",
     albumCover: "专辑封面",
+    openImmersive: "进入沉浸模式",
     previous: "上一曲",
     next: "下一曲",
     play: "播放",

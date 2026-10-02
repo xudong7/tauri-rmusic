@@ -36,14 +36,28 @@ html.dark .player-bar {
 
 .cover-container {
   position: relative;
+  display: block;
   width: 48px;
   height: 48px;
+  /* 原生 button 的默认外观清零：这仍是一块封面，不是系统按钮 */
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
   border-radius: 8px;
   overflow: hidden;
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   cursor: pointer;
   transition: box-shadow 0.2s ease;
+}
+
+.cover-container:disabled {
+  cursor: default;
+}
+
+.cover-container:disabled .cover-hover-frame {
+  display: none;
 }
 
 .cover-container:hover {

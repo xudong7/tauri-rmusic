@@ -11,6 +11,8 @@ export const STORAGE_KEY_COLLECTED_PLAYLISTS = "rmusic-collected-playlists";
 export const STORAGE_KEY_COLLECTED_ALBUMS = "rmusic-collected-albums";
 /** 下载过的歌曲：文件名 → 来源，用于「删了之后重新下载」 */
 export const STORAGE_KEY_DOWNLOAD_SOURCES = "rmusic-download-sources";
+/** 下载来源索引的条数上限（localStorage 无界增长会在长期使用后变慢） */
+export const MAX_DOWNLOAD_SOURCES = 500;
 /** 本地曲库排序方式 */
 export const STORAGE_KEY_LIBRARY_SORT = "rmusic-library-sort";
 /** 歌词偏移（毫秒） */

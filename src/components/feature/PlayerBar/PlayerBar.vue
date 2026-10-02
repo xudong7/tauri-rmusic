@@ -173,7 +173,14 @@ const {
   <div class="player-bar" :class="{ 'is-empty': !hasTrack }">
     <!-- 左侧：封面 + 歌曲信息 -->
     <div class="player-left">
-      <div ref="coverRef" class="cover-container" @click="enterImmersiveMode">
+      <button
+        ref="coverRef"
+        type="button"
+        class="cover-container"
+        :disabled="!hasTrack"
+        :aria-label="t('playerBar.openImmersive')"
+        @click="enterImmersiveMode"
+      >
         <CoverImage
           :src="coverUrl"
           :alt="t('playerBar.albumCover')"
@@ -183,7 +190,7 @@ const {
         />
         <!-- 悬停反馈：封面压暗 + 对角取景框（参考图），点开进入沉浸模式 -->
         <span class="cover-hover-frame" aria-hidden="true" />
-      </div>
+      </button>
       <div class="song-info">
         <div class="song-name" :title="songTitle">
           <component

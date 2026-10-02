@@ -2,10 +2,14 @@ import { ref } from "vue";
 import { defineStore } from "pinia";
 import { ElMessage } from "element-plus";
 import type { SongInfo } from "@/types/model";
-import { STORAGE_KEY_DOWNLOAD_SOURCES } from "@/constants";
+import { MAX_DOWNLOAD_SOURCES, STORAGE_KEY_DOWNLOAD_SOURCES } from "@/constants";
 import { downloadMusic } from "@/api/commands/music";
 import { parseErrorMessage } from "@/utils/errorUtils";
-import { readJsonFromStorage, writeJsonToStorage } from "@/utils/storage";
+import {
+  readJsonFromStorage,
+  trimRecordToLimit,
+  writeJsonToStorage,
+} from "@/utils/storage";
 import { getExpectedDownloadFileName, getLocalFileNameForSong } from "@/utils/songUtils";
 import { useLocalMusicStore } from "./localMusicStore";
 
@@ -58,11 +62,17 @@ export const useDownloadStore = defineStore("download", () => {
    * 覆盖不到的是用户自己导入的文件：它们从来没有过来源。
    */
   const sources = ref<Record<string, SongInfo>>(
-    readJsonFromStorage<Record<string, SongInfo>>(STORAGE_KEY_DOWNLOAD_SOURCES, {})
+    trimRecordToLimit(
+      readJsonFromStorage<Record<string, SongInfo>>(STORAGE_KEY_DOWNLOAD_SOURCES, {}),
+      MAX_DOWNLOAD_SOURCES
+    )
   );
 
   function rememberSource(fileName: string, song: SongInfo) {
-    sources.value = { ...sources.value, [fileName]: song };
+    sources.value = trimRecordToLimit(
+      { ...sources.value, [fileName]: song },
+      MAX_DOWNLOAD_SOURCES
+    );
     writeJsonToStorage(STORAGE_KEY_DOWNLOAD_SOURCES, sources.value);
   }
 

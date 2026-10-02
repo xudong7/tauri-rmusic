@@ -163,6 +163,7 @@ export default {
     noSong: "No song selected",
     emptyHint: "Choose a song from your library to start listening",
     albumCover: "Album cover",
+    openImmersive: "Open immersive view",
     previous: "Previous",
     next: "Next",
     play: "Play",

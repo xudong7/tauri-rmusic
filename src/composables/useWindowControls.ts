@@ -2,7 +2,8 @@
  * 窗口控制逻辑 composable（minimize / maximize / close）
  * 供 HeaderBar、ImmersiveView、SettingsWindow 复用，降低重复
  */
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
+import type { UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 type AppWindow = ReturnType<typeof getCurrentWindow> | null;
@@ -10,6 +11,7 @@ type AppWindow = ReturnType<typeof getCurrentWindow> | null;
 export function useWindowControls(options?: { onClose?: "hide" | "close" }) {
   const onCloseAction = options?.onClose ?? "hide";
   let appWindow: AppWindow = null;
+  let unlistenResized: UnlistenFn | null = null;
   const isMaximized = ref(false);
 
   async function checkMaximized() {
@@ -45,10 +47,16 @@ export function useWindowControls(options?: { onClose?: "hide" | "close" }) {
     try {
       appWindow = getCurrentWindow();
       await checkMaximized();
-      appWindow?.onResized?.(checkMaximized);
+      // 监听要存下来：沉浸页反复开关时，不清理会不断累积 onResized 回调
+      unlistenResized = (await appWindow?.onResized?.(checkMaximized)) ?? null;
     } catch (e) {
       console.error("窗口操作错误:", e);
     }
+  });
+
+  onUnmounted(() => {
+    unlistenResized?.();
+    unlistenResized = null;
   });
 
   return {
