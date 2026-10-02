@@ -163,6 +163,21 @@ pub fn run() {
 
             // Get the main window - use "main" as the default window label
             if let Some(window) = app.get_webview_window("main") {
+                // 红灯 / Cmd+W = 隐藏，不是退出：把关闭请求拦下来改成 hide，音乐继续。
+                // 不拦的话窗口会被销毁；若此时桌面歌词窗再一关，最后一个窗口也没了，
+                // 整个应用退出、播放随之停止。真正退出只走托盘菜单的「退出」。
+                let close_handle = app.handle().clone();
+                window.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        api.prevent_close();
+                        if let Some(main) = close_handle.get_webview_window("main") {
+                            if let Err(e) = main.hide() {
+                                eprintln!("Failed to hide main window: {}", e);
+                            }
+                        }
+                    }
+                });
+
                 // 恢复失败只应被忽略，不能升级成 panic：release 下 panic = "abort"，
                 // 一旦保存的窗口坐标落在已断开的显示器上（restore_state 内部的
                 // set_position 返回 Err），进程会在建窗之前直接死掉且无法自愈。
