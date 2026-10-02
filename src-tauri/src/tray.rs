@@ -55,21 +55,28 @@ enum ControlAction {
     Next,
 }
 
-fn point_in_triangle(point: (f64, f64), a: (f64, f64), b: (f64, f64), c: (f64, f64)) -> bool {
+/// 笔画半宽（归一化坐标）：0.04 对应 36px 画布上约 2.9px，缩到 18pt 菜单栏
+/// 后约 1.4pt，接近 QQ 音乐那组细描边图标的观感。
+const STROKE_HALF_WIDTH: f64 = 0.04;
+
+type Point = (f64, f64);
+type Segment = (Point, Point);
+
+fn distance_to_segment(point: Point, a: Point, b: Point) -> f64 {
     let (px, py) = point;
     let (ax, ay) = a;
     let (bx, by) = b;
-    let (cx, cy) = c;
-    let d1 = (px - bx) * (ay - by) - (ax - bx) * (py - by);
-    let d2 = (px - cx) * (by - cy) - (bx - cx) * (py - cy);
-    let d3 = (px - ax) * (cy - ay) - (cx - ax) * (py - ay);
-    let has_neg = d1 < 0.0 || d2 < 0.0 || d3 < 0.0;
-    let has_pos = d1 > 0.0 || d2 > 0.0 || d3 > 0.0;
-    !(has_neg && has_pos)
-}
-
-fn point_in_rect(px: f64, py: f64, x0: f64, y0: f64, x1: f64, y1: f64) -> bool {
-    px >= x0 && px <= x1 && py >= y0 && py <= y1
+    let dx = bx - ax;
+    let dy = by - ay;
+    let length_squared = dx * dx + dy * dy;
+    let t = if length_squared == 0.0 {
+        0.0
+    } else {
+        (((px - ax) * dx + (py - ay) * dy) / length_squared).clamp(0.0, 1.0)
+    };
+    let closest_x = ax + t * dx;
+    let closest_y = ay + t * dy;
+    ((px - closest_x).powi(2) + (py - closest_y).powi(2)).sqrt()
 }
 
 /// 只认左键抬起。右键/中键、以及左键按下都不触发，避免误操作。
@@ -77,25 +84,39 @@ fn is_primary_click(button: MouseButton, state: MouseButtonState) -> bool {
     button == MouseButton::Left && state == MouseButtonState::Up
 }
 
-/// 归一化坐标（0..1）下判断某个采样点是否落在图形内。
-/// 图形尽量填满画布：图标最终按高度缩放到 18pt，内部留白会直接变成
-/// 菜单栏里肉眼可见的间距，所以控制图标不做「居中留白」那套。
-fn icon_hit(kind: ControlIcon, x: f64, y: f64) -> bool {
+/// 每个图标由若干线段组成，渲染时按笔画半宽描边（圆角端点）。
+/// 空心三角 + 细竖条，和 QQ 音乐菜单栏那组一致；previous/next 的镜像
+/// 关系必须严格保持（测试会逐像素验证）。
+fn icon_segments(kind: ControlIcon) -> &'static [Segment] {
     match kind {
-        ControlIcon::Play => point_in_triangle((x, y), (0.18, 0.10), (0.18, 0.90), (0.92, 0.50)),
-        ControlIcon::Pause => {
-            point_in_rect(x, y, 0.16, 0.10, 0.42, 0.90)
-                || point_in_rect(x, y, 0.58, 0.10, 0.84, 0.90)
-        }
-        ControlIcon::Next => {
-            point_in_triangle((x, y), (0.10, 0.10), (0.10, 0.90), (0.62, 0.50))
-                || point_in_rect(x, y, 0.72, 0.10, 0.90, 0.90)
-        }
-        ControlIcon::Previous => {
-            point_in_triangle((x, y), (0.90, 0.10), (0.90, 0.90), (0.38, 0.50))
-                || point_in_rect(x, y, 0.10, 0.10, 0.28, 0.90)
-        }
+        ControlIcon::Play => &[
+            ((0.26, 0.16), (0.26, 0.84)),
+            ((0.26, 0.84), (0.84, 0.50)),
+            ((0.84, 0.50), (0.26, 0.16)),
+        ],
+        ControlIcon::Pause => &[((0.36, 0.16), (0.36, 0.84)), ((0.64, 0.16), (0.64, 0.84))],
+        ControlIcon::Next => &[
+            ((0.16, 0.16), (0.16, 0.84)),
+            ((0.16, 0.84), (0.70, 0.50)),
+            ((0.70, 0.50), (0.16, 0.16)),
+            ((0.82, 0.16), (0.82, 0.84)),
+        ],
+        ControlIcon::Previous => &[
+            ((0.84, 0.16), (0.84, 0.84)),
+            ((0.84, 0.84), (0.30, 0.50)),
+            ((0.30, 0.50), (0.84, 0.16)),
+            ((0.18, 0.16), (0.18, 0.84)),
+        ],
     }
+}
+
+/// 归一化坐标（0..1）下判断采样点是否落在笔画上（描边即命中）。
+/// 图形尽量填满画布：图标最终按高度缩放到 18pt，内部留白会直接变成
+/// 菜单栏里肉眼可见的间距。
+fn icon_hit(kind: ControlIcon, x: f64, y: f64) -> bool {
+    icon_segments(kind)
+        .iter()
+        .any(|(a, b)| distance_to_segment((x, y), *a, *b) <= STROKE_HALF_WIDTH)
 }
 
 /// 生成模板图标 RGBA：黑色 + 覆盖率作为 alpha，4x4 超采样抗锯齿。
@@ -585,8 +606,12 @@ mod tests {
     }
 
     #[test]
-    fn triangle_hit_test_marks_inside_and_outside() {
-        assert!(icon_hit(ControlIcon::Play, 0.45, 0.5));
-        assert!(!icon_hit(ControlIcon::Play, 0.97, 0.5));
+    fn icons_are_outlined_not_filled() {
+        // 笔画上命中：播放三角斜边中点
+        assert!(icon_hit(ControlIcon::Play, 0.55, 0.33));
+        // 三角形内部是透明的
+        assert!(!icon_hit(ControlIcon::Play, 0.45, 0.50));
+        // 暂停两条竖条之间也是透明的
+        assert!(!icon_hit(ControlIcon::Pause, 0.50, 0.50));
     }
 }
