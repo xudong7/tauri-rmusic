@@ -11,6 +11,7 @@ import type {
   PlaylistSearchResult,
   PlaylistTracksResult,
   SearchMixResult,
+  SongLyricResult,
   ToplistResult,
 } from "@/types/model";
 import { DETAIL_CACHE_MAX_ENTRIES, DETAIL_CACHE_TTL_MS } from "@/constants";
@@ -127,7 +128,7 @@ export async function getArtistTopSongs(args: {
   return await invokeCachedCommand("get_artist_top_songs", args);
 }
 
-export async function getSongLyric(args: { id: string }): Promise<string> {
+export async function getSongLyric(args: { id: string }): Promise<SongLyricResult> {
   return await invokeCachedCommand("get_song_lyric", args);
 }
 

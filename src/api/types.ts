@@ -16,6 +16,7 @@ import type {
   PlaySongResult,
   OnlineServiceStatus,
   SearchMixResult,
+  SongLyricResult,
   ToplistResult,
 } from "@/types/model";
 
@@ -137,7 +138,7 @@ export interface TauriCommandResultMap {
   get_artist_songs: ArtistSongsPage;
   get_artist_top_songs: ArtistSongsResult;
   get_default_music_dir: string;
-  get_song_lyric: string;
+  get_song_lyric: SongLyricResult;
   cache_online_cover: string | null;
   load_local_cover_path: string | null;
   load_local_lyric: string;

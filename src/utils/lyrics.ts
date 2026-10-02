@@ -1,6 +1,8 @@
 export interface LyricLine {
   time: number;
   text: string;
+  /** 翻译（tlyric）；无翻译的行没有这个字段 */
+  translation?: string;
 }
 
 const lyricCache = new Map<string, LyricLine[]>();
@@ -53,6 +55,29 @@ export function parseLyric(lrc: string): LyricLine[] {
   }
 
   return result.sort((a, b) => a.time - b.time);
+}
+
+/**
+ * 合并原文与翻译：按时间戳精确配对（tlyric 与 lrc 共用同一组时间戳）。
+ * 翻译里对不上的时间戳直接丢弃——错位显示比不显示更糟。
+ */
+export function parseLyricWithTranslation(
+  lyric: string,
+  translation: string
+): LyricLine[] {
+  const lines = parseLyric(lyric);
+  const translated = parseLyric(translation);
+  if (translated.length === 0) return lines;
+
+  const translationByTime = new Map<number, string>();
+  for (const line of translated) {
+    if (!translationByTime.has(line.time)) translationByTime.set(line.time, line.text);
+  }
+
+  return lines.map((line) => {
+    const text = translationByTime.get(line.time);
+    return text ? { ...line, translation: text } : line;
+  });
 }
 
 export function findLyricIndex(lines: LyricLine[], currentTime: number): number {

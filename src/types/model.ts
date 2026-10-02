@@ -26,6 +26,12 @@ export interface SongInfo {
   artist_ids?: string[];
 }
 
+/** 歌词与翻译（tlyric）；纯音乐没有翻译时 translation 为空串 */
+export interface SongLyricResult {
+  lyric: string;
+  translation: string;
+}
+
 // 在线歌单（/toplist、/cloudsearch?type=1000、/playlist/detail 共用）
 export interface PlaylistInfo {
   id: string;

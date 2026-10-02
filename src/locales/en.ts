@@ -185,6 +185,10 @@ export default {
     loadFailed: "Failed to load lyrics",
     loading: "Loading lyrics...",
     seekTo: "Jump to {time}",
+    offset: "Lyric offset",
+    offsetEarlier: "Show lyrics 0.5s earlier",
+    offsetLater: "Show lyrics 0.5s later",
+    offsetReset: "Click to reset offset",
   },
   import: {
     audioFiles: "Audio files",

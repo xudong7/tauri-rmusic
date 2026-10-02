@@ -185,6 +185,10 @@ export default {
     loadFailed: "歌词加载失败",
     loading: "加载歌词中...",
     seekTo: "跳转到 {time}",
+    offset: "歌词偏移",
+    offsetEarlier: "歌词提前 0.5 秒",
+    offsetLater: "歌词延后 0.5 秒",
+    offsetReset: "点击重置偏移",
   },
   import: {
     audioFiles: "音频文件",
