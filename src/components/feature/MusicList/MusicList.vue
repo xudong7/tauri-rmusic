@@ -12,7 +12,7 @@ import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import type { ContextMenuItem } from "@/composables/useContextMenu";
 import { revealLocalFile } from "@/utils/revealInFolder";
-import { writeTrackDragPayload } from "@/utils/trackDrag";
+import { useTrackDrag } from "@/composables/useTrackDrag";
 import {
   LIBRARY_SORT_MODES,
   groupMusicFilesByAlbum,
@@ -36,6 +36,7 @@ const { t } = useI18n();
 const playlistStore = usePlaylistStore();
 const localStore = useLocalMusicStore();
 const playerStore = usePlayerStore();
+const { startTrackDrag } = useTrackDrag();
 
 /** 当前浏览方式；album/artist 下选中的分组 key（空表示在网格层级） */
 const browseTab = ref<BrowseTab>("songs");
@@ -282,11 +283,14 @@ async function handleDelete(row: MusicFile) {
   }
 }
 
-/** 拖到侧栏歌单即添加：载荷只带文件名，曲库是本地数据的唯一来源。 */
-function handleRowDragStart(event: DragEvent, item: TrackRowModel) {
+/** 拖到侧栏歌单（或列表内排序）：指针拖动由 useTrackDrag 统一跟踪 */
+function handleRowDragStart(event: PointerEvent, item: TrackRowModel) {
   const file = browseFiles.value[item.sourceIndex];
   if (!file) return;
-  writeTrackDragPayload(event, { type: "local", fileName: file.file_name });
+  startTrackDrag(event, {
+    payload: { type: "local", fileName: file.file_name },
+    label: item.title,
+  });
 }
 
 function handleAddToPlaylist(command: string, row: MusicFile) {

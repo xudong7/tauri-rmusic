@@ -105,15 +105,8 @@
         </div>
       </div>
 
-      <!-- 拖拽排序的落点检测挂在容器上：行本身不需要知道排序逻辑 -->
-      <div
-        v-else
-        class="playlist-view__list"
-        @dragover="handleListDragOver"
-        @dragleave="handleListDragLeave"
-        @drop="handleListDrop"
-        @dragend="handleListDragEnd"
-      >
+      <!-- 拖拽排序由 useTrackDrag 的指针跟踪实现：落点检测在 rowAtPoint 里 -->
+      <div v-else class="playlist-view__list">
         <TrackList
           :items="trackRows"
           :selection-mode="selectionMode"
@@ -188,7 +181,7 @@ import { useViewStore } from "@/stores/viewStore";
 import { useDownloadStore } from "@/stores/downloadStore";
 import type { ContextMenuItem } from "@/composables/useContextMenu";
 import { revealLocalFile } from "@/utils/revealInFolder";
-import { writeTrackDragPayload } from "@/utils/trackDrag";
+import { useTrackDrag, type TrackDragPayload } from "@/composables/useTrackDrag";
 import DetailHero from "@/components/layout/DetailHero/DetailHero.vue";
 import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
 import TrackList from "@/components/feature/TrackList/TrackList.vue";
@@ -404,65 +397,52 @@ async function redownloadAt(index: number) {
 
 const trackRows = computed(() => filteredResolvedItems.value.map(toTrackRow));
 
-/** 拖到另一个歌单：本地带文件名，在线带 SongInfo（接收方按需下载）。 */
-function handleRowDragStart(event: DragEvent, item: TrackRowModel) {
-  const entry = resolvedItems.value.find((candidate) => candidate.key === item.key);
-  if (!entry) return;
-  draggedIndex.value = entry.sourceIndex;
-  if (entry.musicFile) {
-    writeTrackDragPayload(event, { type: "local", fileName: entry.musicFile.file_name });
-  } else if (entry.songInfo) {
-    writeTrackDragPayload(event, { type: "online", song: entry.songInfo });
-  }
-}
+/* ---------- 歌单内拖拽排序（pointer 事件，见 useTrackDrag） ---------- */
 
-/* ---------- 歌单内拖拽排序 ---------- */
-
-/** 正在被拖动的条目下标（原始歌单下标）；跨组件拖拽（侧栏加歌）时为 null */
-const draggedIndex = ref<number | null>(null);
 /** 落点行的位置（trackRows 下标）；映射回原始下标后才交给 reorderPlaylist */
 const dropIndicatorIndex = ref<number | null>(null);
+const { startTrackDrag } = useTrackDrag();
 
-function handleListDragOver(event: DragEvent) {
-  if (draggedIndex.value === null) return;
-  event.preventDefault();
-  if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
-  const row = (event.target as HTMLElement | null)?.closest<HTMLElement>(
-    "[data-row-index]"
-  );
-  const position = row ? Number(row.dataset.rowIndex) : NaN;
-  dropIndicatorIndex.value = Number.isNaN(position) ? null : position;
+/** 只认本歌单容器里的行，指针划过其它列表时不会误高亮 */
+function rowAtPoint(x: number, y: number): HTMLElement | null {
+  const element = document.elementFromPoint(x, y) as HTMLElement | null;
+  const row = element?.closest<HTMLElement>("[data-row-index]");
+  return row && row.closest(".playlist-view__list") ? row : null;
 }
 
-function handleListDragLeave(event: DragEvent) {
-  // dragleave 在子元素之间移动也会触发；只有真正离开列表容器才清除
-  const related = event.relatedTarget as Node | null;
-  const container = event.currentTarget as HTMLElement | null;
-  if (related && container?.contains(related)) return;
-  dropIndicatorIndex.value = null;
-}
+function handleRowDragStart(event: PointerEvent, item: TrackRowModel) {
+  const entry = resolvedItems.value.find((candidate) => candidate.key === item.key);
+  if (!entry) return;
+  const payload: TrackDragPayload | null = entry.musicFile
+    ? { type: "local", fileName: entry.musicFile.file_name }
+    : entry.songInfo
+      ? { type: "online", song: entry.songInfo }
+      : null;
+  if (!payload) return;
+  const fromIndex = entry.sourceIndex;
 
-function handleListDrop(event: DragEvent) {
-  if (draggedIndex.value === null || !playlist.value) return;
-  event.preventDefault();
-  const row = (event.target as HTMLElement | null)?.closest<HTMLElement>(
-    "[data-row-index]"
-  );
-  const position = row ? Number(row.dataset.rowIndex) : NaN;
-  const fromIndex = draggedIndex.value;
-  draggedIndex.value = null;
-  dropIndicatorIndex.value = null;
-  if (Number.isNaN(position)) return;
-
-  // 行位置 → 原始歌单下标：搜索过滤时两者并不相等
-  const targetSourceIndex = trackRows.value[position]?.sourceIndex;
-  if (targetSourceIndex === undefined || targetSourceIndex === fromIndex) return;
-  playlistStore.reorderPlaylist(playlist.value.id, fromIndex, targetSourceIndex);
-}
-
-function handleListDragEnd() {
-  draggedIndex.value = null;
-  dropIndicatorIndex.value = null;
+  startTrackDrag(event, {
+    payload,
+    label: item.title,
+    onMove: (_payload, x, y) => {
+      const row = rowAtPoint(x, y);
+      const position = row ? Number(row.dataset.rowIndex) : NaN;
+      dropIndicatorIndex.value = Number.isNaN(position) ? null : position;
+    },
+    onCancel: () => {
+      dropIndicatorIndex.value = null;
+    },
+    onDrop: (_payload, x, y) => {
+      const row = rowAtPoint(x, y);
+      const position = row ? Number(row.dataset.rowIndex) : NaN;
+      dropIndicatorIndex.value = null;
+      if (Number.isNaN(position) || !playlist.value) return;
+      // 行位置 → 原始歌单下标：搜索过滤时两者并不相等
+      const targetSourceIndex = trackRows.value[position]?.sourceIndex;
+      if (targetSourceIndex === undefined || targetSourceIndex === fromIndex) return;
+      playlistStore.reorderPlaylist(playlist.value.id, fromIndex, targetSourceIndex);
+    },
+  });
 }
 
 /** 行右键菜单：下一首播放 / 在文件夹中显示（本地）/ 从歌单移除。 */

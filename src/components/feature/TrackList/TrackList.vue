@@ -55,7 +55,7 @@ const emit = defineEmits<{
   activate: [item: TrackRowModel];
   toggleCurrent: [item: TrackRowModel];
   toggleSelect: [item: TrackRowModel];
-  rowDragStart: [event: DragEvent, item: TrackRowModel];
+  rowDragStart: [event: PointerEvent, item: TrackRowModel];
   nearEnd: [];
   visibleItems: [items: TrackRowModel[]];
 }>();
@@ -87,6 +87,17 @@ const contextMenu = useContextMenu();
 function handleContextMenu(event: MouseEvent, item: TrackRowModel) {
   if (props.selectionMode || !props.contextMenuItems) return;
   contextMenu.open(event, props.contextMenuItems(item));
+}
+
+/**
+ * 行上按下指针：交给调用方决定是否发起拖拽（歌单排序 / 拖到侧栏）。
+ * 交互控件（按钮、复选框、滑杆）上的按下不参与拖拽。
+ */
+function handleRowPointerDown(event: PointerEvent, item: TrackRowModel) {
+  if (props.selectionMode || item.disabled) return;
+  const target = event.target as HTMLElement | null;
+  if (target?.closest("button, a, input, .el-slider, [data-no-drag]")) return;
+  emit("rowDragStart", event, item);
 }
 
 function handleListKeydown(event: KeyboardEvent) {
@@ -158,9 +169,7 @@ function handleListKeydown(event: KeyboardEvent) {
           @activate="handleActivate"
           @toggle-select="emit('toggleSelect', $event)"
           @context-menu="handleContextMenu"
-          @drag-start="
-            (event: DragEvent, item: TrackRowModel) => emit('rowDragStart', event, item)
-          "
+          @drag-pointer-down="handleRowPointerDown"
         >
           <template v-if="$slots.actions" #actions="{ item: actionItem }">
             <slot name="actions" :item="actionItem" />
@@ -192,9 +201,7 @@ function handleListKeydown(event: KeyboardEvent) {
           @activate="handleActivate"
           @toggle-select="emit('toggleSelect', $event)"
           @context-menu="handleContextMenu"
-          @drag-start="
-            (event: DragEvent, item: TrackRowModel) => emit('rowDragStart', event, item)
-          "
+          @drag-pointer-down="handleRowPointerDown"
         >
           <template v-if="$slots.actions" #actions="{ item: actionItem }">
             <slot name="actions" :item="actionItem" />

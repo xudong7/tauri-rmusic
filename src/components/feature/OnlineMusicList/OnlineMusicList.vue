@@ -12,7 +12,7 @@ import {
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import type { ContextMenuItem } from "@/composables/useContextMenu";
-import { writeTrackDragPayload } from "@/utils/trackDrag";
+import { useTrackDrag } from "@/composables/useTrackDrag";
 import { useOnlinePlaylistActions } from "@/composables/useOnlinePlaylistActions";
 import CheckIcon from "@/components/base/icons/CheckIcon.vue";
 import TrackList from "@/components/feature/TrackList/TrackList.vue";
@@ -22,6 +22,7 @@ const { t } = useI18n();
 const playlistStore = usePlaylistStore();
 const playerStore = usePlayerStore();
 const downloadStore = useDownloadStore();
+const { startTrackDrag } = useTrackDrag();
 const { addOnlineSongToPlaylist } = useOnlinePlaylistActions();
 
 const props = withDefaults(
@@ -123,11 +124,14 @@ function requestDownload(song: SongInfo) {
   void downloadStore.download(song);
 }
 
-/** 拖到侧栏歌单即添加；在线歌曲会先走下载流程（由接收方处理）。 */
-function handleRowDragStart(event: DragEvent, item: TrackRowModel) {
+/** 拖到侧栏歌单：载荷带 SongInfo，接收方按需下载 */
+function handleRowDragStart(event: PointerEvent, item: TrackRowModel) {
   const song = props.onlineSongs[item.sourceIndex];
   if (!song) return;
-  writeTrackDragPayload(event, { type: "online", song });
+  startTrackDrag(event, {
+    payload: { type: "online", song },
+    label: item.title,
+  });
 }
 
 /** 行右键菜单：下一首播放 / 下载（已下载时不出现）。 */
