@@ -13,10 +13,10 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 const props = withDefaults(
   defineProps<{
     text: string;
-    /** 每像素对应的滚动时长基准（越大越慢） */
+    /** 滚动速度（像素/秒）；越大越快 */
     speed?: number;
   }>(),
-  { speed: 40 }
+  { speed: 120 }
 );
 
 const rootRef = ref<HTMLElement | null>(null);
@@ -51,7 +51,7 @@ const marqueeStyle = computed(() => {
   if (!isAnimating.value) return undefined;
   return {
     "--marquee-shift": `-${overflowPx.value}px`,
-    "--marquee-duration": `${Math.max(4, Math.round(overflowPx.value / props.speed) + 2)}s`,
+    "--marquee-duration": `${Math.max(1.5, overflowPx.value / props.speed).toFixed(2)}s`,
   };
 });
 
