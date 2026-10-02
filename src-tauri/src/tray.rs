@@ -152,52 +152,43 @@ fn render_control_icon(kind: ControlIcon) -> Vec<u8> {
     data
 }
 
-/// 裁掉图形外的透明边并留 1px 余量。
-///
-/// macOS 会把图标按高度缩放到 18pt、宽度按原图比例算：方形画布上的
-/// 透明留白会原样变成菜单栏里的间距。裁紧之后控制图标之间只剩系统
-/// 自身的间隔。
-fn crop_to_content(data: Vec<u8>, size: usize, padding: usize) -> (Vec<u8>, u32, u32) {
+/// 只裁水平方向：左右透明留白会变成菜单栏里的间距，必须裁紧；
+/// 垂直方向保留整块画布高度，图形只占 18pt 里的约 2/3（约 12pt），
+/// 图标小而精致，不会顶满菜单栏。
+fn crop_horizontal(data: Vec<u8>, size: usize, padding: usize) -> (Vec<u8>, u32, u32) {
     let mut min_x = size;
-    let mut min_y = size;
     let mut max_x = 0usize;
-    let mut max_y = 0usize;
 
     for y in 0..size {
         for x in 0..size {
             if data[(y * size + x) * 4 + 3] > 0 {
                 min_x = min_x.min(x);
-                min_y = min_y.min(y);
                 max_x = max_x.max(x);
-                max_y = max_y.max(y);
             }
         }
     }
 
-    if min_x > max_x || min_y > max_y {
+    if min_x > max_x {
         return (data, size as u32, size as u32);
     }
 
     let x0 = min_x.saturating_sub(padding);
-    let y0 = min_y.saturating_sub(padding);
     let x1 = (max_x + padding).min(size - 1);
-    let y1 = (max_y + padding).min(size - 1);
     let width = x1 - x0 + 1;
-    let height = y1 - y0 + 1;
 
-    let mut cropped = vec![0u8; width * height * 4];
-    for y in 0..height {
-        let source_start = ((y0 + y) * size + x0) * 4;
+    let mut cropped = vec![0u8; width * size * 4];
+    for y in 0..size {
+        let source_start = (y * size + x0) * 4;
         let target_start = y * width * 4;
         cropped[target_start..target_start + width * 4]
             .copy_from_slice(&data[source_start..source_start + width * 4]);
     }
 
-    (cropped, width as u32, height as u32)
+    (cropped, width as u32, size as u32)
 }
 
 fn control_icon_rgba(kind: ControlIcon) -> (Vec<u8>, u32, u32) {
-    crop_to_content(render_control_icon(kind), CONTROL_ICON_SIZE as usize, 1)
+    crop_horizontal(render_control_icon(kind), CONTROL_ICON_SIZE as usize, 1)
 }
 
 fn control_icon_image(kind: ControlIcon) -> Image<'static> {
@@ -558,15 +549,16 @@ mod tests {
             let width = width as usize;
             let height = height as usize;
 
-            // 留白只有 1px：裁完的尺寸必须小于原始方形画布
+            // 水平裁紧（左右留白只有 1px），垂直保留整块画布：
+            // 这样图标只占 18pt 里的约 2/3，不会顶满菜单栏。
             assert!(
                 width < CONTROL_ICON_SIZE as usize,
                 "{:?} is not cropped horizontally",
                 kind
             );
-            assert!(
-                height < CONTROL_ICON_SIZE as usize,
-                "{:?} is not cropped vertically",
+            assert_eq!(
+                height, CONTROL_ICON_SIZE as usize,
+                "{:?} should keep its vertical padding",
                 kind
             );
 
@@ -574,6 +566,15 @@ mod tests {
             let column_opaque = |x: usize| (0..height).any(|y| data[(y * width + x) * 4 + 3] > 0);
             assert!(column_opaque(1), "{:?} left edge is empty", kind);
             assert!(column_opaque(width - 2), "{:?} right edge is empty", kind);
+
+            // 首行/末行必须全透明：图形没有顶到画布边缘
+            let row_opaque = |y: usize| (0..width).any(|x| data[(y * width + x) * 4 + 3] > 0);
+            assert!(!row_opaque(0), "{:?} touches the top edge", kind);
+            assert!(
+                !row_opaque(height - 1),
+                "{:?} touches the bottom edge",
+                kind
+            );
         }
     }
 
