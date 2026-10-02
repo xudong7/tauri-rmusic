@@ -23,6 +23,7 @@ import {
 } from "@/utils/songUtils";
 import { playModeIcon, playModeLabelKey } from "@/utils/playModeUtils";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
+import MarqueeText from "@/components/base/MarqueeText/MarqueeText.vue";
 import { useArtistNavigation } from "@/composables/useArtistNavigation";
 import { useAlbumNavigation } from "@/composables/useAlbumNavigation";
 import { useCoverLoader } from "@/composables/useCoverLoader";
@@ -198,7 +199,7 @@ const {
         <span class="cover-hover-frame" aria-hidden="true" />
       </button>
       <div class="song-info">
-        <div class="song-name" :title="songTitle">
+        <MarqueeText class="song-name" :title="songTitle" :text="songTitle">
           <component
             :is="canNavigateAlbum ? 'button' : 'span'"
             :type="canNavigateAlbum ? 'button' : undefined"
@@ -208,7 +209,7 @@ const {
           >
             {{ songTitle }}
           </component>
-        </div>
+        </MarqueeText>
         <div v-if="isLoading" class="playback-status" role="status">
           {{ playbackStatus }}
         </div>
