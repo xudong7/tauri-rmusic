@@ -72,21 +72,28 @@ fn point_in_rect(px: f64, py: f64, x0: f64, y0: f64, x1: f64, y1: f64) -> bool {
     px >= x0 && px <= x1 && py >= y0 && py <= y1
 }
 
-/// 归一化坐标（0..1）下判断某个采样点是否落在图形内
+/// 只认左键抬起。右键/中键、以及左键按下都不触发，避免误操作。
+fn is_primary_click(button: MouseButton, state: MouseButtonState) -> bool {
+    button == MouseButton::Left && state == MouseButtonState::Up
+}
+
+/// 归一化坐标（0..1）下判断某个采样点是否落在图形内。
+/// 图形尽量填满画布：图标最终按高度缩放到 18pt，内部留白会直接变成
+/// 菜单栏里肉眼可见的间距，所以控制图标不做「居中留白」那套。
 fn icon_hit(kind: ControlIcon, x: f64, y: f64) -> bool {
     match kind {
-        ControlIcon::Play => point_in_triangle((x, y), (0.32, 0.18), (0.32, 0.82), (0.82, 0.5)),
+        ControlIcon::Play => point_in_triangle((x, y), (0.18, 0.10), (0.18, 0.90), (0.92, 0.50)),
         ControlIcon::Pause => {
-            point_in_rect(x, y, 0.30, 0.18, 0.45, 0.82)
-                || point_in_rect(x, y, 0.55, 0.18, 0.70, 0.82)
+            point_in_rect(x, y, 0.16, 0.10, 0.42, 0.90)
+                || point_in_rect(x, y, 0.58, 0.10, 0.84, 0.90)
         }
         ControlIcon::Next => {
-            point_in_triangle((x, y), (0.20, 0.18), (0.20, 0.82), (0.62, 0.5))
-                || point_in_rect(x, y, 0.68, 0.18, 0.80, 0.82)
+            point_in_triangle((x, y), (0.10, 0.10), (0.10, 0.90), (0.62, 0.50))
+                || point_in_rect(x, y, 0.72, 0.10, 0.90, 0.90)
         }
         ControlIcon::Previous => {
-            point_in_triangle((x, y), (0.80, 0.18), (0.80, 0.82), (0.38, 0.5))
-                || point_in_rect(x, y, 0.20, 0.18, 0.32, 0.82)
+            point_in_triangle((x, y), (0.90, 0.10), (0.90, 0.90), (0.38, 0.50))
+                || point_in_rect(x, y, 0.10, 0.10, 0.28, 0.90)
         }
     }
 }
@@ -124,12 +131,57 @@ fn render_control_icon(kind: ControlIcon) -> Vec<u8> {
     data
 }
 
+/// 裁掉图形外的透明边并留 1px 余量。
+///
+/// macOS 会把图标按高度缩放到 18pt、宽度按原图比例算：方形画布上的
+/// 透明留白会原样变成菜单栏里的间距。裁紧之后控制图标之间只剩系统
+/// 自身的间隔。
+fn crop_to_content(data: Vec<u8>, size: usize, padding: usize) -> (Vec<u8>, u32, u32) {
+    let mut min_x = size;
+    let mut min_y = size;
+    let mut max_x = 0usize;
+    let mut max_y = 0usize;
+
+    for y in 0..size {
+        for x in 0..size {
+            if data[(y * size + x) * 4 + 3] > 0 {
+                min_x = min_x.min(x);
+                min_y = min_y.min(y);
+                max_x = max_x.max(x);
+                max_y = max_y.max(y);
+            }
+        }
+    }
+
+    if min_x > max_x || min_y > max_y {
+        return (data, size as u32, size as u32);
+    }
+
+    let x0 = min_x.saturating_sub(padding);
+    let y0 = min_y.saturating_sub(padding);
+    let x1 = (max_x + padding).min(size - 1);
+    let y1 = (max_y + padding).min(size - 1);
+    let width = x1 - x0 + 1;
+    let height = y1 - y0 + 1;
+
+    let mut cropped = vec![0u8; width * height * 4];
+    for y in 0..height {
+        let source_start = ((y0 + y) * size + x0) * 4;
+        let target_start = y * width * 4;
+        cropped[target_start..target_start + width * 4]
+            .copy_from_slice(&data[source_start..source_start + width * 4]);
+    }
+
+    (cropped, width as u32, height as u32)
+}
+
+fn control_icon_rgba(kind: ControlIcon) -> (Vec<u8>, u32, u32) {
+    crop_to_content(render_control_icon(kind), CONTROL_ICON_SIZE as usize, 1)
+}
+
 fn control_icon_image(kind: ControlIcon) -> Image<'static> {
-    Image::new_owned(
-        render_control_icon(kind),
-        CONTROL_ICON_SIZE,
-        CONTROL_ICON_SIZE,
-    )
+    let (data, width, height) = control_icon_rgba(kind);
+    Image::new_owned(data, width, height)
 }
 
 /// 播放/暂停共用一条路径：先给后端发状态（即时生效），再通知前端同步 store
@@ -267,11 +319,14 @@ fn build_control_tray(
         .tooltip(tooltip)
         .on_tray_icon_event(move |tray, event| {
             if let TrayIconEvent::Click {
-                button: MouseButton::Left,
-                button_state: MouseButtonState::Up,
+                button,
+                button_state,
                 ..
             } = event
             {
+                if !is_primary_click(button, button_state) {
+                    return;
+                }
                 let app = tray.app_handle();
                 match action {
                     ControlAction::Previous => {
@@ -332,11 +387,14 @@ pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
         .show_menu_on_left_click(true)
         .on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click {
-                button: MouseButton::Left,
-                button_state: MouseButtonState::Up,
+                button,
+                button_state,
                 ..
             } = event
             {
+                if !is_primary_click(button, button_state) {
+                    return;
+                }
                 let app = tray.app_handle();
                 window_state::reveal_main_window(app);
             }
@@ -462,17 +520,52 @@ mod tests {
     #[test]
     fn control_icons_render_visible_pixels() {
         for kind in ALL_ICONS {
-            let data = render_control_icon(kind);
-            assert_eq!(
-                data.len(),
-                (CONTROL_ICON_SIZE * CONTROL_ICON_SIZE * 4) as usize
-            );
+            let (data, width, height) = control_icon_rgba(kind);
+            assert_eq!(data.len(), (width * height * 4) as usize);
             assert!(
                 opaque_pixels(kind) > 100,
                 "{:?} should have visible pixels",
                 kind
             );
         }
+    }
+
+    #[test]
+    fn cropped_icons_have_no_wide_transparent_margins() {
+        for kind in ALL_ICONS {
+            let (data, width, height) = control_icon_rgba(kind);
+            let width = width as usize;
+            let height = height as usize;
+
+            // 留白只有 1px：裁完的尺寸必须小于原始方形画布
+            assert!(
+                width < CONTROL_ICON_SIZE as usize,
+                "{:?} is not cropped horizontally",
+                kind
+            );
+            assert!(
+                height < CONTROL_ICON_SIZE as usize,
+                "{:?} is not cropped vertically",
+                kind
+            );
+
+            // 第二列/倒数第二列应有实体像素（最外圈是 1px 余量）
+            let column_opaque = |x: usize| (0..height).any(|y| data[(y * width + x) * 4 + 3] > 0);
+            assert!(column_opaque(1), "{:?} left edge is empty", kind);
+            assert!(column_opaque(width - 2), "{:?} right edge is empty", kind);
+        }
+    }
+
+    #[test]
+    fn only_left_button_up_triggers_actions() {
+        assert!(is_primary_click(MouseButton::Left, MouseButtonState::Up));
+        assert!(!is_primary_click(MouseButton::Left, MouseButtonState::Down));
+        assert!(!is_primary_click(MouseButton::Right, MouseButtonState::Up));
+        assert!(!is_primary_click(
+            MouseButton::Right,
+            MouseButtonState::Down
+        ));
+        assert!(!is_primary_click(MouseButton::Middle, MouseButtonState::Up));
     }
 
     #[test]
@@ -494,6 +587,6 @@ mod tests {
     #[test]
     fn triangle_hit_test_marks_inside_and_outside() {
         assert!(icon_hit(ControlIcon::Play, 0.45, 0.5));
-        assert!(!icon_hit(ControlIcon::Play, 0.9, 0.5));
+        assert!(!icon_hit(ControlIcon::Play, 0.97, 0.5));
     }
 }
