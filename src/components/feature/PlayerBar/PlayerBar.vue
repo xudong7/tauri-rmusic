@@ -18,6 +18,7 @@ import {
   ARTIST_SEPARATOR,
   formatArtists,
   formatDuration,
+  formatProgressTooltip,
   getLocalMusicDisplayInfo,
 } from "@/utils/songUtils";
 import { playModeIcon, playModeLabelKey } from "@/utils/playModeUtils";
@@ -112,6 +113,11 @@ const remainingTimeDisplay = computed(
   () =>
     `-${formatDuration(Math.max(0, props.currentTrackDuration - props.currentPlayTime))}`
 );
+
+/** 进度条悬停预览：把百分比换算成目标时间 */
+function progressTooltip(percent: number) {
+  return formatProgressTooltip(percent, props.currentTrackDuration);
+}
 
 const currentArtistDisplay = computed(() => {
   void locale.value;
@@ -332,7 +338,8 @@ const {
           :max="100"
           :min="0"
           :step="0.1"
-          :show-tooltip="false"
+          :show-tooltip="true"
+          :format-tooltip="progressTooltip"
           :disabled="progressDisabled"
           class="progress-slider"
           @input="handleProgressInput"

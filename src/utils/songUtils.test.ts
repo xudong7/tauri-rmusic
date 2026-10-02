@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractArtistName, extractSongTitle } from "./songUtils";
+import { extractArtistName, extractSongTitle, formatProgressTooltip } from "./songUtils";
 
 describe("extractSongTitle / extractArtistName", () => {
   it("按「歌手 - 歌曲」切分", () => {
@@ -20,5 +20,20 @@ describe("extractSongTitle / extractArtistName", () => {
 
   it("多个分隔符只切第一个", () => {
     expect(extractSongTitle("Artist - Title - Live")).toBe("Title - Live");
+  });
+});
+
+describe("formatProgressTooltip", () => {
+  it("按百分比换算时间并夹取范围", () => {
+    expect(formatProgressTooltip(50, 200_000)).toBe("1:40");
+    expect(formatProgressTooltip(0, 200_000)).toBe("0:00");
+    expect(formatProgressTooltip(100, 200_000)).toBe("3:20");
+    expect(formatProgressTooltip(150, 200_000)).toBe("3:20");
+    expect(formatProgressTooltip(-10, 200_000)).toBe("0:00");
+  });
+
+  it("时长未知时返回 0:00", () => {
+    expect(formatProgressTooltip(50, 0)).toBe("0:00");
+    expect(formatProgressTooltip(50, Number.NaN)).toBe("0:00");
   });
 });

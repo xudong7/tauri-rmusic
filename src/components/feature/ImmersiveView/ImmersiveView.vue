@@ -33,6 +33,7 @@ import {
   extractArtistName,
   extractSongTitle,
   formatArtists,
+  formatProgressTooltip,
   getLocalMusicDisplayInfo,
 } from "@/utils/songUtils";
 import { useWindowControls } from "@/composables/useWindowControls";
@@ -86,6 +87,11 @@ const {
 
 const currentPlayModeIcon = computed(() => playModeIcon(props.playMode));
 const playModeTooltip = computed(() => t(playModeLabelKey(props.playMode)));
+
+/** 进度条悬停预览：把百分比换算成目标时间 */
+function progressTooltip(percent: number) {
+  return formatProgressTooltip(percent, props.currentTrackDuration ?? 0);
+}
 
 const volumeSliderValue = ref(props.volume);
 
@@ -511,7 +517,8 @@ onBeforeUnmount(() => {
               :max="100"
               :min="0"
               :step="0.1"
-              :show-tooltip="false"
+              :show-tooltip="true"
+              :format-tooltip="progressTooltip"
               :disabled="progressDisabled"
               class="progress-slider"
               @input="handleProgressInput"
