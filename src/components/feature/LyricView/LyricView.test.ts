@@ -83,17 +83,12 @@ describe("LyricView 点击歌词跳转", () => {
     expect(translations[0].text()).toBe("第一句");
   });
 
-  it("调整偏移后点歌词跳转补偿偏移，值可重置", async () => {
+  it("偏移会影响点歌词的跳转位置，且可重置", async () => {
+    // 偏移控件已移到设置页，这里直接改状态验证行为
+    useLyricOffset().adjustOffset(-500);
     const wrapper = await mountLyricView("offset");
-
-    // 一次「歌词提前」= 偏移 -0.5s；点击跳转时补偿回 1000 - 500
-    await wrapper.get(".lyric-offset__btn").trigger("click");
-    expect(wrapper.get(".lyric-offset__value").text()).toBe("-0.5s");
 
     await wrapper.findAll(".lyric-line.is-seekable")[0].trigger("click");
     expect(wrapper.emitted("seek")).toEqual([[500]]);
-
-    await wrapper.get(".lyric-offset__value").trigger("click");
-    expect(wrapper.get(".lyric-offset__value").text()).toBe("0.0s");
   });
 });

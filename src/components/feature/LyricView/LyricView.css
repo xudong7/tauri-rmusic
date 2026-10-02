@@ -136,59 +136,6 @@
   opacity: 0.92;
 }
 
-/* 歌词偏移：右上角浮出的胶囊，悬停/聚焦才出现 */
-.lyric-offset {
-  position: absolute;
-  top: 4px;
-  right: 12px;
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 2px;
-  border-radius: var(--app-radius-full, 9999px);
-  background: color-mix(in srgb, var(--immersive-text-primary, #fff) 12%, transparent);
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.lyric-container:hover .lyric-offset,
-.lyric-offset:focus-within {
-  opacity: 1;
-}
-
-.lyric-offset__btn,
-.lyric-offset__value {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 22px;
-  border: 0;
-  border-radius: var(--app-radius-full, 9999px);
-  background: transparent;
-  color: var(--immersive-text-primary, #fff);
-  font: inherit;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.lyric-offset__btn {
-  width: 22px;
-}
-
-.lyric-offset__value {
-  min-width: 44px;
-  font-variant-numeric: tabular-nums;
-}
-
-.lyric-offset__btn:hover,
-.lyric-offset__value:hover,
-.lyric-offset__btn:focus-visible,
-.lyric-offset__value:focus-visible {
-  background: color-mix(in srgb, var(--immersive-text-primary, #fff) 16%, transparent);
-}
-
 /* 当前播放的歌词行：比前后行更大更亮更粗，层次一眼能看出来 */
 .active-lyric {
   color: var(--immersive-text-primary, #fff);

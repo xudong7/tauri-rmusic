@@ -301,3 +301,18 @@
     grid-row: 2;
   }
 }
+
+/* 歌词偏移：减 / 数值 / 加 / 重置 */
+.lyric-offset-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.lyric-offset-value {
+  min-width: 46px;
+  text-align: center;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}

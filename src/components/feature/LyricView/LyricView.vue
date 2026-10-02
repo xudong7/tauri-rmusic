@@ -34,7 +34,7 @@ const emit = defineEmits<{
 
 const playerStore = usePlayerStore();
 const localStore = useLocalMusicStore();
-const { offsetMs, adjustOffset, resetOffset } = useLyricOffset();
+const { offsetMs } = useLyricOffset();
 
 watch(
   () => props.currentTime,
@@ -210,12 +210,6 @@ function updateCurrentLine() {
 // 调整偏移后立刻按当前位置重算，而不是等下一次进度回调
 watch(offsetMs, () => updateCurrentLine());
 
-const offsetLabel = computed(() => {
-  const seconds = offsetMs.value / 1000;
-  const sign = seconds > 0 ? "+" : "";
-  return `${sign}${seconds.toFixed(1)}s`;
-});
-
 async function scrollToCurrentLine(requestId: number) {
   await nextTick();
   if (requestId !== lyricScrollRequestId) return;
@@ -316,38 +310,6 @@ const lyricContainerClass = computed(() => {
     <div v-if="loading" class="lyric-loading">{{ t("lyric.loading") }}</div>
     <div v-else-if="!lyricData.length" class="lyric-empty">{{ t("lyric.noLyric") }}</div>
 
-    <!-- 偏移调整：悬停/聚焦时浮出，平时不打扰画面 -->
-    <div
-      v-if="!loading && lyricData.length"
-      class="lyric-offset"
-      role="group"
-      :aria-label="t('lyric.offset')"
-    >
-      <button
-        type="button"
-        class="lyric-offset__btn"
-        :aria-label="t('lyric.offsetEarlier')"
-        @click="adjustOffset(-500)"
-      >
-        −
-      </button>
-      <button
-        type="button"
-        class="lyric-offset__value"
-        :title="t('lyric.offsetReset')"
-        @click="resetOffset"
-      >
-        {{ offsetLabel }}
-      </button>
-      <button
-        type="button"
-        class="lyric-offset__btn"
-        :aria-label="t('lyric.offsetLater')"
-        @click="adjustOffset(500)"
-      >
-        ＋
-      </button>
-    </div>
     <el-scrollbar ref="lyricScrollRef" height="100%" view-class="lyric-scroll-view">
       <div class="lyric-lines">
         <!-- 顶部空白，确保第一行歌词可以滚动到中间 -->

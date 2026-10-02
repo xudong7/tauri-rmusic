@@ -8,6 +8,8 @@ import {
   Download,
   InfoFilled,
   FolderOpened,
+  Minus,
+  Plus,
   RefreshLeft,
   Refresh,
 } from "@element-plus/icons-vue";
@@ -17,6 +19,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { useThemeStore, type ThemeMode } from "@/stores/themeStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { useOnlineServiceStore } from "@/stores/onlineServiceStore";
+import { useLyricOffset } from "@/composables/useLyricOffset";
 import { enable, isEnabled, disable } from "@tauri-apps/plugin-autostart";
 import { setLocale, getLocale, type LocaleKey } from "@/i18n";
 import { parseErrorMessage } from "@/utils/errorUtils";
@@ -35,6 +38,14 @@ const { t } = useI18n();
 const themeStore = useThemeStore();
 const localStore = useLocalMusicStore();
 const onlineServiceStore = useOnlineServiceStore();
+const { offsetMs, adjustOffset, resetOffset } = useLyricOffset();
+
+/** 歌词偏移显示：+0.5s / -1.0s */
+const lyricOffsetLabel = computed(() => {
+  const seconds = offsetMs.value / 1000;
+  const sign = seconds > 0 ? "+" : "";
+  return `${sign}${seconds.toFixed(1)}s`;
+});
 const downloadPath = ref("");
 const autoStartEnabled = ref(false);
 const currentLocale = ref<LocaleKey>(getLocale());
@@ -239,6 +250,32 @@ onMounted(async () => {
                   :label="t(opt.labelKey)"
                 />
               </el-select>
+            </div>
+          </div>
+          <div class="setting-row">
+            <label>
+              <span>{{ t("settings.lyricOffset") }}</span>
+              <small>{{ t("settings.lyricOffsetDesc") }}</small>
+            </label>
+            <div class="setting-control lyric-offset-control">
+              <el-button
+                link
+                size="small"
+                :icon="Minus"
+                :aria-label="t('lyric.offsetEarlier')"
+                @click="adjustOffset(-500)"
+              />
+              <span class="lyric-offset-value">{{ lyricOffsetLabel }}</span>
+              <el-button
+                link
+                size="small"
+                :icon="Plus"
+                :aria-label="t('lyric.offsetLater')"
+                @click="adjustOffset(500)"
+              />
+              <el-button link size="small" @click="resetOffset">
+                {{ t("settings.lyricOffsetReset") }}
+              </el-button>
             </div>
           </div>
         </div>
