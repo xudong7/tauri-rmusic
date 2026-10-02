@@ -177,6 +177,13 @@ export default {
     queue: "播放队列",
     currentQueue: "当前队列",
     queueEmpty: "队列中还没有歌曲",
+    more: "更多",
+    clearQueue: "清空队列",
+    clearQueueConfirm:
+      "将清空除当前歌曲外的所有队列项。若队列来自歌单，对应条目也会从歌单中移除。",
+    saveQueue: "另存为歌单",
+    saveQueuePrompt: "输入新歌单的名称",
+    removeFromQueue: "从队列移除",
     mute: "静音",
     unmute: "恢复音量",
     toggleRemainingTime: "切换总时长与剩余时间",
@@ -227,6 +234,8 @@ export default {
     pathCopied: "路径已复制",
     skippedUnplayable: "已跳过 {count} 首无法播放的歌曲",
     playNext: "已设为下一首播放",
+    queueCleared: "队列已清空",
+    queueSaved: "已保存为「{name}」",
   },
   contextMenu: {
     playNext: "下一首播放",

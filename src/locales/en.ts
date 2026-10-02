@@ -177,6 +177,13 @@ export default {
     queue: "Play Queue",
     currentQueue: "Current queue",
     queueEmpty: "The queue is empty",
+    more: "More",
+    clearQueue: "Clear queue",
+    clearQueueConfirm:
+      "Clears everything except the current track. If the queue comes from a playlist, those entries are removed from the playlist too.",
+    saveQueue: "Save as playlist",
+    saveQueuePrompt: "Enter a name for the new playlist",
+    removeFromQueue: "Remove from queue",
     mute: "Mute",
     unmute: "Unmute",
     toggleRemainingTime: "Toggle duration and remaining time",
@@ -227,6 +234,8 @@ export default {
     pathCopied: "Path copied",
     skippedUnplayable: "Skipped {count} unavailable track(s)",
     playNext: "Will play next",
+    queueCleared: "Queue cleared",
+    queueSaved: 'Saved as "{name}"',
   },
   contextMenu: {
     playNext: "Play next",
