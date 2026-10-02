@@ -1,6 +1,6 @@
 import { watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { updateTrayMenu } from "@/api/commands/system";
+import { updateTrayMenu, updateTrayPlaybackState } from "@/api/commands/system";
 import { usePlayerStore } from "@/stores/playerStore";
 
 /**
@@ -32,7 +32,21 @@ export function useTrayMenu() {
     });
   }
 
+  /** 菜单栏控制图标：中间那个要在播放/暂停之间切换，tooltip 也跟着语言走 */
+  function pushPlaybackState() {
+    void updateTrayPlaybackState({
+      playing: playerStore.isPlaying,
+      tooltip: playerStore.isPlaying ? t("tray.pause") : t("tray.play"),
+    }).catch((error) => {
+      console.warn("[托盘] 更新播放状态失败:", error);
+    });
+  }
+
   watch([() => locale.value, () => playerStore.currentTrackInfo], () => push(), {
+    immediate: true,
+  });
+
+  watch([() => locale.value, () => playerStore.isPlaying], () => pushPlaybackState(), {
     immediate: true,
   });
 }

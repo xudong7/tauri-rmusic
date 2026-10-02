@@ -67,6 +67,7 @@ export interface TauriCommandParamsMap {
   set_lyrics_window: { open: boolean };
   update_media_metadata: { payload: MediaMetadataUpdate };
   update_tray_menu: { labels: TrayLabels; nowPlaying: string | null };
+  update_tray_playback_state: { playing: boolean; tooltip: string | null };
   scan_files: { path: string | null; defaultDirectory: string | null };
   load_cached_music_files: { path: string | null; defaultDirectory: string | null };
   control_playback: {
@@ -139,6 +140,7 @@ export interface TauriCommandResultMap {
   set_lyrics_window: void;
   update_media_metadata: void;
   update_tray_menu: void;
+  update_tray_playback_state: void;
   scan_files: MusicFile[];
   load_cached_music_files: MusicFile[];
   control_playback: void;

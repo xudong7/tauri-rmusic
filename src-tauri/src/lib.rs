@@ -23,7 +23,7 @@ use tauri::Manager;
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_window_state::WindowExt;
 use tokio::sync::broadcast::Sender;
-use tray::{quit_app as quit_app_handle, setup_tray, update_tray_menu};
+use tray::{quit_app as quit_app_handle, setup_tray, update_tray_menu, update_tray_playback_state};
 
 mod cover_cache;
 mod file;
@@ -213,6 +213,7 @@ pub fn run() {
             set_lyrics_window,
             update_media_metadata,
             update_tray_menu,
+            update_tray_playback_state,
             cache_online_cover,
             load_local_cover_path,
             load_local_lyric,

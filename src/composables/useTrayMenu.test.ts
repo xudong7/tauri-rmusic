@@ -7,10 +7,12 @@ import type { SongInfo } from "@/types/model";
 
 const mocks = vi.hoisted(() => ({
   updateTrayMenu: vi.fn(),
+  updateTrayPlaybackState: vi.fn(),
 }));
 
 vi.mock("@/api/commands/system", () => ({
   updateTrayMenu: (...args: unknown[]) => mocks.updateTrayMenu(...args),
+  updateTrayPlaybackState: (...args: unknown[]) => mocks.updateTrayPlaybackState(...args),
 }));
 
 vi.mock("@/api/commands/music", () => ({
@@ -76,9 +78,18 @@ function lastCall() {
   };
 }
 
+function lastPlaybackCall() {
+  const calls = mocks.updateTrayPlaybackState.mock.calls;
+  return calls[calls.length - 1]?.[0] as {
+    playing: boolean;
+    tooltip: string | null;
+  };
+}
+
 describe("useTrayMenu", () => {
   beforeEach(() => {
     mocks.updateTrayMenu.mockReset().mockResolvedValue(undefined);
+    mocks.updateTrayPlaybackState.mockReset().mockResolvedValue(undefined);
     localStorage.clear();
   });
 
@@ -101,5 +112,21 @@ describe("useTrayMenu", () => {
     await flushPromises();
 
     expect(lastCall().nowPlaying).toBe("Song — A / B");
+  });
+
+  it("播放状态变化时推送图标状态与对应 tooltip", async () => {
+    const pinia = createPinia();
+    mount(Harness, { global: { plugins: [pinia, i18n] } });
+    const playerStore = usePlayerStore();
+    await flushPromises();
+
+    expect(lastPlaybackCall().playing).toBe(false);
+    expect(lastPlaybackCall().tooltip).toBe(i18n.global.t("tray.play"));
+
+    playerStore.isPlaying = true;
+    await flushPromises();
+
+    expect(lastPlaybackCall().playing).toBe(true);
+    expect(lastPlaybackCall().tooltip).toBe(i18n.global.t("tray.pause"));
   });
 });
