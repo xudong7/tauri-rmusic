@@ -38,6 +38,19 @@ function compareNames(a: string, b: string): number {
   return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
 }
 
+/**
+ * 专辑内排序：先碟号再曲序；缺标签的排在各自碟的末尾（保持稳定顺序）。
+ * 没有这两个标签的曲目因此仍按扫描顺序展示，不会被乱排。
+ */
+function compareAlbumTracks(a: MusicFile, b: MusicFile): number {
+  const discA = a.disc_number ?? 1;
+  const discB = b.disc_number ?? 1;
+  if (discA !== discB) return discA - discB;
+  const trackA = a.track_number ?? Number.MAX_SAFE_INTEGER;
+  const trackB = b.track_number ?? Number.MAX_SAFE_INTEGER;
+  return trackA - trackB;
+}
+
 function albumKeyOf(file: MusicFile): string {
   const album = (file.album ?? "").trim();
   return album ? album.toLowerCase() : UNKNOWN_GROUP_KEY;
@@ -75,6 +88,11 @@ export function groupMusicFilesByAlbum(files: MusicFile[]): LocalAlbumGroup[] {
     group.durationMs += Math.max(0, file.duration_ms ?? 0);
     group.addedMs = Math.max(group.addedMs, file.modified_ms ?? 0);
     if (!group.artist && file.artist?.trim()) group.artist = file.artist.trim();
+  }
+
+  // 组内按碟号/曲序排列；没有标签的保持扫描顺序
+  for (const group of groups.values()) {
+    group.tracks.sort(compareAlbumTracks);
   }
 
   return [...groups.values()].sort((a, b) => {

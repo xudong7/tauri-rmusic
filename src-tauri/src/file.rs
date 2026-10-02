@@ -20,7 +20,7 @@ use tauri::Manager;
 use tokio::io::AsyncWriteExt;
 
 const STREAM_IDLE_TIMEOUT: Duration = Duration::from_secs(30);
-const LIBRARY_INDEX_VERSION: u32 = 3;
+const LIBRARY_INDEX_VERSION: u32 = 4;
 
 #[derive(Serialize, Deserialize)]
 struct LibraryIndex {
@@ -133,7 +133,20 @@ struct AudioMetadata {
     title: Option<String>,
     artist: Option<String>,
     album: Option<String>,
+    track_number: Option<u32>,
+    disc_number: Option<u32>,
     duration_ms: u64,
+}
+
+/// 标签里的曲序/碟号：常见写法是 "3" 或 "3/12"，取斜杠前的整数
+fn parse_tag_number(value: &str) -> Option<u32> {
+    value
+        .trim()
+        .split(['/', '-'])
+        .next()?
+        .trim()
+        .parse::<u32>()
+        .ok()
 }
 
 fn normalized_tag_value(value: impl ToString) -> Option<String> {
@@ -157,6 +170,12 @@ fn collect_metadata_revision(revision: &MetadataRevision, metadata: &mut AudioMe
             }
             Some(StandardTagKey::Album) if metadata.album.is_none() => {
                 metadata.album = value;
+            }
+            Some(StandardTagKey::TrackNumber) if metadata.track_number.is_none() => {
+                metadata.track_number = value.as_deref().and_then(parse_tag_number);
+            }
+            Some(StandardTagKey::DiscNumber) if metadata.disc_number.is_none() => {
+                metadata.disc_number = value.as_deref().and_then(parse_tag_number);
             }
             _ => {}
         }
@@ -252,6 +271,8 @@ fn enrich_music_files(scan_path: &Path, files: &mut [MusicFile], cached_files: &
                 file.title.clone_from(&cached.title);
                 file.artist.clone_from(&cached.artist);
                 file.album.clone_from(&cached.album);
+                file.track_number = cached.track_number;
+                file.disc_number = cached.disc_number;
                 file.duration_ms = cached.duration_ms;
                 file.search_text.clone_from(&cached.search_text);
                 continue;
@@ -267,6 +288,8 @@ fn enrich_music_files(scan_path: &Path, files: &mut [MusicFile], cached_files: &
         file.title = metadata.title;
         file.artist = metadata.artist;
         file.album = metadata.album;
+        file.track_number = metadata.track_number;
+        file.disc_number = metadata.disc_number;
         file.duration_ms = metadata.duration_ms;
         rebuild_search_text(file);
     }
@@ -288,6 +311,8 @@ fn music_file_from_path(id: i32, absolute_path: &Path, relative_path: &Path) -> 
         title: None,
         artist: None,
         album: None,
+        track_number: None,
+        disc_number: None,
         duration_ms: 0,
     })
 }
@@ -1522,5 +1547,20 @@ mod tests {
         );
 
         let _ = fs::remove_dir_all(&root);
+    }
+}
+
+#[cfg(test)]
+mod tag_number_tests {
+    use super::parse_tag_number;
+
+    #[test]
+    fn parses_plain_and_slashed_track_numbers() {
+        assert_eq!(parse_tag_number("3"), Some(3));
+        assert_eq!(parse_tag_number("3/12"), Some(3));
+        assert_eq!(parse_tag_number(" 2 "), Some(2));
+        assert_eq!(parse_tag_number("1-10"), Some(1));
+        assert_eq!(parse_tag_number(""), None);
+        assert_eq!(parse_tag_number("abc"), None);
     }
 }

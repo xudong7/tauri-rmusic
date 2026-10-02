@@ -9,6 +9,10 @@ export interface MusicFile {
   title?: string | null;
   artist?: string | null;
   album?: string | null;
+  /** 曲序（标签 TRACKNUMBER）；专辑内排序用 */
+  track_number?: number | null;
+  /** 碟号（标签 DISCNUMBER）；多碟专辑先按它排 */
+  disc_number?: number | null;
   duration_ms?: number;
 }
 
