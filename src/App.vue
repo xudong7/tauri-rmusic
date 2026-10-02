@@ -26,7 +26,7 @@ import { useStorageThemeSync } from "./composables/useStorageThemeSync";
 import { useTrayPlaybackEvents } from "./composables/useTrayPlaybackEvents";
 import { useWindowSizeConstraints } from "./composables/useWindowSizeConstraints";
 import { useFileDropImport } from "./composables/useFileDropImport";
-import { useLyricsBroadcast } from "./composables/useLyricsBroadcast";
+import { useLyricsOverlayBridge } from "./composables/useLyricsOverlayBridge";
 import { useLyricsOverlay } from "./composables/useLyricsOverlay";
 import { useSystemMediaControls } from "./composables/useSystemMediaControls";
 import { getCoverFlightSource, playCoverFlight } from "./composables/useCoverFlight";
@@ -82,9 +82,9 @@ const { isDraggingAudioFiles, dragAudioCount } = useFileDropImport({
   },
 });
 
-// 桌面歌词：主窗负责跟随进度推送当前歌词行
+// 桌面歌词：主窗只负责推「当前曲目 + 偏移」，进度由悬浮窗自己算
 const { isLyricsOverlayOpen } = useLyricsOverlay();
-useLyricsBroadcast(isLyricsOverlayOpen);
+useLyricsOverlayBridge(isLyricsOverlayOpen);
 
 // 系统媒体控制：推元数据、接媒体键
 useSystemMediaControls();

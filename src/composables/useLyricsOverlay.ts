@@ -1,7 +1,7 @@
 import { ref } from "vue";
 import { listen } from "@tauri-apps/api/event";
 import { setLyricsWindow } from "@/api/commands/system";
-import { LYRICS_OVERLAY_CLOSED_EVENT } from "@/composables/useLyricsBroadcast";
+import { LYRICS_OVERLAY_CLOSED_EVENT } from "@/composables/useLyricsOverlayBridge";
 
 /**
  * 桌面歌词悬浮窗的开关状态（模块级单例，主窗口内共享）。
