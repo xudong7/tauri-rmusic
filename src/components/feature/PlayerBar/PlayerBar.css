@@ -247,7 +247,7 @@ html.dark .player-bar {
   font-size: 17px;
   opacity: 1;
   padding: 0;
-  box-shadow: var(--player-play-glow, var(--app-play-button-shadow));
+  box-shadow: var(--app-play-button-shadow);
   transition:
     transform var(--app-control-transition),
     box-shadow var(--app-control-transition),
@@ -256,7 +256,7 @@ html.dark .player-bar {
 
 .player-controls .play-btn:hover {
   transform: translateY(-1px) scale(1.03);
-  box-shadow: var(--player-play-glow-hover, var(--app-play-button-hover-shadow));
+  box-shadow: var(--app-play-button-hover-shadow);
 }
 
 .player-progress {
@@ -322,8 +322,7 @@ html.dark .player-bar {
 .player-progress :deep(.el-slider__bar) {
   height: 100%;
   border-radius: var(--app-radius-full, 9999px);
-  /* 封面主色可用时跟随它（见 PlayerBar.vue 的 paletteStyle），否则用主题主色 */
-  background: var(--player-progress-fill, var(--app-slider-fill-bg));
+  background: var(--app-slider-fill-bg);
 }
 
 .player-progress :deep(.el-slider__button-wrapper) {
