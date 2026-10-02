@@ -12,7 +12,6 @@ import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import type { ContextMenuItem } from "@/composables/useContextMenu";
 import { revealLocalFile } from "@/utils/revealInFolder";
-import { useTrackDrag } from "@/composables/useTrackDrag";
 import {
   LIBRARY_SORT_MODES,
   groupMusicFilesByAlbum,
@@ -36,7 +35,6 @@ const { t } = useI18n();
 const playlistStore = usePlaylistStore();
 const localStore = useLocalMusicStore();
 const playerStore = usePlayerStore();
-const { startTrackDrag } = useTrackDrag();
 
 /** 当前浏览方式；album/artist 下选中的分组 key（空表示在网格层级） */
 const browseTab = ref<BrowseTab>("songs");
@@ -283,16 +281,6 @@ async function handleDelete(row: MusicFile) {
   }
 }
 
-/** 拖到侧栏歌单（或列表内排序）：指针拖动由 useTrackDrag 统一跟踪 */
-function handleRowDragStart(event: PointerEvent, item: TrackRowModel) {
-  const file = browseFiles.value[item.sourceIndex];
-  if (!file) return;
-  startTrackDrag(event, {
-    payload: { type: "local", fileName: file.file_name },
-    label: item.title,
-  });
-}
-
 function handleAddToPlaylist(command: string, row: MusicFile) {
   const item = { type: "local" as const, file_name: row.file_name };
   if (command === "new") {
@@ -525,7 +513,6 @@ watch(
       @activate="emit('play', browseFiles[$event.sourceIndex])"
       @toggle-current="emit('toggle-current')"
       @toggle-select="toggleSelectRow(browseFiles[$event.sourceIndex])"
-      @row-drag-start="handleRowDragStart"
       @visible-items="scheduleVisibleCovers"
     >
       <template #loading>

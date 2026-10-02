@@ -12,7 +12,6 @@ import {
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import type { ContextMenuItem } from "@/composables/useContextMenu";
-import { useTrackDrag } from "@/composables/useTrackDrag";
 import { useOnlinePlaylistActions } from "@/composables/useOnlinePlaylistActions";
 import CheckIcon from "@/components/base/icons/CheckIcon.vue";
 import TrackList from "@/components/feature/TrackList/TrackList.vue";
@@ -22,7 +21,6 @@ const { t } = useI18n();
 const playlistStore = usePlaylistStore();
 const playerStore = usePlayerStore();
 const downloadStore = useDownloadStore();
-const { startTrackDrag } = useTrackDrag();
 const { addOnlineSongToPlaylist } = useOnlinePlaylistActions();
 
 const props = withDefaults(
@@ -124,16 +122,6 @@ function requestDownload(song: SongInfo) {
   void downloadStore.download(song);
 }
 
-/** 拖到侧栏歌单：载荷带 SongInfo，接收方按需下载 */
-function handleRowDragStart(event: PointerEvent, item: TrackRowModel) {
-  const song = props.onlineSongs[item.sourceIndex];
-  if (!song) return;
-  startTrackDrag(event, {
-    payload: { type: "online", song },
-    label: item.title,
-  });
-}
-
 /** 行右键菜单：下一首播放 / 下载（已下载时不出现）。 */
 function contextMenuItems(item: TrackRowModel): ContextMenuItem[] {
   const song = props.onlineSongs[item.sourceIndex];
@@ -196,7 +184,6 @@ onBeforeUnmount(() => {
       :context-menu-items="contextMenuItems"
       @activate="emit('play', onlineSongs[$event.sourceIndex])"
       @toggle-current="emit('toggle-current')"
-      @row-drag-start="handleRowDragStart"
       @near-end="requestLoadMore"
     >
       <!-- 透传父组件的同名插槽，未提供时回退到通用文案。

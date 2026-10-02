@@ -105,56 +105,52 @@
         </div>
       </div>
 
-      <!-- 拖拽排序由 useTrackDrag 的指针跟踪实现：落点检测在 rowAtPoint 里 -->
-      <div v-else class="playlist-view__list">
-        <TrackList
-          :items="trackRows"
-          :selection-mode="selectionMode"
-          :selected-keys="selectedRowKeys"
-          :current-key="currentRowKey"
-          :is-playing="playerStore.isPlaying"
-          :context-menu-items="contextMenuItems"
-          :drop-indicator-index="dropIndicatorIndex"
-          @activate="playAt($event.sourceIndex)"
-          @toggle-current="playerStore.togglePlay"
-          @toggle-select="toggleSelectRow($event.sourceIndex)"
-          @row-drag-start="handleRowDragStart"
-          @visible-items="scheduleVisibleLocalCovers"
-        >
-          <template #empty>
-            <el-empty :description="t('messages.noSearchResult')" />
-          </template>
-          <template #actions="{ item }">
-            <!-- 文件被删了、而当初加入歌单时记住了来源：给一个重新下载。
-                 来源是加入歌单那一刻顺手记下的（见 useOnlinePlaylistActions），
-                 用户自己导入的本地文件没有来源，因此这里不会出现。 -->
-            <el-tooltip
-              v-if="item.disabled && sourceAt(item.sourceIndex)"
-              :content="t('playlist.redownload')"
-              placement="top"
-            >
-              <el-button
-                circle
-                size="small"
-                link
-                class="redownload-action"
-                :icon="Download"
-                :loading="isRedownloadingAt(item.sourceIndex)"
-                :aria-label="t('playlist.redownload')"
-                @click.stop="redownloadAt(item.sourceIndex)"
-              />
-            </el-tooltip>
+      <TrackList
+        v-else
+        :items="trackRows"
+        :selection-mode="selectionMode"
+        :selected-keys="selectedRowKeys"
+        :current-key="currentRowKey"
+        :is-playing="playerStore.isPlaying"
+        :context-menu-items="contextMenuItems"
+        @activate="playAt($event.sourceIndex)"
+        @toggle-current="playerStore.togglePlay"
+        @toggle-select="toggleSelectRow($event.sourceIndex)"
+        @visible-items="scheduleVisibleLocalCovers"
+      >
+        <template #empty>
+          <el-empty :description="t('messages.noSearchResult')" />
+        </template>
+        <template #actions="{ item }">
+          <!-- 文件被删了、而当初加入歌单时记住了来源：给一个重新下载。
+               来源是加入歌单那一刻顺手记下的（见 useOnlinePlaylistActions），
+               用户自己导入的本地文件没有来源，因此这里不会出现。 -->
+          <el-tooltip
+            v-if="item.disabled && sourceAt(item.sourceIndex)"
+            :content="t('playlist.redownload')"
+            placement="top"
+          >
             <el-button
               circle
               size="small"
-              :icon="Minus"
               link
-              type="default"
-              @click.stop="removeAt(item.sourceIndex)"
+              class="redownload-action"
+              :icon="Download"
+              :loading="isRedownloadingAt(item.sourceIndex)"
+              :aria-label="t('playlist.redownload')"
+              @click.stop="redownloadAt(item.sourceIndex)"
             />
-          </template>
-        </TrackList>
-      </div>
+          </el-tooltip>
+          <el-button
+            circle
+            size="small"
+            :icon="Minus"
+            link
+            type="default"
+            @click.stop="removeAt(item.sourceIndex)"
+          />
+        </template>
+      </TrackList>
     </template>
   </PageLayout>
 </template>
@@ -181,7 +177,6 @@ import { useViewStore } from "@/stores/viewStore";
 import { useDownloadStore } from "@/stores/downloadStore";
 import type { ContextMenuItem } from "@/composables/useContextMenu";
 import { revealLocalFile } from "@/utils/revealInFolder";
-import { useTrackDrag, type TrackDragPayload } from "@/composables/useTrackDrag";
 import DetailHero from "@/components/layout/DetailHero/DetailHero.vue";
 import PageLayout from "@/components/layout/PageLayout/PageLayout.vue";
 import TrackList from "@/components/feature/TrackList/TrackList.vue";
@@ -396,54 +391,6 @@ async function redownloadAt(index: number) {
 }
 
 const trackRows = computed(() => filteredResolvedItems.value.map(toTrackRow));
-
-/* ---------- 歌单内拖拽排序（pointer 事件，见 useTrackDrag） ---------- */
-
-/** 落点行的位置（trackRows 下标）；映射回原始下标后才交给 reorderPlaylist */
-const dropIndicatorIndex = ref<number | null>(null);
-const { startTrackDrag } = useTrackDrag();
-
-/** 只认本歌单容器里的行，指针划过其它列表时不会误高亮 */
-function rowAtPoint(x: number, y: number): HTMLElement | null {
-  const element = document.elementFromPoint(x, y) as HTMLElement | null;
-  const row = element?.closest<HTMLElement>("[data-row-index]");
-  return row && row.closest(".playlist-view__list") ? row : null;
-}
-
-function handleRowDragStart(event: PointerEvent, item: TrackRowModel) {
-  const entry = resolvedItems.value.find((candidate) => candidate.key === item.key);
-  if (!entry) return;
-  const payload: TrackDragPayload | null = entry.musicFile
-    ? { type: "local", fileName: entry.musicFile.file_name }
-    : entry.songInfo
-      ? { type: "online", song: entry.songInfo }
-      : null;
-  if (!payload) return;
-  const fromIndex = entry.sourceIndex;
-
-  startTrackDrag(event, {
-    payload,
-    label: item.title,
-    onMove: (_payload, x, y) => {
-      const row = rowAtPoint(x, y);
-      const position = row ? Number(row.dataset.rowIndex) : NaN;
-      dropIndicatorIndex.value = Number.isNaN(position) ? null : position;
-    },
-    onCancel: () => {
-      dropIndicatorIndex.value = null;
-    },
-    onDrop: (_payload, x, y) => {
-      const row = rowAtPoint(x, y);
-      const position = row ? Number(row.dataset.rowIndex) : NaN;
-      dropIndicatorIndex.value = null;
-      if (Number.isNaN(position) || !playlist.value) return;
-      // 行位置 → 原始歌单下标：搜索过滤时两者并不相等
-      const targetSourceIndex = trackRows.value[position]?.sourceIndex;
-      if (targetSourceIndex === undefined || targetSourceIndex === fromIndex) return;
-      playlistStore.reorderPlaylist(playlist.value.id, fromIndex, targetSourceIndex);
-    },
-  });
-}
 
 /** 行右键菜单：下一首播放 / 在文件夹中显示（本地）/ 从歌单移除。 */
 function contextMenuItems(item: TrackRowModel): ContextMenuItem[] {

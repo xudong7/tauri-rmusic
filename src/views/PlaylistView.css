@@ -2,14 +2,6 @@
   overflow: hidden;
 }
 
-/* 拖拽排序的落点容器：TrackList 自身撑满，这里只负责接住冒泡上来的拖放事件 */
-.playlist-view__list {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
 /* 就地重命名的输入框。落在标题那一行，所以高度要接近 26px 的标题，
    否则切换编辑态时整块 hero 会跳一下。 */
 .name-input {

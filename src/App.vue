@@ -29,7 +29,6 @@ import { useFileDropImport } from "./composables/useFileDropImport";
 import { useLyricsBroadcast } from "./composables/useLyricsBroadcast";
 import { useLyricsOverlay } from "./composables/useLyricsOverlay";
 import { useSystemMediaControls } from "./composables/useSystemMediaControls";
-import { useTrackDrag } from "./composables/useTrackDrag";
 import { getCoverFlightSource, playCoverFlight } from "./composables/useCoverFlight";
 import { useThemeStore } from "./stores/themeStore";
 import { useViewStore } from "./stores/viewStore";
@@ -89,9 +88,6 @@ useLyricsBroadcast(isLyricsOverlayOpen);
 
 // 系统媒体控制：推元数据、接媒体键
 useSystemMediaControls();
-
-// 内部拖拽（歌单排序 / 拖到侧栏）：全局浮标跟随指针
-const { dragging: trackDragState } = useTrackDrag();
 const keyboardShortcuts = useAppKeyboardShortcuts({
   onPrevious: () => playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1)),
   onTogglePlay: () => playerStore.togglePlay(),
@@ -371,19 +367,6 @@ async function handleExitImmersive() {
           @toggle-queue="viewStore.togglePlaybackQueue"
         />
       </Transition>
-      <!-- 拖拽浮标：跟随指针的小胶囊，说明正在拖哪一首 -->
-      <div
-        v-if="trackDragState"
-        class="track-drag-ghost"
-        aria-hidden="true"
-        :style="{
-          left: `${trackDragState.x + 14}px`,
-          top: `${trackDragState.y + 14}px`,
-        }"
-      >
-        {{ trackDragState.label }}
-      </div>
-
       <!-- 全局唯一的右键菜单实例；行/卡片只负责 open() -->
       <ContextMenu />
 
@@ -532,29 +515,5 @@ async function handleExitImmersive() {
   .drop-leave-active {
     transition: none;
   }
-}
-
-/* 内部拖拽期间的全局状态：禁止选中文字、光标提示正在拖 */
-body.is-track-dragging {
-  user-select: none;
-  cursor: grabbing;
-}
-
-.track-drag-ghost {
-  position: fixed;
-  z-index: 2600;
-  max-width: 260px;
-  padding: 4px 10px;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: var(--el-border-radius-round, 9999px);
-  background: var(--el-bg-color-overlay);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
-  color: var(--el-text-color-primary);
-  font-size: 12.5px;
-  line-height: 1.5;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  pointer-events: none;
 }
 </style>

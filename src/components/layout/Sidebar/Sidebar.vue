@@ -1,16 +1,13 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { computed, ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { Folder, Setting, Plus } from "@element-plus/icons-vue";
-import { ElMessage } from "element-plus";
 import OnlineMusicIcon from "@/components/base/icons/OnlineMusicIcon.vue";
 import { useViewStore } from "@/stores/viewStore";
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { useCollectedPlaylistStore } from "@/stores/collectedPlaylistStore";
 import { useCollectedAlbumStore } from "@/stores/collectedAlbumStore";
-import { useOnlinePlaylistActions } from "@/composables/useOnlinePlaylistActions";
-import { useTrackDrag, type TrackDragPayload } from "@/composables/useTrackDrag";
 import PlaylistCover from "@/components/feature/PlaylistCover/PlaylistCover.vue";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 
@@ -21,82 +18,6 @@ const viewStore = useViewStore();
 const playlistStore = usePlaylistStore();
 const collectedStore = useCollectedPlaylistStore();
 const collectedAlbumStore = useCollectedAlbumStore();
-const { addOnlineSongToPlaylist } = useOnlinePlaylistActions();
-const { dragging } = useTrackDrag();
-
-/** 指针悬停在哪个歌单行上——拖拽时给该行点亮落点高亮 */
-const dropTargetPlaylistId = ref<string | null>(null);
-/** 最近一次悬停命中的歌单与载荷：pointerup 时 useTrackDrag 可能已清空状态 */
-let hoveredPlaylistId: string | null = null;
-let hoveredPayload: TrackDragPayload | null = null;
-
-function playlistIdAtPoint(x: number, y: number): string | null {
-  const element = document.elementFromPoint(x, y) as HTMLElement | null;
-  const zone = element?.closest<HTMLElement>("[data-playlist-drop-id]");
-  return zone?.dataset.playlistDropId ?? null;
-}
-
-function handleGlobalDragMove(event: PointerEvent) {
-  const playlistId = playlistIdAtPoint(event.clientX, event.clientY);
-  dropTargetPlaylistId.value = playlistId;
-  if (playlistId && dragging.value) {
-    hoveredPlaylistId = playlistId;
-    hoveredPayload = dragging.value.payload;
-  } else {
-    hoveredPlaylistId = null;
-    hoveredPayload = null;
-  }
-}
-
-function handleGlobalDragEnd() {
-  const playlistId = hoveredPlaylistId;
-  const payload = hoveredPayload;
-  hoveredPlaylistId = null;
-  hoveredPayload = null;
-  dropTargetPlaylistId.value = null;
-  if (playlistId && payload) void addDraggedTrack(playlistId, payload);
-}
-
-function detachGlobalDragListeners() {
-  document.removeEventListener("pointermove", handleGlobalDragMove);
-  document.removeEventListener("pointerup", handleGlobalDragEnd);
-  document.removeEventListener("pointercancel", handleGlobalDragEnd);
-}
-
-// 拖拽期间才挂全局监听；useTrackDrag 的状态是唯一事实来源
-watch(dragging, (state) => {
-  if (state) {
-    document.addEventListener("pointermove", handleGlobalDragMove);
-    document.addEventListener("pointerup", handleGlobalDragEnd);
-    document.addEventListener("pointercancel", handleGlobalDragEnd);
-  } else {
-    detachGlobalDragListeners();
-    dropTargetPlaylistId.value = null;
-  }
-});
-
-onBeforeUnmount(detachGlobalDragListeners);
-
-/** 拖拽落点：本地曲目直接加入；在线曲目走下载再加入（downloadStore 负责提示） */
-async function addDraggedTrack(playlistId: string, payload: TrackDragPayload) {
-  if (payload.type === "local") {
-    const name = playlistStore.getPlaylist(playlistId)?.name ?? "";
-    const added = playlistStore.addToPlaylist(playlistId, {
-      type: "local",
-      file_name: payload.fileName,
-    });
-    if (added) ElMessage.success(t("playlist.added", { name }));
-    else ElMessage.info(t("playlist.alreadyInPlaylist", { name }));
-    return;
-  }
-
-  const result = await addOnlineSongToPlaylist(playlistId, payload.song);
-  if (result.outcome === "added") {
-    ElMessage.success(t("playlist.added", { name: result.playlistName }));
-  } else if (result.outcome === "already") {
-    ElMessage.info(t("playlist.alreadyInPlaylist", { name: result.playlistName }));
-  }
-}
 
 /** 侧边栏歌单区分栏：自建 / 收藏 */
 const playlistTab = ref<"created" | "collected">("created");
@@ -229,12 +150,8 @@ function goToCollectedPlaylist(id: string) {
               :key="pl.id"
               type="button"
               class="nav-item nav-item-playlist"
-              :class="{
-                'is-active': isPlaylistActive(pl.id),
-                'is-drop-target': dropTargetPlaylistId === pl.id,
-              }"
+              :class="{ 'is-active': isPlaylistActive(pl.id) }"
               :aria-current="isPlaylistActive(pl.id) ? 'page' : undefined"
-              :data-playlist-drop-id="pl.id"
               @click="goToPlaylist(pl.id)"
             >
               <PlaylistCover
