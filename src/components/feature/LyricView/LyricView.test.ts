@@ -3,7 +3,6 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { i18n } from "@/i18n";
 import type { SongInfo } from "@/types/model";
-import { useLyricOffset } from "@/composables/useLyricOffset";
 import LyricView from "./LyricView.vue";
 
 const getSongLyricMock = vi.fn();
@@ -45,8 +44,6 @@ async function mountLyricView(id: string) {
 describe("LyricView 点击歌词跳转", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
-    // 偏移是模块级状态，清掉上一条用例的残留
-    useLyricOffset().resetOffset();
     getSongLyricMock
       .mockReset()
       .mockResolvedValue({ lyric: "[00:01.00]First\n[00:12.50]Second", translation: "" });
@@ -81,14 +78,5 @@ describe("LyricView 点击歌词跳转", () => {
     const translations = wrapper.findAll(".lyric-line-translation");
     expect(translations).toHaveLength(1);
     expect(translations[0].text()).toBe("第一句");
-  });
-
-  it("偏移会影响点歌词的跳转位置，且可重置", async () => {
-    // 偏移控件已移到设置页，这里直接改状态验证行为
-    useLyricOffset().adjustOffset(-500);
-    const wrapper = await mountLyricView("offset");
-
-    await wrapper.findAll(".lyric-line.is-seekable")[0].trigger("click");
-    expect(wrapper.emitted("seek")).toEqual([[500]]);
   });
 });

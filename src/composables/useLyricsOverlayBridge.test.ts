@@ -100,7 +100,6 @@ describe("useLyricsOverlayBridge", () => {
     expect(payloads.length).toBeGreaterThan(0);
     expect(payloads[payloads.length - 1]).toEqual({
       source: { type: "online", id: "42" },
-      offsetMs: 0,
     });
   });
 

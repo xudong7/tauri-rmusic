@@ -9,7 +9,6 @@ import { loadLocalLyric as loadLocalLyricText } from "@/api/commands/file";
 import { formatDuration } from "@/utils/songUtils";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
-import { useLyricOffset } from "@/composables/useLyricOffset";
 import {
   findLyricIndex,
   getCachedLyric,
@@ -34,7 +33,6 @@ const emit = defineEmits<{
 
 const playerStore = usePlayerStore();
 const localStore = useLocalMusicStore();
-const { offsetMs } = useLyricOffset();
 
 watch(
   () => props.currentTime,
@@ -188,27 +186,22 @@ async function loadLocalLyric(music: MusicFile) {
   }
 }
 
-/** 点击歌词行跳转到该行时间点（补偿偏移，落到与听感一致的位置） */
+/** 点击歌词行跳转到该行时间点 */
 function seekToLine(line: LyricLine) {
   if (lyricUnavailable.value) return;
-  emit("seek", Math.max(0, line.time + offsetMs.value));
+  emit("seek", line.time);
 }
 
 function updateCurrentLine() {
   if (lyricData.value.length === 0) return;
 
-  // 显示时间 = 播放时间 − 偏移；正值表示歌词延后
-  const time = currentLyricTime.value - offsetMs.value;
-  const newIndex = findLyricIndex(lyricData.value, time);
+  const newIndex = findLyricIndex(lyricData.value, currentLyricTime.value);
 
   if (newIndex !== currentIndex.value) {
     currentIndex.value = newIndex;
     void scrollToCurrentLine(++lyricScrollRequestId);
   }
 }
-
-// 调整偏移后立刻按当前位置重算，而不是等下一次进度回调
-watch(offsetMs, () => updateCurrentLine());
 
 async function scrollToCurrentLine(requestId: number) {
   await nextTick();

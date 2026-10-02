@@ -2,7 +2,6 @@ import { onUnmounted, watch, type Ref } from "vue";
 import { emit, listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
-import { useLyricOffset } from "@/composables/useLyricOffset";
 
 export const LYRICS_OVERLAY_TRACK_EVENT = "lyrics-overlay-track";
 export const LYRICS_OVERLAY_READY_EVENT = "lyrics-overlay-ready";
@@ -14,21 +13,18 @@ export type LyricsOverlaySource =
 
 export interface LyricsOverlayTrackPayload {
   source: LyricsOverlaySource | null;
-  offsetMs: number;
 }
 
 /**
  * 主窗 → 桌面歌词的桥。
  *
- * 只推低频状态：当前曲目（身份）与偏移。进度不走主窗的播放时钟——
- * 主窗一旦被隐藏，播放时钟会停在 `document.hidden` 的守卫上，上次
- * 「关掉主窗后悬浮歌词不动」就是这么来的。悬浮窗自己是可见窗口，
+ * 只推低频状态：当前曲目的身份。进度不走主窗的播放时钟——主窗一旦被隐藏，
+ * 播放时钟会停在 `document.hidden` 的守卫上。悬浮窗自己是可见窗口，
  * 由它轮询 get_playback_state + 本地时钟计算当前行。
  */
 export function useLyricsOverlayBridge(isActive: Ref<boolean>) {
   const playerStore = usePlayerStore();
   const localStore = useLocalMusicStore();
-  const { offsetMs } = useLyricOffset();
 
   function currentSource(): LyricsOverlaySource | null {
     const online = playerStore.currentOnlineSong;
@@ -46,10 +42,7 @@ export function useLyricsOverlayBridge(isActive: Ref<boolean>) {
 
   function sendTrack() {
     if (!isActive.value) return;
-    const payload: LyricsOverlayTrackPayload = {
-      source: currentSource(),
-      offsetMs: offsetMs.value,
-    };
+    const payload: LyricsOverlayTrackPayload = { source: currentSource() };
     void emit(LYRICS_OVERLAY_TRACK_EVENT, payload);
   }
 
@@ -64,11 +57,7 @@ export function useLyricsOverlayBridge(isActive: Ref<boolean>) {
     });
 
   watch(
-    () => [
-      playerStore.currentOnlineSong?.id,
-      playerStore.currentMusic?.file_name,
-      offsetMs.value,
-    ],
+    () => [playerStore.currentOnlineSong?.id, playerStore.currentMusic?.file_name],
     sendTrack
   );
 

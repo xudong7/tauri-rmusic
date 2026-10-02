@@ -36,7 +36,6 @@ const TICK_MS = 200;
 const lines = ref<LyricLine[]>([]);
 const positionMs = ref(0);
 const isPlaying = ref(false);
-const offsetMs = ref(0);
 const fontSize = ref(readFontSize());
 
 let tickTimer: number | null = null;
@@ -46,9 +45,7 @@ let loadRequestId = 0;
 let unlistenTrack: UnlistenFn | null = null;
 
 const activeIndex = computed(() =>
-  lines.value.length > 0
-    ? findLyricIndex(lines.value, positionMs.value - offsetMs.value)
-    : -1
+  lines.value.length > 0 ? findLyricIndex(lines.value, positionMs.value) : -1
 );
 const currentText = computed(() =>
   activeIndex.value >= 0 ? lines.value[activeIndex.value].text : ""
@@ -178,7 +175,6 @@ onMounted(async () => {
     unlistenTrack = await listen<LyricsOverlayTrackPayload>(
       LYRICS_OVERLAY_TRACK_EVENT,
       (event) => {
-        offsetMs.value = event.payload.offsetMs;
         void loadLyrics(event.payload.source);
         void resync();
       }
