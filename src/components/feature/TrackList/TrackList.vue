@@ -29,6 +29,10 @@ const props = withDefaults(
     contextMenuItems?: (item: TrackRowModel) => ContextMenuItem[];
     /** 滚动位置记忆的键；空串表示不记忆 */
     scrollKey?: string;
+    /** 列头是否可点击排序（只有本地曲库歌曲列表开启） */
+    sortable?: boolean;
+    /** 当前排序状态：高亮对应列并显示方向箭头 */
+    sortState?: { key: string; direction: "asc" | "desc" } | null;
   }>(),
   {
     selectionMode: false,
@@ -41,6 +45,8 @@ const props = withDefaults(
     hideAlbum: false,
     contextMenuItems: undefined,
     scrollKey: "",
+    sortable: false,
+    sortState: null,
   }
 );
 const columnLabels = computed(() => {
@@ -58,7 +64,14 @@ const emit = defineEmits<{
   toggleSelect: [item: TrackRowModel];
   nearEnd: [];
   visibleItems: [items: TrackRowModel[]];
+  sort: [key: string];
 }>();
+
+/** 列头的 aria-sort 值；只有可排序且正按该列排序时才有 */
+function ariaSort(key: string): "ascending" | "descending" | undefined {
+  if (!props.sortable || props.sortState?.key !== key) return undefined;
+  return props.sortState.direction === "asc" ? "ascending" : "descending";
+}
 
 const itemsRef = computed(() => props.items);
 const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight, scrollTo } =
@@ -148,13 +161,63 @@ function handleListKeydown(event: KeyboardEvent) {
       v-if="items.length > 0"
       class="track-list__columns"
       :class="{ 'is-album-hidden': hideAlbum }"
-      aria-hidden="true"
+      :aria-hidden="sortable ? undefined : 'true'"
     >
-      <span class="track-list__column-song">{{ columnLabels.song }}</span>
-      <span v-if="!hideAlbum" class="track-list__column-album">{{
-        columnLabels.album
-      }}</span>
-      <span class="track-list__column-duration">{{ columnLabels.duration }}</span>
+      <span
+        class="track-list__column-song"
+        :role="sortable ? 'columnheader' : undefined"
+        :aria-sort="ariaSort('title')"
+      >
+        <button
+          v-if="sortable"
+          type="button"
+          class="track-list__column-btn"
+          @click="emit('sort', 'title')"
+        >
+          {{ columnLabels.song }}
+          <span v-if="sortState?.key === 'title'" class="track-list__sort-arrow">{{
+            sortState.direction === "asc" ? "↑" : "↓"
+          }}</span>
+        </button>
+        <template v-else>{{ columnLabels.song }}</template>
+      </span>
+      <span
+        v-if="!hideAlbum"
+        class="track-list__column-album"
+        :role="sortable ? 'columnheader' : undefined"
+        :aria-sort="ariaSort('album')"
+      >
+        <button
+          v-if="sortable"
+          type="button"
+          class="track-list__column-btn"
+          @click="emit('sort', 'album')"
+        >
+          {{ columnLabels.album }}
+          <span v-if="sortState?.key === 'album'" class="track-list__sort-arrow">{{
+            sortState.direction === "asc" ? "↑" : "↓"
+          }}</span>
+        </button>
+        <template v-else>{{ columnLabels.album }}</template>
+      </span>
+      <span
+        class="track-list__column-duration"
+        :role="sortable ? 'columnheader' : undefined"
+        :aria-sort="ariaSort('duration')"
+      >
+        <button
+          v-if="sortable"
+          type="button"
+          class="track-list__column-btn"
+          @click="emit('sort', 'duration')"
+        >
+          {{ columnLabels.duration }}
+          <span v-if="sortState?.key === 'duration'" class="track-list__sort-arrow">{{
+            sortState.direction === "asc" ? "↑" : "↓"
+          }}</span>
+        </button>
+        <template v-else>{{ columnLabels.duration }}</template>
+      </span>
     </div>
 
     <div
@@ -291,6 +354,30 @@ function handleListKeydown(event: KeyboardEvent) {
      单个 -1 是最后一条线，会让这一格落到显式网格之外，凭空多出一格。 */
   grid-column: -2 / -1;
   text-align: right;
+}
+
+/* 可排序时的列头按钮：外观与普通列头一致，悬停变色 */
+.track-list__column-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  transition: color var(--app-control-transition);
+}
+
+.track-list__column-btn:hover {
+  color: var(--el-color-primary);
+}
+
+.track-list__sort-arrow {
+  font-size: 10px;
+  line-height: 1;
 }
 
 .track-list__state {

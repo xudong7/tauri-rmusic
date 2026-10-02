@@ -246,3 +246,21 @@ describe("滚动位置记忆", () => {
     ).toBe(0);
   });
 });
+
+describe("列头排序", () => {
+  it("sortable 时列头是按钮，点击发出 sort 事件", async () => {
+    const wrapper = mount(TrackList, { props: { items: rows(3), sortable: true } });
+    const buttons = wrapper.findAll(".track-list__column-btn");
+    expect(buttons).toHaveLength(3);
+
+    await buttons[0].trigger("click");
+    await buttons[2].trigger("click");
+    expect(wrapper.emitted("sort")).toEqual([["title"], ["duration"]]);
+  });
+
+  it("不可排序时列头保持装饰性", () => {
+    const wrapper = mount(TrackList, { props: { items: rows(3) } });
+    expect(wrapper.find(".track-list__columns").attributes("aria-hidden")).toBe("true");
+    expect(wrapper.find(".track-list__column-btn").exists()).toBe(false);
+  });
+});

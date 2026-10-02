@@ -3,6 +3,7 @@ import type { MusicFile } from "@/types/model";
 import {
   groupMusicFilesByAlbum,
   groupMusicFilesByArtist,
+  parseStoredSort,
   sortMusicFiles,
 } from "./libraryGroups";
 
@@ -145,5 +146,50 @@ describe("sortMusicFiles", () => {
     const original = [...files];
     sortMusicFiles(files, "title");
     expect(files).toEqual(original);
+  });
+});
+
+describe("排序方向与持久化解析", () => {
+  const files = [
+    file({ file_name: "a.mp3", title: "A", duration_ms: 100, modified_ms: 1 }),
+    file({ file_name: "b.mp3", title: "B", duration_ms: 200, modified_ms: 2 }),
+  ];
+
+  it("desc 反转升序结果", () => {
+    expect(sortMusicFiles(files, "title", "desc").map((item) => item.file_name)).toEqual([
+      "b.mp3",
+      "a.mp3",
+    ]);
+    expect(
+      sortMusicFiles(files, "duration", "desc").map((item) => item.file_name)
+    ).toEqual(["b.mp3", "a.mp3"]);
+  });
+
+  it("最近添加默认降序，asc 可反转", () => {
+    expect(sortMusicFiles(files, "added").map((item) => item.file_name)).toEqual([
+      "b.mp3",
+      "a.mp3",
+    ]);
+    expect(sortMusicFiles(files, "added", "asc").map((item) => item.file_name)).toEqual([
+      "a.mp3",
+      "b.mp3",
+    ]);
+  });
+
+  it("parseStoredSort 兼容旧格式、JSON 格式与损坏值", () => {
+    expect(parseStoredSort(null)).toEqual({ mode: "default", direction: "asc" });
+    expect(parseStoredSort("artist")).toEqual({ mode: "artist", direction: "asc" });
+    expect(parseStoredSort("added")).toEqual({ mode: "added", direction: "desc" });
+    expect(parseStoredSort(JSON.stringify({ mode: "album", direction: "desc" }))).toEqual(
+      {
+        mode: "album",
+        direction: "desc",
+      }
+    );
+    expect(parseStoredSort("{oops")).toEqual({ mode: "default", direction: "asc" });
+    expect(parseStoredSort(JSON.stringify({ mode: "nope" }))).toEqual({
+      mode: "default",
+      direction: "asc",
+    });
   });
 });

@@ -115,10 +115,25 @@ const tabOptions = computed(() => [
 ]);
 
 const sortOptions = LIBRARY_SORT_MODES;
-const sortLabel = computed(() => t(`musicList.sort_${localStore.sortMode}`));
+const sortLabel = computed(() => {
+  const base = t(`musicList.sort_${localStore.sortMode}`);
+  if (localStore.sortMode === "default") return base;
+  return `${base} ${localStore.sortDirection === "asc" ? "↑" : "↓"}`;
+});
+
+/** 列头排序状态：与下拉共用同一份 store 状态 */
+const trackSortState = computed(() => ({
+  key: localStore.sortMode,
+  direction: localStore.sortDirection,
+}));
 
 function handleSortCommand(mode: string) {
   localStore.setSortMode(mode as LibrarySortMode);
+}
+
+/** 列头点击：同列切换升降序 */
+function handleHeaderSort(key: string) {
+  localStore.setSortByColumn(key as LibrarySortMode);
 }
 
 function openGroup(card: EntityCardModel) {
@@ -542,6 +557,9 @@ watch(
       :is-playing="props.isPlaying"
       :context-menu-items="contextMenuItems"
       :scroll-key="listScrollKey"
+      :sortable="browseTab === 'songs'"
+      :sort-state="trackSortState"
+      @sort="handleHeaderSort"
       @activate="emit('play', browseFiles[$event.sourceIndex])"
       @toggle-current="emit('toggle-current')"
       @toggle-select="toggleSelectRow(browseFiles[$event.sourceIndex])"
