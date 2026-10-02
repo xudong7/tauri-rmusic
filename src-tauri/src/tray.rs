@@ -110,13 +110,20 @@ fn icon_segments(kind: ControlIcon) -> &'static [Segment] {
     }
 }
 
+/// 整体等比缩小的系数：图形按原比例（三角高于宽）缩到画布中央，
+/// 显示高度约 10pt，宽高比不变，不会变扁。
+const ICON_SCALE: f64 = 0.85;
+
 /// 归一化坐标（0..1）下判断采样点是否落在笔画上（描边即命中）。
-/// 图形尽量填满画布：图标最终按高度缩放到 18pt，内部留白会直接变成
-/// 菜单栏里肉眼可见的间距。
+/// 先把采样点反向缩放进图形坐标系，再按笔画半宽判定；阈值同样除以
+/// 缩放系数，保证显示出来的线宽不随图标缩小而变细。
 fn icon_hit(kind: ControlIcon, x: f64, y: f64) -> bool {
+    let shape_x = (x - 0.5) / ICON_SCALE + 0.5;
+    let shape_y = (y - 0.5) / ICON_SCALE + 0.5;
+    let threshold = STROKE_HALF_WIDTH / ICON_SCALE;
     icon_segments(kind)
         .iter()
-        .any(|(a, b)| distance_to_segment((x, y), *a, *b) <= STROKE_HALF_WIDTH)
+        .any(|(a, b)| distance_to_segment((shape_x, shape_y), *a, *b) <= threshold)
 }
 
 /// 生成模板图标 RGBA：黑色 + 覆盖率作为 alpha，4x4 超采样抗锯齿。
@@ -608,8 +615,8 @@ mod tests {
 
     #[test]
     fn icons_are_outlined_not_filled() {
-        // 笔画上命中：播放三角斜边中点
-        assert!(icon_hit(ControlIcon::Play, 0.55, 0.33));
+        // 笔画上命中：播放三角斜边中点（显示坐标，经 ICON_SCALE 反算）
+        assert!(icon_hit(ControlIcon::Play, 0.54, 0.36));
         // 三角形内部是透明的
         assert!(!icon_hit(ControlIcon::Play, 0.45, 0.50));
         // 暂停两条竖条之间也是透明的
