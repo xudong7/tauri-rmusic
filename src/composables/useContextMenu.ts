@@ -6,6 +6,8 @@ export interface ContextMenuItem {
   danger?: boolean;
   disabled?: boolean;
   action?: () => void;
+  /** 二级菜单；有值时该项本身不触发动作，悬停/点击展开子菜单 */
+  children?: ContextMenuItem[];
 }
 
 interface ContextMenuState {
@@ -23,6 +25,18 @@ interface ContextMenuState {
  */
 const state = ref<ContextMenuState | null>(null);
 
+/** 递归查找：子菜单项也能通过 select(key) 触发 */
+function findItem(items: ContextMenuItem[], key: string): ContextMenuItem | undefined {
+  for (const item of items) {
+    if (item.key === key) return item;
+    if (item.children) {
+      const found = findItem(item.children, key);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
 export function useContextMenu() {
   function open(event: MouseEvent, items: ContextMenuItem[]) {
     // 全是禁用项时不弹空菜单
@@ -35,7 +49,7 @@ export function useContextMenu() {
   }
 
   function select(key: string) {
-    const item = state.value?.items.find((candidate) => candidate.key === key);
+    const item = state.value ? findItem(state.value.items, key) : undefined;
     close();
     item?.action?.();
   }

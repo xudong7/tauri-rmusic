@@ -135,6 +135,22 @@ function contextMenuItems(item: TrackRowModel): ContextMenuItem[] {
       label: t("contextMenu.playNext"),
       action: () => void playerStore.playNextInQueue({ type: "online", song }),
     },
+    {
+      key: "add-to-playlist",
+      label: t("playlist.addToPlaylist"),
+      children: [
+        {
+          key: "add-to-new",
+          label: t("playlist.newPlaylist"),
+          action: () => void handleAddToPlaylist("new", song),
+        },
+        ...playlistStore.playlists.map((pl) => ({
+          key: `add-to-${pl.id}`,
+          label: pl.name || t("playlist.unnamed"),
+          action: () => void handleAddToPlaylist(pl.id, song),
+        })),
+      ],
+    },
   ];
   const state = stateOfRow(item.key);
   if (state !== "downloaded" && state !== "downloading") {

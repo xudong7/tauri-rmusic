@@ -331,6 +331,22 @@ function contextMenuItems(item: TrackRowModel): ContextMenuItem[] {
       action: () => void playerStore.playNextInQueue({ type: "local", file }),
     },
     {
+      key: "add-to-playlist",
+      label: t("playlist.addToPlaylist"),
+      children: [
+        {
+          key: "add-to-new",
+          label: t("playlist.newPlaylist"),
+          action: () => handleAddToPlaylist("new", file),
+        },
+        ...playlistStore.playlists.map((pl) => ({
+          key: `add-to-${pl.id}`,
+          label: pl.name || t("playlist.unnamed"),
+          action: () => handleAddToPlaylist(pl.id, file),
+        })),
+      ],
+    },
+    {
       key: "reveal",
       label: t("contextMenu.revealInFolder"),
       action: () => void revealLocalFile(file.file_name, localStore.currentDirectory),
