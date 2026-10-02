@@ -209,6 +209,14 @@ export default {
     close: "Close desktop lyrics",
     idle: "Not playing",
   },
+  tray: {
+    play: "Play",
+    pause: "Pause",
+    previous: "Previous",
+    next: "Next",
+    showHide: "Show / Hide",
+    quit: "Quit",
+  },
   import: {
     audioFiles: "Audio files",
     importing: "Importing {count} file(s)...",

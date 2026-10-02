@@ -10,6 +10,64 @@ use crate::music::MusicState;
 use crate::service;
 use crate::window_state;
 
+/// 托盘图标的固定 id：语言/正在播放更新时用它取回托盘实例
+const TRAY_ID: &str = "main";
+
+/// 托盘菜单文案，由前端按当前语言下发
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrayLabels {
+    pub play: String,
+    pub pause: String,
+    pub previous: String,
+    pub next: String,
+    pub show_hide: String,
+    pub quit: String,
+}
+
+fn build_tray_menu(
+    app: &AppHandle,
+    labels: &TrayLabels,
+) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
+    MenuBuilder::new(app)
+        .text("play", &labels.play)
+        .text("pause", &labels.pause)
+        .text("prev", &labels.previous)
+        .text("next", &labels.next)
+        .separator()
+        .text("show_hide", &labels.show_hide)
+        .separator()
+        .text("quit", &labels.quit)
+        .build()
+}
+
+/// 更新托盘菜单语言与 tooltip（显示当前曲目）。
+///
+/// 菜单文案不写死在 Rust：语言状态活在前端，由它按当前 locale 下发，
+/// 避免两端各维护一份翻译。
+#[tauri::command]
+pub fn update_tray_menu(
+    app: AppHandle,
+    labels: TrayLabels,
+    now_playing: Option<String>,
+) -> Result<(), String> {
+    let Some(tray) = app.tray_by_id(TRAY_ID) else {
+        return Ok(());
+    };
+
+    let menu = build_tray_menu(&app, &labels).map_err(|e| format!("build tray menu: {}", e))?;
+    tray.set_menu(Some(menu))
+        .map_err(|e| format!("set tray menu: {}", e))?;
+
+    let tooltip = now_playing
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "Rmusic".to_string());
+    tray.set_tooltip(Some(tooltip.as_str()))
+        .map_err(|e| format!("set tray tooltip: {}", e))?;
+
+    Ok(())
+}
+
 /// 托盘退出时留给前端 flush 歌单的窗口。
 /// 歌单落盘是本地 JSON 写入，正常情况下远小于这个值；留得宽裕是为了避免
 /// 打断一次正常的保存，代价只是 webview 假死时多等这一会儿。
@@ -32,19 +90,18 @@ pub fn quit_app(app: &AppHandle) {
 
 /// set up the tray
 pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
-    // 使用 MenuBuilder 构建托盘菜单：播放控制、上一曲/下一曲、分隔符、显示/隐藏、退出
-    let menu = MenuBuilder::new(app)
-        .text("play", "Play")
-        .text("pause", "Pause")
-        .text("prev", "Previous")
-        .text("next", "Next")
-        .separator()
-        .text("show_hide", "Show / Hide")
-        .separator()
-        .text("quit", "Quit")
-        .build()?;
+    // 初始菜单用英文：前端挂载后会立刻按当前语言重发一次
+    let initial_labels = TrayLabels {
+        play: "Play".to_string(),
+        pause: "Pause".to_string(),
+        previous: "Previous".to_string(),
+        next: "Next".to_string(),
+        show_hide: "Show / Hide".to_string(),
+        quit: "Quit".to_string(),
+    };
+    let menu = build_tray_menu(app.handle(), &initial_labels)?;
 
-    let mut tray_builder = TrayIconBuilder::new()
+    let mut tray_builder = TrayIconBuilder::with_id(TRAY_ID)
         .menu(&menu)
         .show_menu_on_left_click(true)
         .on_tray_icon_event(|tray, event| {

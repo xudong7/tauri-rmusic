@@ -209,6 +209,14 @@ export default {
     close: "关闭桌面歌词",
     idle: "未在播放",
   },
+  tray: {
+    play: "播放",
+    pause: "暂停",
+    previous: "上一曲",
+    next: "下一曲",
+    showHide: "显示 / 隐藏",
+    quit: "退出",
+  },
   import: {
     audioFiles: "音频文件",
     importing: "正在导入 {count} 个文件...",

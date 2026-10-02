@@ -29,6 +29,7 @@ import { useFileDropImport } from "./composables/useFileDropImport";
 import { useLyricsOverlayBridge } from "./composables/useLyricsOverlayBridge";
 import { useLyricsOverlay } from "./composables/useLyricsOverlay";
 import { useSystemMediaControls } from "./composables/useSystemMediaControls";
+import { useTrayMenu } from "./composables/useTrayMenu";
 import { getCoverFlightSource, playCoverFlight } from "./composables/useCoverFlight";
 import { useThemeStore } from "./stores/themeStore";
 import { useViewStore } from "./stores/viewStore";
@@ -88,6 +89,9 @@ useLyricsOverlayBridge(isLyricsOverlayOpen);
 
 // 系统媒体控制：推元数据、接媒体键
 useSystemMediaControls();
+
+// 托盘菜单：语言 + 当前曲目 tooltip
+useTrayMenu();
 const keyboardShortcuts = useAppKeyboardShortcuts({
   onPrevious: () => playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(-1)),
   onTogglePlay: () => playerStore.togglePlay(),
