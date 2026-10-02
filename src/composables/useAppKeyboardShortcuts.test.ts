@@ -23,6 +23,30 @@ describe("useAppKeyboardShortcuts", () => {
     instance.stop();
   });
 
+  it("中文输入法的全角「？」与物理键位兜底同样触发", () => {
+    const onToggleHelp = vi.fn();
+    const instance = useAppKeyboardShortcuts({
+      onPrevious: vi.fn(),
+      onTogglePlay: vi.fn(),
+      onNext: vi.fn(),
+      onToggleHelp,
+    });
+    instance.start();
+
+    press("？");
+    document.body.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Unidentified",
+        code: "Slash",
+        shiftKey: true,
+        bubbles: true,
+        cancelable: true,
+      })
+    );
+    expect(onToggleHelp).toHaveBeenCalledTimes(2);
+    instance.stop();
+  });
+
   it("输入框里按 ? 不触发帮助", () => {
     const onToggleHelp = vi.fn();
     const instance = useAppKeyboardShortcuts({

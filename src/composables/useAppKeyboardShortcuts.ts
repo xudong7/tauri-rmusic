@@ -14,6 +14,16 @@ export function useAppKeyboardShortcuts(options: {
     );
   }
 
+  function isHelpShortcut(event: KeyboardEvent): boolean {
+    // 中文输入法下 Shift+/ 产生全角「？」；部分布局 event.key 不稳定，
+    // 再按物理键位兜底（Shift + Slash）
+    return (
+      event.key === "?" ||
+      event.key === "？" ||
+      (event.shiftKey && event.code === "Slash")
+    );
+  }
+
   function handleKeyDown(event: KeyboardEvent) {
     if (
       event.defaultPrevented ||
@@ -23,6 +33,12 @@ export function useAppKeyboardShortcuts(options: {
       event.altKey ||
       isInteractiveTarget(event.target)
     ) {
+      return;
+    }
+
+    if (options.onToggleHelp && isHelpShortcut(event)) {
+      options.onToggleHelp();
+      event.preventDefault();
       return;
     }
 
@@ -37,11 +53,6 @@ export function useAppKeyboardShortcuts(options: {
         break;
       case "ArrowRight":
         options.onNext();
-        event.preventDefault();
-        break;
-      case "?":
-        if (!options.onToggleHelp) break;
-        options.onToggleHelp();
         event.preventDefault();
         break;
     }
