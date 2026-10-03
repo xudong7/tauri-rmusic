@@ -353,7 +353,10 @@ onBeforeUnmount(() => {
 
         <div class="song-info">
           <h1 class="song-title" :title="songTitle">
-            <MarqueeText :text="songTitle">
+            <!-- 20px 的字比播放栏的 15px 大三分之一：像素速度相同的话，
+                 每秒滚过的字数会少三分之一，看起来就是更慢。速度按字号
+                 等比放大（120 × 20/15），两处读起来节奏一致。 -->
+            <MarqueeText :text="songTitle" :speed="160">
               <component
                 :is="canNavigateAlbum ? 'button' : 'span'"
                 :type="canNavigateAlbum ? 'button' : undefined"
