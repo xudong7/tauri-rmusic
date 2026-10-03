@@ -687,12 +687,12 @@
   width: 100%;
   /* 左信息 / 中控制 / 右留白：三列等宽，控制簇才会落在整条栏的正中。
      stretch 让左侧信息与中间一簇等高：顶对齐播放顺序键、底对齐进度条。
-     列定义与间距对齐常规播放栏（minmax(200px,1fr) / 20px），保证左侧
-     歌名区域在两种模式下可用宽度一致。 */
+     列定义与列间距和常规播放栏完全一致（中间列同为 minmax(320px,400px)），
+     左侧歌名的可用宽度因此在两种模式下完全相同。 */
   display: grid;
-  grid-template-columns: minmax(200px, 1fr) auto minmax(200px, 1fr);
+  grid-template-columns: minmax(200px, 1fr) minmax(320px, 400px) minmax(200px, 1fr);
   align-items: stretch;
-  column-gap: 20px;
+  gap: 20px;
   opacity: 1;
   transform: none;
   pointer-events: auto;
@@ -756,7 +756,6 @@
 .immersive-track-text {
   display: flex;
   flex-direction: column;
-  gap: 7px;
   min-width: 0;
 }
 
@@ -769,12 +768,15 @@
   color: var(--immersive-text-primary);
 }
 
+/* 与常规播放栏的 .artist-name 对齐：12px + margin-top 7px（两边都靠
+   margin 而不是 flex gap 拉开歌名与歌手的间距）。 */
 .immersive-track-artist {
   font-size: 12px;
   color: var(--immersive-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  margin-top: 7px;
 }
 
 /* 可点击时只用颜色变化标示：与画面中央的歌名/歌手、播放栏同一套。
