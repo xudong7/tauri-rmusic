@@ -203,32 +203,56 @@ onBeforeUnmount(() => {
 .context-menu {
   position: fixed;
   z-index: 2401;
-  min-width: 176px;
-  max-width: 260px;
-  padding: 4px;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: var(--app-radius-md);
+  min-width: 188px;
+  max-width: 280px;
+  padding: 6px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--app-radius-lg);
   background: var(--el-bg-color-overlay);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.16),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+  animation: context-menu-in 0.12s ease-out;
+}
+
+@keyframes context-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .context-menu {
+    animation: none;
+  }
 }
 
 .context-menu__item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
   width: 100%;
-  padding: 6px 10px;
+  padding: 7px 10px;
   border: 0;
-  border-radius: var(--app-radius-sm);
+  border-radius: var(--app-radius-md);
   background: transparent;
   color: var(--el-text-color-primary);
   font: inherit;
   font-size: 13px;
+  line-height: 1.4;
   text-align: left;
   white-space: nowrap;
   cursor: pointer;
-  transition: background var(--app-control-transition);
+  transition:
+    background var(--app-control-transition),
+    color var(--app-control-transition);
 }
 
 .context-menu__row {
@@ -255,10 +279,17 @@ onBeforeUnmount(() => {
 
 .context-menu__item:hover:not(:disabled),
 .context-menu__item:focus-visible:not(:disabled) {
-  background: var(--hover-bg-color);
+  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  color: var(--el-color-primary);
 }
 
 .context-menu__item.is-danger {
+  color: var(--el-color-danger);
+}
+
+.context-menu__item.is-danger:hover:not(:disabled),
+.context-menu__item.is-danger:focus-visible:not(:disabled) {
+  background: color-mix(in srgb, var(--el-color-danger) 10%, transparent);
   color: var(--el-color-danger);
 }
 

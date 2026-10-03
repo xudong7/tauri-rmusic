@@ -40,8 +40,6 @@ export interface TrayLabels {
   pause: string;
   previous: string;
   next: string;
-  showHide: string;
-  quit: string;
 }
 
 interface PlaybackProgressResult {

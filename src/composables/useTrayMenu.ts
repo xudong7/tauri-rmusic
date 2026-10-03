@@ -23,8 +23,6 @@ export function useTrayMenu() {
         pause: t("tray.pause"),
         previous: t("tray.previous"),
         next: t("tray.next"),
-        showHide: t("tray.showHide"),
-        quit: t("tray.quit"),
       },
       nowPlaying,
     }).catch((error) => {

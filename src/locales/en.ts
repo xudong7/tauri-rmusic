@@ -210,8 +210,6 @@ export default {
     pause: "Pause",
     previous: "Previous",
     next: "Next",
-    showHide: "Show / Hide",
-    quit: "Quit",
   },
   shortcuts: {
     title: "Keyboard shortcuts",
