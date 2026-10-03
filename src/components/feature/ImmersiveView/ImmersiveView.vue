@@ -425,15 +425,21 @@ onBeforeUnmount(() => {
             <CollapseIcon />
           </button>
           <div class="immersive-track-text">
-            <component
-              :is="canNavigateAlbum ? 'button' : 'span'"
-              :type="canNavigateAlbum ? 'button' : undefined"
+            <MarqueeText
               class="immersive-track-title"
-              :class="{ 'is-link': canNavigateAlbum }"
-              @click.stop="handleNavigateAlbum"
+              :title="songTitle"
+              :text="songTitle"
             >
-              {{ songTitle }}
-            </component>
+              <component
+                :is="canNavigateAlbum ? 'button' : 'span'"
+                :type="canNavigateAlbum ? 'button' : undefined"
+                class="immersive-track-title-text"
+                :class="{ 'is-link': canNavigateAlbum }"
+                @click.stop="handleNavigateAlbum"
+              >
+                {{ songTitle }}
+              </component>
+            </MarqueeText>
             <div class="immersive-track-artist">
               <template v-if="artistNames.length">
                 <template v-for="(a, idx) in artistNames" :key="a + idx">
