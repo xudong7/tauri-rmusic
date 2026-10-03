@@ -20,6 +20,7 @@ import { PlayMode, type SongInfo, type MusicFile } from "@/types/model";
 import { IMMERSIVE_CONTROLS_IDLE_MS } from "@/constants";
 import { playModeIcon, playModeLabelKey } from "@/utils/playModeUtils";
 import LyricView from "@/components/feature/LyricView/LyricView.vue";
+import MarqueeText from "@/components/base/MarqueeText/MarqueeText.vue";
 import { useCoverPalette } from "@/composables/useCoverPalette";
 import { useCoverLoader } from "@/composables/useCoverLoader";
 import { useArtistNavigation } from "@/composables/useArtistNavigation";
@@ -352,15 +353,17 @@ onBeforeUnmount(() => {
 
         <div class="song-info">
           <h1 class="song-title" :title="songTitle">
-            <component
-              :is="canNavigateAlbum ? 'button' : 'span'"
-              :type="canNavigateAlbum ? 'button' : undefined"
-              class="song-title-text"
-              :class="{ 'is-link': canNavigateAlbum }"
-              @click.stop="handleNavigateAlbum"
-            >
-              {{ songTitle }}
-            </component>
+            <MarqueeText :text="songTitle">
+              <component
+                :is="canNavigateAlbum ? 'button' : 'span'"
+                :type="canNavigateAlbum ? 'button' : undefined"
+                class="song-title-text"
+                :class="{ 'is-link': canNavigateAlbum }"
+                @click.stop="handleNavigateAlbum"
+              >
+                {{ songTitle }}
+              </component>
+            </MarqueeText>
           </h1>
           <div class="song-artist-container">
             <div
