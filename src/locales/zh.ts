@@ -210,6 +210,7 @@ export default {
     pause: "暂停",
     previous: "上一曲",
     next: "下一曲",
+    quit: "退出",
   },
   shortcuts: {
     title: "键盘快捷键",

@@ -35,6 +35,8 @@ pub struct TrayLabels {
     pub pause: String,
     pub previous: String,
     pub next: String,
+    /// 仅非 macOS 使用：macOS 有 Cmd+Q / Dock 退出，菜单里不放退出项
+    pub quit: String,
 }
 
 /// 最近一次下发的菜单文案：播放状态变化时要重排菜单（中间项的
@@ -222,15 +224,31 @@ fn toggle_playback_from_tray(app: &AppHandle, playing: bool) {
 
 /// 菜单项（id, 文案）：只有三个播放控制，中间项随播放状态切换。
 /// 抽成纯函数以便单测——macOS 上真正构造菜单必须在主线程，单测里做不了。
-fn tray_menu_entries(labels: &TrayLabels, playing: bool) -> [(&'static str, &str); 3] {
-    [
-        ("prev", &labels.previous),
+/// macOS 之外没有 Cmd+Q / Dock 退出这类系统入口：托盘菜单必须留一个
+/// 「退出」，否则关窗只是隐藏、用户没有任何办法结束应用。
+const TRAY_SHOWS_QUIT: bool = !cfg!(target_os = "macos");
+
+fn tray_menu_entries(
+    labels: &TrayLabels,
+    playing: bool,
+    include_quit: bool,
+) -> Vec<(&'static str, &str)> {
+    let mut entries = vec![
+        ("prev", labels.previous.as_str()),
         (
             "play_pause",
-            if playing { &labels.pause } else { &labels.play },
+            if playing {
+                labels.pause.as_str()
+            } else {
+                labels.play.as_str()
+            },
         ),
-        ("next", &labels.next),
-    ]
+        ("next", labels.next.as_str()),
+    ];
+    if include_quit {
+        entries.push(("quit", labels.quit.as_str()));
+    }
+    entries
 }
 
 fn build_tray_menu<R: tauri::Runtime>(
@@ -239,8 +257,11 @@ fn build_tray_menu<R: tauri::Runtime>(
     playing: bool,
 ) -> tauri::Result<tauri::menu::Menu<R>> {
     let mut builder = MenuBuilder::new(app);
-    for (id, text) in tray_menu_entries(labels, playing) {
+    for (id, text) in tray_menu_entries(labels, playing, TRAY_SHOWS_QUIT) {
         builder = builder.text(id, text);
+    }
+    if TRAY_SHOWS_QUIT {
+        builder = builder.separator();
     }
     builder.build()
 }
@@ -395,6 +416,11 @@ fn build_control_tray(
     Ok(())
 }
 
+/// 托盘退出时留给前端 flush 歌单的窗口。
+/// 歌单落盘是本地 JSON 写入，正常情况下远小于这个值；留得宽裕是为了避免
+/// 打断一次正常的保存，代价只是 webview 假死时多等这一会儿。
+const FRONTEND_QUIT_GRACE_MS: u64 = 3_000;
+
 pub fn quit_app(app: &AppHandle) {
     // 与插件自己在 RunEvent::Exit 上那次保存用同一份标志：带上 VISIBLE 会把
     // 「退出时窗口是隐藏的」写进文件，而主窗口的隐藏/显示现在由预热流程掌管，
@@ -418,6 +444,7 @@ pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
         pause: "Pause".to_string(),
         previous: "Previous".to_string(),
         next: "Next".to_string(),
+        quit: "Quit".to_string(),
     };
     let menu = build_tray_menu(app.handle(), &initial_labels, false)?;
 
@@ -448,6 +475,25 @@ pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
             }
             "play_pause" => {
                 toggle_playback_from_tray(app, current_playing(app));
+            }
+            "quit" => {
+                // 退出前先把窗口带回来（应用可能整体被隐藏），让前端完成 flush
+                window_state::reveal_main_window(app);
+                // 前端要先 flush 歌单再退出，所以这里先发事件等它。
+                // 但 emit 只是把消息投递出去，webview 正在重载或已崩溃时它照样
+                // 返回 Ok，而没有任何人处理——必须有定时兜底：窗口期内没退出就
+                // 无条件退出，否则托盘里的 Quit 会完全没反应。
+                let handle = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    tokio::time::sleep(std::time::Duration::from_millis(FRONTEND_QUIT_GRACE_MS))
+                        .await;
+                    // 前端已正常退出时这里不会有任何机会执行；若执行了，
+                    // shutdown_service 是幂等的（内部 take()）。
+                    quit_app(&handle);
+                });
+                if let Err(e) = app.emit("tray-quit", ()) {
+                    eprintln!("Failed to emit tray quit event: {}", e);
+                }
             }
             _ => {}
         });
@@ -575,10 +621,11 @@ mod tests {
             pause: "Pause".to_string(),
             previous: "Previous".to_string(),
             next: "Next".to_string(),
+            quit: "Quit".to_string(),
         };
 
         assert_eq!(
-            tray_menu_entries(&labels, false),
+            tray_menu_entries(&labels, false, false),
             [
                 ("prev", "Previous"),
                 ("play_pause", "Play"),
@@ -586,7 +633,15 @@ mod tests {
             ]
         );
         // 播放中时中间项显示「暂停」
-        assert_eq!(tray_menu_entries(&labels, true)[1], ("play_pause", "Pause"));
+        assert_eq!(
+            tray_menu_entries(&labels, true, false)[1],
+            ("play_pause", "Pause")
+        );
+        // 非 macOS 追加退出项，且排在最后
+        assert_eq!(
+            tray_menu_entries(&labels, false, true).last(),
+            Some(&("quit", "Quit"))
+        );
     }
 
     #[test]

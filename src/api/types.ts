@@ -34,12 +34,13 @@ export interface MediaMetadataUpdate {
   volume?: number | null;
 }
 
-/** 托盘菜单文案（由前端按当前语言下发） */
+/** 托盘菜单文案（由前端按当前语言下发；quit 仅非 macOS 使用） */
 export interface TrayLabels {
   play: string;
   pause: string;
   previous: string;
   next: string;
+  quit: string;
 }
 
 interface PlaybackProgressResult {
