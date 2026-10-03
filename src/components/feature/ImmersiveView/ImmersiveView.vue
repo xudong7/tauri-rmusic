@@ -20,6 +20,7 @@ import { PlayMode, type SongInfo, type MusicFile } from "@/types/model";
 import { IMMERSIVE_CONTROLS_IDLE_MS } from "@/constants";
 import { playModeIcon, playModeLabelKey } from "@/utils/playModeUtils";
 import LyricView from "@/components/feature/LyricView/LyricView.vue";
+import MarqueeText from "@/components/base/MarqueeText/MarqueeText.vue";
 import { useCoverPalette } from "@/composables/useCoverPalette";
 import { useCoverLoader } from "@/composables/useCoverLoader";
 import { useArtistNavigation } from "@/composables/useArtistNavigation";
@@ -352,15 +353,20 @@ onBeforeUnmount(() => {
 
         <div class="song-info">
           <h1 class="song-title" :title="songTitle">
-            <component
-              :is="canNavigateAlbum ? 'button' : 'span'"
-              :type="canNavigateAlbum ? 'button' : undefined"
-              class="song-title-text"
-              :class="{ 'is-link': canNavigateAlbum }"
-              @click.stop="handleNavigateAlbum"
-            >
-              {{ songTitle }}
-            </component>
+            <!-- 20px 的字比播放栏的 15px 大三分之一：像素速度相同的话，
+                 每秒滚过的字数会少三分之一，看起来就是更慢。速度按字号
+                 等比放大（120 × 20/15），两处读起来节奏一致。 -->
+            <MarqueeText :text="songTitle" :speed="160">
+              <component
+                :is="canNavigateAlbum ? 'button' : 'span'"
+                :type="canNavigateAlbum ? 'button' : undefined"
+                class="song-title-text"
+                :class="{ 'is-link': canNavigateAlbum }"
+                @click.stop="handleNavigateAlbum"
+              >
+                {{ songTitle }}
+              </component>
+            </MarqueeText>
           </h1>
           <div class="song-artist-container">
             <div
@@ -422,15 +428,21 @@ onBeforeUnmount(() => {
             <CollapseIcon />
           </button>
           <div class="immersive-track-text">
-            <component
-              :is="canNavigateAlbum ? 'button' : 'span'"
-              :type="canNavigateAlbum ? 'button' : undefined"
+            <MarqueeText
               class="immersive-track-title"
-              :class="{ 'is-link': canNavigateAlbum }"
-              @click.stop="handleNavigateAlbum"
+              :title="songTitle"
+              :text="songTitle"
             >
-              {{ songTitle }}
-            </component>
+              <component
+                :is="canNavigateAlbum ? 'button' : 'span'"
+                :type="canNavigateAlbum ? 'button' : undefined"
+                class="immersive-track-title-text"
+                :class="{ 'is-link': canNavigateAlbum }"
+                @click.stop="handleNavigateAlbum"
+              >
+                {{ songTitle }}
+              </component>
+            </MarqueeText>
             <div class="immersive-track-artist">
               <template v-if="artistNames.length">
                 <template v-for="(a, idx) in artistNames" :key="a + idx">

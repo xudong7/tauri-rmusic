@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use tauri::image::Image;
-use tauri::menu::{MenuBuilder, MenuItem};
+use tauri::menu::MenuBuilder;
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::Emitter;
 use tauri::Manager;
@@ -35,9 +35,14 @@ pub struct TrayLabels {
     pub pause: String,
     pub previous: String,
     pub next: String,
-    pub show_hide: String,
+    /// 仅非 macOS 使用：macOS 有 Cmd+Q / Dock 退出，菜单里不放退出项
     pub quit: String,
 }
+
+/// 最近一次下发的菜单文案：播放状态变化时要重排菜单（中间项的
+/// 「播放/暂停」文案跟着状态走），但那个命令只带 playing，不带文案。
+#[derive(Default)]
+pub struct TrayMenuState(std::sync::Mutex<Option<TrayLabels>>);
 
 /// 控制图标画什么：四个形状都用同一套几何描述生成，不依赖外部资源
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -217,33 +222,75 @@ fn toggle_playback_from_tray(app: &AppHandle, playing: bool) {
     let _ = app.emit(event, ());
 }
 
-fn build_tray_menu(
-    app: &AppHandle,
+/// 菜单项（id, 文案）：只有三个播放控制，中间项随播放状态切换。
+/// 抽成纯函数以便单测——macOS 上真正构造菜单必须在主线程，单测里做不了。
+/// macOS 之外没有 Cmd+Q / Dock 退出这类系统入口：托盘菜单必须留一个
+/// 「退出」，否则关窗只是隐藏、用户没有任何办法结束应用。
+const TRAY_SHOWS_QUIT: bool = !cfg!(target_os = "macos");
+
+fn tray_menu_entries(
     labels: &TrayLabels,
-    now_playing: Option<&str>,
-) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
-    let mut builder = MenuBuilder::new(app);
-
-    // 正在播放单独占一行（禁用项）：macOS 上 tooltip 不一定被看到，
-    // 菜单里直接写出来最直观
-    if let Some(text) = now_playing.filter(|value| !value.trim().is_empty()) {
-        let item = MenuItem::with_id(app, "now_playing", text, false, None::<&str>)?;
-        builder = builder.item(&item).separator();
+    playing: bool,
+    include_quit: bool,
+) -> Vec<(&'static str, &str)> {
+    let mut entries = vec![
+        ("prev", labels.previous.as_str()),
+        (
+            "play_pause",
+            if playing {
+                labels.pause.as_str()
+            } else {
+                labels.play.as_str()
+            },
+        ),
+        ("next", labels.next.as_str()),
+    ];
+    if include_quit {
+        entries.push(("quit", labels.quit.as_str()));
     }
-
-    builder
-        .text("play", &labels.play)
-        .text("pause", &labels.pause)
-        .text("prev", &labels.previous)
-        .text("next", &labels.next)
-        .separator()
-        .text("show_hide", &labels.show_hide)
-        .separator()
-        .text("quit", &labels.quit)
-        .build()
+    entries
 }
 
-/// 更新托盘菜单语言与 tooltip（显示当前曲目）。
+fn build_tray_menu<R: tauri::Runtime>(
+    app: &AppHandle<R>,
+    labels: &TrayLabels,
+    playing: bool,
+) -> tauri::Result<tauri::menu::Menu<R>> {
+    let mut builder = MenuBuilder::new(app);
+    for (id, text) in tray_menu_entries(labels, playing, TRAY_SHOWS_QUIT) {
+        builder = builder.text(id, text);
+    }
+    if TRAY_SHOWS_QUIT {
+        builder = builder.separator();
+    }
+    builder.build()
+}
+
+fn current_playing(app: &AppHandle) -> bool {
+    app.try_state::<TrayPlaybackState>()
+        .map(|state| state.0.load(Ordering::SeqCst))
+        .unwrap_or(false)
+}
+
+/// 用最近一次下发的文案重排菜单；前端还没推过文案时什么都不做
+fn rebuild_tray_menu(app: &AppHandle) -> Result<(), String> {
+    let labels = app
+        .try_state::<TrayMenuState>()
+        .and_then(|state| state.0.lock().unwrap().clone());
+    let Some(labels) = labels else {
+        return Ok(());
+    };
+    let Some(tray) = app.tray_by_id(TRAY_ID) else {
+        return Ok(());
+    };
+
+    let menu = build_tray_menu(app, &labels, current_playing(app))
+        .map_err(|e| format!("build tray menu: {}", e))?;
+    tray.set_menu(Some(menu))
+        .map_err(|e| format!("set tray menu: {}", e))
+}
+
+/// 更新托盘菜单语言与 tooltip（tooltip 显示当前曲目）。
 ///
 /// 菜单文案不写死在 Rust：语言状态活在前端，由它按当前 locale 下发，
 /// 避免两端各维护一份翻译。
@@ -253,20 +300,18 @@ pub fn update_tray_menu(
     labels: TrayLabels,
     now_playing: Option<String>,
 ) -> Result<(), String> {
-    let Some(tray) = app.tray_by_id(TRAY_ID) else {
-        return Ok(());
-    };
-
-    let menu = build_tray_menu(&app, &labels, now_playing.as_deref())
-        .map_err(|e| format!("build tray menu: {}", e))?;
-    tray.set_menu(Some(menu))
-        .map_err(|e| format!("set tray menu: {}", e))?;
+    if let Some(state) = app.try_state::<TrayMenuState>() {
+        *state.0.lock().unwrap() = Some(labels.clone());
+    }
+    rebuild_tray_menu(&app)?;
 
     let tooltip = now_playing
         .filter(|value| !value.trim().is_empty())
         .unwrap_or_else(|| "Rmusic".to_string());
-    tray.set_tooltip(Some(tooltip.as_str()))
-        .map_err(|e| format!("set tray tooltip: {}", e))?;
+    if let Some(tray) = app.tray_by_id(TRAY_ID) {
+        tray.set_tooltip(Some(tooltip.as_str()))
+            .map_err(|e| format!("set tray tooltip: {}", e))?;
+    }
 
     // 控制图标 tooltip 跟语言走；中间那个还要按播放状态选「播放/暂停」
     for (id, text) in [
@@ -278,11 +323,11 @@ pub fn update_tray_menu(
         }
     }
     if let Some(control) = app.tray_by_id(TRAY_PLAY_ID) {
-        let playing = app
-            .try_state::<TrayPlaybackState>()
-            .map(|state| state.0.load(Ordering::SeqCst))
-            .unwrap_or(false);
-        let text = if playing { &labels.pause } else { &labels.play };
+        let text = if current_playing(&app) {
+            &labels.pause
+        } else {
+            &labels.play
+        };
         let _ = control.set_tooltip(Some(text.as_str()));
     }
 
@@ -300,6 +345,9 @@ pub fn update_tray_playback_state(
     if let Some(state) = app.try_state::<TrayPlaybackState>() {
         state.0.store(playing, Ordering::SeqCst);
     }
+
+    // 菜单中间项的「播放/暂停」文案也跟着状态换
+    rebuild_tray_menu(&app)?;
 
     let Some(tray) = app.tray_by_id(TRAY_PLAY_ID) else {
         return Ok(());
@@ -396,14 +444,14 @@ pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
         pause: "Pause".to_string(),
         previous: "Previous".to_string(),
         next: "Next".to_string(),
-        show_hide: "Show / Hide".to_string(),
         quit: "Quit".to_string(),
     };
-    let menu = build_tray_menu(app.handle(), &initial_labels, None)?;
+    let menu = build_tray_menu(app.handle(), &initial_labels, false)?;
 
     let mut tray_builder = TrayIconBuilder::with_id(TRAY_ID)
         .menu(&menu)
-        .show_menu_on_left_click(true)
+        // 左键直接显示主界面；菜单只在右键弹出
+        .show_menu_on_left_click(false)
         .on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click {
                 button,
@@ -419,42 +467,22 @@ pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
             }
         })
         .on_menu_event(|app, event| match event.id.as_ref() {
-            "play" => {
-                if let Some(sender) = app.try_state::<Sender<MusicState>>() {
-                    let _ = sender.inner().send(MusicState::Recovery);
-                    let _ = app.emit("tray-play", ());
-                }
-            }
-            "pause" => {
-                if let Some(sender) = app.try_state::<Sender<MusicState>>() {
-                    let _ = sender.inner().send(MusicState::Pause);
-                    let _ = app.emit("tray-pause", ());
-                }
-            }
             "prev" => {
                 let _ = app.emit("tray-prev", ());
             }
             "next" => {
                 let _ = app.emit("tray-next", ());
             }
-            "show_hide" => {
-                if let Some(window) = app.get_webview_window("main") {
-                    match window.is_visible() {
-                        Ok(true) => window_state::hide_main_window(app),
-                        _ => {
-                            window_state::reveal_main_window(app);
-                        }
-                    }
-                }
+            "play_pause" => {
+                toggle_playback_from_tray(app, current_playing(app));
             }
             "quit" => {
                 // 退出前先把窗口带回来（应用可能整体被隐藏），让前端完成 flush
                 window_state::reveal_main_window(app);
                 // 前端要先 flush 歌单再退出，所以这里先发事件等它。
                 // 但 emit 只是把消息投递出去，webview 正在重载或已崩溃时它照样
-                // 返回 Ok，而没有任何人处理——原来的 `if let Err` 兜底因此永远
-                // 不会触发，用户会发现在托盘里点 Quit 完全没反应，且没有别的
-                // 退出入口。改成定时兜底：窗口期内没退出就无条件退出。
+                // 返回 Ok，而没有任何人处理——必须有定时兜底：窗口期内没退出就
+                // 无条件退出，否则托盘里的 Quit 会完全没反应。
                 let handle = app.clone();
                 tauri::async_runtime::spawn(async move {
                     tokio::time::sleep(std::time::Duration::from_millis(FRONTEND_QUIT_GRACE_MS))
@@ -476,6 +504,7 @@ pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
 
     // 播放状态默认「未播放」；前端挂载后会立刻同步真实状态
     app.manage(TrayPlaybackState::default());
+    app.manage(TrayMenuState::default());
 
     let _tray = tray_builder.build(app)?;
 
@@ -583,6 +612,36 @@ mod tests {
                 kind
             );
         }
+    }
+
+    #[test]
+    fn tray_menu_contains_only_the_three_playback_controls() {
+        let labels = TrayLabels {
+            play: "Play".to_string(),
+            pause: "Pause".to_string(),
+            previous: "Previous".to_string(),
+            next: "Next".to_string(),
+            quit: "Quit".to_string(),
+        };
+
+        assert_eq!(
+            tray_menu_entries(&labels, false, false),
+            [
+                ("prev", "Previous"),
+                ("play_pause", "Play"),
+                ("next", "Next"),
+            ]
+        );
+        // 播放中时中间项显示「暂停」
+        assert_eq!(
+            tray_menu_entries(&labels, true, false)[1],
+            ("play_pause", "Pause")
+        );
+        // 非 macOS 追加退出项，且排在最后
+        assert_eq!(
+            tray_menu_entries(&labels, false, true).last(),
+            Some(&("quit", "Quit"))
+        );
     }
 
     #[test]

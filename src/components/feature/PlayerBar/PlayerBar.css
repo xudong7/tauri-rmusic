@@ -1,6 +1,6 @@
 .player-bar {
   display: grid;
-  grid-template-columns: minmax(200px, 1fr) minmax(320px, 560px) minmax(200px, 1fr);
+  grid-template-columns: minmax(200px, 1fr) minmax(320px, 400px) minmax(200px, 1fr);
   align-items: center;
   height: var(--app-player-height, 80px);
   padding: 0 20px;
@@ -152,13 +152,15 @@ html.dark .player-bar {
   color: var(--el-color-primary);
 }
 
+/* 与沉浸页底部播放栏的 .immersive-track-artist 对齐：12px + 7px 间距，
+   两处的歌名/歌手节奏一致。 */
 .artist-name {
   font-size: 12px;
   color: var(--el-text-color-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-top: 5px;
+  margin-top: 7px;
 }
 
 .playback-status {
@@ -276,7 +278,7 @@ html.dark .player-bar {
 .player-progress {
   width: 100%;
   min-width: 0;
-  max-width: 560px;
+  max-width: 400px;
   display: flex;
   align-items: center;
   gap: 8px;

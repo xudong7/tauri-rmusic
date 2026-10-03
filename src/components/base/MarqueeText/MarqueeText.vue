@@ -51,7 +51,10 @@ const marqueeStyle = computed(() => {
   if (!isAnimating.value) return undefined;
   return {
     "--marquee-shift": `-${overflowPx.value}px`,
-    "--marquee-duration": `${Math.max(1.5, overflowPx.value / props.speed).toFixed(2)}s`,
+    // 下限只防「溢出 1px 也要跑 1 秒多」的滑稽场面。取 0.5s 是为了让
+    // 常见溢出距离都不触发下限——下限一触发，实际速度就随距离变化，
+    // 不同字号/不同宽度的两处跑马灯看起来就会一快一慢。
+    "--marquee-duration": `${Math.max(0.5, overflowPx.value / props.speed).toFixed(2)}s`,
   };
 });
 

@@ -42,13 +42,22 @@ pub(crate) fn reveal_main_window(app: &tauri::AppHandle) -> bool {
 
     // 读不到可见状态时按「不可见」处理：多显示一次是安全的，少显示一次会让应用
     // 看起来根本没启动
-    if window.is_visible().unwrap_or(false) {
-        return false;
+    let was_visible = window.is_visible().unwrap_or(false);
+
+    if !was_visible {
+        if let Err(e) = window.show() {
+            eprintln!("Failed to show main window: {}", e);
+            return false;
+        }
     }
 
-    if let Err(e) = window.show() {
-        eprintln!("Failed to show main window: {}", e);
-        return false;
+    // 已可见时也要聚焦：托盘左键、单实例二次启动、Dock 点击都期望把窗口
+    // 带到前台，而不是「已经开着就什么都不做」。
+    // 最小化时先还原——tao 的 macOS set_focus 对 is_minimized 直接跳过。
+    if window.is_minimized().unwrap_or(false) {
+        if let Err(e) = window.unminimize() {
+            eprintln!("Failed to unminimize main window: {}", e);
+        }
     }
 
     // 必须排在 show() 之后：tao 的 macOS set_focus 在窗口不可见时直接返回
@@ -58,7 +67,7 @@ pub(crate) fn reveal_main_window(app: &tauri::AppHandle) -> bool {
         eprintln!("Failed to focus main window: {}", e);
     }
 
-    true
+    !was_visible
 }
 
 /// 隐藏主窗口（红灯 / 关闭键 / 托盘的显示隐藏）。

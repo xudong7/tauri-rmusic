@@ -99,7 +99,7 @@ describe("useTrayMenu", () => {
 
     const call = lastCall();
     expect(call.labels.play).toBe(i18n.global.t("tray.play"));
-    expect(call.labels.showHide).toBe(i18n.global.t("tray.showHide"));
+    expect(call.labels.next).toBe(i18n.global.t("tray.next"));
     expect(call.nowPlaying).toBeNull();
   });
 

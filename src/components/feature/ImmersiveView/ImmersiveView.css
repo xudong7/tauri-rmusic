@@ -320,13 +320,12 @@
   padding-top: 2px;
 }
 
+/* 歌名交给 MarqueeText：溢出时右侧渐隐、悬停滚动看全名，
+   这里不再用省略号截断。 */
 .song-title {
   font-size: 20px;
   font-weight: 600;
   color: var(--immersive-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   line-height: 1.3;
   margin: 0 0 12px;
 }
@@ -677,9 +676,9 @@
   align-items: flex-end;
   justify-content: center;
   /* 尽量贴住底边：只留一点呼吸空间，不把控制条悬在半空。
-     横向内边距比内容区小得多：左侧信息（缩放图标 + 歌名）要贴住窗口左边沿，
-     而内容区的 --immersive-shell-padding-x 最宽能到 88px。 */
-  padding: 0 clamp(16px, 2.2vw, 30px) clamp(8px, 1.4vh, 14px);
+     横向内边距与常规播放栏一致（20px）：左列歌名的可用宽度因此与
+     常规模式走同一套公式（同为 1fr 列），两处截断/滚动的时机一致。 */
+  padding: 0 20px clamp(8px, 1.4vh, 14px);
   pointer-events: auto;
 }
 
@@ -687,11 +686,13 @@
   position: relative;
   width: 100%;
   /* 左信息 / 中控制 / 右留白：三列等宽，控制簇才会落在整条栏的正中。
-     stretch 让左侧信息与中间一簇等高：顶对齐播放顺序键、底对齐进度条。 */
+     stretch 让左侧信息与中间一簇等高：顶对齐播放顺序键、底对齐进度条。
+     列定义与列间距和常规播放栏完全一致（中间列同为 minmax(320px,400px)），
+     左侧歌名的可用宽度因此在两种模式下完全相同。 */
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(200px, 1fr) minmax(320px, 400px) minmax(200px, 1fr);
   align-items: stretch;
-  column-gap: clamp(12px, 2vw, 28px);
+  gap: 20px;
   opacity: 1;
   transform: none;
   pointer-events: auto;
@@ -755,34 +756,36 @@
 .immersive-track-text {
   display: flex;
   flex-direction: column;
-  gap: 7px;
   min-width: 0;
 }
 
-/* 与底部播放栏的歌名（PlayerBar.css 的 .song-name）严格对齐：15px / 600。
+/* 与底部播放栏的歌名（PlayerBar.css 的 .song-name）严格对齐：15px / 600，
+   并且同样交给 MarqueeText——溢出渐隐、悬停滚动，两处的表现完全一致。
    改这里要同步改那一处，反之亦然。 */
 .immersive-track-title {
-  display: block;
   font-size: 15px;
   font-weight: 600;
   color: var(--immersive-text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
+/* 与常规播放栏的 .artist-name 对齐：12px + margin-top 7px（两边都靠
+   margin 而不是 flex gap 拉开歌名与歌手的间距）。 */
 .immersive-track-artist {
   font-size: 12px;
   color: var(--immersive-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  margin-top: 7px;
 }
 
-/* 可点击时只用颜色变化标示：与画面中央的歌名/歌手、播放栏同一套 */
-.immersive-track-title.is-link {
+/* 可点击时只用颜色变化标示：与画面中央的歌名/歌手、播放栏同一套。
+   color: inherit 不能少：button 不继承父级颜色，缺了它浏览器默认的
+   黑色按钮文字会盖在深色背景上，歌名直接看不见。 */
+.immersive-track-title-text.is-link {
   padding: 0;
   border: 0;
+  color: inherit;
   background: transparent;
   font: inherit;
   cursor: pointer;
@@ -798,12 +801,12 @@
   cursor: pointer;
 }
 
-.immersive-track-title.is-link:hover,
+.immersive-track-title-text.is-link:hover,
 .immersive-track-artist .artist-part.artist-link:hover {
   color: var(--immersive-link-hover);
 }
 
-.immersive-track-title.is-link:focus-visible,
+.immersive-track-title-text.is-link:focus-visible,
 .immersive-track-artist .artist-part.artist-link:focus-visible {
   border-radius: 3px;
   outline: 2px solid currentColor;

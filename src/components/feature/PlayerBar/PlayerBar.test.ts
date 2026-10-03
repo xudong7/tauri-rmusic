@@ -185,6 +185,40 @@ describe("两条播放栏的歌名必须同号", () => {
     expect(bottomBar["font-size"]).toBe(immersive["font-size"]);
     expect(bottomBar["font-weight"]).toBe(immersive["font-weight"]);
   });
+
+  // button 不继承父级颜色：两处的歌名按钮都必须显式 color: inherit，
+  // 否则浏览器默认的黑色按钮文字会在深色背景上「消失」。
+  it("可点击时的文字颜色都显式继承", () => {
+    const bottomBar = declarations(ruleOf(playerBarCss, ".song-name-text.is-link"));
+    const immersive = declarations(
+      ruleOf(immersiveCss, ".immersive-track-title-text.is-link")
+    );
+
+    expect(bottomBar["color"]).toBe("inherit");
+    expect(immersive["color"]).toBe("inherit");
+  });
+
+  // 歌名的可展示区域由整条栏的列定义决定：中间列同为 minmax(320px,560px)
+  // 时，两侧 1fr 的宽度才相同，两处歌名会在同一位置截断/开始滚动。
+  it("歌名可用宽度一致：列定义与间距对齐", () => {
+    const bottomBar = declarations(ruleOf(playerBarCss, ".player-bar"));
+    const immersive = declarations(ruleOf(immersiveCss, ".immersive-bottom-bar"));
+
+    expect(bottomBar["grid-template-columns"]).toBeTruthy();
+    expect(immersive["grid-template-columns"]).toBe(bottomBar["grid-template-columns"]);
+    expect(immersive["gap"]).toBe(bottomBar["gap"]);
+  });
+
+  // 歌名与歌手的间距两处都用 margin-top: 5px（flex gap 与 margin 混用
+  // 会随行高出现细微差异）。
+  it("歌名与歌手的间距一致", () => {
+    const bottomBar = declarations(ruleOf(playerBarCss, ".artist-name"));
+    const immersive = declarations(ruleOf(immersiveCss, ".immersive-track-artist"));
+
+    expect(bottomBar["margin-top"]).toBeTruthy();
+    expect(immersive["margin-top"]).toBe(bottomBar["margin-top"]);
+    expect(immersive["font-size"]).toBe(bottomBar["font-size"]);
+  });
 });
 
 describe("PlayerBar 封面", () => {
