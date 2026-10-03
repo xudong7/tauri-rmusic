@@ -1,6 +1,6 @@
 [package]
 name = "rmusic"
-version = "1.6.12"
+version = "1.6.13"
 description = "A modern, lightweight cross-platform desktop music player built with Tauri 2 and Vue 3. Play local audio files and stream online music through third-party API proxies."
 authors = ["xudong7"]
 edition = "2021"
@@ -63,3 +63,12 @@ codegen-units = 1
 lto = "thin"
 panic = "abort"
 strip = true
+
+# 补丁说明（vendor/tray-icon）：
+# 右键没有菜单的状态项时，tray-icon 0.20.1 会给按钮 highlight(true) 且
+# 右键抬起不清除，图标会一直卡在按下态，看起来像右键也生效了。补丁让
+# 「右键 + 无菜单」不做任何视觉反馈，主托盘（有菜单）的右键菜单不受影响。
+# 上游若修复（rightMouseUp 清高亮或菜单缺失时不 highlight），删掉此段与
+# vendor 目录即可。
+[patch.crates-io]
+tray-icon = { path = "vendor/tray-icon" }

@@ -35,3 +35,11 @@ export async function updateTrayMenu(args: {
 }): Promise<void> {
   await invokeCommand("update_tray_menu", args);
 }
+
+/** 同步播放状态：切换菜单栏里「播放/暂停」图标并更新它的 tooltip */
+export async function updateTrayPlaybackState(args: {
+  playing: boolean;
+  tooltip: string | null;
+}): Promise<void> {
+  await invokeCommand("update_tray_playback_state", args);
+}

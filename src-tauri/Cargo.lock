@@ -4018,7 +4018,7 @@ dependencies = [
 
 [[package]]
 name = "rmusic"
-version = "1.6.12"
+version = "1.6.13"
 dependencies = [
  "hmac",
  "id3",
@@ -5528,8 +5528,6 @@ dependencies = [
 [[package]]
 name = "tray-icon"
 version = "0.20.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f7eee98ec5c90daf179d55c20a49d8c0d043054ce7c26336c09a24d31f14fa0"
 dependencies = [
  "crossbeam-channel",
  "dirs 6.0.0",

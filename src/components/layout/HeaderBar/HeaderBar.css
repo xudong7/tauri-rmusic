@@ -59,7 +59,7 @@
   right: 0;
   top: calc(100% + 6px);
   min-height: 70px;
-  max-height: 132px;
+  max-height: 264px;
   background: var(--el-bg-color-overlay);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--app-radius-lg, 12px);
@@ -113,11 +113,13 @@
   font-size: 12px;
 }
 
+/* 一条历史一行：关键词拿到整行宽度，长词不会被两列布局截断 */
 .search-history-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 2px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   padding: 4px 8px 8px;
+  overflow-y: auto;
 }
 
 .search-history-item {
@@ -146,7 +148,7 @@
 }
 
 /* 内层 action 按钮不画自己的焦点环（见下一条），由整行来画：
-   行是两列布局（文本 + 删除键），焦点落在删除键时也能标出所在的整条历史。 */
+   行是「文本 + 删除键」，焦点落在删除键时也能标出所在的整条历史。 */
 .search-history-item:focus-within {
   outline: 2px solid var(--app-focus-ring);
   outline-offset: -2px;

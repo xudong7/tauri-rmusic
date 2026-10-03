@@ -7,6 +7,8 @@ src-tauri/gen
 node_modules
 pnpm-lock.yaml
 package-lock.json
+# 上游 crate 原样 vendored（含补丁），不应被本地格式化工具改写
+src-tauri/vendor
 
 # 静态资源、锁、配置
 CLAUDE.md
