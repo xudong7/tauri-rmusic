@@ -185,6 +185,18 @@ describe("两条播放栏的歌名必须同号", () => {
     expect(bottomBar["font-size"]).toBe(immersive["font-size"]);
     expect(bottomBar["font-weight"]).toBe(immersive["font-weight"]);
   });
+
+  // button 不继承父级颜色：两处的歌名按钮都必须显式 color: inherit，
+  // 否则浏览器默认的黑色按钮文字会在深色背景上「消失」。
+  it("可点击时的文字颜色都显式继承", () => {
+    const bottomBar = declarations(ruleOf(playerBarCss, ".song-name-text.is-link"));
+    const immersive = declarations(
+      ruleOf(immersiveCss, ".immersive-track-title-text.is-link")
+    );
+
+    expect(bottomBar["color"]).toBe("inherit");
+    expect(immersive["color"]).toBe("inherit");
+  });
 });
 
 describe("PlayerBar 封面", () => {

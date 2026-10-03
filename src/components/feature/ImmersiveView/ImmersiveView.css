@@ -777,10 +777,13 @@
   white-space: nowrap;
 }
 
-/* 可点击时只用颜色变化标示：与画面中央的歌名/歌手、播放栏同一套 */
+/* 可点击时只用颜色变化标示：与画面中央的歌名/歌手、播放栏同一套。
+   color: inherit 不能少：button 不继承父级颜色，缺了它浏览器默认的
+   黑色按钮文字会盖在深色背景上，歌名直接看不见。 */
 .immersive-track-title-text.is-link {
   padding: 0;
   border: 0;
+  color: inherit;
   background: transparent;
   font: inherit;
   cursor: pointer;
