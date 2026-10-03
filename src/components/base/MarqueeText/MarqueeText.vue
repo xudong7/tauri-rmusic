@@ -16,7 +16,7 @@ const props = withDefaults(
     /** 滚动速度（像素/秒）；越大越快 */
     speed?: number;
   }>(),
-  { speed: 150 }
+  { speed: 120 }
 );
 
 const rootRef = ref<HTMLElement | null>(null);
@@ -53,7 +53,7 @@ const marqueeStyle = computed(() => {
     "--marquee-shift": `-${overflowPx.value}px`,
     // 下限只防「溢出 1px 也要跑 1 秒多」的滑稽场面；下限过高会把
     // 短溢出也拖成龟速（120px/s 时代就是这个问题）。
-    "--marquee-duration": `${Math.max(0.9, overflowPx.value / props.speed).toFixed(2)}s`,
+    "--marquee-duration": `${Math.max(1.2, overflowPx.value / props.speed).toFixed(2)}s`,
   };
 });
 
