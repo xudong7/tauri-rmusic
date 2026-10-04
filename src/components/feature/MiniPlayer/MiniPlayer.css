@@ -163,6 +163,9 @@
   flex: 1;
   flex-direction: column;
   justify-content: center;
+  /* 撑满迷你条高度：控制区按 inset:0 定位，不撑满的话放大的圆按钮会被
+     迷你条的 overflow:hidden 裁掉上下边 */
+  align-self: stretch;
   min-width: 0;
 }
 
@@ -198,7 +201,8 @@
   inset: 0;
   display: flex;
   align-items: center;
-  gap: 5px;
+  justify-content: center;
+  gap: 8px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 120ms ease;
@@ -221,14 +225,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
   padding: 0;
   border: 1.5px solid var(--el-color-primary);
   border-radius: var(--app-radius-full);
   background: transparent;
   color: var(--el-color-primary);
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
   transition:
     background var(--app-control-transition),
@@ -246,9 +250,9 @@
 }
 
 .mini-player__transport-button--play {
-  width: 30px;
-  height: 30px;
-  font-size: 13px;
+  width: 36px;
+  height: 36px;
+  font-size: 16px;
 }
 
 /* ---------- 右侧：桌面歌词 / 播放模式 / 播放队列 ---------- */
