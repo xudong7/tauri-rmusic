@@ -35,25 +35,13 @@
 
 .mini-player__cover-large {
   /* 占满迷你条以上的空间：窗口尺寸正确时正好 1:1（324×324）；尺寸对不上时
-     也只是被拉伸裁切，不会和迷你条之间留缝 */
+     也只是被拉伸裁切，不会和迷你条之间留缝。
+     可见性完全交给窗口裁剪：收起时高度为 0，没有淡出动画——先淡出会把卡片
+     底色（浅色主题下是白色）露出来，再叠上窗口收缩，底部会闪一块白。 */
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
   cursor: default;
-  /* 收起时高度为 0，透明 + 不接收事件即可 */
-  opacity: 0;
-  pointer-events: none;
-  transform: scale(0.985);
-  transform-origin: center bottom;
-  transition:
-    opacity 140ms ease,
-    transform 140ms ease;
-}
-
-.mini-player__cover-large.is-visible {
-  opacity: 1;
-  pointer-events: auto;
-  transform: none;
 }
 
 /* CoverImage 在 fluid 模式下自带 1px 浅色描边（深色卡片上的白边）和 1:1 的
@@ -357,7 +345,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mini-player__cover-large,
   .mini-player__text,
   .mini-player__transport,
   .mini-player__progress-fill {

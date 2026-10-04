@@ -156,12 +156,21 @@ pub async fn set_mini_player_expanded(app_handle: AppHandle, expanded: bool) -> 
         return Ok(());
     }
 
+    // 改尺寸与移位必须落在同一个主线程任务里。分开排队会各占一轮事件循环，
+    // 中间渲染出一帧「新尺寸 + 旧位置」的窗口：收起时表现为底部闪过一块白
+    // （卡片底色），展开时表现为窗口先向下长再跳回去。主线程上这两个 setter
+    // 会同步执行（send_user_message 的主线程快路径），于是只渲染最终状态。
+    let window_for_task = window.clone();
     window
-        .set_size(LogicalSize::new(WINDOW_WIDTH, height))
-        .map_err(|e| format!("resize mini player window: {}", e))?;
-    window
-        .set_position(LogicalPosition::new(position.x, y))
-        .map_err(|e| format!("move mini player window: {}", e))?;
+        .run_on_main_thread(move || {
+            if let Err(e) = window_for_task.set_size(LogicalSize::new(WINDOW_WIDTH, height)) {
+                eprintln!("Failed to resize mini player window: {}", e);
+            }
+            if let Err(e) = window_for_task.set_position(LogicalPosition::new(position.x, y)) {
+                eprintln!("Failed to move mini player window: {}", e);
+            }
+        })
+        .map_err(|e| format!("resize mini player window on main thread: {}", e))?;
 
     Ok(())
 }

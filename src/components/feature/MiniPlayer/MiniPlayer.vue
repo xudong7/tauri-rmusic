@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ChatLineSquare, Close, Loading, ScaleToOriginal } from "@element-plus/icons-vue";
@@ -38,27 +38,6 @@ const {
 
 const { isCoverExpanded, toggleCoverExpanded, syncWindowSize } =
   useMiniPlayerWindowLayout();
-
-/**
- * 大图的可见性比窗口尺寸慢半拍：
- * - 展开：先把窗口撑开，下一帧再淡入，否则大图会被窗口边界裁一刀；
- * - 收起：先淡出，等动画结束再把窗口缩回去（延迟在后端的尺寸命令之前，
- *   由 useMiniPlayerWindowLayout 负责）。
- */
-const isCoverVisible = ref(false);
-watch(
-  isCoverExpanded,
-  (expanded) => {
-    if (!expanded) {
-      isCoverVisible.value = false;
-      return;
-    }
-    requestAnimationFrame(() => {
-      isCoverVisible.value = true;
-    });
-  },
-  { immediate: true }
-);
 
 const isLoading = computed(() => phase.value !== "idle");
 const hasTrack = computed(() => track.value !== null);
@@ -161,11 +140,7 @@ onUnmounted(() => {
     <div class="mini-player__card">
       <!-- 大图只作展示与拖动：展开/收起统一由小封面决定，点大图不该把窗口收掉。
            内层图片必须 pointer-events: none，否则事件落在 <img> 上，拖不动。 -->
-      <div
-        class="mini-player__cover-large"
-        :class="{ 'is-visible': isCoverVisible }"
-        data-tauri-drag-region
-      >
+      <div class="mini-player__cover-large" data-tauri-drag-region>
         <CoverImage
           :src="coverUrl"
           :alt="track?.title ?? ''"

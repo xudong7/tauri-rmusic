@@ -2,9 +2,6 @@ import { ref } from "vue";
 import { setMiniPlayerExpanded } from "@/api/commands/system";
 import { STORAGE_KEY_MINI_PLAYER_EXPANDED } from "@/constants";
 
-/** 收起时先让大图淡出，再缩窗；与 MiniPlayer.css 里大图的过渡时长一致 */
-const COLLAPSE_ANIMATION_MS = 140;
-
 /**
  * 读上次的封面展开态。
  *
@@ -17,10 +14,6 @@ export function readStoredMiniPlayerExpanded(): boolean {
   } catch {
     return false;
   }
-}
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
 /**
@@ -44,8 +37,8 @@ export function useMiniPlayerWindowLayout() {
     }
 
     try {
-      // 收起是反过来的：先等大图淡出，再缩小窗口，否则动画会被裁掉
-      if (!expanded) await delay(COLLAPSE_ANIMATION_MS);
+      // 立即改尺寸：大图不做淡出，收起时直接由窗口裁掉。先淡出会把卡片底色
+      // （浅色主题下是白色）露出来，再叠上窗口收缩，底部会闪一块白。
       await setMiniPlayerExpanded({ expanded });
     } catch (error) {
       console.error("调整迷你播放器窗口尺寸失败:", error);
