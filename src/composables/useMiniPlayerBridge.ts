@@ -113,8 +113,9 @@ export function useMiniPlayerBridge(isActive: Ref<boolean>) {
         void toggleLyricsOverlay();
         break;
       case "restore-main":
-        // 只把主窗拉出来，迷你条保留（用户可以两个都开着）
+        // 切回正常界面：主窗出来，迷你条同时关掉——两个界面不允许共存
         void revealMainWindow();
+        void setMiniPlayerWindow({ open: false });
         break;
       case "open-queue":
         // 队列面板长在主窗上，且主窗会盖在迷你条下面；点队列就退出迷你模式，

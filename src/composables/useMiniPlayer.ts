@@ -1,16 +1,18 @@
 import { ref } from "vue";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { revealMainWindow, setMiniPlayerWindow } from "@/api/commands/system";
+import { setMiniPlayerWindow } from "@/api/commands/system";
 import { MINI_PLAYER_CLOSED_EVENT } from "@/composables/useMiniPlayerBridge";
 
 /**
  * 迷你播放器的开关状态（模块级单例，主窗口内共享）。
  *
  * 迷你条可能被它自己的关闭键关掉，主窗通过 `mini-player-closed` 事件同步回
- * 这里，避免切换按钮与实际窗口不一致；同时必须把主窗带回来——进入迷你模式
- * 时主窗被隐藏，迷你条是当时唯一的可见界面，关掉它若不恢复主窗，用户会以为
- * 应用退出了。
+ * 这里，避免切换按钮与实际窗口不一致。
+ *
+ * 关闭后不自动恢复主窗：迷你条的 ✕ 是「隐藏迷你条」（应用回托盘，与主窗红灯
+ * 的行为一致），「切回正常界面」是 □ 的职责（见 useMiniPlayerBridge 的
+ * restore-main）。两个界面不允许共存，所以切回主窗的路径都会先关掉迷你窗。
  */
 const isMiniPlayerOpen = ref(false);
 let closedListenerAttached = false;
@@ -20,9 +22,6 @@ function attachClosedListener() {
   closedListenerAttached = true;
   void listen(MINI_PLAYER_CLOSED_EVENT, () => {
     isMiniPlayerOpen.value = false;
-    void revealMainWindow().catch((error) => {
-      console.error("关闭迷你播放器后恢复主窗失败:", error);
-    });
   }).catch((error) => {
     // 非 Tauri 环境（单测/浏览器预览）没有事件系统，静默降级
     console.warn("[迷你播放器] 监听关闭事件失败:", error);

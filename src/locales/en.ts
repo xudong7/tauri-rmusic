@@ -211,8 +211,8 @@ export default {
     expandCover: "Expand cover",
     collapseCover: "Collapse cover",
     lyrics: "Desktop lyrics",
-    close: "Exit mini player",
-    restoreMain: "Restore main window",
+    close: "Hide mini player",
+    restoreMain: "Switch to main window",
     seek: "Click or drag to seek",
   },
   tray: {

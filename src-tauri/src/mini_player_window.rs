@@ -22,8 +22,9 @@ pub(crate) const MINI_PLAYER_WINDOW_LABEL: &str = "mini-player";
 const WINDOW_WIDTH: f64 = 340.0;
 /// 收起态：8 + 60 + 8
 const WINDOW_HEIGHT: f64 = 76.0;
-/// 展开封面大图：8 + 324(1:1 大图，宽 = 340 - 两侧各 8) + 6(间隙) + 60 + 8
-const WINDOW_EXPANDED_HEIGHT: f64 = 406.0;
+/// 展开封面大图：8 + 324(1:1 大图，宽 = 340 - 两侧各 8) + 60(迷你条) + 8。
+/// 大图与迷你条无缝拼接（没有间隙），所以是「上下边距 + 大图 + 迷你条」。
+const WINDOW_EXPANDED_HEIGHT: f64 = 400.0;
 const SCREEN_MARGIN: f64 = 32.0;
 
 /// 打开或关闭迷你播放器窗。命令幂等：重复打开只 show，不存在时关闭是空操作。

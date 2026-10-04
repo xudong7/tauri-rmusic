@@ -1,8 +1,9 @@
 /* 迷你播放器。
  *
- * 窗口 340×76（收起）/ 340×406（展开大图），四周 8px 透明边距留给这里的投影。
+ * 窗口 340×76（收起）/ 340×400（展开大图），四周 8px 透明边距留给这里的投影。
  * 两个尺寸由 src-tauri/src/mini_player_window.rs 的 WINDOW_* 常量定义，改那边
- * 必须同步这里的绝对定位：迷你条恒贴底 8px，大图恒在顶部 8px（1:1 正方形）。
+ * 必须同步这里的绝对定位：迷你条恒贴底 8px，大图恒在顶部 8px（1:1 正方形），
+ * 展开时两者无缝拼成一张卡片。
  *
  * 配色全部走主题变量：迷你窗是独立 webview，但和主窗同源，主题类由
  * main.ts / 组件里的 storage 监听打在 html 上，三套主题都能跟上。
@@ -22,9 +23,13 @@
   top: 8px;
   right: 8px;
   left: 8px;
-  /* 宽度 324 → 高度 324；窗口展开后的剩余空间正好是间隙 + 迷你条 */
+  /* 宽度 324 → 高度 324；窗口展开后紧接迷你条，两者之间没有间隙 */
   aspect-ratio: 1 / 1;
-  border-radius: 10px;
+  box-sizing: border-box;
+  /* 与大图下方的迷你条拼成一张卡片：只留上圆角，下边框交给迷你条收口 */
+  border: 1px solid var(--app-surface-border);
+  border-bottom: 0;
+  border-radius: 10px 10px 0 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   overflow: hidden;
   cursor: default;
@@ -42,6 +47,11 @@
   opacity: 1;
   pointer-events: auto;
   transform: none;
+}
+
+/* CoverImage 自带 1px 浅色描边：不摘掉会在深色卡片上留一圈白边 */
+.mini-player__cover-large :deep(.cover-image) {
+  border: 0;
 }
 
 /* 事件必须落在带 data-tauri-drag-region 的容器上，落在 <img> 上拖不动 */
@@ -70,7 +80,13 @@
   color: var(--el-text-color-primary);
 }
 
-/* ---------- 左上角：退出迷你模式 / 恢复主窗 ---------- */
+/* 展开时与大图拼成一张卡：上边不圆，去掉两张卡之间的分隔线 */
+.mini-player.is-expanded .mini-player__bar {
+  border-top: 0;
+  border-radius: 0 0 10px 10px;
+}
+
+/* ---------- 左上角：隐藏迷你条 / 切回正常界面 ---------- */
 
 .mini-player__window-controls {
   display: flex;

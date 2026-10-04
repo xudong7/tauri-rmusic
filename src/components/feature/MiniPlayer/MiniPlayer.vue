@@ -155,7 +155,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="mini-player">
+  <div class="mini-player" :class="{ 'is-expanded': isCoverExpanded }">
     <!-- 大图只作展示与拖动：展开/收起统一由小封面决定，点大图不该把窗口收掉。
          内层图片必须 pointer-events: none，否则事件落在 <img> 上，拖不动。 -->
     <div
@@ -167,7 +167,7 @@ onUnmounted(() => {
         :src="coverUrl"
         :alt="track?.title ?? ''"
         :fluid="true"
-        :radius="10"
+        :radius="0"
         :lazy="false"
       />
     </div>
