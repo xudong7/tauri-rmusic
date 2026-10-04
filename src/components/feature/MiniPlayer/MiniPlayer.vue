@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ChatLineSquare, Close, Loading, ScaleToOriginal } from "@element-plus/icons-vue";
@@ -37,15 +37,26 @@ const {
   restoreMain,
   playQueueIndex,
   clearQueue,
+  requestQueue,
   seekTo,
 } = useMiniPlayerPlayback();
 
-const { activePanel, togglePanel, syncWindowSize } = useMiniPlayerWindowLayout();
+const { layout, togglePanel, syncWindowSize } = useMiniPlayerWindowLayout();
 
 const isLoading = computed(() => phase.value !== "idle");
 const hasTrack = computed(() => track.value !== null);
-const isCoverExpanded = computed(() => activePanel.value === "cover");
-const isQueueOpen = computed(() => activePanel.value === "queue");
+const isCoverExpanded = computed(() => layout.value.cover);
+const isQueueOpen = computed(() => layout.value.queue);
+
+// 队列面板一打开就主动索取一次：ready 握手可能因 HMR / 主窗重挂载而错过，
+// 只等主窗推送的话面板会一直空着。immediate 兼顾「上次退出时队列是开着的」。
+watch(
+  isQueueOpen,
+  (open) => {
+    if (open) requestQueue();
+  },
+  { immediate: true }
+);
 const coverActionTitle = computed(() =>
   isCoverExpanded.value ? t("miniPlayer.collapseCover") : t("miniPlayer.expandCover")
 );
@@ -154,15 +165,6 @@ onUnmounted(() => {
           :lazy="false"
         />
       </div>
-
-      <MiniPlayerQueue
-        v-else-if="isQueueOpen"
-        :items="queueRows"
-        :is-playing="isPlaying"
-        :default-directory="queueDefaultDirectory"
-        @play="playQueueIndex"
-        @clear="clearQueue"
-      />
 
       <div class="mini-player__bar" data-tauri-drag-region>
         <div class="mini-player__window-controls">
@@ -304,6 +306,16 @@ onUnmounted(() => {
           <div class="mini-player__progress-fill" :style="{ width: `${sliderValue}%` }" />
         </div>
       </div>
+
+      <!-- 队列长在迷你条下方：与封面（上方）互不影响，可以同时展开 -->
+      <MiniPlayerQueue
+        v-if="isQueueOpen"
+        :items="queueRows"
+        :is-playing="isPlaying"
+        :default-directory="queueDefaultDirectory"
+        @play="playQueueIndex"
+        @clear="clearQueue"
+      />
     </div>
   </div>
 </template>

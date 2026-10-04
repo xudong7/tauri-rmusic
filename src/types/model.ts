@@ -160,10 +160,15 @@ export interface PlayStartResult {
 export type PlaybackPhase = "idle" | "resolving" | "buffering";
 
 /**
- * 迷你播放器在迷你条上方展开的面板。
- * 窗口尺寸由后端按类型决定（见 src-tauri/src/mini_player_window.rs）。
+ * 迷你播放器迷你条上下两个面板的开合状态。
+ *
+ * 封面长在迷你条上方、队列长在下方，两者可同时展开；窗口尺寸由后端按它决定
+ * （见 src-tauri/src/mini_player_window.rs）。
  */
-export type MiniPlayerPanel = "none" | "cover" | "queue";
+export interface MiniPlayerLayout {
+  cover: boolean;
+  queue: boolean;
+}
 
 export interface PlaybackQueueItem {
   key: string;

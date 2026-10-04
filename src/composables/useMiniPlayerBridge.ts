@@ -73,7 +73,8 @@ export type MiniPlayerActionPayload =
   | { action: "toggle-lyrics" }
   | { action: "restore-main" }
   | { action: "play-queue-index"; index: number }
-  | { action: "clear-queue" };
+  | { action: "clear-queue" }
+  | { action: "request-queue" };
 
 /**
  * 主窗 → 迷你播放器的桥。
@@ -140,9 +141,12 @@ export function useMiniPlayerBridge(isActive: Ref<boolean>) {
   /**
    * 整份队列只在「列表本身变了」时推：对比序列化结果，挡掉切歌带来的
    * isCurrent 抖动（那由 queueIndex 承担）以及其它无关重算。
+   *
+   * `force` 用于 mini 窗主动索取（打开队列面板时）：此时它可能是刚重挂载的
+   * 实例、手上什么都没有，而主窗这边内容没变，不去重就会一直不推。
    */
   let lastQueueJson = "";
-  function sendQueue() {
+  function sendQueue(force = false) {
     if (!isActive.value) return;
     const payload: MiniPlayerQueuePayload = {
       title: playerStore.playbackQueueTitle,
@@ -150,7 +154,7 @@ export function useMiniPlayerBridge(isActive: Ref<boolean>) {
       defaultDirectory: localStore.getDefaultDirectory(),
     };
     const json = JSON.stringify(payload);
-    if (json === lastQueueJson) return;
+    if (!force && json === lastQueueJson) return;
     lastQueueJson = json;
     void emit(MINI_PLAYER_QUEUE_EVENT, payload);
   }
@@ -186,6 +190,9 @@ export function useMiniPlayerBridge(isActive: Ref<boolean>) {
         break;
       case "clear-queue":
         playerStore.clearQueue();
+        break;
+      case "request-queue":
+        sendQueue(true);
         break;
     }
   }

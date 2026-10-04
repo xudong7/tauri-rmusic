@@ -3,7 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { setMiniPlayerWindow } from "@/api/commands/system";
 import { MINI_PLAYER_CLOSED_EVENT } from "@/composables/useMiniPlayerBridge";
-import { readStoredMiniPlayerPanel } from "@/composables/useMiniPlayerWindowLayout";
+import { readStoredMiniPlayerLayout } from "@/composables/useMiniPlayerWindowLayout";
 
 /**
  * 迷你播放器的开关状态（模块级单例，主窗口内共享）。
@@ -36,10 +36,10 @@ export function useMiniPlayer() {
     // 乐观切换：建窗与隐藏主窗都是异步 IPC，按钮状态不该等它们
     isMiniPlayerOpen.value = true;
     try {
-      // 按上次展开的面板直接建出目标尺寸，避免先建小再撑开的闪动
+      // 按上次的面板开合直接建出目标尺寸，避免先建小再撑开的闪动
       await setMiniPlayerWindow({
         open: true,
-        panel: readStoredMiniPlayerPanel(),
+        layout: readStoredMiniPlayerLayout(),
       });
       await getCurrentWindow().hide();
     } catch (error) {

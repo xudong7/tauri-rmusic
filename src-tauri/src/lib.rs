@@ -5,7 +5,7 @@ use file::{
 };
 use lyrics_window::set_lyrics_window;
 use media_controls::{update_media_metadata, MediaControlsState};
-use mini_player_window::{set_mini_player_panel, set_mini_player_window};
+use mini_player_window::{set_mini_player_layout, set_mini_player_window, MiniPlayerLayoutState};
 use music::{
     clear_online_audio_cache, get_online_audio_cache_path, get_online_audio_cache_size,
     get_playback_state, play_track, prefetch_netease_song, prepare_playback_request, seek_to,
@@ -108,6 +108,7 @@ pub fn run() {
         )
         .manage(OnlineServiceProcess::default())
         .manage(MediaControlsState::default())
+        .manage(MiniPlayerLayoutState::default())
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             // 应用可能整体处于隐藏态（红灯 hide），reveal 会先取消隐藏
             window_state::reveal_main_window(app);
@@ -214,7 +215,7 @@ pub fn run() {
             get_song_lyric,
             set_lyrics_window,
             set_mini_player_window,
-            set_mini_player_panel,
+            set_mini_player_layout,
             update_media_metadata,
             update_tray_menu,
             update_tray_playback_state,

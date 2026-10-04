@@ -18,11 +18,11 @@ export const STORAGE_KEY_LIBRARY_SORT = "rmusic-library-sort";
 /** 桌面歌词字号（px） */
 export const STORAGE_KEY_LYRICS_FONT_SIZE = "rmusic-lyrics-font-size";
 /**
- * 迷你播放器展开的面板（none / cover / queue）。窗口重建（关闭再打开、重启
+ * 迷你播放器的面板开合状态（{ cover, queue }）。窗口重建（关闭再打开、重启
  * 应用）后要回到用户上次选的样子，否则 window-state 恢复出来的窗口尺寸会和
  * 组件状态打架。
  */
-export const STORAGE_KEY_MINI_PLAYER_PANEL = "rmusic-mini-player-panel";
+export const STORAGE_KEY_MINI_PLAYER_LAYOUT = "rmusic-mini-player-layout";
 /** 上次会话：曲目/队列/进度，启动时恢复 */
 export const STORAGE_KEY_PLAYER_SESSION = "rmusic-player-session";
 /** 上次所在路由，启动时恢复 */

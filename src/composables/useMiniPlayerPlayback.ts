@@ -179,6 +179,11 @@ export function useMiniPlayerPlayback() {
     sendAction({ action: "clear-queue" });
   }
 
+  /** 主动索取整份队列：主窗按内容去重，这里 force 一下保证一定重推 */
+  function requestQueue() {
+    sendAction({ action: "request-queue" });
+  }
+
   function seekTo(targetMs: number) {
     // 乐观锚定：先把本地时钟搬到目标位置，否则进度条会在轮询纠偏前回跳
     anchorTo(targetMs);
@@ -240,6 +245,7 @@ export function useMiniPlayerPlayback() {
     restoreMain,
     playQueueIndex,
     clearQueue,
+    requestQueue,
     seekTo,
   };
 }

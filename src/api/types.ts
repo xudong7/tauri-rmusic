@@ -6,7 +6,7 @@ import type {
   ArtistSearchResult,
   ArtistSongsResult,
   ArtistSongsPage,
-  MiniPlayerPanel,
+  MiniPlayerLayout,
   MusicFile,
   Playlist,
   PlaylistDetailResult,
@@ -65,8 +65,8 @@ export interface TauriCommandParamsMap {
   quit_app: void;
   reveal_main_window: void;
   set_lyrics_window: { open: boolean };
-  set_mini_player_window: { open: boolean; panel?: MiniPlayerPanel };
-  set_mini_player_panel: { panel: MiniPlayerPanel };
+  set_mini_player_window: { open: boolean; layout?: MiniPlayerLayout };
+  set_mini_player_layout: { layout: MiniPlayerLayout };
   update_media_metadata: { payload: MediaMetadataUpdate };
   update_tray_menu: { labels: TrayLabels; nowPlaying: string | null };
   update_tray_playback_state: { playing: boolean; tooltip: string | null };
@@ -141,7 +141,7 @@ export interface TauriCommandResultMap {
   reveal_main_window: void;
   set_lyrics_window: void;
   set_mini_player_window: void;
-  set_mini_player_panel: void;
+  set_mini_player_layout: void;
   update_media_metadata: void;
   update_tray_menu: void;
   update_tray_playback_state: void;
