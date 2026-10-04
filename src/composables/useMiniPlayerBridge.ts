@@ -181,9 +181,11 @@ export function useMiniPlayerBridge(isActive: Ref<boolean>) {
         void toggleLyricsOverlay();
         break;
       case "restore-main":
-        // 切回正常界面：主窗出来，迷你条同时关掉——两个界面不允许共存
-        void revealMainWindow();
-        void setMiniPlayerWindow({ open: false });
+        // 切回正常界面：先关迷你条，再显示主窗。反过来会有一瞬两个界面同时
+        // 可见（迷你条悬浮在主窗上），而两个界面不允许共存。
+        void setMiniPlayerWindow({ open: false }).finally(() => {
+          void revealMainWindow();
+        });
         break;
       case "play-queue-index":
         void playerStore.playQueueItem(payload.index);

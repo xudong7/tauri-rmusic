@@ -270,6 +270,31 @@ fn take_layout_state(
     Ok(previous)
 }
 
+/// 迷你播放器当前是否可见。
+///
+/// 「两个界面不共存」的判定就靠它：迷你条开着时，托盘/单实例/Dock 这些
+/// 「把应用带到前面」的入口只能聚焦迷你条，不能把主窗也调出来。
+pub(crate) fn is_open(app: &AppHandle) -> bool {
+    app.get_webview_window(MINI_PLAYER_WINDOW_LABEL)
+        .and_then(|window| window.is_visible().ok())
+        .unwrap_or(false)
+}
+
+/// 把迷你播放器带到前台（可能被最小化过）。
+pub(crate) fn focus(app: &AppHandle) {
+    let Some(window) = app.get_webview_window(MINI_PLAYER_WINDOW_LABEL) else {
+        return;
+    };
+    if window.is_minimized().unwrap_or(false) {
+        if let Err(e) = window.unminimize() {
+            eprintln!("Failed to unminimize mini player window: {}", e);
+        }
+    }
+    if let Err(e) = window.set_focus() {
+        eprintln!("Failed to focus mini player window: {}", e);
+    }
+}
+
 /// 首次打开时的落点：主显示器右上角，留出边距。
 ///
 /// 队列面板向下展开，所以默认停在顶部——这样队列一打开就能完整显示；

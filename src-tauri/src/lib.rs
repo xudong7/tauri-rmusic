@@ -110,13 +110,9 @@ pub fn run() {
         .manage(MediaControlsState::default())
         .manage(MiniPlayerLayoutState::default())
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            // 应用可能整体处于隐藏态（红灯 hide），reveal 会先取消隐藏
-            window_state::reveal_main_window(app);
-            if let Some(window) = app.get_webview_window("main") {
-                if let Err(e) = window.set_focus() {
-                    eprintln!("Failed to focus main window: {}", e);
-                }
-            }
+            // 应用可能整体处于隐藏态（红灯 hide）；迷你条开着时只聚焦它——
+            // 两个界面不共存，切回主窗只能走迷你条的复原键
+            window_state::reveal_primary_surface(app);
         }))
         .setup(|app| {
             // 先把 sidecar 拉起来：这一步同步返回，只创建进程、不等就绪。放在最
@@ -271,7 +267,7 @@ pub fn run() {
             // 会完全没反应，用户只能去托盘菜单。
             #[cfg(target_os = "macos")]
             tauri::RunEvent::Reopen { .. } => {
-                window_state::reveal_main_window(app_handle);
+                window_state::reveal_primary_surface(app_handle);
             }
             _ => {}
         });

@@ -70,6 +70,20 @@ pub(crate) fn reveal_main_window(app: &tauri::AppHandle) -> bool {
     !was_visible
 }
 
+/// 「把应用带到前面」的统一入口：迷你播放器开着就只聚焦它，否则显示主窗。
+///
+/// 两个界面不允许共存，唯一能切回主窗的是迷你条上的复原键（前端
+/// `restore-main` 会先关掉迷你窗再调 [`reveal_main_window`]）。托盘左键、
+/// 单实例二次启动、macOS 的 Dock 点击都必须走这里，否则主窗会突然冒出来和
+/// 迷你条同时存在。
+pub(crate) fn reveal_primary_surface(app: &tauri::AppHandle) {
+    if crate::mini_player_window::is_open(app) {
+        crate::mini_player_window::focus(app);
+        return;
+    }
+    reveal_main_window(app);
+}
+
 /// 隐藏主窗口（红灯 / 关闭键 / 托盘的显示隐藏）。
 ///
 /// 只隐藏窗口，不隐藏整个应用：桌面歌词是独立窗口，整体 NSApp.hide 会把
