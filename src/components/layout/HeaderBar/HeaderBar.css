@@ -265,7 +265,8 @@ html.dark .search-history-item:focus-within {
   flex-shrink: 0;
 }
 
-.service-status {
+.service-status,
+.mini-player-button {
   width: var(--app-icon-btn-md);
   height: var(--app-icon-btn-md);
   display: inline-flex;
@@ -278,20 +279,28 @@ html.dark .search-history-item:focus-within {
   color: var(--el-text-color-secondary);
   cursor: pointer;
   transition:
+    color var(--app-control-transition),
     background var(--app-control-transition),
     border-color var(--app-control-transition),
     transform var(--app-control-transition);
 }
 
 .service-status:focus-visible,
+.mini-player-button:focus-visible,
 .window-button:focus-visible {
   outline: 2px solid var(--app-focus-ring);
   outline-offset: 2px;
 }
 
 /* 与全项目一致：悬停只让图标亮起来，不浮出底色方块 */
-.service-status:hover {
+.service-status:hover,
+.mini-player-button:hover {
   color: var(--app-icon-button-hover-color);
+}
+
+/* 迷你播放器已打开：按钮本身也点亮，用户知道状态 */
+.mini-player-button.is-active {
+  color: var(--el-color-primary);
 }
 
 .service-status-dot {

@@ -29,6 +29,8 @@ import { useWindowSizeConstraints } from "./composables/useWindowSizeConstraints
 import { useFileDropImport } from "./composables/useFileDropImport";
 import { useLyricsOverlayBridge } from "./composables/useLyricsOverlayBridge";
 import { useLyricsOverlay } from "./composables/useLyricsOverlay";
+import { useMiniPlayerBridge } from "./composables/useMiniPlayerBridge";
+import { useMiniPlayer } from "./composables/useMiniPlayer";
 import { useSystemMediaControls } from "./composables/useSystemMediaControls";
 import { useTrayMenu } from "./composables/useTrayMenu";
 import { useShortcutsHelp } from "./composables/useShortcutsHelp";
@@ -88,6 +90,10 @@ const { isDraggingAudioFiles, dragAudioCount } = useFileDropImport({
 // 桌面歌词：主窗只负责推「当前曲目 + 偏移」，进度由悬浮窗自己算
 const { isLyricsOverlayOpen } = useLyricsOverlay();
 useLyricsOverlayBridge(isLyricsOverlayOpen);
+
+// 迷你播放器：主窗推低频快照，并执行 mini 窗回抛的播放指令
+const { isMiniPlayerOpen } = useMiniPlayer();
+const miniPlayerBridge = useMiniPlayerBridge(isMiniPlayerOpen);
 
 // 系统媒体控制：推元数据、接媒体键
 useSystemMediaControls();
@@ -229,6 +235,7 @@ onMounted(() => {
     }),
     runInitTask("playback events", () => playerStore.startPlaybackEventListening()),
     runInitTask("tray events", () => trayEvents.start()),
+    runInitTask("mini player events", () => miniPlayerBridge.start()),
   ]).then(() => {
     // 曲库与歌单就绪之后才能把上次的曲目/队列还原成可播放的引用
     playerStore.restoreSession();

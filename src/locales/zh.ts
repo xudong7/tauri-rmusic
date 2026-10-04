@@ -205,6 +205,16 @@ export default {
     close: "关闭桌面歌词",
     idle: "未在播放",
   },
+  miniPlayer: {
+    enter: "迷你播放器",
+    empty: "未在播放",
+    play: "播放",
+    pause: "暂停",
+    lyrics: "桌面歌词",
+    close: "退出迷你播放器",
+    restoreMain: "恢复主窗口",
+    seek: "点击或拖动跳转进度",
+  },
   tray: {
     play: "播放",
     pause: "暂停",

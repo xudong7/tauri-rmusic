@@ -21,6 +21,11 @@ export async function setLyricsWindow(args: { open: boolean }): Promise<void> {
   await invokeCommand("set_lyrics_window", args);
 }
 
+/** 打开/关闭迷你播放器窗。后端幂等：已存在则显示/关闭，不存在且 open=false 时为 no-op。 */
+export async function setMiniPlayerWindow(args: { open: boolean }): Promise<void> {
+  await invokeCommand("set_mini_player_window", args);
+}
+
 /** 把当前曲目与播放状态推给系统媒体控制（macOS Now Playing / Windows SMTC / MPRIS） */
 export async function updateMediaMetadata(args: {
   payload: MediaMetadataUpdate;

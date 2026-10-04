@@ -205,6 +205,16 @@ export default {
     close: "Close desktop lyrics",
     idle: "Not playing",
   },
+  miniPlayer: {
+    enter: "Mini player",
+    empty: "Not playing",
+    play: "Play",
+    pause: "Pause",
+    lyrics: "Desktop lyrics",
+    close: "Exit mini player",
+    restoreMain: "Restore main window",
+    seek: "Click or drag to seek",
+  },
   tray: {
     play: "Play",
     pause: "Pause",

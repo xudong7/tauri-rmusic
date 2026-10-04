@@ -10,9 +10,11 @@ import {
   Search,
 } from "@element-plus/icons-vue";
 import TrashIcon from "@/components/base/icons/TrashIcon.vue";
+import MiniPlayerIcon from "@/components/base/icons/MiniPlayerIcon.vue";
 import { ViewMode, type SearchScope } from "@/types/model";
 import { useWindowControls } from "@/composables/useWindowControls";
 import { useWindowDrag } from "@/composables/useWindowDrag";
+import { useMiniPlayer } from "@/composables/useMiniPlayer";
 import { useSearchHistoryStore } from "@/stores/searchHistoryStore";
 import { useOnlineServiceStore } from "@/stores/onlineServiceStore";
 import { usePlatform } from "@/composables/usePlatform";
@@ -56,6 +58,7 @@ const { isMaximized, minimize, toggleMaximize, close } = useWindowControls({
   onClose: "hide",
 });
 const { startWindowDrag } = useWindowDrag();
+const { isMiniPlayerOpen, toggleMiniPlayer } = useMiniPlayer();
 const maximizeIcon = computed(() => (isMaximized.value ? ScaleToOriginal : FullScreen));
 const supportsSearchHistory = computed(
   () => props.searchScope === "local" || props.searchScope === "online"
@@ -270,6 +273,18 @@ onUnmounted(() => {
           <span class="service-status-dot" />
         </button>
       </span>
+      <!-- 迷你播放器开关：右侧常驻，宽度恒定，不推挤居中的搜索框 -->
+      <button
+        type="button"
+        class="mini-player-button"
+        :class="{ 'is-active': isMiniPlayerOpen }"
+        :title="t('miniPlayer.enter')"
+        :aria-label="t('miniPlayer.enter')"
+        :aria-pressed="isMiniPlayerOpen"
+        @click="toggleMiniPlayer"
+      >
+        <el-icon><MiniPlayerIcon /></el-icon>
+      </button>
       <!-- 非 macOS 平台显示窗口控制按钮 -->
       <div v-if="!isMacPlatform" class="window-controls">
         <button

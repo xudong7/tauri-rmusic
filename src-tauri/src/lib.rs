@@ -5,6 +5,7 @@ use file::{
 };
 use lyrics_window::set_lyrics_window;
 use media_controls::{update_media_metadata, MediaControlsState};
+use mini_player_window::set_mini_player_window;
 use music::{
     clear_online_audio_cache, get_online_audio_cache_path, get_online_audio_cache_size,
     get_playback_state, play_track, prefetch_netease_song, prepare_playback_request, seek_to,
@@ -19,7 +20,7 @@ use netease::{
 };
 use playlist::{read_playlists, write_playlists};
 use service::{ensure_online_service, restart_online_service, OnlineServiceProcess};
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_window_state::WindowExt;
 use tokio::sync::broadcast::Sender;
@@ -30,6 +31,7 @@ mod file;
 mod fs_util;
 mod lyrics_window;
 mod media_controls;
+mod mini_player_window;
 mod music;
 mod netease;
 mod playlist;
@@ -211,6 +213,7 @@ pub fn run() {
             download_music,
             get_song_lyric,
             set_lyrics_window,
+            set_mini_player_window,
             update_media_metadata,
             update_tray_menu,
             update_tray_playback_state,
@@ -236,6 +239,8 @@ pub fn run() {
             // 这是 Tauri 自己的事件回调，必然会被调用（窗口级 on_window_event
             // 的注册时机依赖窗口已存在于运行时表里，不如这里可靠）。
             // 桌面歌词窗（label=lyrics）不拦，它就是个普通窗口，正常关闭。
+            // 迷你播放器也不拦，但关闭时要广播一次：主窗靠它恢复显示并同步
+            // 切换按钮的状态；否则用户关掉迷你条后会看不到任何窗口。
             tauri::RunEvent::WindowEvent {
                 label,
                 event: tauri::WindowEvent::CloseRequested { api, .. },
@@ -244,6 +249,10 @@ pub fn run() {
                 if label == "main" {
                     api.prevent_close();
                     window_state::hide_main_window(app_handle);
+                } else if label == mini_player_window::MINI_PLAYER_WINDOW_LABEL {
+                    if let Err(e) = app_handle.emit("mini-player-closed", ()) {
+                        eprintln!("Failed to emit mini-player-closed: {}", e);
+                    }
                 }
             }
             // code=None 表示「所有窗口都关闭」触发的退出请求。本应用常驻托盘，
