@@ -173,7 +173,10 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
-  transition: opacity 120ms ease;
+  /* 默认（文字可见）挂进场曲线：移开鼠标、文字回来时走这一段 */
+  transition:
+    opacity var(--app-motion-enter) var(--app-motion-ease-out),
+    transform var(--app-motion-enter) var(--app-motion-ease-out);
 }
 
 .mini-player__title,
@@ -205,20 +208,35 @@
   gap: 8px;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 120ms ease;
+  transform: translateY(6px) scale(0.96);
+  /* 默认（控制隐藏）挂离场曲线 */
+  transition:
+    opacity var(--app-motion-leave) var(--app-motion-ease-in),
+    transform var(--app-motion-leave) var(--app-motion-ease-in);
 }
 
 /* 悬停或键盘聚焦到信息区时，文字让位给播放控制。
-   键盘路径依赖 focus-within：Tab 进入隐藏的按钮时它们会立刻显形。 */
+   键盘路径依赖 focus-within：Tab 进入隐藏的按钮时它们会立刻显形。
+
+   两层错开：文字先按离场曲线淡出并上移，控制延迟 30ms 再带缩放落位。
+   时长、曲线、位移都不同，读起来是一次交叉溶解，而不是两块内容同时硬切。 */
 .mini-player__info:hover .mini-player__text,
 .mini-player__info:focus-within .mini-player__text {
   opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity var(--app-motion-leave) var(--app-motion-ease-in),
+    transform var(--app-motion-leave) var(--app-motion-ease-in);
 }
 
 .mini-player__info:hover .mini-player__transport,
 .mini-player__info:focus-within .mini-player__transport {
   opacity: 1;
   pointer-events: auto;
+  transform: none;
+  transition:
+    opacity var(--app-motion-enter) var(--app-motion-ease-out) 30ms,
+    transform var(--app-motion-enter) var(--app-motion-ease-out) 30ms;
 }
 
 .mini-player__transport-button {
