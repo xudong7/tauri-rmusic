@@ -156,14 +156,12 @@ onUnmounted(() => {
 
 <template>
   <div class="mini-player">
-    <button
-      type="button"
+    <!-- 大图只作展示与拖动：展开/收起统一由小封面决定，点大图不该把窗口收掉。
+         内层图片必须 pointer-events: none，否则事件落在 <img> 上，拖不动。 -->
+    <div
       class="mini-player__cover-large"
       :class="{ 'is-visible': isCoverVisible }"
-      :title="t('miniPlayer.collapseCover')"
-      :aria-label="t('miniPlayer.collapseCover')"
-      :tabindex="isCoverVisible ? 0 : -1"
-      @click="toggleCoverExpanded"
+      data-tauri-drag-region
     >
       <CoverImage
         :src="coverUrl"
@@ -172,7 +170,7 @@ onUnmounted(() => {
         :radius="10"
         :lazy="false"
       />
-    </button>
+    </div>
 
     <div class="mini-player__bar" data-tauri-drag-region>
       <div class="mini-player__window-controls">

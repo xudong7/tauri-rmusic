@@ -1,6 +1,6 @@
 /* 迷你播放器。
  *
- * 窗口 400×76（收起）/ 400×466（展开大图），四周 8px 透明边距留给这里的投影。
+ * 窗口 340×76（收起）/ 340×406（展开大图），四周 8px 透明边距留给这里的投影。
  * 两个尺寸由 src-tauri/src/mini_player_window.rs 的 WINDOW_* 常量定义，改那边
  * 必须同步这里的绝对定位：迷你条恒贴底 8px，大图恒在顶部 8px（1:1 正方形）。
  *
@@ -15,22 +15,19 @@
   user-select: none;
 }
 
-/* ---------- 封面大图：点一下展开/收起 ---------- */
+/* ---------- 封面大图：纯展示 + 拖动，展开/收起由小封面决定 ---------- */
 
 .mini-player__cover-large {
   position: absolute;
   top: 8px;
   right: 8px;
   left: 8px;
-  /* 宽度 384 → 高度 384；窗口展开后的剩余空间正好是间隙 + 迷你条 */
+  /* 宽度 324 → 高度 324；窗口展开后的剩余空间正好是间隙 + 迷你条 */
   aspect-ratio: 1 / 1;
-  padding: 0;
-  border: 0;
   border-radius: 10px;
-  background: transparent;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   overflow: hidden;
-  cursor: pointer;
+  cursor: default;
   /* 收起时窗口只有 76px 高，大图仍然渲染但被裁掉；透明 + 不接收事件即可 */
   opacity: 0;
   pointer-events: none;
@@ -45,6 +42,11 @@
   opacity: 1;
   pointer-events: auto;
   transform: none;
+}
+
+/* 事件必须落在带 data-tauri-drag-region 的容器上，落在 <img> 上拖不动 */
+.mini-player__cover-large > * {
+  pointer-events: none;
 }
 
 /* ---------- 迷你条：恒贴窗口底部 ---------- */

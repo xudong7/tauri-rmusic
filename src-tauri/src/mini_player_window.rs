@@ -17,11 +17,13 @@ pub(crate) const MINI_PLAYER_WINDOW_LABEL: &str = "mini-player";
 
 /// 窗口比迷你条本体四周各多 8px：给 CSS 投影和圆角留出透明边距。
 /// 宽度两种状态共用——改宽度等于改文字的排版基线，两边都得动。
-const WINDOW_WIDTH: f64 = 400.0;
+/// 340 是「播放控制不显得孤零零挂在左边」的上限：再宽，控制区与右侧图标之间
+/// 就会空出一大块。
+const WINDOW_WIDTH: f64 = 340.0;
 /// 收起态：8 + 60 + 8
 const WINDOW_HEIGHT: f64 = 76.0;
-/// 展开封面大图：8 + 384(1:1 大图) + 6(间隙) + 60(迷你条) + 8
-const WINDOW_EXPANDED_HEIGHT: f64 = 466.0;
+/// 展开封面大图：8 + 324(1:1 大图，宽 = 340 - 两侧各 8) + 6(间隙) + 60 + 8
+const WINDOW_EXPANDED_HEIGHT: f64 = 406.0;
 const SCREEN_MARGIN: f64 = 32.0;
 
 /// 打开或关闭迷你播放器窗。命令幂等：重复打开只 show，不存在时关闭是空操作。
