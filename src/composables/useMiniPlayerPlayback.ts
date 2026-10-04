@@ -82,8 +82,9 @@ export function useMiniPlayerPlayback() {
     durationMs.value = payload.durationMs;
     playMode.value = payload.playMode;
     isLyricsOverlayOpen.value = payload.isLyricsOverlayOpen;
-    // 快照里的 position 只在低频时机播种；之后由本地时钟接管
-    anchorTo(payload.positionMs);
+    // position 为 null = 别动本地时钟：主窗隐藏后它推来的进度是冻结的旧值，
+    // 拿来锚定会让进度条每次点击都跳回去
+    if (payload.positionMs !== null) anchorTo(payload.positionMs);
 
     const nextCoverKey = coverKeyOf(payload.track);
     if (nextCoverKey !== lastCoverKey) {

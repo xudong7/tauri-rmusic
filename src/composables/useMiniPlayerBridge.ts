@@ -29,7 +29,15 @@ export interface MiniPlayerStatePayload {
   isPlaying: boolean;
   phase: PlaybackPhase;
   durationMs: number;
-  positionMs: number;
+  /**
+   * 进度只在「就绪握手 / 切歌」时给数值，其余推送为 null。
+   *
+   * 主窗在迷你模式下是隐藏的，它的播放时钟会停在 document.hidden 的守卫上，
+   * currentPlayTime 因此是冻结的旧值。普通状态推送（切播放模式、开关歌词等）
+   * 若带上它，mini 窗的进度条会在每次点击时跳回旧位置。null 表示「别动我的
+   * 时钟」——mini 窗自己的 250ms 外推 + 1.5s 轮询才是权威进度。
+   */
+  positionMs: number | null;
   playMode: PlayMode;
   isLyricsOverlayOpen: boolean;
 }
@@ -74,21 +82,21 @@ export function useMiniPlayerBridge(isActive: Ref<boolean>) {
     };
   }
 
-  function snapshot(): MiniPlayerStatePayload {
+  function snapshot(includePosition: boolean): MiniPlayerStatePayload {
     return {
       track: currentTrack(),
       isPlaying: playerStore.isPlaying,
       phase: playerStore.playbackPhase,
       durationMs: playerStore.currentTrackDuration,
-      positionMs: playerStore.currentPlayTime,
+      positionMs: includePosition ? playerStore.currentPlayTime : null,
       playMode: playerStore.playMode,
       isLyricsOverlayOpen: isLyricsOverlayOpen.value,
     };
   }
 
-  function sendState() {
+  function sendState(includePosition = false) {
     if (!isActive.value) return;
-    void emit(MINI_PLAYER_STATE_EVENT, snapshot());
+    void emit(MINI_PLAYER_STATE_EVENT, snapshot(includePosition));
   }
 
   function handleAction(event: Event<MiniPlayerActionPayload>) {
@@ -133,7 +141,8 @@ export function useMiniPlayerBridge(isActive: Ref<boolean>) {
   async function start() {
     stop();
     try {
-      unlisteners.push(await listen(MINI_PLAYER_READY_EVENT, sendState));
+      // 就绪握手：mini 窗刚建好/重挂载，补发全量快照（含进度播种）
+      unlisteners.push(await listen(MINI_PLAYER_READY_EVENT, () => sendState(true)));
       unlisteners.push(
         await listen<MiniPlayerActionPayload>(MINI_PLAYER_ACTION_EVENT, handleAction)
       );
@@ -159,7 +168,11 @@ export function useMiniPlayerBridge(isActive: Ref<boolean>) {
       playerStore.playMode,
       isLyricsOverlayOpen.value,
     ],
-    sendState
+    (next, prev) => {
+      // 只有切歌才播种进度：新曲目从 0 开始，即便主窗隐藏时这个值也是准的
+      const trackChanged = next[0] !== prev?.[0] || next[1] !== prev?.[1];
+      sendState(trackChanged);
+    }
   );
 
   onUnmounted(stop);
