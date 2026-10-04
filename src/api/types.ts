@@ -64,7 +64,7 @@ export interface TauriCommandParamsMap {
   quit_app: void;
   reveal_main_window: void;
   set_lyrics_window: { open: boolean };
-  set_mini_player_window: { open: boolean };
+  set_mini_player_window: { open: boolean; expanded?: boolean };
   set_mini_player_expanded: { expanded: boolean };
   update_media_metadata: { payload: MediaMetadataUpdate };
   update_tray_menu: { labels: TrayLabels; nowPlaying: string | null };

@@ -21,8 +21,14 @@ export async function setLyricsWindow(args: { open: boolean }): Promise<void> {
   await invokeCommand("set_lyrics_window", args);
 }
 
-/** 打开/关闭迷你播放器窗。后端幂等：已存在则显示/关闭，不存在且 open=false 时为 no-op。 */
-export async function setMiniPlayerWindow(args: { open: boolean }): Promise<void> {
+/**
+ * 打开/关闭迷你播放器窗。后端幂等：已存在则显示/关闭，不存在且 open=false 时为 no-op。
+ * `expanded` 只在建窗时生效（按上次的封面展开态直接定尺寸）。
+ */
+export async function setMiniPlayerWindow(args: {
+  open: boolean;
+  expanded?: boolean;
+}): Promise<void> {
   await invokeCommand("set_mini_player_window", args);
 }
 

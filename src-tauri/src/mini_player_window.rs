@@ -28,8 +28,15 @@ const WINDOW_EXPANDED_HEIGHT: f64 = 400.0;
 const SCREEN_MARGIN: f64 = 32.0;
 
 /// 打开或关闭迷你播放器窗。命令幂等：重复打开只 show，不存在时关闭是空操作。
+///
+/// `expanded` 只在校验建窗尺寸时用：前端从 localStorage 读出上次的封面展开态，
+/// 直接按目标尺寸建窗，避免「先按收起态建出来、再撑开」闪一下。
 #[tauri::command]
-pub async fn set_mini_player_window(app_handle: AppHandle, open: bool) -> Result<(), String> {
+pub async fn set_mini_player_window(
+    app_handle: AppHandle,
+    open: bool,
+    expanded: Option<bool>,
+) -> Result<(), String> {
     if let Some(window) = app_handle.get_webview_window(MINI_PLAYER_WINDOW_LABEL) {
         if open {
             window
@@ -55,13 +62,19 @@ pub async fn set_mini_player_window(app_handle: AppHandle, open: bool) -> Result
         return Ok(());
     }
 
+    let height = if expanded.unwrap_or(false) {
+        WINDOW_EXPANDED_HEIGHT
+    } else {
+        WINDOW_HEIGHT
+    };
+
     let mut builder = WebviewWindowBuilder::new(
         &app_handle,
         MINI_PLAYER_WINDOW_LABEL,
         WebviewUrl::App("index.html".into()),
     )
     .title("Rmusic Mini Player")
-    .inner_size(WINDOW_WIDTH, WINDOW_HEIGHT)
+    .inner_size(WINDOW_WIDTH, height)
     // 固定尺寸 + 不可最大化：迷你条被拖大只会露出透明底色，没有意义。
     // 双击拖拽区在 macOS 上会触发 zoom，所以 maximizable 也要关。
     .resizable(false)
@@ -70,15 +83,30 @@ pub async fn set_mini_player_window(app_handle: AppHandle, open: bool) -> Result
     .transparent(true)
     .always_on_top(true)
     .shadow(false)
-    .visible(true);
+    // 先不显示：window-state 插件会在建窗回调里按磁盘记录恢复尺寸，等下面校准
+    // 完再 show，避免窗口以旧尺寸闪一帧
+    .visible(false);
 
     if let Some((x, y)) = initial_position(&app_handle) {
         builder = builder.position(x, y);
     }
 
-    builder
+    let window = builder
         .build()
         .map_err(|e| format!("create mini player window: {}", e))?;
+
+    // 插件恢复的尺寸可能是旧版本常量留下的记录（宽度/高度都对不上，前端按新
+    // 常量排版就会和窗口错位）。插件的恢复在 window_created 回调里同步执行，
+    // 早于这里排队的消息，所以这一句能稳稳覆盖它；位置不碰，留给插件恢复。
+    window
+        .set_size(LogicalSize::new(WINDOW_WIDTH, height))
+        .map_err(|e| format!("size mini player window: {}", e))?;
+    window
+        .show()
+        .map_err(|e| format!("show mini player window: {}", e))?;
+    window
+        .set_focus()
+        .map_err(|e| format!("focus mini player window: {}", e))?;
 
     Ok(())
 }

@@ -5,7 +5,13 @@ import { STORAGE_KEY_MINI_PLAYER_EXPANDED } from "@/constants";
 /** 收起时先让大图淡出，再缩窗；与 MiniPlayer.css 里大图的过渡时长一致 */
 const COLLAPSE_ANIMATION_MS = 140;
 
-function readStoredExpanded(): boolean {
+/**
+ * 读上次的封面展开态。
+ *
+ * 主窗进入迷你模式时也要读它（建窗要按目标尺寸直接建出来），所以导出。
+ * 两个窗口同源，localStorage 是共享的。
+ */
+export function readStoredMiniPlayerExpanded(): boolean {
   try {
     return localStorage.getItem(STORAGE_KEY_MINI_PLAYER_EXPANDED) === "true";
   } catch {
@@ -26,7 +32,7 @@ function delay(ms: number): Promise<void> {
  * 但内容只有一条迷你条」的错位。两个来源都记住，挂载时再对齐一次。
  */
 export function useMiniPlayerWindowLayout() {
-  const isCoverExpanded = ref(readStoredExpanded());
+  const isCoverExpanded = ref(readStoredMiniPlayerExpanded());
 
   async function setCoverExpanded(expanded: boolean) {
     if (isCoverExpanded.value === expanded) return;
