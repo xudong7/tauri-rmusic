@@ -2,12 +2,12 @@ import { onUnmounted, watch, type Ref } from "vue";
 import { emit, listen, type Event, type UnlistenFn } from "@tauri-apps/api/event";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
-import { useViewStore } from "@/stores/viewStore";
 import { useLyricsOverlay } from "@/composables/useLyricsOverlay";
 import { revealMainWindow, setMiniPlayerWindow } from "@/api/commands/system";
-import type { PlaybackPhase, PlayMode } from "@/types/model";
+import type { PlaybackPhase, PlaybackQueueItem, PlayMode } from "@/types/model";
 
 export const MINI_PLAYER_STATE_EVENT = "mini-player-state";
+export const MINI_PLAYER_QUEUE_EVENT = "mini-player-queue";
 export const MINI_PLAYER_READY_EVENT = "mini-player-ready";
 export const MINI_PLAYER_ACTION_EVENT = "mini-player-action";
 export const MINI_PLAYER_CLOSED_EVENT = "mini-player-closed";
@@ -40,6 +40,28 @@ export interface MiniPlayerStatePayload {
   positionMs: number | null;
   playMode: PlayMode;
   isLyricsOverlayOpen: boolean;
+  /** 当前曲目在队列里的下标；不在队列中为 -1。队列列表本身走 QUEUE_EVENT。 */
+  queueIndex: number;
+}
+
+/**
+ * 队列行。不带 isCurrent：那一项每次切歌都变，带上的话整份队列（可能上千条）
+ * 就得跟着重推；当前下标走 STATE_EVENT 的 queueIndex，便宜得多。
+ */
+export interface MiniPlayerQueueItem {
+  key: string;
+  title: string;
+  artist: string;
+  coverUrl: string;
+  coverFileName: string;
+  disabled?: boolean;
+}
+
+export interface MiniPlayerQueuePayload {
+  title: string;
+  items: MiniPlayerQueueItem[];
+  /** 本地封面目录：队列里的本地曲目要在 mini 窗自己解析封面 */
+  defaultDirectory: string | null;
 }
 
 export type MiniPlayerActionPayload =
@@ -50,15 +72,16 @@ export type MiniPlayerActionPayload =
   | { action: "toggle-play-mode" }
   | { action: "toggle-lyrics" }
   | { action: "restore-main" }
-  | { action: "open-queue" };
+  | { action: "play-queue-index"; index: number }
+  | { action: "clear-queue" };
 
 /**
  * 主窗 → 迷你播放器的桥。
  *
- * 只推低频状态：曲目身份、播放/暂停、播放模式、歌词开关。进度不走主窗推送
- * ——主窗一旦被隐藏，它的播放时钟会停在 `document.hidden` 的守卫上——由
- * mini 窗自己轮询 get_playback_state + 本地时钟推进。positionMs 只在
- * 「mini 窗就绪 / 切歌」这类低频时机随快照播种一次。
+ * 只推低频状态：曲目身份、播放/暂停、播放模式、歌词开关、当前队列下标。
+ * 进度不走主窗推送——主窗一旦被隐藏，它的播放时钟会停在 `document.hidden`
+ * 的守卫上——由 mini 窗自己轮询 get_playback_state + 本地时钟推进。
+ * positionMs 只在「mini 窗就绪 / 切歌」这类低频时机随快照播种一次。
  *
  * mini 窗的按钮不做任何实际动作，只把 `mini-player-action` 回抛到主窗：
  * 队列、歌单、本地曲库都是主窗独占的状态，动作必须在那边执行。
@@ -66,7 +89,6 @@ export type MiniPlayerActionPayload =
 export function useMiniPlayerBridge(isActive: Ref<boolean>) {
   const playerStore = usePlayerStore();
   const localStore = useLocalMusicStore();
-  const viewStore = useViewStore();
   const { isLyricsOverlayOpen, toggleLyricsOverlay } = useLyricsOverlay();
 
   function currentTrack(): MiniPlayerTrackPayload | null {
@@ -82,6 +104,10 @@ export function useMiniPlayerBridge(isActive: Ref<boolean>) {
     };
   }
 
+  function currentQueueIndex(): number {
+    return playerStore.playbackQueueItems.findIndex((item) => item.isCurrent);
+  }
+
   function snapshot(includePosition: boolean): MiniPlayerStatePayload {
     return {
       track: currentTrack(),
@@ -91,12 +117,42 @@ export function useMiniPlayerBridge(isActive: Ref<boolean>) {
       positionMs: includePosition ? playerStore.currentPlayTime : null,
       playMode: playerStore.playMode,
       isLyricsOverlayOpen: isLyricsOverlayOpen.value,
+      queueIndex: currentQueueIndex(),
     };
   }
 
   function sendState(includePosition = false) {
     if (!isActive.value) return;
     void emit(MINI_PLAYER_STATE_EVENT, snapshot(includePosition));
+  }
+
+  function toQueueItem(item: PlaybackQueueItem): MiniPlayerQueueItem {
+    return {
+      key: item.key,
+      title: item.title,
+      artist: item.artist,
+      coverUrl: item.coverUrl ?? "",
+      coverFileName: item.coverFileName ?? "",
+      disabled: item.disabled,
+    };
+  }
+
+  /**
+   * 整份队列只在「列表本身变了」时推：对比序列化结果，挡掉切歌带来的
+   * isCurrent 抖动（那由 queueIndex 承担）以及其它无关重算。
+   */
+  let lastQueueJson = "";
+  function sendQueue() {
+    if (!isActive.value) return;
+    const payload: MiniPlayerQueuePayload = {
+      title: playerStore.playbackQueueTitle,
+      items: playerStore.playbackQueueItems.map(toQueueItem),
+      defaultDirectory: localStore.getDefaultDirectory(),
+    };
+    const json = JSON.stringify(payload);
+    if (json === lastQueueJson) return;
+    lastQueueJson = json;
+    void emit(MINI_PLAYER_QUEUE_EVENT, payload);
   }
 
   function handleAction(event: Event<MiniPlayerActionPayload>) {
@@ -125,13 +181,11 @@ export function useMiniPlayerBridge(isActive: Ref<boolean>) {
         void revealMainWindow();
         void setMiniPlayerWindow({ open: false });
         break;
-      case "open-queue":
-        // 队列面板长在主窗上，且主窗会盖在迷你条下面；点队列就退出迷你模式，
-        // 否则迷你条会一直悬浮在队列面板上方挡视线。
-        viewStore.exitImmersive();
-        viewStore.showPlaybackQueue = true;
-        void revealMainWindow();
-        void setMiniPlayerWindow({ open: false });
+      case "play-queue-index":
+        void playerStore.playQueueItem(payload.index);
+        break;
+      case "clear-queue":
+        playerStore.clearQueue();
         break;
     }
   }
@@ -141,8 +195,13 @@ export function useMiniPlayerBridge(isActive: Ref<boolean>) {
   async function start() {
     stop();
     try {
-      // 就绪握手：mini 窗刚建好/重挂载，补发全量快照（含进度播种）
-      unlisteners.push(await listen(MINI_PLAYER_READY_EVENT, () => sendState(true)));
+      // 就绪握手：mini 窗刚建好/重挂载，补发全量快照（含进度播种）与队列
+      unlisteners.push(
+        await listen(MINI_PLAYER_READY_EVENT, () => {
+          sendState(true);
+          sendQueue();
+        })
+      );
       unlisteners.push(
         await listen<MiniPlayerActionPayload>(MINI_PLAYER_ACTION_EVENT, handleAction)
       );
@@ -175,7 +234,12 @@ export function useMiniPlayerBridge(isActive: Ref<boolean>) {
     }
   );
 
+  watch(
+    () => [playerStore.playbackQueueItems, playerStore.playbackQueueTitle],
+    () => sendQueue()
+  );
+
   onUnmounted(stop);
 
-  return { start, stop, sendState };
+  return { start, stop, sendState, sendQueue };
 }

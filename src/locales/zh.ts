@@ -208,6 +208,7 @@ export default {
   miniPlayer: {
     enter: "迷你播放器",
     empty: "未在播放",
+    queueCount: "共 {count} 首歌曲",
     expandCover: "展开封面大图",
     collapseCover: "收起封面大图",
     lyrics: "桌面歌词",

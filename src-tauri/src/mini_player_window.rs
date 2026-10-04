@@ -16,7 +16,7 @@ use tauri::{AppHandle, LogicalPosition, LogicalSize, Manager, WebviewUrl, Webvie
 pub(crate) const MINI_PLAYER_WINDOW_LABEL: &str = "mini-player";
 
 /// 窗口比迷你条本体四周各多 8px：给 CSS 投影和圆角留出透明边距。
-/// 宽度两种状态共用——改宽度等于改文字的排版基线，两边都得动。
+/// 宽度所有状态共用——改宽度等于改文字的排版基线，两边都得动。
 /// 340 是「播放控制不显得孤零零挂在左边」的上限：再宽，控制区与右侧图标之间
 /// 就会空出一大块。
 const WINDOW_WIDTH: f64 = 340.0;
@@ -24,18 +24,39 @@ const WINDOW_WIDTH: f64 = 340.0;
 const WINDOW_HEIGHT: f64 = 76.0;
 /// 展开封面大图：8 + 324(1:1 大图，宽 = 340 - 两侧各 8) + 60(迷你条) + 8。
 /// 大图与迷你条无缝拼接（没有间隙），所以是「上下边距 + 大图 + 迷你条」。
-const WINDOW_EXPANDED_HEIGHT: f64 = 400.0;
+const WINDOW_COVER_HEIGHT: f64 = 400.0;
+/// 展开播放队列：8 + 400(队列面板) + 60(迷你条) + 8
+const WINDOW_QUEUE_HEIGHT: f64 = 476.0;
 const SCREEN_MARGIN: f64 = 32.0;
+
+/// 迷你条上方展开的面板。尺寸由面板类型决定，前端只报类型。
+#[derive(Clone, Copy, Debug, PartialEq, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MiniPlayerPanel {
+    None,
+    Cover,
+    Queue,
+}
+
+impl MiniPlayerPanel {
+    fn height(self) -> f64 {
+        match self {
+            Self::None => WINDOW_HEIGHT,
+            Self::Cover => WINDOW_COVER_HEIGHT,
+            Self::Queue => WINDOW_QUEUE_HEIGHT,
+        }
+    }
+}
 
 /// 打开或关闭迷你播放器窗。命令幂等：重复打开只 show，不存在时关闭是空操作。
 ///
-/// `expanded` 只在校验建窗尺寸时用：前端从 localStorage 读出上次的封面展开态，
-/// 直接按目标尺寸建窗，避免「先按收起态建出来、再撑开」闪一下。
+/// `panel` 只在建窗时用：前端从 localStorage 读出上次展开的面板，直接按目标
+/// 尺寸建窗，避免「先按收起态建出来、再撑开」闪一下。
 #[tauri::command]
 pub async fn set_mini_player_window(
     app_handle: AppHandle,
     open: bool,
-    expanded: Option<bool>,
+    panel: Option<MiniPlayerPanel>,
 ) -> Result<(), String> {
     if let Some(window) = app_handle.get_webview_window(MINI_PLAYER_WINDOW_LABEL) {
         if open {
@@ -62,11 +83,7 @@ pub async fn set_mini_player_window(
         return Ok(());
     }
 
-    let height = if expanded.unwrap_or(false) {
-        WINDOW_EXPANDED_HEIGHT
-    } else {
-        WINDOW_HEIGHT
-    };
+    let height = panel.unwrap_or(MiniPlayerPanel::None).height();
 
     let mut builder = WebviewWindowBuilder::new(
         &app_handle,
@@ -111,14 +128,17 @@ pub async fn set_mini_player_window(
     Ok(())
 }
 
-/// 展开/收起封面大图。
+/// 切换迷你条上方展开的面板（无 / 封面大图 / 播放队列）。
 ///
 /// 只 resize 会让窗口向屏幕下方长（以左上角为锚），默认就停在屏幕右下角的
 /// 迷你条会直接跑出可视区，所以这里把底边钉住。两件事走同一个命令而不是两次
 /// 前端窗口 API 调用：尺寸与移位要在同一轮事件循环里连续下发，否则窗口会先
 /// 向下长、再跳回来，肉眼能看到抖一下。
 #[tauri::command]
-pub async fn set_mini_player_expanded(app_handle: AppHandle, expanded: bool) -> Result<(), String> {
+pub async fn set_mini_player_panel(
+    app_handle: AppHandle,
+    panel: MiniPlayerPanel,
+) -> Result<(), String> {
     let Some(window) = app_handle.get_webview_window(MINI_PLAYER_WINDOW_LABEL) else {
         return Err("mini player window not found".to_string());
     };
@@ -150,7 +170,7 @@ pub async fn set_mini_player_expanded(app_handle: AppHandle, expanded: bool) -> 
         })
         .unwrap_or(f64::INFINITY);
 
-    let (height, y) = target_vertical(position.y, size.height, expanded, room_above);
+    let (height, y) = target_vertical(position.y, size.height, panel.height(), room_above);
     // 尺寸已经对了就什么都不做：挂载时同步、重复点击都会走到这里
     if (size.height - height).abs() < 0.5 {
         return Ok(());
@@ -182,14 +202,9 @@ pub async fn set_mini_player_expanded(app_handle: AppHandle, expanded: bool) -> 
 fn target_vertical(
     current_y: f64,
     current_height: f64,
-    expanded: bool,
+    height: f64,
     room_above: f64,
 ) -> (f64, f64) {
-    let height = if expanded {
-        WINDOW_EXPANDED_HEIGHT
-    } else {
-        WINDOW_HEIGHT
-    };
     let delta = height - current_height;
     if delta > 0.0 && delta > room_above {
         return (height, current_y);
@@ -219,29 +234,43 @@ mod tests {
     #[test]
     fn expanding_keeps_the_bottom_edge_anchored() {
         // 屏幕底部附近的窗口：展开时底边必须留在原处，否则会掉出可视区
-        let (expanded_height, expanded_y) =
-            target_vertical(800.0, WINDOW_HEIGHT, true, f64::INFINITY);
-        assert_eq!(expanded_height, WINDOW_EXPANDED_HEIGHT);
-        assert_eq!(expanded_y + expanded_height, 800.0 + WINDOW_HEIGHT);
+        let expanded_height = MiniPlayerPanel::Cover.height();
+        let (height, expanded_y) =
+            target_vertical(800.0, WINDOW_HEIGHT, expanded_height, f64::INFINITY);
+        assert_eq!(height, expanded_height);
+        assert_eq!(expanded_y + height, 800.0 + WINDOW_HEIGHT);
 
         // 收起是展开的逆操作：回到原来的 y 与高度
         let (collapsed_height, collapsed_y) =
-            target_vertical(expanded_y, expanded_height, false, f64::INFINITY);
+            target_vertical(expanded_y, height, WINDOW_HEIGHT, f64::INFINITY);
         assert_eq!(collapsed_height, WINDOW_HEIGHT);
         assert_eq!(collapsed_y, 800.0);
     }
 
     #[test]
     fn expanding_flips_downwards_when_there_is_no_room_above() {
-        // 贴屏幕顶部：向上展开会让大图跑到屏幕外，改为顶边不动、向下展开
-        let (height, y) = target_vertical(0.0, WINDOW_HEIGHT, true, 0.0);
-        assert_eq!(height, WINDOW_EXPANDED_HEIGHT);
+        let target = MiniPlayerPanel::Queue.height();
+
+        // 贴屏幕顶部：向上展开会让面板跑到屏幕外，改为顶边不动、向下展开
+        let (height, y) = target_vertical(0.0, WINDOW_HEIGHT, target, 0.0);
+        assert_eq!(height, target);
         assert_eq!(y, 0.0);
 
         // 上方空间刚好够（等于增量）时仍走底边锚定
-        let delta = WINDOW_EXPANDED_HEIGHT - WINDOW_HEIGHT;
-        let (_, y) = target_vertical(400.0, WINDOW_HEIGHT, true, delta);
+        let delta = target - WINDOW_HEIGHT;
+        let (_, y) = target_vertical(400.0, WINDOW_HEIGHT, target, delta);
         assert_eq!(y, 400.0 - delta);
+    }
+
+    #[test]
+    fn panels_have_distinct_heights() {
+        // 三个面板高度必须区分开，否则前端切换面板时窗口不动，看起来像没反应
+        let none = MiniPlayerPanel::None.height();
+        let cover = MiniPlayerPanel::Cover.height();
+        let queue = MiniPlayerPanel::Queue.height();
+        assert_eq!(none, WINDOW_HEIGHT);
+        assert!(cover > none, "封面面板要比收起态高");
+        assert!(queue > cover, "队列面板要比封面面板高");
     }
 
     /// 动态建的窗口不会自动获得能力（capability）：`default.json` 的 windows

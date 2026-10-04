@@ -1,16 +1,19 @@
-import { onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { emit, listen, type Event, type UnlistenFn } from "@tauri-apps/api/event";
 import { getPlaybackState } from "@/api/commands/music";
 import { loadLocalCover, loadOnlineCover } from "@/utils/coverUtils";
 import {
   MINI_PLAYER_ACTION_EVENT,
+  MINI_PLAYER_QUEUE_EVENT,
   MINI_PLAYER_READY_EVENT,
   MINI_PLAYER_STATE_EVENT,
   type MiniPlayerActionPayload,
+  type MiniPlayerQueueItem,
+  type MiniPlayerQueuePayload,
   type MiniPlayerStatePayload,
   type MiniPlayerTrackPayload,
 } from "@/composables/useMiniPlayerBridge";
-import { PlayMode, type PlaybackPhase } from "@/types/model";
+import { PlayMode, type PlaybackPhase, type PlaybackQueueItem } from "@/types/model";
 
 /** 与后端对表间隔：行内平滑由本地时钟补，轮询只负责纠偏（同桌面歌词） */
 const POSITION_POLL_MS = 1500;
@@ -34,8 +37,26 @@ export function useMiniPlayerPlayback() {
   const playMode = ref<PlayMode>(PlayMode.SEQUENTIAL);
   const isLyricsOverlayOpen = ref(false);
 
+  const queueTitle = ref("");
+  const queueItems = ref<MiniPlayerQueueItem[]>([]);
+  const queueDefaultDirectory = ref<string | null>(null);
+  const queueIndex = ref(-1);
+
+  /**
+   * 队列行：把主窗推来的队列补上 isCurrent 与 sourceIndex，交给主窗同款
+   * QueueRow 渲染。当前下标随状态快照更新，队列列表本身只在列表变化时重推。
+   */
+  const queueRows = computed<PlaybackQueueItem[]>(() =>
+    queueItems.value.map((item, index) => ({
+      ...item,
+      sourceIndex: index,
+      isCurrent: index === queueIndex.value,
+    }))
+  );
+
   let tickTimer: number | null = null;
   let unlistenState: UnlistenFn | null = null;
+  let unlistenQueue: UnlistenFn | null = null;
   let lastPollAt = 0;
   let anchorTimestamp = 0;
   let coverRequestId = 0;
@@ -82,6 +103,7 @@ export function useMiniPlayerPlayback() {
     durationMs.value = payload.durationMs;
     playMode.value = payload.playMode;
     isLyricsOverlayOpen.value = payload.isLyricsOverlayOpen;
+    queueIndex.value = payload.queueIndex;
     // position 为 null = 别动本地时钟：主窗隐藏后它推来的进度是冻结的旧值，
     // 拿来锚定会让进度条每次点击都跳回去
     if (payload.positionMs !== null) anchorTo(payload.positionMs);
@@ -149,8 +171,12 @@ export function useMiniPlayerPlayback() {
     sendAction({ action: "restore-main" });
   }
 
-  function openQueue() {
-    sendAction({ action: "open-queue" });
+  function playQueueIndex(index: number) {
+    sendAction({ action: "play-queue-index", index });
+  }
+
+  function clearQueue() {
+    sendAction({ action: "clear-queue" });
   }
 
   function seekTo(targetMs: number) {
@@ -164,6 +190,14 @@ export function useMiniPlayerPlayback() {
       unlistenState = await listen<MiniPlayerStatePayload>(
         MINI_PLAYER_STATE_EVENT,
         (event: Event<MiniPlayerStatePayload>) => applySnapshot(event.payload)
+      );
+      unlistenQueue = await listen<MiniPlayerQueuePayload>(
+        MINI_PLAYER_QUEUE_EVENT,
+        (event: Event<MiniPlayerQueuePayload>) => {
+          queueTitle.value = event.payload.title;
+          queueItems.value = event.payload.items;
+          queueDefaultDirectory.value = event.payload.defaultDirectory;
+        }
       );
     } catch (error) {
       console.warn("[迷你播放器] 监听状态失败:", error);
@@ -182,6 +216,8 @@ export function useMiniPlayerPlayback() {
     }
     unlistenState?.();
     unlistenState = null;
+    unlistenQueue?.();
+    unlistenQueue = null;
   });
 
   return {
@@ -193,13 +229,17 @@ export function useMiniPlayerPlayback() {
     positionMs,
     playMode,
     isLyricsOverlayOpen,
+    queueTitle,
+    queueRows,
+    queueDefaultDirectory,
     togglePlay,
     previous,
     next,
     togglePlayMode,
     toggleLyrics,
     restoreMain,
-    openQueue,
+    playQueueIndex,
+    clearQueue,
     seekTo,
   };
 }

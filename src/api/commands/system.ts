@@ -1,4 +1,5 @@
 import type { MediaMetadataUpdate, TrayLabels } from "../types";
+import type { MiniPlayerPanel } from "@/types/model";
 import { invokeCommand } from "../client";
 
 export async function quitApp(): Promise<void> {
@@ -23,21 +24,23 @@ export async function setLyricsWindow(args: { open: boolean }): Promise<void> {
 
 /**
  * 打开/关闭迷你播放器窗。后端幂等：已存在则显示/关闭，不存在且 open=false 时为 no-op。
- * `expanded` 只在建窗时生效（按上次的封面展开态直接定尺寸）。
+ * `panel` 只在建窗时生效（按上次展开的面板直接定尺寸）。
  */
 export async function setMiniPlayerWindow(args: {
   open: boolean;
-  expanded?: boolean;
+  panel?: MiniPlayerPanel;
 }): Promise<void> {
   await invokeCommand("set_mini_player_window", args);
 }
 
 /**
- * 展开/收起迷你播放器的封面大图。后端按「底边不动」改窗口尺寸与位置，
- * 尺寸已经正确时是空操作（挂载时同步用）。
+ * 切换迷你条上方展开的面板（无 / 封面大图 / 播放队列）。后端按「底边不动」
+ * 改窗口尺寸与位置，尺寸已经正确时是空操作（挂载时同步用）。
  */
-export async function setMiniPlayerExpanded(args: { expanded: boolean }): Promise<void> {
-  await invokeCommand("set_mini_player_expanded", args);
+export async function setMiniPlayerPanel(args: {
+  panel: MiniPlayerPanel;
+}): Promise<void> {
+  await invokeCommand("set_mini_player_panel", args);
 }
 
 /** 把当前曲目与播放状态推给系统媒体控制（macOS Now Playing / Windows SMTC / MPRIS） */

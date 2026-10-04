@@ -9,6 +9,7 @@ import SkipPreviousIcon from "@/components/base/icons/SkipPreviousIcon.vue";
 import SkipNextIcon from "@/components/base/icons/SkipNextIcon.vue";
 import QueueIcon from "@/components/base/icons/QueueIcon.vue";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
+import MiniPlayerQueue from "./MiniPlayerQueue.vue";
 import { STORAGE_KEY_THEME } from "@/constants";
 import { playModeIcon, playModeLabelKey } from "@/utils/playModeUtils";
 import { useMiniPlayerPlayback } from "@/composables/useMiniPlayerPlayback";
@@ -26,21 +27,25 @@ const {
   positionMs,
   playMode,
   isLyricsOverlayOpen,
+  queueRows,
+  queueDefaultDirectory,
   togglePlay,
   previous,
   next,
   togglePlayMode,
   toggleLyrics,
   restoreMain,
-  openQueue,
+  playQueueIndex,
+  clearQueue,
   seekTo,
 } = useMiniPlayerPlayback();
 
-const { isCoverExpanded, toggleCoverExpanded, syncWindowSize } =
-  useMiniPlayerWindowLayout();
+const { activePanel, togglePanel, syncWindowSize } = useMiniPlayerWindowLayout();
 
 const isLoading = computed(() => phase.value !== "idle");
 const hasTrack = computed(() => track.value !== null);
+const isCoverExpanded = computed(() => activePanel.value === "cover");
+const isQueueOpen = computed(() => activePanel.value === "queue");
 const coverActionTitle = computed(() =>
   isCoverExpanded.value ? t("miniPlayer.collapseCover") : t("miniPlayer.expandCover")
 );
@@ -135,12 +140,12 @@ onUnmounted(() => {
 
 <template>
   <div class="mini-player">
-    <!-- 大图与迷你条同属一张卡片：圆角、底色、投影都由 card 统一收口，
+    <!-- 面板与迷你条同属一张卡片：圆角、底色、投影都由 card 统一收口，
          展开时两者之间不会有任何缝隙或色差 -->
     <div class="mini-player__card">
       <!-- 大图只作展示与拖动：展开/收起统一由小封面决定，点大图不该把窗口收掉。
            内层图片必须 pointer-events: none，否则事件落在 <img> 上，拖不动。 -->
-      <div class="mini-player__cover-large" data-tauri-drag-region>
+      <div v-if="isCoverExpanded" class="mini-player__cover-large" data-tauri-drag-region>
         <CoverImage
           :src="coverUrl"
           :alt="track?.title ?? ''"
@@ -149,6 +154,15 @@ onUnmounted(() => {
           :lazy="false"
         />
       </div>
+
+      <MiniPlayerQueue
+        v-else-if="isQueueOpen"
+        :items="queueRows"
+        :is-playing="isPlaying"
+        :default-directory="queueDefaultDirectory"
+        @play="playQueueIndex"
+        @clear="clearQueue"
+      />
 
       <div class="mini-player__bar" data-tauri-drag-region>
         <div class="mini-player__window-controls">
@@ -178,7 +192,7 @@ onUnmounted(() => {
           :title="coverActionTitle"
           :aria-label="coverActionTitle"
           :aria-expanded="isCoverExpanded"
-          @click="toggleCoverExpanded"
+          @click="togglePanel('cover')"
         >
           <CoverImage
             :src="coverUrl"
@@ -261,9 +275,11 @@ onUnmounted(() => {
           <button
             type="button"
             class="mini-player__action"
+            :class="{ 'is-active': isQueueOpen }"
             :title="t('playerBar.queue')"
             :aria-label="t('playerBar.queue')"
-            @click="openQueue"
+            :aria-pressed="isQueueOpen"
+            @click="togglePanel('queue')"
           >
             <el-icon><QueueIcon /></el-icon>
           </button>

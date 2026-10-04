@@ -208,6 +208,7 @@ export default {
   miniPlayer: {
     enter: "Mini player",
     empty: "Not playing",
+    queueCount: "{count} songs",
     expandCover: "Expand cover",
     collapseCover: "Collapse cover",
     lyrics: "Desktop lyrics",
