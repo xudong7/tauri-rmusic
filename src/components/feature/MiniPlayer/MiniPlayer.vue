@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ChatLineSquare, Close, Loading, ScaleToOriginal } from "@element-plus/icons-vue";
 import PlayIcon from "@/components/base/icons/PlayIcon.vue";
 import PauseIcon from "@/components/base/icons/PauseIcon.vue";
+import SkipPreviousIcon from "@/components/base/icons/SkipPreviousIcon.vue";
+import SkipNextIcon from "@/components/base/icons/SkipNextIcon.vue";
 import QueueIcon from "@/components/base/icons/QueueIcon.vue";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import { STORAGE_KEY_THEME } from "@/constants";
 import { playModeIcon, playModeLabelKey } from "@/utils/playModeUtils";
 import { useMiniPlayerPlayback } from "@/composables/useMiniPlayerPlayback";
+import { useMiniPlayerWindowLayout } from "@/composables/useMiniPlayerWindowLayout";
 import { usePlaybackProgressSlider } from "@/composables/usePlaybackProgressSlider";
 
 const { t } = useI18n();
@@ -24,6 +27,8 @@ const {
   playMode,
   isLyricsOverlayOpen,
   togglePlay,
+  previous,
+  next,
   togglePlayMode,
   toggleLyrics,
   restoreMain,
@@ -31,10 +36,37 @@ const {
   seekTo,
 } = useMiniPlayerPlayback();
 
+const { isCoverExpanded, toggleCoverExpanded, syncWindowSize } =
+  useMiniPlayerWindowLayout();
+
+/**
+ * 大图的可见性比窗口尺寸慢半拍：
+ * - 展开：先把窗口撑开，下一帧再淡入，否则大图会被窗口边界裁一刀；
+ * - 收起：先淡出，等动画结束再把窗口缩回去（延迟在后端的尺寸命令之前，
+ *   由 useMiniPlayerWindowLayout 负责）。
+ */
+const isCoverVisible = ref(false);
+watch(
+  isCoverExpanded,
+  (expanded) => {
+    if (!expanded) {
+      isCoverVisible.value = false;
+      return;
+    }
+    requestAnimationFrame(() => {
+      isCoverVisible.value = true;
+    });
+  },
+  { immediate: true }
+);
+
 const isLoading = computed(() => phase.value !== "idle");
 const hasTrack = computed(() => track.value !== null);
-const coverTitle = computed(() =>
-  isPlaying.value ? t("miniPlayer.pause") : t("miniPlayer.play")
+const coverActionTitle = computed(() =>
+  isCoverExpanded.value ? t("miniPlayer.collapseCover") : t("miniPlayer.expandCover")
+);
+const playTitle = computed(() =>
+  isPlaying.value ? t("playerBar.pause") : t("playerBar.play")
 );
 const playModeTooltip = computed(() => t(playModeLabelKey(playMode.value)));
 const modeIcon = computed(() => playModeIcon(playMode.value));
@@ -113,6 +145,8 @@ function handleStorage(event: StorageEvent) {
 onMounted(() => {
   applyTheme();
   window.addEventListener("storage", handleStorage);
+  // window-state 恢复出来的尺寸可能和上一次的展开态不一致，对齐一次
+  void syncWindowSize();
 });
 
 onUnmounted(() => {
@@ -122,6 +156,24 @@ onUnmounted(() => {
 
 <template>
   <div class="mini-player">
+    <button
+      type="button"
+      class="mini-player__cover-large"
+      :class="{ 'is-visible': isCoverVisible }"
+      :title="t('miniPlayer.collapseCover')"
+      :aria-label="t('miniPlayer.collapseCover')"
+      :tabindex="isCoverVisible ? 0 : -1"
+      @click="toggleCoverExpanded"
+    >
+      <CoverImage
+        :src="coverUrl"
+        :alt="track?.title ?? ''"
+        :fluid="true"
+        :radius="10"
+        :lazy="false"
+      />
+    </button>
+
     <div class="mini-player__bar" data-tauri-drag-region>
       <div class="mini-player__window-controls">
         <button
@@ -147,10 +199,10 @@ onUnmounted(() => {
       <button
         type="button"
         class="mini-player__cover"
-        :title="coverTitle"
-        :aria-label="coverTitle"
-        :disabled="!hasTrack"
-        @click="togglePlay"
+        :title="coverActionTitle"
+        :aria-label="coverActionTitle"
+        :aria-expanded="isCoverExpanded"
+        @click="toggleCoverExpanded"
       >
         <CoverImage
           :src="coverUrl"
@@ -159,23 +211,54 @@ onUnmounted(() => {
           :radius="6"
           :lazy="false"
         />
-        <span
-          class="mini-player__cover-overlay"
-          :class="{ 'is-loading': isLoading, 'is-visible': !isPlaying }"
-        >
-          <el-icon v-if="isLoading" class="mini-player__spinner"><Loading /></el-icon>
-          <PauseIcon v-else-if="isPlaying" class="mini-player__cover-icon" />
-          <PlayIcon v-else class="mini-player__cover-icon" />
-        </span>
       </button>
 
       <div class="mini-player__info" data-tauri-drag-region>
-        <p class="mini-player__title" data-tauri-drag-region>
-          {{ track?.title ?? t("miniPlayer.empty") }}
-        </p>
-        <p v-if="track" class="mini-player__artist" data-tauri-drag-region>
-          {{ track.artist }}
-        </p>
+        <div class="mini-player__text" data-tauri-drag-region>
+          <p class="mini-player__title" data-tauri-drag-region>
+            {{ track?.title ?? t("miniPlayer.empty") }}
+          </p>
+          <p v-if="track" class="mini-player__artist" data-tauri-drag-region>
+            {{ track.artist }}
+          </p>
+        </div>
+
+        <!-- 悬停/聚焦歌曲信息时替换为播放控制：默认藏起来，避免迷你条太挤。
+             容器本身仍是拖动区，按钮不是——信息区悬停后也能拖窗。 -->
+        <div class="mini-player__transport" data-tauri-drag-region>
+          <button
+            type="button"
+            class="mini-player__transport-button"
+            :disabled="!hasTrack"
+            :title="t('playerBar.previous')"
+            :aria-label="t('playerBar.previous')"
+            @click="previous"
+          >
+            <el-icon><SkipPreviousIcon /></el-icon>
+          </button>
+          <button
+            type="button"
+            class="mini-player__transport-button mini-player__transport-button--play"
+            :disabled="!hasTrack"
+            :title="playTitle"
+            :aria-label="playTitle"
+            @click="togglePlay"
+          >
+            <el-icon v-if="isLoading" class="mini-player__spinner"><Loading /></el-icon>
+            <PauseIcon v-else-if="isPlaying" />
+            <PlayIcon v-else />
+          </button>
+          <button
+            type="button"
+            class="mini-player__transport-button"
+            :disabled="!hasTrack"
+            :title="t('playerBar.next')"
+            :aria-label="t('playerBar.next')"
+            @click="next"
+          >
+            <el-icon><SkipNextIcon /></el-icon>
+          </button>
+        </div>
       </div>
 
       <div class="mini-player__actions">

@@ -1,8 +1,8 @@
 /* 迷你播放器。
  *
- * 窗口 400×76、四周 8px 透明边距留给这里的投影，条体本体 384×60。
- * 改这两个数必须同步改 src-tauri/src/mini_player_window.rs 的 WINDOW_* 常量，
- * 否则透明边距会被裁掉（阴影缺一块）或在窗口里留下多余的空白。
+ * 窗口 400×76（收起）/ 400×466（展开大图），四周 8px 透明边距留给这里的投影。
+ * 两个尺寸由 src-tauri/src/mini_player_window.rs 的 WINDOW_* 常量定义，改那边
+ * 必须同步这里的绝对定位：迷你条恒贴底 8px，大图恒在顶部 8px（1:1 正方形）。
  *
  * 配色全部走主题变量：迷你窗是独立 webview，但和主窗同源，主题类由
  * main.ts / 组件里的 storage 监听打在 html 上，三套主题都能跟上。
@@ -11,24 +11,59 @@
 .mini-player {
   position: fixed;
   inset: 0;
-  padding: 8px;
-  box-sizing: border-box;
+  overflow: hidden;
   user-select: none;
 }
 
+/* ---------- 封面大图：点一下展开/收起 ---------- */
+
+.mini-player__cover-large {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  left: 8px;
+  /* 宽度 384 → 高度 384；窗口展开后的剩余空间正好是间隙 + 迷你条 */
+  aspect-ratio: 1 / 1;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  cursor: pointer;
+  /* 收起时窗口只有 76px 高，大图仍然渲染但被裁掉；透明 + 不接收事件即可 */
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.985);
+  transform-origin: center bottom;
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+
+.mini-player__cover-large.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+}
+
+/* ---------- 迷你条：恒贴窗口底部 ---------- */
+
 .mini-player__bar {
-  position: relative;
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
-  height: 100%;
+  height: 60px;
   padding: 0 10px;
   box-sizing: border-box;
   border: 1px solid var(--app-surface-border);
   border-radius: 10px;
   background: var(--app-overlay-panel-bg);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.24);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   overflow: hidden;
   color: var(--el-text-color-primary);
 }
@@ -71,7 +106,7 @@
   color: var(--el-color-danger);
 }
 
-/* ---------- 封面：点击播放/暂停 ---------- */
+/* ---------- 小封面：点击展开/收起大图 ---------- */
 
 .mini-player__cover {
   position: relative;
@@ -83,40 +118,16 @@
   border-radius: 6px;
   background: transparent;
   cursor: pointer;
-  overflow: hidden;
+  transition: filter 160ms ease;
 }
 
-.mini-player__cover:disabled {
-  cursor: default;
-}
-
-.mini-player__cover-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.42);
-  color: #fff;
-  opacity: 0;
-  transition: opacity 160ms ease;
-}
-
-/* 悬停显示控件；暂停时常显，让「点封面继续播」这件事有落点 */
-.mini-player__cover:hover .mini-player__cover-overlay,
-.mini-player__cover:focus-visible .mini-player__cover-overlay,
-.mini-player__cover-overlay.is-visible {
-  opacity: 1;
-}
-
-.mini-player__cover-icon {
-  width: 16px;
-  height: 16px;
+.mini-player__cover:hover,
+.mini-player__cover:focus-visible {
+  filter: brightness(1.08);
 }
 
 .mini-player__spinner {
-  font-size: 16px;
+  font-size: 14px;
   animation: mini-player-spin 1s linear infinite;
 }
 
@@ -126,14 +137,22 @@
   }
 }
 
-/* ---------- 曲目信息：整块可拖动 ---------- */
+/* ---------- 曲目信息：悬停时文字换成播放控制 ---------- */
 
 .mini-player__info {
+  position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 1px;
+  justify-content: center;
   min-width: 0;
+}
+
+.mini-player__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  transition: opacity 120ms ease;
 }
 
 .mini-player__title,
@@ -154,6 +173,64 @@
 .mini-player__artist {
   color: var(--el-text-color-secondary);
   font-size: 11px;
+}
+
+.mini-player__transport {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+/* 悬停或键盘聚焦到信息区时，文字让位给播放控制。
+   键盘路径依赖 focus-within：Tab 进入隐藏的按钮时它们会立刻显形。 */
+.mini-player__info:hover .mini-player__text,
+.mini-player__info:focus-within .mini-player__text {
+  opacity: 0;
+}
+
+.mini-player__info:hover .mini-player__transport,
+.mini-player__info:focus-within .mini-player__transport {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mini-player__transport-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1.5px solid var(--el-color-primary);
+  border-radius: var(--app-radius-full);
+  background: transparent;
+  color: var(--el-color-primary);
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    background var(--app-control-transition),
+    opacity var(--app-control-transition);
+}
+
+.mini-player__transport-button:hover:not(:disabled),
+.mini-player__transport-button:focus-visible:not(:disabled) {
+  background: color-mix(in srgb, var(--el-color-primary) 16%, transparent);
+}
+
+.mini-player__transport-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.mini-player__transport-button--play {
+  width: 30px;
+  height: 30px;
+  font-size: 13px;
 }
 
 /* ---------- 右侧：桌面歌词 / 播放模式 / 播放队列 ---------- */
@@ -244,6 +321,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .mini-player__cover-large,
+  .mini-player__text,
+  .mini-player__transport,
   .mini-player__progress-fill {
     transition: none;
   }

@@ -208,8 +208,8 @@ export default {
   miniPlayer: {
     enter: "Mini player",
     empty: "Not playing",
-    play: "Play",
-    pause: "Pause",
+    expandCover: "Expand cover",
+    collapseCover: "Collapse cover",
     lyrics: "Desktop lyrics",
     close: "Exit mini player",
     restoreMain: "Restore main window",

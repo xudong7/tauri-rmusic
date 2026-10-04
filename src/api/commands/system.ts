@@ -26,6 +26,14 @@ export async function setMiniPlayerWindow(args: { open: boolean }): Promise<void
   await invokeCommand("set_mini_player_window", args);
 }
 
+/**
+ * 展开/收起迷你播放器的封面大图。后端按「底边不动」改窗口尺寸与位置，
+ * 尺寸已经正确时是空操作（挂载时同步用）。
+ */
+export async function setMiniPlayerExpanded(args: { expanded: boolean }): Promise<void> {
+  await invokeCommand("set_mini_player_expanded", args);
+}
+
 /** 把当前曲目与播放状态推给系统媒体控制（macOS Now Playing / Windows SMTC / MPRIS） */
 export async function updateMediaMetadata(args: {
   payload: MediaMetadataUpdate;

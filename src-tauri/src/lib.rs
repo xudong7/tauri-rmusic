@@ -5,7 +5,7 @@ use file::{
 };
 use lyrics_window::set_lyrics_window;
 use media_controls::{update_media_metadata, MediaControlsState};
-use mini_player_window::set_mini_player_window;
+use mini_player_window::{set_mini_player_expanded, set_mini_player_window};
 use music::{
     clear_online_audio_cache, get_online_audio_cache_path, get_online_audio_cache_size,
     get_playback_state, play_track, prefetch_netease_song, prepare_playback_request, seek_to,
@@ -214,6 +214,7 @@ pub fn run() {
             get_song_lyric,
             set_lyrics_window,
             set_mini_player_window,
+            set_mini_player_expanded,
             update_media_metadata,
             update_tray_menu,
             update_tray_playback_state,
