@@ -63,5 +63,5 @@ export function useMiniPlayer() {
     else await enterMiniPlayer();
   }
 
-  return { isMiniPlayerOpen, enterMiniPlayer, exitMiniPlayer, toggleMiniPlayer };
+  return { isMiniPlayerOpen, toggleMiniPlayer };
 }

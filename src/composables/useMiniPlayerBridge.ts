@@ -58,7 +58,6 @@ export interface MiniPlayerQueueItem {
 }
 
 export interface MiniPlayerQueuePayload {
-  title: string;
   items: MiniPlayerQueueItem[];
   /** 本地封面目录：队列里的本地曲目要在 mini 窗自己解析封面 */
   defaultDirectory: string | null;
@@ -147,7 +146,6 @@ export function useMiniPlayerBridge(isActive: Ref<boolean>) {
   function sendQueue(force = false) {
     if (!isActive.value) return;
     const payload: MiniPlayerQueuePayload = {
-      title: playerStore.playbackQueueTitle,
       items: playerStore.playbackQueueItems.map(toQueueItem),
       defaultDirectory: localStore.getDefaultDirectory(),
     };
@@ -238,11 +236,11 @@ export function useMiniPlayerBridge(isActive: Ref<boolean>) {
   );
 
   watch(
-    () => [playerStore.playbackQueueItems, playerStore.playbackQueueTitle],
+    () => playerStore.playbackQueueItems,
     () => sendQueue()
   );
 
   onUnmounted(stop);
 
-  return { start, stop, sendState, sendQueue };
+  return { start, stop };
 }

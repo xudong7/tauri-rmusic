@@ -84,5 +84,5 @@ export function useMiniPlayerWindowLayout() {
     }
   }
 
-  return { layout, setLayout, toggleTop, toggleQueue, syncWindowSize };
+  return { layout, toggleTop, toggleQueue, syncWindowSize };
 }

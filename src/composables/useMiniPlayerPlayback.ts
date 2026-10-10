@@ -36,7 +36,6 @@ export function useMiniPlayerPlayback() {
   const positionMs = ref(0);
   const playMode = ref<PlayMode>(PlayMode.SEQUENTIAL);
 
-  const queueTitle = ref("");
   const queueItems = ref<MiniPlayerQueueItem[]>([]);
   const queueDefaultDirectory = ref<string | null>(null);
   const queueIndex = ref(-1);
@@ -193,7 +192,6 @@ export function useMiniPlayerPlayback() {
       unlistenQueue = await listen<MiniPlayerQueuePayload>(
         MINI_PLAYER_QUEUE_EVENT,
         (event: Event<MiniPlayerQueuePayload>) => {
-          queueTitle.value = event.payload.title;
           queueItems.value = event.payload.items;
           queueDefaultDirectory.value = event.payload.defaultDirectory;
         }
@@ -227,7 +225,6 @@ export function useMiniPlayerPlayback() {
     durationMs,
     positionMs,
     playMode,
-    queueTitle,
     queueRows,
     queueDefaultDirectory,
     togglePlay,

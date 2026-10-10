@@ -278,7 +278,7 @@ onUnmounted(() => {
           <!-- 用「词」字当图标：参考图里就是这个字形，比聊天框图标一眼能认 -->
           <button
             type="button"
-            class="mini-player__action mini-player__action--lyrics"
+            class="mini-player__action"
             :class="{ 'is-active': isLyricsOpen }"
             :title="t('miniPlayer.lyrics')"
             :aria-label="t('miniPlayer.lyrics')"
