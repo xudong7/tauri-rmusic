@@ -2,12 +2,13 @@
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Close, Loading, ScaleToOriginal } from "@element-plus/icons-vue";
+import { Close, Loading } from "@element-plus/icons-vue";
 import PlayIcon from "@/components/base/icons/PlayIcon.vue";
 import PauseIcon from "@/components/base/icons/PauseIcon.vue";
 import SkipPreviousIcon from "@/components/base/icons/SkipPreviousIcon.vue";
 import SkipNextIcon from "@/components/base/icons/SkipNextIcon.vue";
 import QueueIcon from "@/components/base/icons/QueueIcon.vue";
+import RestoreWindowIcon from "@/components/base/icons/RestoreWindowIcon.vue";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import MiniPlayerQueue from "./MiniPlayerQueue.vue";
 import MiniPlayerLyrics from "./MiniPlayerLyrics.vue";
@@ -182,6 +183,7 @@ onUnmounted(() => {
         :active-index="lyricActiveIndex"
         :loading="lyricsLoading"
         :unavailable="lyricsUnavailable"
+        :cover-url="coverUrl"
         @seek="seekTo"
       />
 
@@ -203,7 +205,7 @@ onUnmounted(() => {
             :aria-label="t('miniPlayer.restoreMain')"
             @click="restoreMain"
           >
-            <el-icon><ScaleToOriginal /></el-icon>
+            <el-icon><RestoreWindowIcon /></el-icon>
           </button>
         </div>
 

@@ -8,6 +8,8 @@ const props = defineProps<{
   activeIndex: number;
   loading: boolean;
   unavailable: boolean;
+  /** 当前封面：作为歌词面板的淡背景板；没有封面时不铺 */
+  coverUrl: string;
 }>();
 
 const emit = defineEmits<{
@@ -36,6 +38,11 @@ watch(() => props.lines, scrollToActive);
 
 <template>
   <div class="mini-lyrics">
+    <!-- 封面做背景板：模糊 + 洗淡，只留一点颜色和轮廓 -->
+    <div v-if="coverUrl" class="mini-lyrics__backdrop" aria-hidden="true">
+      <img class="mini-lyrics__backdrop-image" :src="coverUrl" alt="" />
+    </div>
+
     <p v-if="loading" class="mini-lyrics__hint">{{ t("lyric.loading") }}</p>
     <p v-else-if="unavailable || lines.length === 0" class="mini-lyrics__hint">
       {{ t("lyric.noLyric") }}

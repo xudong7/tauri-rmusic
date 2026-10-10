@@ -303,6 +303,11 @@ html.dark .search-history-item:focus-within {
   color: var(--el-color-primary);
 }
 
+/* 与窗口控制键的 15px 图标对齐，画中画的描边在小尺寸下才不会糊 */
+.mini-player-button .el-icon {
+  font-size: 16px;
+}
+
 .service-status-dot {
   width: 8px;
   height: 8px;
