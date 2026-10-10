@@ -1,0 +1,366 @@
+/* 迷你播放器。
+ *
+ * 窗口宽度固定 340，高度由面板开合决定（见 src-tauri/src/mini_player_window.rs）：
+ * 收起 76、只开封面 400、只开队列 476、两者同开 800；四周 8px 透明边距留给
+ * 卡片投影。
+ *
+ * 结构：封面（上）/ 迷你条（中）/ 队列（下）同属一张卡片
+ * （.mini-player__card），圆角、底色、投影、裁切都由卡片统一收口。
+ * 面板高度在这里写死（324 / 400），必须与 Rust 的 COVER_PANEL_HEIGHT /
+ * QUEUE_PANEL_HEIGHT 保持一致。
+ *
+ * 配色全部走主题变量：迷你窗是独立 webview，但和主窗同源，主题类由
+ * main.ts / 组件里的 storage 监听打在 html 上，三套主题都能跟上。
+ */
+
+.mini-player {
+  position: fixed;
+  inset: 0;
+  padding: 8px;
+  box-sizing: border-box;
+  overflow: hidden;
+  user-select: none;
+}
+
+.mini-player__card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  background: var(--app-overlay-panel-bg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+/* ---------- 封面大图：纯展示 + 拖动，展开/收起由小封面决定 ---------- */
+
+.mini-player__cover-large {
+  /* 固定高度（= Rust 的 COVER_PANEL_HEIGHT），正好是 1:1 的 324×324。
+     用固定值而不是 flex 分配：封面与队列同时展开时，两者不能互相挤占。
+     可见性完全交给窗口裁剪，没有淡出动画——先淡出会把卡片底色（浅色主题下
+     是白色）露出来，再叠上窗口收缩，底部会闪一块白。 */
+  flex: 0 0 324px;
+  width: 100%;
+  height: 324px;
+  cursor: default;
+}
+
+/* CoverImage 在 fluid 模式下自带 1px 浅色描边（深色卡片上的白边）和 1:1 的
+   固定高度（窗口尺寸不匹配时留缝）。这里让它填满容器，图片靠 object-fit:
+   cover 裁切；pointer-events 也必须关掉，否则事件落在 <img> 上，拖不动窗口。 */
+.mini-player__cover-large :deep(.cover-image) {
+  width: 100% !important;
+  height: 100% !important;
+  aspect-ratio: auto !important;
+  border: 0;
+  pointer-events: none;
+}
+
+/* ---------- 迷你条：恒贴卡片底部 ---------- */
+
+.mini-player__bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 0 60px;
+  gap: 8px;
+  width: 100%;
+  padding: 0 10px;
+  box-sizing: border-box;
+  overflow: hidden;
+  color: var(--el-text-color-primary);
+}
+
+/* ---------- 左上角：隐藏迷你条 / 切回正常界面 ---------- */
+
+.mini-player__window-controls {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 1px;
+}
+
+.mini-player__window-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  transition:
+    color var(--app-control-transition),
+    background var(--app-control-transition);
+}
+
+.mini-player__window-button:hover,
+.mini-player__window-button:focus-visible {
+  color: var(--el-text-color-primary);
+  background: var(--app-icon-button-hover-bg);
+}
+
+.mini-player__window-button--close:hover,
+.mini-player__window-button--close:focus-visible {
+  color: var(--el-color-danger);
+}
+
+/* ---------- 小封面：点击展开/收起大图 ---------- */
+
+.mini-player__cover {
+  position: relative;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  transition: filter 160ms ease;
+}
+
+.mini-player__cover:hover,
+.mini-player__cover:focus-visible {
+  filter: brightness(1.08);
+}
+
+.mini-player__spinner {
+  font-size: 14px;
+  animation: mini-player-spin 1s linear infinite;
+}
+
+@keyframes mini-player-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- 曲目信息：悬停时文字换成播放控制 ---------- */
+
+.mini-player__info {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  /* 撑满迷你条高度：控制区按 inset:0 定位，不撑满的话放大的圆按钮会被
+     迷你条的 overflow:hidden 裁掉上下边 */
+  align-self: stretch;
+  min-width: 0;
+}
+
+.mini-player__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  /* 默认（文字可见）挂进场曲线：移开鼠标、文字回来时走这一段 */
+  transition:
+    opacity var(--app-motion-enter) var(--app-motion-ease-out),
+    transform var(--app-motion-enter) var(--app-motion-ease-out);
+}
+
+.mini-player__title,
+.mini-player__artist {
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  line-height: 1.35;
+}
+
+.mini-player__title {
+  color: var(--el-text-color-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mini-player__artist {
+  color: var(--el-text-color-secondary);
+  font-size: 11px;
+}
+
+.mini-player__transport {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px) scale(0.96);
+  /* 默认（控制隐藏）挂离场曲线 */
+  transition:
+    opacity var(--app-motion-leave) var(--app-motion-ease-in),
+    transform var(--app-motion-leave) var(--app-motion-ease-in);
+}
+
+/* 悬停或键盘聚焦到信息区时，文字让位给播放控制。
+   键盘路径依赖 focus-within：Tab 进入隐藏的按钮时它们会立刻显形。
+
+   两层错开：文字先按离场曲线淡出并上移，控制延迟 30ms 再带缩放落位。
+   时长、曲线、位移都不同，读起来是一次交叉溶解，而不是两块内容同时硬切。 */
+.mini-player__info:hover .mini-player__text,
+.mini-player__info:focus-within .mini-player__text {
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity var(--app-motion-leave) var(--app-motion-ease-in),
+    transform var(--app-motion-leave) var(--app-motion-ease-in);
+}
+
+.mini-player__info:hover .mini-player__transport,
+.mini-player__info:focus-within .mini-player__transport {
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+  transition:
+    opacity var(--app-motion-enter) var(--app-motion-ease-out) 30ms,
+    transform var(--app-motion-enter) var(--app-motion-ease-out) 30ms;
+}
+
+.mini-player__transport-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1.5px solid var(--el-color-primary);
+  border-radius: var(--app-radius-full);
+  background: transparent;
+  color: var(--el-color-primary);
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    background var(--app-control-transition),
+    opacity var(--app-control-transition);
+}
+
+.mini-player__transport-button:hover:not(:disabled),
+.mini-player__transport-button:focus-visible:not(:disabled) {
+  background: color-mix(in srgb, var(--el-color-primary) 16%, transparent);
+}
+
+.mini-player__transport-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.mini-player__transport-button--play {
+  width: 36px;
+  height: 36px;
+  font-size: 16px;
+}
+
+/* ---------- 右侧：桌面歌词 / 播放模式 / 播放队列 ---------- */
+
+.mini-player__actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 2px;
+}
+
+.mini-player__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--app-radius-full);
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  font-size: 15px;
+  cursor: pointer;
+  transition:
+    color var(--app-control-transition),
+    background var(--app-control-transition);
+}
+
+.mini-player__action:hover,
+.mini-player__action:focus-visible {
+  color: var(--el-color-primary);
+  background: var(--app-icon-button-hover-bg);
+}
+
+.mini-player__action.is-active {
+  color: var(--el-color-primary);
+}
+
+/* 歌词按钮用「词」字当图标：字形本身就比线条图标更像歌词 */
+.mini-player__lyrics-glyph {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* ---------- 贴底进度条 ---------- */
+
+.mini-player__progress {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--app-slider-track-bg);
+  cursor: pointer;
+  outline: none;
+}
+
+/* 3px 的条太细，拿指针点不中；伪元素把命中区域向上扩到 12px，
+   视觉高度不变。事件目标是父元素本身，伪元素不单独接收事件。 */
+.mini-player__progress::before {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 12px;
+}
+
+.mini-player__progress:hover,
+.mini-player__progress:focus-visible {
+  height: 4px;
+}
+
+.mini-player__progress:focus-visible {
+  box-shadow: 0 0 0 1px var(--app-focus-ring);
+}
+
+.mini-player__progress.is-disabled {
+  cursor: default;
+}
+
+.mini-player__progress-fill {
+  height: 100%;
+  border-radius: 0 2px 2px 0;
+  background: var(--el-color-primary);
+  /* 本地时钟 250ms 走一格，用等长过渡把台阶磨平 */
+  transition: width 250ms linear;
+}
+
+/* 拖动中关掉过渡：否则填充会滞后于指针 */
+.mini-player__progress.is-dragging .mini-player__progress-fill {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mini-player__text,
+  .mini-player__transport,
+  .mini-player__progress-fill {
+    transition: none;
+  }
+
+  .mini-player__spinner {
+    animation: none;
+  }
+}

@@ -1,0 +1,128 @@
+/* 迷你播放器上方面板里的窗内歌词。
+ *
+ * 与封面大图共用同一块位置，固定高度（= Rust 的 TOP_PANEL_HEIGHT）。
+ * 只有列表滚动，面板本身不滚；配色与沉浸页歌词保持一致（当前行用主色）。
+ */
+
+.mini-lyrics {
+  position: relative;
+  display: flex;
+  flex: 0 0 324px;
+  flex-direction: column;
+  width: 100%;
+  height: 324px;
+  overflow: hidden;
+}
+
+/* ---------- 封面背景板 ---------- */
+
+.mini-lyrics__backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.mini-lyrics__backdrop-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* 放大后再模糊：不然模糊会把边缘晕开，露出四周一圈透明 */
+  transform: scale(1.18);
+  filter: blur(20px);
+  opacity: 0.55;
+}
+
+/* 洗淡：压一层卡片底色，浅色主题下变成很淡的暖白，深色主题下变成很暗的底。
+   文字因此始终有足够对比度，封面只留下一点颜色倾向。 */
+.mini-lyrics__backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--app-overlay-panel-bg);
+  opacity: 0.74;
+}
+
+.mini-lyrics__list {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  /* 上下留出半屏：第一行与最后一行也能滚到正中 */
+  padding: 140px 16px;
+  box-sizing: border-box;
+  scrollbar-width: none;
+  /* 上下边缘淡出：滚动时行从模糊的边沿进出，而不是被硬生生切断 */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 16%,
+    #000 84%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 16%,
+    #000 84%,
+    transparent 100%
+  );
+}
+
+.mini-lyrics__list::-webkit-scrollbar {
+  display: none;
+}
+
+.mini-lyrics__line {
+  margin: 0;
+  padding: 4px 0;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    color var(--app-control-transition),
+    font-size var(--app-control-transition);
+}
+
+.mini-lyrics__line:hover {
+  color: var(--el-text-color-primary);
+}
+
+.mini-lyrics__line.is-active {
+  color: var(--el-color-primary);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.mini-lyrics__text {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.mini-lyrics__translation {
+  display: block;
+  margin-top: 1px;
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.78;
+}
+
+.mini-lyrics__hint {
+  /* 背景板是绝对定位的，同样 position:relative 才能压在它上面 */
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mini-lyrics__line {
+    transition: none;
+  }
+}

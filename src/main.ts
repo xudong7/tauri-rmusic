@@ -46,14 +46,16 @@ import "./assets/styles/themes.css";
 import "./assets/styles/message.css";
 import App from "./App.vue";
 import LyricsOverlay from "./components/feature/LyricsOverlay/LyricsOverlay.vue";
+import MiniPlayer from "./components/feature/MiniPlayer/MiniPlayer.vue";
 import router from "./router";
 import { i18n } from "./i18n";
 import { useThemeStore } from "./stores/themeStore";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { LYRICS_WINDOW_LABEL, MINI_PLAYER_WINDOW_LABEL } from "./constants";
 
-// 桌面歌词是独立的 webview 窗口，加载同一份前端；按窗口 label 决定根组件，
-// 避免在悬浮窗里挂载整个应用（播放器 store、路由、快捷键都不该跑两份）。
-// 浏览器里直接预览（非 Tauri）时退回主窗入口。
+// 桌面歌词与迷你播放器都是独立的 webview 窗口，加载同一份前端；按窗口 label
+// 决定根组件，避免在它们里面挂载整个应用（播放器 store、路由、快捷键都不该
+// 跑两份）。浏览器里直接预览（非 Tauri）时退回主窗入口。
 function currentWindowLabel(): string {
   try {
     return getCurrentWindow().label;
@@ -61,9 +63,14 @@ function currentWindowLabel(): string {
     return "main";
   }
 }
-const isLyricsWindow = currentWindowLabel() === "lyrics";
+const windowLabel = currentWindowLabel();
+const isLyricsWindow = windowLabel === LYRICS_WINDOW_LABEL;
+const isMiniPlayerWindow = windowLabel === MINI_PLAYER_WINDOW_LABEL;
 if (isLyricsWindow) document.documentElement.classList.add("lyrics-window");
-const app = createApp(isLyricsWindow ? LyricsOverlay : App);
+if (isMiniPlayerWindow) document.documentElement.classList.add("mini-player-window");
+const app = createApp(
+  isLyricsWindow ? LyricsOverlay : isMiniPlayerWindow ? MiniPlayer : App
+);
 const pinia = createPinia();
 
 app.use(pinia);
@@ -88,6 +95,6 @@ app.use(i18n);
   ElSwitch,
   ElTooltip,
 ].forEach((component) => app.use(component));
-// 悬浮窗不接路由：它的内容完全由主窗事件驱动
-if (!isLyricsWindow) app.use(router);
+// 悬浮窗与迷你播放器不接路由：它们的内容完全由主窗事件驱动
+if (!isLyricsWindow && !isMiniPlayerWindow) app.use(router);
 app.mount("#app");

@@ -450,7 +450,8 @@ pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
 
     let mut tray_builder = TrayIconBuilder::with_id(TRAY_ID)
         .menu(&menu)
-        // 左键直接显示主界面；菜单只在右键弹出
+        // 左键把应用带到前面；菜单只在右键弹出。
+        // 走 reveal_primary_surface：迷你条开着时只聚焦迷你条，不把主窗调出来
         .show_menu_on_left_click(false)
         .on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click {
@@ -463,7 +464,7 @@ pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
                     return;
                 }
                 let app = tray.app_handle();
-                window_state::reveal_main_window(app);
+                window_state::reveal_primary_surface(app);
             }
         })
         .on_menu_event(|app, event| match event.id.as_ref() {
@@ -477,8 +478,9 @@ pub fn setup_tray(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
                 toggle_playback_from_tray(app, current_playing(app));
             }
             "quit" => {
-                // 退出前先把窗口带回来（应用可能整体被隐藏），让前端完成 flush
-                window_state::reveal_main_window(app);
+                // 退出前先把应用带到前面（可能整体被隐藏），让前端完成 flush；
+                // 迷你条开着时聚焦它，不把主窗调出来（两个界面不共存）
+                window_state::reveal_primary_surface(app);
                 // 前端要先 flush 歌单再退出，所以这里先发事件等它。
                 // 但 emit 只是把消息投递出去，webview 正在重载或已崩溃时它照样
                 // 返回 Ok，而没有任何人处理——必须有定时兜底：窗口期内没退出就

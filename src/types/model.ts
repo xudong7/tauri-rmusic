@@ -159,6 +159,20 @@ export interface PlayStartResult {
 
 export type PlaybackPhase = "idle" | "resolving" | "buffering";
 
+/** 迷你条上方面板的内容：无 / 封面大图 / 窗内歌词（两者共用同一块位置） */
+export type MiniPlayerTopPanel = "none" | "cover" | "lyrics";
+
+/**
+ * 迷你播放器迷你条上下两块面板的开合状态。
+ *
+ * 上方面板长在迷你条上方（封面或歌词，互斥）、队列长在下方，两者可同时
+ * 展开；窗口尺寸由后端按它决定（见 src-tauri/src/mini_player_window.rs）。
+ */
+export interface MiniPlayerLayout {
+  top: MiniPlayerTopPanel;
+  queue: boolean;
+}
+
 export interface PlaybackQueueItem {
   key: string;
   title: string;

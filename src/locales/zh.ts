@@ -205,6 +205,17 @@ export default {
     close: "关闭桌面歌词",
     idle: "未在播放",
   },
+  miniPlayer: {
+    enter: "迷你播放器",
+    empty: "未在播放",
+    queueCount: "共 {count} 首歌曲",
+    expandCover: "展开封面大图",
+    collapseCover: "收起封面大图",
+    lyrics: "歌词",
+    close: "隐藏迷你播放器",
+    restoreMain: "切回主窗口",
+    seek: "点击或拖动跳转进度",
+  },
   tray: {
     play: "播放",
     pause: "暂停",

@@ -205,6 +205,17 @@ export default {
     close: "Close desktop lyrics",
     idle: "Not playing",
   },
+  miniPlayer: {
+    enter: "Mini player",
+    empty: "Not playing",
+    queueCount: "{count} songs",
+    expandCover: "Expand cover",
+    collapseCover: "Collapse cover",
+    lyrics: "Lyrics",
+    close: "Hide mini player",
+    restoreMain: "Switch to main window",
+    seek: "Click or drag to seek",
+  },
   tray: {
     play: "Play",
     pause: "Pause",

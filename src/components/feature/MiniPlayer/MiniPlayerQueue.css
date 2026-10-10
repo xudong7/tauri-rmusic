@@ -1,0 +1,112 @@
+/* 迷你播放器下方的队列面板。
+ *
+ * 固定高度（= Rust 的 QUEUE_PANEL_HEIGHT），内部只有列表滚动，面板本身不滚。
+ * 行复用主窗的 QueueRow，尺寸与配色都跟主窗队列保持一致。
+ */
+
+.mini-queue {
+  display: flex;
+  flex: 0 0 400px;
+  flex-direction: column;
+  width: 100%;
+  height: 400px;
+  overflow: hidden;
+}
+
+.mini-queue__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+  gap: 8px;
+  padding: 10px 8px 6px 12px;
+}
+
+.mini-queue__heading {
+  min-width: 0;
+}
+
+.mini-queue__heading h2,
+.mini-queue__heading p {
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.mini-queue__heading h2 {
+  color: var(--el-text-color-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.mini-queue__heading p {
+  margin-top: 2px;
+  color: var(--el-text-color-secondary);
+  font-size: 11px;
+}
+
+.mini-queue__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--app-radius-full);
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  font-size: 15px;
+  cursor: pointer;
+  transition:
+    color var(--app-control-transition),
+    background var(--app-control-transition);
+}
+
+.mini-queue__clear:hover,
+.mini-queue__clear:focus-visible {
+  color: var(--el-color-danger);
+  background: var(--app-icon-button-hover-bg);
+}
+
+/* 二次确认态：按钮展开成实心红胶囊，明确「再点一次就清空」 */
+.mini-queue__clear.is-confirming {
+  width: auto;
+  padding: 0 10px;
+  background: var(--el-color-danger);
+  color: #fff;
+  font-size: 12px;
+}
+
+.mini-queue__clear.is-confirming:hover,
+.mini-queue__clear.is-confirming:focus-visible {
+  background: var(--el-color-danger);
+  color: #fff;
+}
+
+.mini-queue__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  /* 与主窗列表一致：预留滚动条槽位，避免整列横向跳动 */
+  scrollbar-gutter: stable;
+  outline: none;
+}
+
+/* 内边距放在包裹层而非滚动容器上：虚拟滚动用 scrollTop 算行偏移，
+   容器上的 padding 会让每行实际位置与计算值差一个固定量。 */
+.mini-queue__rows {
+  padding: 2px 6px 8px;
+  box-sizing: border-box;
+}
+
+.mini-queue__empty {
+  margin: 0;
+  padding: 28px 12px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  text-align: center;
+}

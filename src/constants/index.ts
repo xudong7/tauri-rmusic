@@ -17,6 +17,12 @@ export const MAX_DOWNLOAD_SOURCES = 500;
 export const STORAGE_KEY_LIBRARY_SORT = "rmusic-library-sort";
 /** 桌面歌词字号（px） */
 export const STORAGE_KEY_LYRICS_FONT_SIZE = "rmusic-lyrics-font-size";
+/**
+ * 迷你播放器的面板开合状态（{ cover, queue }）。窗口重建（关闭再打开、重启
+ * 应用）后要回到用户上次选的样子，否则 window-state 恢复出来的窗口尺寸会和
+ * 组件状态打架。
+ */
+export const STORAGE_KEY_MINI_PLAYER_LAYOUT = "rmusic-mini-player-layout";
 /** 上次会话：曲目/队列/进度，启动时恢复 */
 export const STORAGE_KEY_PLAYER_SESSION = "rmusic-player-session";
 /** 上次所在路由，启动时恢复 */
@@ -43,6 +49,14 @@ export const AUDIO_FILE_EXTENSIONS = ["mp3", "wav", "ogg", "flac"];
 export const PLAYLIST_SAVE_DEBOUNCE_MS = 300;
 
 /* ---------- 窗口 ---------- */
+/**
+ * 独立窗口的 label，必须与 src-tauri 里建窗/识别用的字符串一致。
+ * 前端在 main.ts 按 label 选择根组件：悬浮窗与迷你播放器都不该挂载整个应用
+ * （播放器 store、路由、快捷键跑两份会互相打架）。
+ */
+export const LYRICS_WINDOW_LABEL = "lyrics";
+export const MINI_PLAYER_WINDOW_LABEL = "mini-player";
+
 /**
  * 窗口可缩到的最小尺寸：宽 1200、高 800。
  *
