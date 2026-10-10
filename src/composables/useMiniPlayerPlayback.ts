@@ -35,7 +35,6 @@ export function useMiniPlayerPlayback() {
   const durationMs = ref(0);
   const positionMs = ref(0);
   const playMode = ref<PlayMode>(PlayMode.SEQUENTIAL);
-  const isLyricsOverlayOpen = ref(false);
 
   const queueTitle = ref("");
   const queueItems = ref<MiniPlayerQueueItem[]>([]);
@@ -102,7 +101,6 @@ export function useMiniPlayerPlayback() {
     phase.value = payload.phase;
     durationMs.value = payload.durationMs;
     playMode.value = payload.playMode;
-    isLyricsOverlayOpen.value = payload.isLyricsOverlayOpen;
     queueIndex.value = payload.queueIndex;
     // position 为 null = 别动本地时钟：主窗隐藏后它推来的进度是冻结的旧值，
     // 拿来锚定会让进度条每次点击都跳回去
@@ -161,10 +159,6 @@ export function useMiniPlayerPlayback() {
 
   function togglePlayMode() {
     sendAction({ action: "toggle-play-mode" });
-  }
-
-  function toggleLyrics() {
-    sendAction({ action: "toggle-lyrics" });
   }
 
   function restoreMain() {
@@ -233,7 +227,6 @@ export function useMiniPlayerPlayback() {
     durationMs,
     positionMs,
     playMode,
-    isLyricsOverlayOpen,
     queueTitle,
     queueRows,
     queueDefaultDirectory,
@@ -241,7 +234,6 @@ export function useMiniPlayerPlayback() {
     previous,
     next,
     togglePlayMode,
-    toggleLyrics,
     restoreMain,
     playQueueIndex,
     clearQueue,

@@ -28,28 +28,39 @@ const WINDOW_WIDTH: f64 = 340.0;
 const WINDOW_PADDING: f64 = 8.0;
 /// 迷你条本体高度
 const BAR_HEIGHT: f64 = 60.0;
-/// 封面面板高度：宽 340 - 两侧各 8 = 324，1:1 正方形
-const COVER_PANEL_HEIGHT: f64 = 324.0;
+/// 迷你条上方那块面板的高度：宽 340 - 两侧各 8 = 324，1:1 正方形。
+/// 封面大图与窗内歌词共用这块位置，高度一致。
+const TOP_PANEL_HEIGHT: f64 = 324.0;
 /// 队列面板高度：约 6 行 + 表头
 const QUEUE_PANEL_HEIGHT: f64 = 400.0;
 /// 首次打开的落点距屏幕上/右边缘的距离
 const SCREEN_MARGIN: f64 = 32.0;
 
-/// 迷你条上下两个面板的开合状态。窗口尺寸完全由它决定。
+/// 迷你条上方面板的内容：无 / 封面大图 / 窗内歌词。两者共用同一块位置，
+/// 所以互斥。
+#[derive(Clone, Copy, Debug, Default, PartialEq, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MiniPlayerTopPanel {
+    #[default]
+    None,
+    Cover,
+    Lyrics,
+}
+
+/// 迷你条上下两块面板的开合状态。窗口尺寸完全由它决定。
 #[derive(Clone, Copy, Debug, Default, PartialEq, serde::Deserialize)]
 pub struct MiniPlayerLayout {
-    /// 封面大图（迷你条上方）
-    pub cover: bool,
+    /// 上方面板：封面大图或窗内歌词（互斥）
+    pub top: MiniPlayerTopPanel,
     /// 播放队列（迷你条下方）
     pub queue: bool,
 }
 
 impl MiniPlayerLayout {
-    fn cover_height(self) -> f64 {
-        if self.cover {
-            COVER_PANEL_HEIGHT
-        } else {
-            0.0
+    fn top_height(self) -> f64 {
+        match self.top {
+            MiniPlayerTopPanel::None => 0.0,
+            MiniPlayerTopPanel::Cover | MiniPlayerTopPanel::Lyrics => TOP_PANEL_HEIGHT,
         }
     }
 
@@ -61,14 +72,14 @@ impl MiniPlayerLayout {
         }
     }
 
-    /// 窗口总高度 = 上下边距 + 封面 + 迷你条 + 队列
+    /// 窗口总高度 = 上下边距 + 上方面板 + 迷你条 + 队列
     fn window_height(self) -> f64 {
-        WINDOW_PADDING * 2.0 + self.cover_height() + BAR_HEIGHT + self.queue_height()
+        WINDOW_PADDING * 2.0 + self.top_height() + BAR_HEIGHT + self.queue_height()
     }
 
     /// 迷你条上沿距窗口顶部的距离。展开/收起时靠它把条钉在屏幕原处。
     fn bar_offset(self) -> f64 {
-        WINDOW_PADDING + self.cover_height()
+        WINDOW_PADDING + self.top_height()
     }
 }
 
@@ -316,15 +327,19 @@ mod tests {
     use super::*;
 
     const NONE: MiniPlayerLayout = MiniPlayerLayout {
-        cover: false,
+        top: MiniPlayerTopPanel::None,
         queue: false,
     };
     const COVER: MiniPlayerLayout = MiniPlayerLayout {
-        cover: true,
+        top: MiniPlayerTopPanel::Cover,
+        queue: false,
+    };
+    const LYRICS: MiniPlayerLayout = MiniPlayerLayout {
+        top: MiniPlayerTopPanel::Lyrics,
         queue: false,
     };
     const QUEUE: MiniPlayerLayout = MiniPlayerLayout {
-        cover: false,
+        top: MiniPlayerTopPanel::None,
         queue: true,
     };
 
@@ -335,10 +350,10 @@ mod tests {
         assert_eq!(height, NONE.window_height() + QUEUE_PANEL_HEIGHT);
         assert_eq!(y, 32.0);
 
-        // 封面向上长：窗口顶整体上移一个封面的高度，条仍不动
+        // 封面向上长：窗口顶整体上移一块面板的高度，条仍不动
         let (height, y) = layout_geometry(NONE, COVER, 400.0, None);
-        assert_eq!(height, NONE.window_height() + COVER_PANEL_HEIGHT);
-        assert_eq!(y + COVER_PANEL_HEIGHT, 400.0);
+        assert_eq!(height, NONE.window_height() + TOP_PANEL_HEIGHT);
+        assert_eq!(y + TOP_PANEL_HEIGHT, 400.0);
     }
 
     #[test]
@@ -355,15 +370,22 @@ mod tests {
     #[test]
     fn both_panels_stack_around_the_bar() {
         let both = MiniPlayerLayout {
-            cover: true,
+            top: MiniPlayerTopPanel::Cover,
             queue: true,
         };
         assert_eq!(
             both.window_height(),
-            WINDOW_PADDING * 2.0 + COVER_PANEL_HEIGHT + BAR_HEIGHT + QUEUE_PANEL_HEIGHT
+            WINDOW_PADDING * 2.0 + TOP_PANEL_HEIGHT + BAR_HEIGHT + QUEUE_PANEL_HEIGHT
         );
-        // 条的上沿在封面之下：封面 + 队列同开时条不会被队列挤走
-        assert_eq!(both.bar_offset(), WINDOW_PADDING + COVER_PANEL_HEIGHT);
+        // 条的上沿在上方面板之下：上下面板同开时条不会被队列挤走
+        assert_eq!(both.bar_offset(), WINDOW_PADDING + TOP_PANEL_HEIGHT);
+    }
+
+    #[test]
+    fn cover_and_lyrics_share_the_same_slot() {
+        // 封面与歌词在同一块位置、同样高度：来回切换时窗口不该变尺寸
+        assert_eq!(COVER.window_height(), LYRICS.window_height());
+        assert_eq!(COVER.bar_offset(), LYRICS.bar_offset());
     }
 
     /// 动态建的窗口不会自动获得能力（capability）：`default.json` 的 windows

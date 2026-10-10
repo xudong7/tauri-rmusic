@@ -211,7 +211,7 @@ export default {
     queueCount: "{count} songs",
     expandCover: "Expand cover",
     collapseCover: "Collapse cover",
-    lyrics: "Desktop lyrics",
+    lyrics: "Lyrics",
     close: "Hide mini player",
     restoreMain: "Switch to main window",
     seek: "Click or drag to seek",

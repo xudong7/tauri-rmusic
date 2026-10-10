@@ -1,0 +1,81 @@
+/* 迷你播放器上方面板里的窗内歌词。
+ *
+ * 与封面大图共用同一块位置，固定高度（= Rust 的 TOP_PANEL_HEIGHT）。
+ * 只有列表滚动，面板本身不滚；配色与沉浸页歌词保持一致（当前行用主色）。
+ */
+
+.mini-lyrics {
+  display: flex;
+  flex: 0 0 324px;
+  flex-direction: column;
+  width: 100%;
+  height: 324px;
+  overflow: hidden;
+}
+
+.mini-lyrics__list {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  /* 上下留出半屏：第一行与最后一行也能滚到正中 */
+  padding: 140px 16px;
+  box-sizing: border-box;
+  scrollbar-width: none;
+}
+
+.mini-lyrics__list::-webkit-scrollbar {
+  display: none;
+}
+
+.mini-lyrics__line {
+  margin: 0;
+  padding: 4px 0;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    color var(--app-control-transition),
+    font-size var(--app-control-transition);
+}
+
+.mini-lyrics__line:hover {
+  color: var(--el-text-color-primary);
+}
+
+.mini-lyrics__line.is-active {
+  color: var(--el-color-primary);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.mini-lyrics__text {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.mini-lyrics__translation {
+  display: block;
+  margin-top: 1px;
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.78;
+}
+
+.mini-lyrics__hint {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mini-lyrics__line {
+    transition: none;
+  }
+}

@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { ChatLineSquare, Close, Loading, ScaleToOriginal } from "@element-plus/icons-vue";
+import { Close, Loading, ScaleToOriginal } from "@element-plus/icons-vue";
 import PlayIcon from "@/components/base/icons/PlayIcon.vue";
 import PauseIcon from "@/components/base/icons/PauseIcon.vue";
 import SkipPreviousIcon from "@/components/base/icons/SkipPreviousIcon.vue";
@@ -10,9 +10,11 @@ import SkipNextIcon from "@/components/base/icons/SkipNextIcon.vue";
 import QueueIcon from "@/components/base/icons/QueueIcon.vue";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import MiniPlayerQueue from "./MiniPlayerQueue.vue";
+import MiniPlayerLyrics from "./MiniPlayerLyrics.vue";
 import { STORAGE_KEY_THEME } from "@/constants";
 import { playModeIcon, playModeLabelKey } from "@/utils/playModeUtils";
 import { useMiniPlayerPlayback } from "@/composables/useMiniPlayerPlayback";
+import { useMiniPlayerLyrics } from "@/composables/useMiniPlayerLyrics";
 import { useMiniPlayerWindowLayout } from "@/composables/useMiniPlayerWindowLayout";
 import { usePlaybackProgressSlider } from "@/composables/usePlaybackProgressSlider";
 
@@ -26,14 +28,12 @@ const {
   durationMs,
   positionMs,
   playMode,
-  isLyricsOverlayOpen,
   queueRows,
   queueDefaultDirectory,
   togglePlay,
   previous,
   next,
   togglePlayMode,
-  toggleLyrics,
   restoreMain,
   playQueueIndex,
   clearQueue,
@@ -41,12 +41,21 @@ const {
   seekTo,
 } = useMiniPlayerPlayback();
 
-const { layout, togglePanel, syncWindowSize } = useMiniPlayerWindowLayout();
+const { layout, toggleTop, toggleQueue, syncWindowSize } = useMiniPlayerWindowLayout();
 
 const isLoading = computed(() => phase.value !== "idle");
 const hasTrack = computed(() => track.value !== null);
-const isCoverExpanded = computed(() => layout.value.cover);
+const isCoverExpanded = computed(() => layout.value.top === "cover");
+const isLyricsOpen = computed(() => layout.value.top === "lyrics");
 const isQueueOpen = computed(() => layout.value.queue);
+
+// 窗内歌词：与封面共用上方面板，只在它打开时加载
+const {
+  lines: lyricLines,
+  loading: lyricsLoading,
+  unavailable: lyricsUnavailable,
+  activeIndex: lyricActiveIndex,
+} = useMiniPlayerLyrics({ track, positionMs, isActive: isLyricsOpen });
 
 // 队列面板一打开就主动索取一次：ready 握手可能因 HMR / 主窗重挂载而错过，
 // 只等主窗推送的话面板会一直空着。immediate 兼顾「上次退出时队列是开着的」。
@@ -166,6 +175,16 @@ onUnmounted(() => {
         />
       </div>
 
+      <!-- 歌词与封面共用迷你条上方这块位置（互斥） -->
+      <MiniPlayerLyrics
+        v-else-if="isLyricsOpen"
+        :lines="lyricLines"
+        :active-index="lyricActiveIndex"
+        :loading="lyricsLoading"
+        :unavailable="lyricsUnavailable"
+        @seek="seekTo"
+      />
+
       <div class="mini-player__bar" data-tauri-drag-region>
         <div class="mini-player__window-controls">
           <button
@@ -194,7 +213,7 @@ onUnmounted(() => {
           :title="coverActionTitle"
           :aria-label="coverActionTitle"
           :aria-expanded="isCoverExpanded"
-          @click="togglePanel('cover')"
+          @click="toggleTop('cover')"
         >
           <CoverImage
             :src="coverUrl"
@@ -254,16 +273,17 @@ onUnmounted(() => {
         </div>
 
         <div class="mini-player__actions">
+          <!-- 用「词」字当图标：参考图里就是这个字形，比聊天框图标一眼能认 -->
           <button
             type="button"
-            class="mini-player__action"
-            :class="{ 'is-active': isLyricsOverlayOpen }"
+            class="mini-player__action mini-player__action--lyrics"
+            :class="{ 'is-active': isLyricsOpen }"
             :title="t('miniPlayer.lyrics')"
             :aria-label="t('miniPlayer.lyrics')"
-            :aria-pressed="isLyricsOverlayOpen"
-            @click="toggleLyrics"
+            :aria-pressed="isLyricsOpen"
+            @click="toggleTop('lyrics')"
           >
-            <el-icon><ChatLineSquare /></el-icon>
+            <span class="mini-player__lyrics-glyph" aria-hidden="true">词</span>
           </button>
           <button
             type="button"
@@ -281,7 +301,7 @@ onUnmounted(() => {
             :title="t('playerBar.queue')"
             :aria-label="t('playerBar.queue')"
             :aria-pressed="isQueueOpen"
-            @click="togglePanel('queue')"
+            @click="toggleQueue"
           >
             <el-icon><QueueIcon /></el-icon>
           </button>

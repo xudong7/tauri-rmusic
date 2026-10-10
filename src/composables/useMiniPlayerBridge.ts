@@ -2,7 +2,6 @@ import { onUnmounted, watch, type Ref } from "vue";
 import { emit, listen, type Event, type UnlistenFn } from "@tauri-apps/api/event";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
-import { useLyricsOverlay } from "@/composables/useLyricsOverlay";
 import { revealMainWindow, setMiniPlayerWindow } from "@/api/commands/system";
 import type { PlaybackPhase, PlaybackQueueItem, PlayMode } from "@/types/model";
 
@@ -20,8 +19,10 @@ export interface MiniPlayerTrackPayload {
   coverUrl: string;
   /** 本地曲目文件名（mini 窗自己调 load_local_cover_path）；在线曲目为空串 */
   coverFileName: string;
-  /** 本地曲库目录，与 coverFileName 搭配解析封面；在线曲目为 null */
+  /** 本地曲库目录，与 coverFileName 搭配解析封面/歌词；在线曲目为 null */
   defaultDirectory: string | null;
+  /** 在线歌曲 id，mini 窗自己拉歌词用；本地曲目为空串 */
+  songId: string;
 }
 
 export interface MiniPlayerStatePayload {
@@ -39,7 +40,6 @@ export interface MiniPlayerStatePayload {
    */
   positionMs: number | null;
   playMode: PlayMode;
-  isLyricsOverlayOpen: boolean;
   /** 当前曲目在队列里的下标；不在队列中为 -1。队列列表本身走 QUEUE_EVENT。 */
   queueIndex: number;
 }
@@ -70,7 +70,6 @@ export type MiniPlayerActionPayload =
   | { action: "previous" }
   | { action: "seek"; positionMs: number }
   | { action: "toggle-play-mode" }
-  | { action: "toggle-lyrics" }
   | { action: "restore-main" }
   | { action: "play-queue-index"; index: number }
   | { action: "clear-queue" }
@@ -90,7 +89,6 @@ export type MiniPlayerActionPayload =
 export function useMiniPlayerBridge(isActive: Ref<boolean>) {
   const playerStore = usePlayerStore();
   const localStore = useLocalMusicStore();
-  const { isLyricsOverlayOpen, toggleLyricsOverlay } = useLyricsOverlay();
 
   function currentTrack(): MiniPlayerTrackPayload | null {
     const info = playerStore.currentTrackInfo;
@@ -102,6 +100,7 @@ export function useMiniPlayerBridge(isActive: Ref<boolean>) {
       coverUrl: info.picUrl,
       coverFileName: localFileName,
       defaultDirectory: localFileName ? localStore.getDefaultDirectory() : null,
+      songId: playerStore.currentOnlineSong?.id ?? "",
     };
   }
 
@@ -117,7 +116,6 @@ export function useMiniPlayerBridge(isActive: Ref<boolean>) {
       durationMs: playerStore.currentTrackDuration,
       positionMs: includePosition ? playerStore.currentPlayTime : null,
       playMode: playerStore.playMode,
-      isLyricsOverlayOpen: isLyricsOverlayOpen.value,
       queueIndex: currentQueueIndex(),
     };
   }
@@ -177,9 +175,6 @@ export function useMiniPlayerBridge(isActive: Ref<boolean>) {
       case "toggle-play-mode":
         playerStore.togglePlayMode();
         break;
-      case "toggle-lyrics":
-        void toggleLyricsOverlay();
-        break;
       case "restore-main":
         // 切回正常界面：先关迷你条，再显示主窗。反过来会有一瞬两个界面同时
         // 可见（迷你条悬浮在主窗上），而两个界面不允许共存。
@@ -234,7 +229,6 @@ export function useMiniPlayerBridge(isActive: Ref<boolean>) {
       playerStore.playbackPhase,
       playerStore.currentTrackDuration,
       playerStore.playMode,
-      isLyricsOverlayOpen.value,
     ],
     (next, prev) => {
       // 只有切歌才播种进度：新曲目从 0 开始，即便主窗隐藏时这个值也是准的

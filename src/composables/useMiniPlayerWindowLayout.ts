@@ -1,9 +1,14 @@
 import { ref } from "vue";
 import { setMiniPlayerLayout } from "@/api/commands/system";
 import { STORAGE_KEY_MINI_PLAYER_LAYOUT } from "@/constants";
-import type { MiniPlayerLayout } from "@/types/model";
+import type { MiniPlayerLayout, MiniPlayerTopPanel } from "@/types/model";
 
-const CLOSED_LAYOUT: MiniPlayerLayout = { cover: false, queue: false };
+const CLOSED_LAYOUT: MiniPlayerLayout = { top: "none", queue: false };
+
+function toTopPanel(value: unknown): MiniPlayerTopPanel {
+  if (value === "cover" || value === "lyrics") return value;
+  return "none";
+}
 
 /**
  * 读上次的面板开合。
@@ -16,7 +21,7 @@ export function readStoredMiniPlayerLayout(): MiniPlayerLayout {
     const raw = localStorage.getItem(STORAGE_KEY_MINI_PLAYER_LAYOUT);
     if (!raw) return { ...CLOSED_LAYOUT };
     const parsed = JSON.parse(raw) as Partial<MiniPlayerLayout>;
-    return { cover: parsed.cover === true, queue: parsed.queue === true };
+    return { top: toTopPanel(parsed.top), queue: parsed.queue === true };
   } catch {
     // 拿不到或解析失败（隐私模式、旧格式）时按收起处理
     return { ...CLOSED_LAYOUT };
@@ -35,7 +40,7 @@ export function useMiniPlayerWindowLayout() {
   const layout = ref<MiniPlayerLayout>(readStoredMiniPlayerLayout());
 
   async function setLayout(next: MiniPlayerLayout) {
-    if (next.cover === layout.value.cover && next.queue === layout.value.queue) {
+    if (next.top === layout.value.top && next.queue === layout.value.queue) {
       return;
     }
     layout.value = next;
@@ -54,9 +59,17 @@ export function useMiniPlayerWindowLayout() {
     }
   }
 
-  /** 点同一个按钮收起，点另一个按钮切换过去；两者可同时展开 */
-  function togglePanel(panel: keyof MiniPlayerLayout) {
-    void setLayout({ ...layout.value, [panel]: !layout.value[panel] });
+  /** 上方面板二选一：点同一个按钮收起，点另一个按钮切换过去 */
+  function toggleTop(panel: Exclude<MiniPlayerTopPanel, "none">) {
+    void setLayout({
+      ...layout.value,
+      top: layout.value.top === panel ? "none" : panel,
+    });
+  }
+
+  /** 队列独立于上方面板，可以同时展开 */
+  function toggleQueue() {
+    void setLayout({ ...layout.value, queue: !layout.value.queue });
   }
 
   /**
@@ -71,5 +84,5 @@ export function useMiniPlayerWindowLayout() {
     }
   }
 
-  return { layout, setLayout, togglePanel, syncWindowSize };
+  return { layout, setLayout, toggleTop, toggleQueue, syncWindowSize };
 }

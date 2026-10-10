@@ -296,6 +296,13 @@
   color: var(--el-color-primary);
 }
 
+/* 歌词按钮用「词」字当图标：字形本身就比线条图标更像歌词 */
+.mini-player__lyrics-glyph {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+}
+
 /* ---------- 贴底进度条 ---------- */
 
 .mini-player__progress {
