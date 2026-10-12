@@ -233,7 +233,7 @@ onBeforeUnmount(() => {
       </template>
       <template #empty>
         <slot name="empty">
-          <el-empty :description="t('onlineMusic.empty')" />
+          <el-empty :description="t('onlineMusic.empty')" :image-size="96" />
         </slot>
       </template>
       <template #actions="{ item }">

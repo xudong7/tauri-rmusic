@@ -774,9 +774,6 @@ watch(
       :scroll-key="listScrollKey"
       @activate="openGroup"
     >
-      <template #loading>
-        <el-skeleton :rows="6" animated />
-      </template>
       <template #empty>
         <el-empty
           v-if="errorMessage"

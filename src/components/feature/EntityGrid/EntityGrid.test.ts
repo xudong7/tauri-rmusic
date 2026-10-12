@@ -43,6 +43,15 @@ describe("EntityGrid", () => {
     expect(wrapper.find(".empty-stub").exists()).toBe(false);
   });
 
+  it("没给 #loading 插槽时用内置卡片骨架，且与真实网格同格", () => {
+    const wrapper = mount(EntityGrid, { props: { items: [], loading: true } });
+    const skeleton = wrapper.find(".entity-grid__items--skeleton");
+    expect(skeleton.exists()).toBe(true);
+    // 与真实卡片共用 .entity-grid__items：列宽与间距一致，加载完不会跳位
+    expect(skeleton.classes()).toContain("entity-grid__items");
+    expect(wrapper.findAll(".entity-grid__skeleton-card")).toHaveLength(10);
+  });
+
   it("emits nearEnd when the container is scrolled to the bottom", async () => {
     const wrapper = mount(EntityGrid, { props: { items: cards(4) } });
     const scroller = wrapper.find(".entity-grid__scroll").element as HTMLElement;

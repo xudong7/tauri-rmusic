@@ -32,7 +32,7 @@
             {{ t("common.retry") }}
           </el-button>
         </el-empty>
-        <el-empty v-else :description="t('onlineMusic.empty')" />
+        <el-empty v-else :description="t('onlineMusic.empty')" :image-size="96" />
       </template>
     </OnlineMusicList>
 
@@ -44,7 +44,6 @@
       @activate="handleCardActivate"
       @nearEnd="onlineStore.loadMoreActiveTab"
     >
-      <template #loading><el-skeleton :rows="5" animated /></template>
       <template #empty>
         <el-empty
           v-if="gridError"
@@ -56,7 +55,7 @@
             {{ t("common.retry") }}
           </el-button>
         </el-empty>
-        <el-empty v-else :description="emptyDescription" />
+        <el-empty v-else :description="emptyDescription" :image-size="96" />
       </template>
       <template #footer>
         <p v-if="showRefineHint" class="online-music-view__refine">

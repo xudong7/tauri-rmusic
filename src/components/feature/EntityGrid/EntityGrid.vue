@@ -5,6 +5,9 @@ import { getScrollPosition, saveScrollPosition } from "@/composables/useScrollMe
 import EntityCard from "./EntityCard.vue";
 import type { EntityCardModel } from "./types";
 
+/** 骨架卡片数量：铺满一两行即可，多了只是浪费节点 */
+const SKELETON_CARDS = 10;
+
 const props = withDefaults(
   defineProps<{
     items: EntityCardModel[];
@@ -59,8 +62,24 @@ watch(
   <div class="entity-grid" :data-render-mode="items.length > 0 ? 'grid' : 'empty'">
     <slot name="before" />
 
-    <div v-if="loading && items.length === 0" class="entity-grid__state">
+    <!-- 加载态：没给 #loading 就用内置卡片骨架。骨架与真实卡片同格同形，
+         加载完成时卡片不会跳位；给了插槽的调用方仍可自备。 -->
+    <div
+      v-if="loading && items.length === 0 && $slots.loading"
+      class="entity-grid__state"
+    >
       <slot name="loading" />
+    </div>
+    <div
+      v-else-if="loading && items.length === 0"
+      class="entity-grid__items entity-grid__items--skeleton"
+      aria-hidden="true"
+    >
+      <div v-for="n in SKELETON_CARDS" :key="n" class="entity-grid__skeleton-card">
+        <div class="entity-grid__skeleton-cover" />
+        <div class="entity-grid__skeleton-line" />
+        <div class="entity-grid__skeleton-line is-short" />
+      </div>
     </div>
     <div v-else-if="items.length === 0" class="entity-grid__state">
       <slot name="empty" />

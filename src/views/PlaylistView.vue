@@ -1,7 +1,7 @@
 <template>
   <PageLayout class="playlist-view">
     <div v-if="!playlist" class="playlist-empty">
-      <el-empty :description="t('playlist.notFound')" />
+      <el-empty :description="t('playlist.notFound')" :image-size="96" />
     </div>
     <template v-else>
       <DetailHero
@@ -94,7 +94,7 @@
       </DetailHero>
 
       <div v-if="resolvedItems.length === 0" class="empty-list playlist-empty-state">
-        <el-empty :description="t('playlist.empty')" />
+        <el-empty :description="t('playlist.empty')" :image-size="96" />
         <div class="playlist-empty-actions">
           <el-button :icon="Folder" @click="router.push('/')">
             {{ t("playlist.browseLibrary") }}
@@ -120,7 +120,7 @@
         @visible-items="scheduleVisibleLocalCovers"
       >
         <template #empty>
-          <el-empty :description="t('messages.noSearchResult')" />
+          <el-empty :description="t('messages.noSearchResult')" :image-size="96" />
         </template>
         <template #actions="{ item }">
           <!-- 文件被删了、而当初加入歌单时记住了来源：给一个重新下载。
