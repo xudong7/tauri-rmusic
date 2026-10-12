@@ -198,6 +198,21 @@ describe("MusicList 的行内跳转", () => {
     expect(wrapper.emitted("play")).toBeUndefined();
   });
 
+  it("多歌手行拆成多个链接，点其中一个进入该歌手分组", async () => {
+    const wrapper = mountMusicList([{ ...file, artist: "Alpha / Beta" }]);
+    await flushPromises();
+
+    const links = wrapper.findAll(".track-row__link");
+    // 两个歌手 + 一个专辑
+    expect(links).toHaveLength(3);
+    expect(links[0].text()).toBe("Alpha");
+    expect(links[1].text()).toBe("Beta");
+
+    await links[1].trigger("click");
+    await flushPromises();
+    expect(wrapper.get(".page-header__title").text()).toBe("Beta");
+  });
+
   it("点专辑名进入该专辑分组", async () => {
     const wrapper = mountMusicList();
     await flushPromises();

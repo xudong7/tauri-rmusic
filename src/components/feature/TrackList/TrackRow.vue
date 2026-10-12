@@ -3,6 +3,7 @@ import { computed } from "vue";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import PlayingBars from "@/components/base/PlayingBars/PlayingBars.vue";
 import PlayIcon from "@/components/base/icons/PlayIcon.vue";
+import { ARTIST_SEPARATOR, splitArtistNames } from "@/utils/songUtils";
 import type { TrackRowModel } from "./types";
 
 const props = withDefaults(
@@ -56,6 +57,9 @@ const emit = defineEmits<{
 const resolvedCoverUrl = computed(() =>
   typeof props.item.coverUrl === "function" ? props.item.coverUrl() : props.item.coverUrl
 );
+
+/** 多歌手串拆开，每个歌手各自成链接；分隔符只是普通文本 */
+const artistParts = computed(() => splitArtistNames(props.item.artist));
 
 function handleRowClick() {
   if (props.selectionMode) {
@@ -133,14 +137,21 @@ function handleActivate() {
           {{ item.title }}
         </div>
         <div class="track-row__meta">
-          <button
-            v-if="artistClickable && item.artist"
-            type="button"
-            class="track-row__link"
-            @click.stop="emit('navigate', 'artist', item.artist, item)"
-          >
-            {{ item.artist }}
-          </button>
+          <template v-if="artistClickable && artistParts.length > 0">
+            <template v-for="(name, index) in artistParts" :key="name + index">
+              <button
+                type="button"
+                class="track-row__link"
+                :title="name"
+                @click.stop="emit('navigate', 'artist', name, item)"
+              >
+                {{ name }}
+              </button>
+              <span v-if="index < artistParts.length - 1" class="track-row__sep">{{
+                ARTIST_SEPARATOR
+              }}</span>
+            </template>
+          </template>
           <template v-else>{{ item.artist }}</template>
         </div>
       </div>
@@ -153,7 +164,7 @@ function handleActivate() {
       <button
         v-if="albumClickable"
         type="button"
-        class="track-row__link"
+        class="track-row__link track-row__link--block"
         @click.stop="emit('navigate', 'album', item.album, item)"
       >
         {{ item.album }}
@@ -336,27 +347,36 @@ function handleActivate() {
 }
 
 /* 行内的歌手 / 专辑名：长得跟正文一样，但可点、可聚焦。
-   省略号规则要写在这里：文字挪进 button 之后，外层那几条 overflow 管不到它。 */
+   歌手是行内元素（一行里可能有好几个），整行由 .track-row__meta 收省略号。 */
 .track-row__link {
-  display: block;
-  max-width: 100%;
   padding: 0;
   border: 0;
   background: transparent;
   color: inherit;
   font: inherit;
   letter-spacing: inherit;
+  cursor: pointer;
+  transition: color var(--app-control-transition);
+}
+
+/* 专辑列是单条链接、独占一格：省略号得写在按钮自己身上，
+   外层的 overflow 管不到里面的行内内容 */
+.track-row__link--block {
+  display: block;
+  max-width: 100%;
   text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  cursor: pointer;
-  transition: color var(--app-control-transition);
 }
 
 .track-row__link:hover,
 .track-row__link:focus-visible {
   color: var(--el-color-primary);
+}
+
+.track-row__sep {
+  color: inherit;
 }
 
 /* 行高由封面撑出来（40 + 上下内边距各 8 = 56），文字只需不超即可。
