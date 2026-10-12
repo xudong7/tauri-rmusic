@@ -45,6 +45,8 @@ export default {
     alreadyInPlaylist: "该歌曲已在「{name}」中",
     redownload: "重新下载",
     removeSelected: "从播放列表移除选中",
+    moveUp: "上移",
+    moveDown: "下移",
     browseLibrary: "前往曲库",
     browseOnline: "在线搜索",
   },

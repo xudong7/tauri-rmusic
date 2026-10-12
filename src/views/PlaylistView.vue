@@ -114,7 +114,9 @@
         :is-playing="playerStore.isPlaying"
         :context-menu-items="contextMenuItems"
         :scroll-key="route.fullPath"
+        :reorderable="!selectionMode"
         @activate="playAt($event.sourceIndex)"
+        @reorder="handleReorder"
         @toggle-current="playerStore.togglePlay"
         @toggle-select="toggleSelectRow($event.sourceIndex)"
         @visible-items="scheduleVisibleLocalCovers"
@@ -421,6 +423,21 @@ function contextMenuItems(item: TrackRowModel): ContextMenuItem[] {
     });
   }
 
+  // 上移 / 下移：拖拽之外的键盘与无鼠标路径，也顺手覆盖虚拟滚动下不好拖的场合
+  const index = entry.sourceIndex;
+  items.push({
+    key: "move-up",
+    label: t("playlist.moveUp"),
+    disabled: index <= 0,
+    action: () => moveEntry(index, index - 1),
+  });
+  items.push({
+    key: "move-down",
+    label: t("playlist.moveDown"),
+    disabled: index >= resolvedItems.value.length - 1,
+    action: () => moveEntry(index, index + 1),
+  });
+
   items.push({
     key: "remove",
     label: t("contextMenu.removeFromPlaylist"),
@@ -428,6 +445,24 @@ function contextMenuItems(item: TrackRowModel): ContextMenuItem[] {
     action: () => removeAt(entry.sourceIndex),
   });
   return items;
+}
+
+/** 拖拽落点换算在 TrackList 里做（它同时知道起止下标），这里只负责执行 */
+function handleReorder(from: number, to: number) {
+  const list = playlist.value;
+  if (!list) return;
+  playlistStore.reorderPlaylist(list.id, from, to);
+}
+
+/**
+ * 上移 / 下移一格。store 的 toIndex 是「移除之后」的插入下标：
+ * 下移一格时要 +2 才会落到原位置的后一个。
+ */
+function moveEntry(from: number, target: number) {
+  const list = playlist.value;
+  if (!list) return;
+  const to = from < target ? target + 1 : target;
+  playlistStore.reorderPlaylist(list.id, from, to);
 }
 const selectedRowKeys = computed(
   () =>

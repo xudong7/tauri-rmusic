@@ -45,6 +45,8 @@ export default {
     alreadyInPlaylist: 'Already in "{name}"',
     redownload: "Re-download",
     removeSelected: "Remove selected from playlist",
+    moveUp: "Move up",
+    moveDown: "Move down",
     browseLibrary: "Open library",
     browseOnline: "Search online",
   },
