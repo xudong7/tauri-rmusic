@@ -157,7 +157,11 @@ onMounted(async () => {
  * 现在面板是停靠式的，主页列表要能继续用，Tab 就该能走出去。
  */
 function handlePanelKeydown(event: KeyboardEvent) {
-  if (event.key === "Escape") emit("close");
+  if (event.key !== "Escape") return;
+  // 标记这次 Esc 已被消费：全局快捷键靠 defaultPrevented 判断该不该继续
+  // 关队列 / 退沉浸，否则一个按键会连关两层
+  event.preventDefault();
+  emit("close");
 }
 </script>
 

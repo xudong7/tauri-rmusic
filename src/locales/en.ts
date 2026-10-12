@@ -229,7 +229,7 @@ export default {
     previous: "Previous track",
     next: "Next track",
     search: "Focus search",
-    closePanels: "Close queue / overlays",
+    closePanels: "Close queue / overlays, exit immersive",
     showHelp: "Show this help",
   },
   import: {

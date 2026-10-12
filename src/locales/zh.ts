@@ -229,7 +229,7 @@ export default {
     previous: "上一首",
     next: "下一首",
     search: "聚焦搜索框",
-    closePanels: "关闭队列 / 浮层",
+    closePanels: "关闭队列 / 浮层、退出沉浸",
     showHelp: "显示本帮助",
   },
   import: {

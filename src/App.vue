@@ -106,6 +106,18 @@ const keyboardShortcuts = useAppKeyboardShortcuts({
   onTogglePlay: () => playerStore.togglePlay(),
   onNext: () => playerStore.playNextOrPreviousMusic(playerStore.getPlayStep(1)),
   onToggleHelp: () => toggleShortcutsHelp(),
+  onEscape: () => {
+    // 从最上层往下关：队列面板 → 沉浸模式
+    if (viewStore.showPlaybackQueue) {
+      viewStore.closePlaybackQueue();
+      return true;
+    }
+    if (viewStore.showImmersiveMode) {
+      void handleExitImmersive();
+      return true;
+    }
+    return false;
+  },
 });
 const themeSync = useStorageThemeSync({
   setThemeWithoutSave: themeStore.setThemeWithoutSave,

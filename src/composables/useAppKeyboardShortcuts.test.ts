@@ -65,4 +65,75 @@ describe("useAppKeyboardShortcuts", () => {
     instance.stop();
     input.remove();
   });
+
+  it("Esc 交给 onEscape，消费后 preventDefault", () => {
+    const onEscape = vi.fn().mockReturnValue(true);
+    const instance = useAppKeyboardShortcuts({
+      onPrevious: vi.fn(),
+      onTogglePlay: vi.fn(),
+      onNext: vi.fn(),
+      onEscape,
+    });
+    instance.start();
+
+    const event = press("Escape");
+    expect(onEscape).toHaveBeenCalledTimes(1);
+    expect(event.defaultPrevented).toBe(true);
+    instance.stop();
+  });
+
+  it("Esc 没人消费时不 preventDefault，留给其它监听者", () => {
+    const onEscape = vi.fn().mockReturnValue(false);
+    const instance = useAppKeyboardShortcuts({
+      onPrevious: vi.fn(),
+      onTogglePlay: vi.fn(),
+      onNext: vi.fn(),
+      onEscape,
+    });
+    instance.start();
+
+    expect(press("Escape").defaultPrevented).toBe(false);
+    instance.stop();
+  });
+
+  it("焦点在按钮上时 Esc 依然生效（不受交互元素守卫限制）", () => {
+    const onEscape = vi.fn().mockReturnValue(true);
+    const instance = useAppKeyboardShortcuts({
+      onPrevious: vi.fn(),
+      onTogglePlay: vi.fn(),
+      onNext: vi.fn(),
+      onEscape,
+    });
+    instance.start();
+
+    const button = document.createElement("button");
+    document.body.appendChild(button);
+    press("Escape", button);
+
+    expect(onEscape).toHaveBeenCalledTimes(1);
+    instance.stop();
+    button.remove();
+  });
+
+  it("已被消费的 Esc（defaultPrevented）不再触发", () => {
+    const onEscape = vi.fn().mockReturnValue(true);
+    const instance = useAppKeyboardShortcuts({
+      onPrevious: vi.fn(),
+      onTogglePlay: vi.fn(),
+      onNext: vi.fn(),
+      onEscape,
+    });
+    instance.start();
+
+    const event = new KeyboardEvent("keydown", {
+      key: "Escape",
+      bubbles: true,
+      cancelable: true,
+    });
+    event.preventDefault();
+    document.body.dispatchEvent(event);
+
+    expect(onEscape).not.toHaveBeenCalled();
+    instance.stop();
+  });
 });

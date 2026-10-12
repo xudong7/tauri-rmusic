@@ -95,7 +95,11 @@ function handleItemClick(item: ContextMenuItem, event: MouseEvent) {
 }
 
 function handleKeydown(event: KeyboardEvent) {
-  if (event.key === "Escape") close();
+  if (event.key !== "Escape" || !state.value) return;
+  // 标记这次 Esc 已被消费：全局快捷键靠 defaultPrevented 判断该不该继续
+  // 关队列 / 退沉浸，否则一个按键会连关两层
+  event.preventDefault();
+  close();
 }
 
 function handleMenuKeydown(event: KeyboardEvent) {
