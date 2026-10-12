@@ -18,7 +18,7 @@ import {
   groupMusicFilesByArtist,
   type LibrarySortMode,
 } from "@/utils/libraryGroups";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import {
   ARTIST_SEPARATOR,
   formatDurationLabel,
@@ -323,6 +323,57 @@ function toTrackRow(music: MusicFile, sourceIndex: number): TrackRowModel {
  *
  * 在这之前只能去访达里手动删——下载回来的歌只会越积越多。
  */
+const isBatchDeleting = ref(false);
+
+/**
+ * 批量删除：逐首调用与单行删除相同的命令（后端连带删封面/歌词），
+ * 全部跑完再刷新一次曲库。部分失败只汇总提示，不谎报全部成功。
+ */
+async function deleteSelected() {
+  const files = selectedFiles.value;
+  if (files.length === 0 || isBatchDeleting.value) return;
+
+  try {
+    await ElMessageBox.confirm(
+      t("musicList.deleteSelectedConfirm", { count: files.length }),
+      t("musicList.deleteSelected"),
+      {
+        confirmButtonText: t("common.confirmDelete"),
+        cancelButtonText: t("common.cancel"),
+        type: "warning",
+      }
+    );
+  } catch {
+    return;
+  }
+
+  isBatchDeleting.value = true;
+  let failed = 0;
+  for (const file of files) {
+    try {
+      await deleteMusicFile({
+        fileName: file.file_name,
+        defaultDirectory: localStore.defaultDirectory,
+      });
+    } catch (error) {
+      failed += 1;
+      console.error("批量删除失败:", file.file_name, error);
+    }
+  }
+  isBatchDeleting.value = false;
+
+  await localStore.refreshCurrentDirectory();
+  clearSelection();
+
+  if (failed > 0) {
+    ElMessage.error(
+      t("musicList.deleteSelectedPartial", { failed, count: files.length })
+    );
+    return;
+  }
+  ElMessage.success(t("musicList.deleteSelectedDone", { count: files.length }));
+}
+
 async function handleDelete(row: MusicFile) {
   try {
     await deleteMusicFile({
@@ -510,6 +561,19 @@ watch(
               </el-dropdown-menu>
             </template>
           </el-dropdown>
+          <!-- 批量删除：与单行删除同一条命令，只是先问一次、再逐首执行 -->
+          <el-button
+            v-if="selectedKeys.size > 0"
+            type="danger"
+            size="small"
+            class="batch-delete-btn"
+            :loading="isBatchDeleting"
+            :icon="TrashIcon"
+            :aria-label="t('musicList.deleteSelected')"
+            @click="deleteSelected"
+          >
+            {{ t("musicList.deleteSelected") }} ({{ selectedKeys.size }})
+          </el-button>
         </template>
         <template v-else>
           <el-tooltip

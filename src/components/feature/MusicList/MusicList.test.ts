@@ -2,7 +2,7 @@ import { defineComponent } from "vue";
 import { createPinia } from "pinia";
 import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { i18n } from "@/i18n";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
 import type { MusicFile } from "@/types/model";
@@ -221,5 +221,67 @@ describe("MusicList 的行内跳转", () => {
     await flushPromises();
 
     expect(wrapper.get(".page-header__title").text()).toBe("Album");
+  });
+});
+
+describe("MusicList 的批量删除", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    commandMocks.deleteMusicFile.mockReset().mockResolvedValue(undefined);
+    commandMocks.scanFiles.mockReset().mockResolvedValue([]);
+  });
+
+  it("确认后逐首删除，最后刷新一次曲库", async () => {
+    vi.spyOn(ElMessageBox, "confirm").mockResolvedValue("confirm");
+    const wrapper = mountMusicList([
+      file,
+      {
+        ...file,
+        id: 2,
+        file_name: "B.mp3",
+        key: "k2",
+        relative_path: "B.mp3",
+        title: "B",
+      },
+    ]);
+    await flushPromises();
+
+    // 顶栏里最后一个图标键是多选开关
+    const headerButtons = wrapper.findAll(".header-action-btn");
+    await headerButtons[headerButtons.length - 1].trigger("click");
+    await flushPromises();
+
+    const rows = wrapper.findAll(".track-row");
+    await rows[0].trigger("click");
+    await rows[1].trigger("click");
+    await flushPromises();
+
+    await wrapper.get(".batch-delete-btn").trigger("click");
+    await flushPromises();
+
+    expect(commandMocks.deleteMusicFile).toHaveBeenCalledTimes(2);
+    expect(commandMocks.deleteMusicFile).toHaveBeenCalledWith({
+      fileName: "Artist - Song.mp3",
+      defaultDirectory: "/library",
+    });
+    // 逐首删完只重扫一次
+    expect(commandMocks.scanFiles).toHaveBeenCalledTimes(1);
+  });
+
+  it("取消确认时不删任何文件", async () => {
+    vi.spyOn(ElMessageBox, "confirm").mockRejectedValue(new Error("cancel"));
+    const wrapper = mountMusicList([file]);
+    await flushPromises();
+
+    const headerButtons = wrapper.findAll(".header-action-btn");
+    await headerButtons[headerButtons.length - 1].trigger("click");
+    await flushPromises();
+    await wrapper.get(".track-row").trigger("click");
+    await flushPromises();
+
+    await wrapper.get(".batch-delete-btn").trigger("click");
+    await flushPromises();
+
+    expect(commandMocks.deleteMusicFile).not.toHaveBeenCalled();
   });
 });
