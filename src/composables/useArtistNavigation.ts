@@ -37,15 +37,22 @@ export function useArtistNavigation(args: {
   });
 
   /** 在线歌曲的歌手 id 与 artists 一一对应：点谁就用谁的 id */
-  function onlineArtistId(name: string): string {
-    const song = args.currentOnlineSong?.();
+  function onlineArtistId(song: SongInfo | null, name: string): string {
     const index = song?.artists?.indexOf(name) ?? -1;
     if (index < 0) return "";
     return song?.artist_ids?.[index] ?? "";
   }
 
-  /** 返回是否真的发生了跳转（调用方据此决定要不要退出沉浸模式） */
-  async function navigateArtistByName(name: string): Promise<boolean> {
+  /**
+   * 返回是否真的发生了跳转（调用方据此决定要不要退出沉浸模式）。
+   *
+   * `song` 给列表行用：不传就按「当前播放的歌」解析，传了就用传进来的那一行
+   * （列表里每一行的歌手 id 都在它自己的 SongInfo 上）。
+   */
+  async function navigateArtistByName(
+    name: string,
+    song?: SongInfo | null
+  ): Promise<boolean> {
     if (!name || name === t("common.unknownArtist")) return false;
 
     // 解析歌手 id 依赖在线服务，先确保 sidecar 已启动，否则点击会静默失败
@@ -57,7 +64,7 @@ export function useArtistNavigation(args: {
     }
 
     // 在线歌曲：直接用自带的歌手 id，按名字搜出来的可能是同名翻唱
-    const directId = onlineArtistId(name);
+    const directId = onlineArtistId(song ?? args.currentOnlineSong?.() ?? null, name);
     if (directId) {
       await router.push({
         name: "Artist",

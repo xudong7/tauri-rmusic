@@ -19,7 +19,11 @@ import {
   type LibrarySortMode,
 } from "@/utils/libraryGroups";
 import { ElMessage } from "element-plus";
-import { formatDurationLabel, getLocalMusicDisplayInfo } from "@/utils/songUtils";
+import {
+  ARTIST_SEPARATOR,
+  formatDurationLabel,
+  getLocalMusicDisplayInfo,
+} from "@/utils/songUtils";
 import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
 import { useRowSelection } from "@/composables/useRowSelection";
 import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
@@ -130,6 +134,33 @@ function openGroup(card: EntityCardModel) {
   clearSelection();
   if (browseTab.value === "albums") selectedAlbumKey.value = card.key;
   else if (browseTab.value === "artists") selectedArtistKey.value = card.key;
+}
+
+/**
+ * 行内点了歌手 / 专辑名：切到对应页签并打开那个分组。
+ *
+ * 分组 key 是小写名（未知归到哨兵 key），所以按名找组；歌手列可能是
+ * 「A / B」，取第一个能在库里找到的歌手。
+ */
+function handleNavigate(kind: "artist" | "album", value: string) {
+  clearSelection();
+  if (kind === "album") {
+    const key = value.trim().toLocaleLowerCase();
+    const group = albumGroups.value.find((item) => item.key === key);
+    if (!group) return;
+    browseTab.value = "albums";
+    selectedAlbumKey.value = group.key;
+    return;
+  }
+
+  const names = value.split(ARTIST_SEPARATOR);
+  const group = names
+    .map((name) => name.trim().toLocaleLowerCase())
+    .map((name) => artistGroups.value.find((item) => item.key === name))
+    .find((item) => Boolean(item));
+  if (!group) return;
+  browseTab.value = "artists";
+  selectedArtistKey.value = group.key;
 }
 
 function closeGroup() {
@@ -552,7 +583,10 @@ watch(
       :scroll-key="listScrollKey"
       :sortable="browseTab === 'songs'"
       :sort-key="localStore.sortMode"
+      :artist-clickable="true"
+      :album-clickable="true"
       @sort="handleHeaderSort"
+      @navigate="handleNavigate"
       @activate="emit('play', browseFiles[$event.sourceIndex])"
       @toggle-current="emit('toggle-current')"
       @toggle-select="toggleSelectRow(browseFiles[$event.sourceIndex])"

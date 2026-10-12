@@ -26,6 +26,10 @@ const props = withDefaults(
         那一格——留着空位会让歌名那列和时长之间多出一段空白。 */
     hideAlbum?: boolean;
     rowHeight?: number;
+    /** 歌手名可点（跳到歌手页 / 本地歌手分组）。默认关闭：不是每个列表都能跳。 */
+    artistClickable?: boolean;
+    /** 专辑名可点 */
+    albumClickable?: boolean;
   }>(),
   {
     index: 0,
@@ -36,6 +40,8 @@ const props = withDefaults(
     busy: false,
     hideAlbum: false,
     rowHeight: undefined,
+    artistClickable: false,
+    albumClickable: false,
   }
 );
 
@@ -43,6 +49,8 @@ const emit = defineEmits<{
   activate: [item: TrackRowModel];
   toggleSelect: [item: TrackRowModel];
   contextMenu: [event: MouseEvent, item: TrackRowModel];
+  /** 点了行内的歌手 / 专辑名：跳哪里由调用方决定 */
+  navigate: [kind: "artist" | "album", value: string, item: TrackRowModel];
 }>();
 
 const resolvedCoverUrl = computed(() =>
@@ -124,7 +132,17 @@ function handleActivate() {
         <div class="track-row__title" :class="{ 'is-playing': isCurrent }">
           {{ item.title }}
         </div>
-        <div class="track-row__meta">{{ item.artist }}</div>
+        <div class="track-row__meta">
+          <button
+            v-if="artistClickable && item.artist"
+            type="button"
+            class="track-row__link"
+            @click.stop="emit('navigate', 'artist', item.artist, item)"
+          >
+            {{ item.artist }}
+          </button>
+          <template v-else>{{ item.artist }}</template>
+        </div>
       </div>
       <div v-if="$slots.actions && !selectionMode" class="track-row__actions" @click.stop>
         <slot name="actions" :item="item" />
@@ -132,7 +150,15 @@ function handleActivate() {
     </div>
 
     <div v-if="item.album && !hideAlbum" class="track-row__album" :title="item.album">
-      {{ item.album }}
+      <button
+        v-if="albumClickable"
+        type="button"
+        class="track-row__link"
+        @click.stop="emit('navigate', 'album', item.album, item)"
+      >
+        {{ item.album }}
+      </button>
+      <template v-else>{{ item.album }}</template>
     </div>
 
     <div v-if="item.durationLabel" class="track-row__duration">
@@ -307,6 +333,30 @@ function handleActivate() {
   text-overflow: ellipsis;
   white-space: nowrap;
   letter-spacing: 0;
+}
+
+/* 行内的歌手 / 专辑名：长得跟正文一样，但可点、可聚焦。
+   省略号规则要写在这里：文字挪进 button 之后，外层那几条 overflow 管不到它。 */
+.track-row__link {
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--app-control-transition);
+}
+
+.track-row__link:hover,
+.track-row__link:focus-visible {
+  color: var(--el-color-primary);
 }
 
 /* 行高由封面撑出来（40 + 上下内边距各 8 = 56），文字只需不超即可。

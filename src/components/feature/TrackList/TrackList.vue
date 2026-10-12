@@ -33,6 +33,10 @@ const props = withDefaults(
     sortable?: boolean;
     /** 当前排序的列 key：高亮该列 */
     sortKey?: string;
+    /** 行内歌手名可点（由调用方决定跳到哪） */
+    artistClickable?: boolean;
+    /** 行内专辑名可点 */
+    albumClickable?: boolean;
   }>(),
   {
     selectionMode: false,
@@ -47,6 +51,8 @@ const props = withDefaults(
     scrollKey: "",
     sortable: false,
     sortKey: "",
+    artistClickable: false,
+    albumClickable: false,
   }
 );
 const columnLabels = computed(() => {
@@ -65,7 +71,13 @@ const emit = defineEmits<{
   nearEnd: [];
   visibleItems: [items: TrackRowModel[]];
   sort: [key: string];
+  /** 行内歌手 / 专辑名被点击，原样转给页面 */
+  navigate: [kind: "artist" | "album", value: string, item: TrackRowModel];
 }>();
+
+function handleNavigate(kind: "artist" | "album", value: string, item: TrackRowModel) {
+  emit("navigate", kind, value, item);
+}
 
 const itemsRef = computed(() => props.items);
 const { useVirtual, virtualList, containerProps, wrapperProps, rowHeight, scrollTo } =
@@ -224,9 +236,12 @@ function handleListKeydown(event: KeyboardEvent) {
           :busy="busyKeys.has(item.key)"
           :hide-album="hideAlbum"
           :row-height="rowHeight"
+          :artist-clickable="artistClickable"
+          :album-clickable="albumClickable"
           @activate="handleActivate"
           @toggle-select="emit('toggleSelect', $event)"
           @context-menu="handleContextMenu"
+          @navigate="handleNavigate"
         >
           <template v-if="$slots.actions" #actions="{ item: actionItem }">
             <slot name="actions" :item="actionItem" />
@@ -255,9 +270,12 @@ function handleListKeydown(event: KeyboardEvent) {
           :is-playing="isPlaying && item.key === currentKey"
           :busy="busyKeys.has(item.key)"
           :hide-album="hideAlbum"
+          :artist-clickable="artistClickable"
+          :album-clickable="albumClickable"
           @activate="handleActivate"
           @toggle-select="emit('toggleSelect', $event)"
           @context-menu="handleContextMenu"
+          @navigate="handleNavigate"
         >
           <template v-if="$slots.actions" #actions="{ item: actionItem }">
             <slot name="actions" :item="actionItem" />

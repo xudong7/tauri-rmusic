@@ -182,3 +182,29 @@ describe("MusicList 的空状态", () => {
     expect(wrapper.emitted("retry")).toBeTruthy();
   });
 });
+
+describe("MusicList 的行内跳转", () => {
+  it("点歌手名进入该歌手分组，且不触发整行播放", async () => {
+    const wrapper = mountMusicList();
+    await flushPromises();
+
+    const links = wrapper.findAll(".track-row__link");
+    // 顺序：先歌手（meta 行），后专辑（网格末列）
+    expect(links).toHaveLength(2);
+    await links[0].trigger("click");
+    await flushPromises();
+
+    expect(wrapper.get(".page-header__title").text()).toBe("Artist");
+    expect(wrapper.emitted("play")).toBeUndefined();
+  });
+
+  it("点专辑名进入该专辑分组", async () => {
+    const wrapper = mountMusicList();
+    await flushPromises();
+
+    await wrapper.findAll(".track-row__link")[1].trigger("click");
+    await flushPromises();
+
+    expect(wrapper.get(".page-header__title").text()).toBe("Album");
+  });
+});

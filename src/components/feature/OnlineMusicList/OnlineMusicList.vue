@@ -13,6 +13,8 @@ import { usePlaylistStore } from "@/stores/playlistStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import type { ContextMenuItem } from "@/composables/useContextMenu";
 import { useOnlinePlaylistActions } from "@/composables/useOnlinePlaylistActions";
+import { useArtistNavigation } from "@/composables/useArtistNavigation";
+import { useAlbumNavigation } from "@/composables/useAlbumNavigation";
 import CheckIcon from "@/components/base/icons/CheckIcon.vue";
 import TrackList from "@/components/feature/TrackList/TrackList.vue";
 import type { TrackRowModel } from "@/components/feature/TrackList/types";
@@ -49,6 +51,18 @@ const props = withDefaults(
 );
 
 const emit = defineEmits(["play", "toggle-current", "load-more"]);
+
+// 行内歌手 / 专辑名的跳转：复用播放栏那套规则（自带 id 优先、否则按名字搜索），
+// 只是把「当前播放的歌」换成被点的那一行
+const { navigateArtistByName } = useArtistNavigation({});
+const { navigateAlbumByName } = useAlbumNavigation({});
+
+function handleNavigate(kind: "artist" | "album", value: string, item: TrackRowModel) {
+  const song = props.onlineSongs[item.sourceIndex] ?? null;
+  if (!song) return;
+  if (kind === "artist") void navigateArtistByName(value, song);
+  else void navigateAlbumByName(song);
+}
 
 function requestLoadMore() {
   if (props.loading) return;
@@ -202,9 +216,12 @@ onBeforeUnmount(() => {
       :hide-album="hideAlbum"
       :scroll-key="scrollKey"
       :context-menu-items="contextMenuItems"
+      :artist-clickable="true"
+      :album-clickable="true"
       @activate="emit('play', onlineSongs[$event.sourceIndex])"
       @toggle-current="emit('toggle-current')"
       @near-end="requestLoadMore"
+      @navigate="handleNavigate"
     >
       <!-- 透传父组件的同名插槽，未提供时回退到通用文案。
            歌单/专辑/歌手页各自传入了更准确的空状态（如「歌单不存在或已被删除」），
