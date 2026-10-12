@@ -148,6 +148,7 @@
             :icon="Minus"
             link
             type="default"
+            :aria-label="t('contextMenu.removeFromPlaylist')"
             @click.stop="removeAt(item.sourceIndex)"
           />
         </template>

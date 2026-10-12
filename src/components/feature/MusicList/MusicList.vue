@@ -481,12 +481,14 @@ watch(
             :content="t('musicList.importMusic')"
             placement="bottom"
           >
-            <!-- 只留图标：与同排的多选键外观一致，含义由 tooltip 交代 -->
+            <!-- 只留图标：与同排的多选键外观一致，含义由 tooltip 交代；
+                 tooltip 不是无障碍名称，必须另给 aria-label -->
             <el-button
               link
               size="small"
               :icon="Upload"
               class="header-action-btn app-icon-button"
+              :aria-label="t('musicList.importMusic')"
               @click="emit('import')"
             />
           </el-tooltip>
@@ -500,6 +502,7 @@ watch(
               size="small"
               :icon="MultiSelectIcon"
               class="header-action-btn app-icon-button"
+              :aria-label="t('musicList.multiSelect')"
               @click="toggleSelectionMode"
             />
           </el-tooltip>
