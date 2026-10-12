@@ -71,6 +71,16 @@
                 @click="toggleSelectionMode"
               />
             </el-tooltip>
+            <el-tooltip :content="t('playlist.exportM3u')" placement="bottom">
+              <el-button
+                circle
+                class="playlist-header-action"
+                :icon="Share"
+                :loading="isExportingM3u"
+                :aria-label="t('playlist.exportM3u')"
+                @click="exportM3u"
+              />
+            </el-tooltip>
             <el-popconfirm
               :title="t('playlist.deleteConfirm')"
               :confirm-button-text="t('common.confirmDelete')"
@@ -165,7 +175,8 @@ import { useRoute, useRouter } from "vue-router";
 import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
 import { useRowSelection } from "@/composables/useRowSelection";
 import { useI18n } from "vue-i18n";
-import { Download, Minus, EditPen, Folder, Search } from "@element-plus/icons-vue";
+import { Download, Minus, EditPen, Folder, Search, Share } from "@element-plus/icons-vue";
+import { ElMessage } from "element-plus";
 import MultiSelectIcon from "@/components/base/icons/MultiSelectIcon.vue";
 import TrashIcon from "@/components/base/icons/TrashIcon.vue";
 import type { PlaylistItem, MusicFile, SongInfo } from "@/types/model";
@@ -174,6 +185,11 @@ import {
   formatDurationLabel,
   getLocalMusicDisplayInfo,
 } from "@/utils/songUtils";
+import { save } from "@tauri-apps/plugin-dialog";
+import { writeM3uFile } from "@/api/commands/file";
+import { buildM3u } from "@/utils/m3u";
+import { joinPathSegment } from "@/utils/pathUtils";
+import { parseErrorMessage } from "@/utils/errorUtils";
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { usePlayerStore } from "@/stores/playerStore";
@@ -481,6 +497,65 @@ function scheduleVisibleLocalCovers(items: TrackRowModel[]) {
         Boolean(entry?.item.type === "local" && entry.musicFile)
       )
   );
+}
+
+const isExportingM3u = ref(false);
+
+/**
+ * 导出 M3U：只导出文件还在的本地曲目（在线条目与缺文件的条目跳过并汇总）。
+ * 写绝对路径：换台机器导入时对不上会退回按文件名匹配，至少还能找回同名文件。
+ */
+async function exportM3u() {
+  const list = playlist.value;
+  if (!list || isExportingM3u.value) return;
+
+  // flatMap 而不是 filter：顺带把条目拍成导出需要的样子，
+  // 也避开了「filter 不是类型守卫、联合类型收不窄」的问题
+  const exportable = resolvedItems.value.flatMap((entry) =>
+    entry.item.type === "local" && entry.musicFile
+      ? [
+          {
+            fileName: entry.item.file_name,
+            title: `${entry.artist} - ${entry.title}`,
+            durationMs: entry.musicFile.duration_ms,
+          },
+        ]
+      : []
+  );
+  if (exportable.length === 0) {
+    ElMessage.warning(t("playlist.exportEmpty"));
+    return;
+  }
+
+  const path = await save({
+    defaultPath: `${list.name || t("playlist.unnamed")}.m3u`,
+    filters: [{ name: "M3U", extensions: ["m3u", "m3u8"] }],
+  });
+  if (!path) return;
+
+  isExportingM3u.value = true;
+  try {
+    const content = buildM3u(
+      exportable.map((entry) => ({
+        path: joinPathSegment(localStore.currentDirectory, entry.fileName),
+        title: entry.title,
+        durationMs: entry.durationMs,
+      }))
+    );
+    await writeM3uFile({ path, content });
+
+    const skipped = resolvedItems.value.length - exportable.length;
+    ElMessage.success(
+      skipped > 0
+        ? t("playlist.exportDonePartial", { count: exportable.length, skipped })
+        : t("playlist.exportDone", { count: exportable.length })
+    );
+  } catch (error) {
+    console.error("导出 M3U 失败:", error);
+    ElMessage.error(`${t("playlist.exportFailed")}: ${parseErrorMessage(error)}`);
+  } finally {
+    isExportingM3u.value = false;
+  }
 }
 
 function playAt(index: number) {

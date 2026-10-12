@@ -47,3 +47,16 @@ export async function loadLocalLyric(args: {
 }): Promise<string> {
   return await invokeCommand("load_local_lyric", args);
 }
+
+/** 读取 M3U/M3U8 文本（后端负责去 BOM 与损失性解码） */
+export async function readM3uFile(args: { path: string }): Promise<string> {
+  return await invokeCommand("read_m3u_file", args);
+}
+
+/** 写出 M3U 文本（UTF-8 无 BOM） */
+export async function writeM3uFile(args: {
+  path: string;
+  content: string;
+}): Promise<void> {
+  await invokeCommand("write_m3u_file", args);
+}

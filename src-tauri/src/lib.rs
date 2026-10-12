@@ -4,6 +4,7 @@ use file::{
     load_cached_music_files, load_local_cover_path, load_local_lyric, scan_files,
 };
 use lyrics_window::set_lyrics_window;
+use m3u::{read_m3u_file, write_m3u_file};
 use media_controls::{update_media_metadata, MediaControlsState};
 use mini_player_window::{set_mini_player_layout, set_mini_player_window, MiniPlayerLayoutState};
 use music::{
@@ -30,6 +31,7 @@ mod cover_cache;
 mod file;
 mod fs_util;
 mod lyrics_window;
+mod m3u;
 mod media_controls;
 mod mini_player_window;
 mod music;
@@ -220,7 +222,9 @@ pub fn run() {
             load_local_lyric,
             get_song_cover,
             read_playlists,
-            write_playlists
+            write_playlists,
+            read_m3u_file,
+            write_m3u_file
         ])
         // share sender, sink, and duration with the frontend
         .manage(music.event_sender)
