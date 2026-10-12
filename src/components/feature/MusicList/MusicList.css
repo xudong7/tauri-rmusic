@@ -101,6 +101,47 @@
   font-size: 14px;
 }
 
+/* 排序方式与方向键成组贴右：两枚按钮之间只留 2px，和「下拉 + 附属开关」的
+   常见组合一致，不会被 toolbar 的 16px 间距拆开 */
+.music-list__sort-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.music-list__sort-direction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--app-radius-md);
+  color: var(--el-text-color-secondary);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color var(--app-control-transition),
+    background var(--app-control-transition);
+}
+
+.music-list__sort-direction:hover:not(:disabled),
+.music-list__sort-direction:focus-visible:not(:disabled) {
+  color: var(--el-color-primary);
+  background: var(--hover-bg-color);
+}
+
+/* 「默认顺序」不排序，方向无从谈起 */
+.music-list__sort-direction:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.music-list__sort-direction .el-icon {
+  font-size: 14px;
+}
+
 /* 删除键的危险色。TrackRow 里有一条 scoped 规则给操作簇里**所有**按钮设了
    普通图标色（`.track-row__actions .el-button`），与全局的
    `.app-icon-button--danger.el-button` 特异性相同而它注入得更晚，于是危险色

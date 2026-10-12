@@ -120,6 +120,8 @@ export default {
     sort_album: "专辑",
     sort_duration: "时长",
     sort_added: "最近添加",
+    sortAscending: "升序",
+    sortDescending: "降序",
     artistSummary: "{count} 首歌曲 · {albums} 张专辑 · {minutes} 分钟",
   },
   onlineMusic: {

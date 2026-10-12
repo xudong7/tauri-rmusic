@@ -120,6 +120,8 @@ export default {
     sort_album: "Album",
     sort_duration: "Duration",
     sort_added: "Recently added",
+    sortAscending: "Ascending",
+    sortDescending: "Descending",
     artistSummary: "{count} tracks · {albums} albums · {minutes} min",
   },
   onlineMusic: {

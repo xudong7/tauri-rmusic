@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { Upload, Plus, Sort } from "@element-plus/icons-vue";
+import { Upload, Plus, Sort, SortUp, SortDown } from "@element-plus/icons-vue";
 import TrashIcon from "@/components/base/icons/TrashIcon.vue";
 import { deleteMusicFile } from "@/api/commands/file";
 import { parseErrorMessage } from "@/utils/errorUtils";
@@ -120,6 +120,11 @@ const tabOptions = computed(() => [
 
 const sortOptions = LIBRARY_SORT_MODES;
 const sortLabel = computed(() => t(`musicList.sort_${localStore.sortMode}`));
+const sortDirectionLabel = computed(() =>
+  localStore.sortDirection === "asc"
+    ? t("musicList.sortAscending")
+    : t("musicList.sortDescending")
+);
 
 function handleSortCommand(mode: string) {
   localStore.setSortMode(mode as LibrarySortMode);
@@ -548,27 +553,39 @@ watch(
         :options="tabOptions"
         @update:model-value="switchTab($event as BrowseTab)"
       />
-      <el-dropdown
-        v-if="browseTab === 'songs'"
-        trigger="click"
-        @command="handleSortCommand"
-      >
-        <button
-          type="button"
-          class="music-list__sort"
-          :aria-label="t('musicList.sortBy')"
-        >
-          <el-icon><Sort /></el-icon>
-          <span>{{ sortLabel }}</span>
-        </button>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item v-for="mode in sortOptions" :key="mode" :command="mode">
-              {{ t(`musicList.sort_${mode}`) }}
-            </el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
+      <div v-if="browseTab === 'songs'" class="music-list__sort-group">
+        <el-dropdown trigger="click" @command="handleSortCommand">
+          <button
+            type="button"
+            class="music-list__sort"
+            :aria-label="t('musicList.sortBy')"
+          >
+            <el-icon><Sort /></el-icon>
+            <span>{{ sortLabel }}</span>
+          </button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item v-for="mode in sortOptions" :key="mode" :command="mode">
+                {{ t(`musicList.sort_${mode}`) }}
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+        <!-- 方向按钮独立于列头：列头只负责选列（#52 明确去掉了列头切方向） -->
+        <el-tooltip :content="sortDirectionLabel" placement="bottom">
+          <button
+            type="button"
+            class="music-list__sort-direction"
+            :disabled="localStore.sortMode === 'default'"
+            :aria-label="sortDirectionLabel"
+            @click="localStore.toggleSortDirection()"
+          >
+            <el-icon>
+              <component :is="localStore.sortDirection === 'asc' ? SortUp : SortDown" />
+            </el-icon>
+          </button>
+        </el-tooltip>
+      </div>
     </div>
 
     <TrackList

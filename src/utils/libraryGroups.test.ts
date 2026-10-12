@@ -3,7 +3,7 @@ import type { MusicFile } from "@/types/model";
 import {
   groupMusicFilesByAlbum,
   groupMusicFilesByArtist,
-  parseStoredSortMode,
+  parseStoredSort,
   sortMusicFiles,
 } from "./libraryGroups";
 
@@ -150,14 +150,26 @@ describe("sortMusicFiles", () => {
 });
 
 describe("排序持久化解析", () => {
-  it("parseStoredSortMode 兼容字符串、历史 JSON 与损坏值", () => {
-    expect(parseStoredSortMode(null)).toBe("default");
-    expect(parseStoredSortMode("artist")).toBe("artist");
+  it("parseStoredSort 兼容字符串、历史 JSON 与损坏值", () => {
+    expect(parseStoredSort(null)).toEqual({ mode: "default", direction: "asc" });
+    // 只存过模式字符串的旧格式：补该模式的自然方向
+    expect(parseStoredSort("artist")).toEqual({ mode: "artist", direction: "asc" });
+    expect(parseStoredSort(JSON.stringify({ mode: "album", direction: "desc" }))).toEqual(
+      { mode: "album", direction: "desc" }
+    );
+    // 方向缺失或非法时同样补自然方向
+    expect(parseStoredSort(JSON.stringify({ mode: "added" }))).toEqual({
+      mode: "added",
+      direction: "desc",
+    });
     expect(
-      parseStoredSortMode(JSON.stringify({ mode: "album", direction: "desc" }))
-    ).toBe("album");
-    expect(parseStoredSortMode("{oops")).toBe("default");
-    expect(parseStoredSortMode(JSON.stringify({ mode: "nope" }))).toBe("default");
+      parseStoredSort(JSON.stringify({ mode: "title", direction: "sideways" }))
+    ).toEqual({ mode: "title", direction: "asc" });
+    expect(parseStoredSort("{oops")).toEqual({ mode: "default", direction: "asc" });
+    expect(parseStoredSort(JSON.stringify({ mode: "nope" }))).toEqual({
+      mode: "default",
+      direction: "asc",
+    });
   });
 
   it("最近添加默认新的在前", () => {
@@ -169,6 +181,22 @@ describe("排序持久化解析", () => {
       "b.mp3",
       "a.mp3",
     ]);
+    // 升序时反过来：先加进来的在前
+    expect(sortMusicFiles(files, "added", "asc").map((item) => item.file_name)).toEqual([
+      "a.mp3",
+      "b.mp3",
+    ]);
+  });
+
+  it("名称排序降序，但未知歌手仍排在最后", () => {
+    const files = [
+      file({ file_name: "a.mp3", artist: "Alpha" }),
+      file({ file_name: "b.mp3", artist: "Zulu" }),
+      file({ file_name: "c.mp3" }),
+    ];
+    expect(sortMusicFiles(files, "artist", "desc").map((item) => item.file_name)).toEqual(
+      ["b.mp3", "a.mp3", "c.mp3"]
+    );
   });
 });
 

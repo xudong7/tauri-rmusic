@@ -9,9 +9,11 @@ import { getDefaultMusicDir, loadCachedMusicFiles, scanFiles } from "@/api/comma
 import { joinPathSegment } from "@/utils/pathUtils";
 import { getFileName } from "@/utils/songUtils";
 import {
+  LIBRARY_SORT_DEFAULT_DIRECTION,
   LIBRARY_SORT_MODES,
-  parseStoredSortMode,
+  parseStoredSort,
   sortMusicFiles,
+  type LibrarySortDirection,
   type LibrarySortMode,
 } from "@/utils/libraryGroups";
 
@@ -21,10 +23,10 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
   const currentDirectory = ref("");
   const isLoading = ref(false);
   const isRefreshing = ref(false);
-  /** 排序方式跨会话保留：习惯按歌手/专辑浏览的用户不必每次重设 */
-  const sortMode = ref<LibrarySortMode>(
-    parseStoredSortMode(localStorage.getItem(STORAGE_KEY_LIBRARY_SORT))
-  );
+  /** 排序方式与方向跨会话保留：习惯按歌手/专辑浏览的用户不必每次重设 */
+  const storedSort = parseStoredSort(localStorage.getItem(STORAGE_KEY_LIBRARY_SORT));
+  const sortMode = ref<LibrarySortMode>(storedSort.mode);
+  const sortDirection = ref<LibrarySortDirection>(storedSort.direction);
   /** 最近一次扫描/加载的失败原因；界面用它区分「曲库为空」与「加载失败」 */
   const errorMessage = ref("");
 
@@ -48,7 +50,7 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
    * 再搜索」仍然是歌手排序。
    */
   const sortedMusicFiles = computed(() =>
-    sortMusicFiles(musicFiles.value, sortMode.value)
+    sortMusicFiles(musicFiles.value, sortMode.value, sortDirection.value)
   );
 
   const filteredMusicFiles = computed(() => {
@@ -61,13 +63,27 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
   });
 
   function persistSort() {
-    localStorage.setItem(STORAGE_KEY_LIBRARY_SORT, sortMode.value);
+    localStorage.setItem(
+      STORAGE_KEY_LIBRARY_SORT,
+      JSON.stringify({ mode: sortMode.value, direction: sortDirection.value })
+    );
   }
 
-  /** 下拉或列头点击：换模式才生效，重复选择同一项不做事 */
+  /**
+   * 下拉或列头点击：换模式才生效，重复选择同一项不做事。
+   * 换模式时回到该模式的自然方向（名称升序、时长升序、添加时间降序），
+   * 方向按钮只在当前模式上翻转。
+   */
   function setSortMode(mode: LibrarySortMode) {
     if (!LIBRARY_SORT_MODES.includes(mode) || sortMode.value === mode) return;
     sortMode.value = mode;
+    sortDirection.value = LIBRARY_SORT_DEFAULT_DIRECTION[mode];
+    persistSort();
+  }
+
+  /** 升序 / 降序互换 */
+  function toggleSortDirection() {
+    sortDirection.value = sortDirection.value === "asc" ? "desc" : "asc";
     persistSort();
   }
 
@@ -265,7 +281,9 @@ export const useLocalMusicStore = defineStore("localMusic", () => {
     filteredMusicFiles,
     sortedMusicFiles,
     sortMode,
+    sortDirection,
     setSortMode,
+    toggleSortDirection,
     searchKeyword,
     currentDirectory,
     isLoading,
