@@ -65,6 +65,14 @@ export default {
     removeItem: "删除该条",
     noHistory: "暂无搜索历史",
   },
+  recent: {
+    title: "最近播放",
+    empty: "还没有播放记录",
+    clear: "清空记录",
+    clearConfirm: "清空全部播放记录？",
+    modeRecent: "最近",
+    modeMost: "最常",
+  },
   settings: {
     title: "设置",
     languageZh: "简体中文",

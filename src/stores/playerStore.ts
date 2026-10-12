@@ -54,6 +54,7 @@ import { useViewStore } from "./viewStore";
 import { useLocalMusicStore } from "./localMusicStore";
 import { useOnlineServiceStore } from "./onlineServiceStore";
 import { usePlaylistStore } from "./playlistStore";
+import { usePlayHistoryStore } from "./playHistoryStore";
 
 function debugPlaybackLog(message: string) {
   if (import.meta.env.DEV) console.debug(message);
@@ -83,6 +84,7 @@ export const usePlayerStore = defineStore("player", () => {
   const localStore = useLocalMusicStore();
   const onlineServiceStore = useOnlineServiceStore();
   const playlistStore = usePlaylistStore();
+  const playHistoryStore = usePlayHistoryStore();
 
   // 播放模式跨会话保留。原来每次启动都退回「顺序播放」，
   // 习惯随机或单曲循环的用户每次都得重新点一遍。
@@ -561,6 +563,20 @@ export const usePlayerStore = defineStore("player", () => {
       isPlaying.value = true;
       startPlayTimeTracking();
 
+      // 记一笔播放历史：只记「真的播起来了」的，失败与被打断的请求不计
+      const display = getLocalMusicDisplayInfo(
+        music,
+        i18n.global.t("common.unknownArtist")
+      );
+      playHistoryStore.recordPlay({
+        source: "local",
+        local: {
+          file_name: music.file_name,
+          title: display.title,
+          artist: display.artist,
+        },
+      });
+
       debugPlaybackLog(`[播放控制] 本地音乐播放成功: ${music.file_name}`);
       return "played";
     } catch (error) {
@@ -655,6 +671,7 @@ export const usePlayerStore = defineStore("player", () => {
       if (playResult.pic_url && currentOnlineSong.value) {
         currentOnlineSong.value.pic_url = playResult.pic_url;
       }
+      playHistoryStore.recordPlay({ source: "online", online: song });
       debugPlaybackLog(`[播放控制] 在线歌曲播放成功: ${song.name}`);
       void playbackQueue.prefetchNextOnlineSong(song);
       return "played";

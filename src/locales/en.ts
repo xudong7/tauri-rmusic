@@ -65,6 +65,14 @@ export default {
     removeItem: "Remove this item",
     noHistory: "No search history yet",
   },
+  recent: {
+    title: "Recently played",
+    empty: "Nothing played yet",
+    clear: "Clear history",
+    clearConfirm: "Clear the whole play history?",
+    modeRecent: "Recent",
+    modeMost: "Most played",
+  },
   settings: {
     title: "Settings",
     languageZh: "简体中文",

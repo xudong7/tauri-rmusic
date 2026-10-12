@@ -2,7 +2,7 @@
 import { computed, ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { Folder, Setting, Plus } from "@element-plus/icons-vue";
+import { Clock, Folder, Setting, Plus } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox, type MessageBoxInputData } from "element-plus";
 import OnlineMusicIcon from "@/components/base/icons/OnlineMusicIcon.vue";
 import { useViewStore } from "@/stores/viewStore";
@@ -84,6 +84,7 @@ const playlistTab = ref<"created" | "collected">("created");
 
 const navItems = [
   { path: "/", name: "LocalMusic", labelKey: "common.localMusic", icon: Folder },
+  { path: "/recent", name: "Recent", labelKey: "recent.title", icon: Clock },
   {
     path: "/online",
     name: "OnlineMusic",
