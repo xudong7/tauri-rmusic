@@ -56,8 +56,7 @@ export default {
     importDone: "Imported {count} tracks",
     importDonePartial: "Imported {count} tracks, {skipped} not found",
     importFailed: "Import failed",
-    moveUp: "Move up",
-    moveDown: "Move down",
+
     browseLibrary: "Open library",
     browseOnline: "Search online",
   },

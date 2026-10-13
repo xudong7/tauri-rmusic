@@ -98,31 +98,10 @@ describe("TrackList", () => {
     // jsdom 不算网格，跨列只能从源码层面钉住：少了这条显式跨列，
     // 歌曲列头会自动落到第二列（歌名上方），封面左边缘就没有列头对齐。
     it("「歌曲」列头显式跨封面与标题两列", () => {
-      // 行首锚定：可重排时另有一条「.track-list__columns.is-reorderable
-      // .track-list__column-song」，不锚定会先匹配到那一条
       const songColumnRule =
-        trackListSource.match(/^\.track-list__column-song\s*\{[^}]*\}/m)?.[0] ?? "";
+        trackListSource.match(/\.track-list__column-song\s*\{[^}]*\}/)?.[0] ?? "";
 
       expect(songColumnRule).toContain("grid-column: 1 / 3");
-    });
-
-    it("可重排时列头与行一起多让出一格给拖拽手柄", () => {
-      const listColumns = trackListSource.match(
-        /\.track-list__columns\.is-reorderable\s*\{[^}]*\}/
-      )?.[0];
-      const rowColumns = trackRowSource.match(
-        /\.track-row\.is-reorderable\s*\{[^}]*\}/
-      )?.[0];
-      const reorderedSongColumn = trackListSource.match(
-        /\.track-list__columns\.is-reorderable \.track-list__column-song\s*\{[^}]*\}/
-      )?.[0];
-
-      // 两边都必须把 --app-track-drag-column 放在 --app-track-grid 前面，
-      // 少一边列头就会与行错开一格（jsdom 不算布局，只能从源码钉住）
-      expect(listColumns).toContain("var(--app-track-drag-column) var(--app-track-grid)");
-      expect(rowColumns).toContain("var(--app-track-drag-column) var(--app-track-grid)");
-      // 多一格后歌曲列头顺延到 2 / 4
-      expect(reorderedSongColumn).toContain("grid-column: 2 / 4");
     });
 
     // 这一条守的是一个没有报错、也测不出布局的错误：
@@ -283,47 +262,5 @@ describe("列头排序", () => {
     const wrapper = mount(TrackList, { props: { items: rows(3) } });
     expect(wrapper.find(".track-list__columns").attributes("aria-hidden")).toBe("true");
     expect(wrapper.find(".track-list__column-btn").exists()).toBe(false);
-  });
-});
-
-describe("拖拽重排", () => {
-  it("把手柄拖到某一行的下半区，发出移除后插入下标的 reorder", async () => {
-    const wrapper = mount(TrackList, {
-      props: { items: rows(3), reorderable: true },
-    });
-    const handles = wrapper.findAll(".track-row__drag-handle");
-    expect(handles).toHaveLength(3);
-
-    await handles[0].trigger("dragstart");
-    await flushPromises();
-
-    const trackRows = wrapper.findAll(".track-row");
-    // jsdom 不做布局，getBoundingClientRect 全为 0：clientY 落在上半区判定之外，
-    // 因此这里走的是「插到目标行之后」
-    await trackRows[1].trigger("dragover");
-    await trackRows[1].trigger("drop");
-
-    // 拖到第 2 行之后 = 移除后插到下标 1
-    expect(wrapper.emitted("reorder")).toEqual([[0, 1]]);
-  });
-
-  it("拖回原位不发 reorder", async () => {
-    const wrapper = mount(TrackList, {
-      props: { items: rows(3), reorderable: true },
-    });
-    await wrapper.findAll(".track-row__drag-handle")[0].trigger("dragstart");
-    await flushPromises();
-
-    const trackRows = wrapper.findAll(".track-row");
-    // 落在自己下半区：目标下标换算回来还是 0
-    await trackRows[0].trigger("dragover");
-    await trackRows[0].trigger("drop");
-
-    expect(wrapper.emitted("reorder")).toBeUndefined();
-  });
-
-  it("没开启 reorderable 时没有手柄", () => {
-    const wrapper = mount(TrackList, { props: { items: rows(3) } });
-    expect(wrapper.find(".track-row__drag-handle").exists()).toBe(false);
   });
 });

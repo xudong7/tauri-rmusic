@@ -56,8 +56,7 @@ export default {
     importDone: "已导入 {count} 首",
     importDonePartial: "已导入 {count} 首，{skipped} 首未找到",
     importFailed: "导入失败",
-    moveUp: "上移",
-    moveDown: "下移",
+
     browseLibrary: "前往曲库",
     browseOnline: "在线搜索",
   },

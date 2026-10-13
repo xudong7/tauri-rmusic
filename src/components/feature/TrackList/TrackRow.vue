@@ -3,7 +3,6 @@ import { computed } from "vue";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import PlayingBars from "@/components/base/PlayingBars/PlayingBars.vue";
 import PlayIcon from "@/components/base/icons/PlayIcon.vue";
-import DragHandleIcon from "@/components/base/icons/DragHandleIcon.vue";
 import { ARTIST_SEPARATOR, splitArtistNames } from "@/utils/songUtils";
 import type { TrackRowModel } from "./types";
 
@@ -32,12 +31,6 @@ const props = withDefaults(
     artistClickable?: boolean;
     /** 专辑名可点 */
     albumClickable?: boolean;
-    /** 行可拖拽重排：左侧出现拖拽手柄，行本身成为放置目标 */
-    reorderable?: boolean;
-    /** 有行正在被拖动（由 TrackList 统一维护），只有这时才响应 dragover */
-    dragging?: boolean;
-    /** 放置指示线画在这一行的上沿还是下沿 */
-    dropIndicator?: "before" | "after" | null;
   }>(),
   {
     index: 0,
@@ -50,9 +43,6 @@ const props = withDefaults(
     rowHeight: undefined,
     artistClickable: false,
     albumClickable: false,
-    reorderable: false,
-    dragging: false,
-    dropIndicator: null,
   }
 );
 
@@ -62,11 +52,6 @@ const emit = defineEmits<{
   contextMenu: [event: MouseEvent, item: TrackRowModel];
   /** 点了行内的歌手 / 专辑名：跳哪里由调用方决定 */
   navigate: [kind: "artist" | "album", value: string, item: TrackRowModel];
-  /** 拖拽重排：具体下标换算与落库由 TrackList / 页面负责 */
-  dragStart: [];
-  dragOver: [edge: "before" | "after"];
-  drop: [];
-  dragEnd: [];
 }>();
 
 const resolvedCoverUrl = computed(() =>
@@ -75,24 +60,6 @@ const resolvedCoverUrl = computed(() =>
 
 /** 多歌手串拆开，每个歌手各自成链接；分隔符只是普通文本 */
 const artistParts = computed(() => splitArtistNames(props.item.artist));
-
-/** 指针在这一行的上半还是下半：决定插入到它之前还是之后 */
-function dropEdgeFrom(event: DragEvent): "before" | "after" {
-  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-  return event.clientY < rect.top + rect.height / 2 ? "before" : "after";
-}
-
-function handleDragOver(event: DragEvent) {
-  if (!props.reorderable || !props.dragging) return;
-  event.preventDefault();
-  emit("dragOver", dropEdgeFrom(event));
-}
-
-function handleDrop(event: DragEvent) {
-  if (!props.reorderable || !props.dragging) return;
-  event.preventDefault();
-  emit("drop");
-}
 
 function handleRowClick() {
   if (props.selectionMode) {
@@ -118,9 +85,6 @@ function handleActivate() {
       'is-striped': props.index % 2 === 0,
       'is-busy': busy,
       'is-album-hidden': hideAlbum,
-      'is-reorderable': reorderable && !selectionMode,
-      'is-drop-before': dropIndicator === 'before',
-      'is-drop-after': dropIndicator === 'after',
     }"
     :style="
       rowHeight ? { height: `${rowHeight}px`, minHeight: `${rowHeight}px` } : undefined
@@ -130,26 +94,11 @@ function handleActivate() {
     role="listitem"
     :aria-current="isCurrent ? 'true' : undefined"
     :aria-disabled="item.disabled || undefined"
-    @dragover="handleDragOver"
-    @drop="handleDrop"
     @click="handleRowClick"
     @keydown.enter.self.prevent="handleRowClick"
     @keydown.space.self.prevent="handleRowClick"
     @contextmenu.prevent.stop="emit('contextMenu', $event, item)"
   >
-    <!-- 拖拽手柄：只在这一行可重排时占位。整行可拖会把「点一下播放」也
-         变成拖拽起手，所以抓取点收窄到手柄这一小块。 -->
-    <span
-      v-if="reorderable && !selectionMode"
-      class="track-row__drag-handle"
-      draggable="true"
-      aria-hidden="true"
-      @dragstart.stop="emit('dragStart')"
-      @dragend="emit('dragEnd')"
-    >
-      <el-icon><DragHandleIcon /></el-icon>
-    </span>
-
     <!-- 封面兼作播放控件。播放键原先单独占最左侧一格，把封面挤离了行首，
          整行因此不是左对齐的；挪到封面上之后行首就是封面，也不需要再为
          那一格留出列宽。 -->
@@ -395,46 +344,6 @@ function handleActivate() {
   text-overflow: ellipsis;
   white-space: nowrap;
   letter-spacing: 0;
-}
-
-/* ---------- 拖拽重排 ---------- */
-
-/* 可重排时网格最前面多一格放手柄；列头（TrackList）有同名规则同步偏移，
-   两边的 --app-track-grid 必须一起加这一格，否则列头与行会错开 */
-.track-row.is-reorderable {
-  grid-template-columns: var(--app-track-drag-column) var(--app-track-grid);
-}
-
-.track-row__drag-handle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 24px;
-  color: var(--el-text-color-placeholder);
-  font-size: 14px;
-  cursor: grab;
-  /* 默认不抢视觉：只有悬停这一行时才浮现 */
-  opacity: 0;
-  transition: opacity var(--app-control-transition);
-}
-
-.track-row:hover .track-row__drag-handle,
-.track-row:focus-within .track-row__drag-handle {
-  opacity: 1;
-}
-
-.track-row__drag-handle:active {
-  cursor: grabbing;
-}
-
-/* 放置指示线：画在行的上/下沿，用内阴影而不是边框，避免行高变化 */
-.track-row.is-drop-before {
-  box-shadow: inset 0 2px 0 0 var(--el-color-primary);
-}
-
-.track-row.is-drop-after {
-  box-shadow: inset 0 -2px 0 0 var(--el-color-primary);
 }
 
 /* 行内的歌手 / 专辑名：长得跟正文一样，但可点、可聚焦。

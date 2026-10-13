@@ -37,8 +37,6 @@ const props = withDefaults(
     artistClickable?: boolean;
     /** 行内专辑名可点 */
     albumClickable?: boolean;
-    /** 行可拖拽重排（自建歌单用）。开启后行首多出拖拽手柄，列头同步让位。 */
-    reorderable?: boolean;
   }>(),
   {
     selectionMode: false,
@@ -55,7 +53,6 @@ const props = withDefaults(
     sortKey: "",
     artistClickable: false,
     albumClickable: false,
-    reorderable: false,
   }
 );
 const columnLabels = computed(() => {
@@ -76,66 +73,7 @@ const emit = defineEmits<{
   sort: [key: string];
   /** 行内歌手 / 专辑名被点击，原样转给页面 */
   navigate: [kind: "artist" | "album", value: string, item: TrackRowModel];
-  /** 拖拽重排完成：toIndex 是「移除该项之后」的插入下标（与 playlistStore 一致） */
-  reorder: [fromIndex: number, toIndex: number];
 }>();
-
-/* ---------- 拖拽重排 ---------- */
-
-/** 拖动中悬停在容器上下边缘时的自动滚动 */
-const DRAG_EDGE_ZONE = 56;
-const DRAG_EDGE_STEP = 16;
-
-const draggingIndex = ref<number | null>(null);
-const dropIndex = ref<number | null>(null);
-const dropEdge = ref<"before" | "after">("before");
-
-function handleDragStart(index: number) {
-  draggingIndex.value = index;
-}
-
-function handleDragOver(index: number, edge: "before" | "after") {
-  dropIndex.value = index;
-  dropEdge.value = edge;
-}
-
-function resetDrag() {
-  draggingIndex.value = null;
-  dropIndex.value = null;
-}
-
-/**
- * 拖到某一行之前/之后，换算成「移除该项之后」的插入下标——
- * playlistStore.reorderPlaylist 就是这个语义（先 splice 掉再 splice 进）。
- */
-function moveTarget(from: number, targetIndex: number, edge: "before" | "after") {
-  const to = edge === "before" ? targetIndex : targetIndex + 1;
-  return from < to ? to - 1 : to;
-}
-
-function handleDrop() {
-  const from = draggingIndex.value;
-  const target = dropIndex.value;
-  const edge = dropEdge.value;
-  resetDrag();
-  if (from === null || target === null) return;
-  const to = moveTarget(from, target, edge);
-  if (to === from) return;
-  emit("reorder", from, to);
-}
-
-/** 拖到列表上下边缘时自动滚动：虚拟滚动下新进入窗口的行才能成为落点 */
-function handleContainerDragOver(event: DragEvent) {
-  if (draggingIndex.value === null) return;
-  const container = event.currentTarget as HTMLElement | null;
-  if (!container) return;
-  const rect = container.getBoundingClientRect();
-  if (event.clientY < rect.top + DRAG_EDGE_ZONE) {
-    container.scrollTop -= DRAG_EDGE_STEP;
-  } else if (event.clientY > rect.bottom - DRAG_EDGE_ZONE) {
-    container.scrollTop += DRAG_EDGE_STEP;
-  }
-}
 
 function handleNavigate(kind: "artist" | "album", value: string, item: TrackRowModel) {
   emit("navigate", kind, value, item);
@@ -228,7 +166,7 @@ function handleListKeydown(event: KeyboardEvent) {
     <div
       v-if="items.length > 0"
       class="track-list__columns"
-      :class="{ 'is-album-hidden': hideAlbum, 'is-reorderable': reorderable }"
+      :class="{ 'is-album-hidden': hideAlbum }"
       :aria-hidden="sortable ? undefined : 'true'"
     >
       <span class="track-list__column-song" :role="sortable ? 'columnheader' : undefined">
@@ -284,7 +222,6 @@ function handleListKeydown(event: KeyboardEvent) {
       :tabindex="0"
       @scroll.passive="handleScroll"
       @keydown="handleListKeydown"
-      @dragover="handleContainerDragOver"
     >
       <div v-bind="wrapperProps" class="track-list__rows" role="list">
         <TrackRow
@@ -301,17 +238,10 @@ function handleListKeydown(event: KeyboardEvent) {
           :row-height="rowHeight"
           :artist-clickable="artistClickable"
           :album-clickable="albumClickable"
-          :reorderable="reorderable"
-          :dragging="draggingIndex !== null"
-          :drop-indicator="dropIndex === index ? dropEdge : null"
           @activate="handleActivate"
           @toggle-select="emit('toggleSelect', $event)"
           @context-menu="handleContextMenu"
           @navigate="handleNavigate"
-          @drag-start="handleDragStart(index)"
-          @drag-over="handleDragOver(index, $event)"
-          @drop="handleDrop"
-          @drag-end="resetDrag"
         >
           <template v-if="$slots.actions" #actions="{ item: actionItem }">
             <slot name="actions" :item="actionItem" />
@@ -327,7 +257,6 @@ function handleListKeydown(event: KeyboardEvent) {
       data-render-mode="standard"
       @scroll.passive="handleScroll"
       @keydown="handleListKeydown"
-      @dragover="handleContainerDragOver"
     >
       <div class="track-list__rows" role="list">
         <TrackRow
@@ -343,17 +272,10 @@ function handleListKeydown(event: KeyboardEvent) {
           :hide-album="hideAlbum"
           :artist-clickable="artistClickable"
           :album-clickable="albumClickable"
-          :reorderable="reorderable"
-          :dragging="draggingIndex !== null"
-          :drop-indicator="dropIndex === index ? dropEdge : null"
           @activate="handleActivate"
           @toggle-select="emit('toggleSelect', $event)"
           @context-menu="handleContextMenu"
           @navigate="handleNavigate"
-          @drag-start="handleDragStart(index)"
-          @drag-over="handleDragOver(index, $event)"
-          @drop="handleDrop"
-          @drag-end="resetDrag"
         >
           <template v-if="$slots.actions" #actions="{ item: actionItem }">
             <slot name="actions" :item="actionItem" />
@@ -419,21 +341,6 @@ function handleListKeydown(event: KeyboardEvent) {
 
 .track-list__columns.is-album-hidden {
   grid-template-columns: var(--app-track-grid-compact);
-}
-
-/* 可重排时最前面多一格拖拽手柄：必须与 .track-row.is-reorderable 同步加，
-   否则列头与行的网格错开一格 */
-.track-list__columns.is-reorderable {
-  grid-template-columns: var(--app-track-drag-column) var(--app-track-grid);
-}
-
-.track-list__columns.is-album-hidden.is-reorderable {
-  grid-template-columns: var(--app-track-drag-column) var(--app-track-grid-compact);
-}
-
-/* 歌曲列头原本跨封面 + 标题两轨，多一格手柄后顺延到 2 / 4 */
-.track-list__columns.is-reorderable .track-list__column-song {
-  grid-column: 2 / 4;
 }
 
 .track-list__column-song {
