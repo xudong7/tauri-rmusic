@@ -133,6 +133,8 @@ export interface TauriCommandParamsMap {
   import_music: { files: string[]; defaultDirectory: string | null };
   read_playlists: void;
   write_playlists: { playlists: Playlist[] };
+  read_m3u_file: { path: string };
+  write_m3u_file: { path: string; content: string };
   seek_to: { positionMs: number };
 }
 
@@ -181,6 +183,8 @@ export interface TauriCommandResultMap {
   import_music: string;
   read_playlists: Playlist[];
   write_playlists: void;
+  read_m3u_file: string;
+  write_m3u_file: void;
   seek_to: SeekResult;
 }
 

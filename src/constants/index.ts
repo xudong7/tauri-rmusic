@@ -27,6 +27,11 @@ export const STORAGE_KEY_MINI_PLAYER_LAYOUT = "rmusic-mini-player-layout";
 export const STORAGE_KEY_PLAYER_SESSION = "rmusic-player-session";
 /** 上次所在路由，启动时恢复 */
 export const STORAGE_KEY_LAST_ROUTE = "rmusic-last-route";
+/** 播放历史（最近播放 / 最常播放） */
+export const STORAGE_KEY_PLAY_HISTORY = "rmusic-play-history";
+
+/** 播放历史条数上限：再多也没有浏览价值，且整份都存在 localStorage 里 */
+export const PLAY_HISTORY_MAX_ITEMS = 300;
 
 /* ---------- 播放会话 ---------- */
 /** 会话结构版本。字段不兼容变更时递增，旧版本直接丢弃。 */

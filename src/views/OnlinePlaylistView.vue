@@ -55,10 +55,14 @@
     >
       <template #loading><el-skeleton :rows="6" animated /></template>
       <template #empty>
-        <el-empty v-if="store.detailError" :description="t('errors.loadPlaylistFailed')">
+        <el-empty
+          v-if="store.detailError"
+          :description="t('errors.loadPlaylistFailed')"
+          :image-size="96"
+        >
           <el-button type="primary" @click="retry">{{ t("common.retry") }}</el-button>
         </el-empty>
-        <el-empty v-else :description="t('onlinePlaylist.notFound')" />
+        <el-empty v-else :description="t('onlinePlaylist.notFound')" :image-size="96" />
       </template>
     </OnlineMusicList>
   </PageLayout>

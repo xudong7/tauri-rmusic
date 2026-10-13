@@ -35,3 +35,54 @@
     gap: 14px 12px;
   }
 }
+
+/* ---------- 加载骨架 ---------- */
+
+/* 沿用真实网格的列宽与间距，卡片位置与加载完成后一一对应 */
+.entity-grid__skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.entity-grid__skeleton-cover {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  background: var(--el-fill-color);
+}
+
+.entity-grid__skeleton-line {
+  height: 12px;
+  border-radius: 6px;
+  background: var(--el-fill-color);
+}
+
+.entity-grid__skeleton-line.is-short {
+  width: 60%;
+}
+
+/* 整块一起呼吸，不做逐张错峰：读起来是「正在加载」而不是在闪 */
+.entity-grid__items--skeleton .entity-grid__skeleton-cover,
+.entity-grid__items--skeleton .entity-grid__skeleton-line {
+  animation: entity-grid-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes entity-grid-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entity-grid__items--skeleton .entity-grid__skeleton-cover,
+  .entity-grid__items--skeleton .entity-grid__skeleton-line {
+    animation: none;
+  }
+}

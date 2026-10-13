@@ -3,6 +3,7 @@ import { computed } from "vue";
 import CoverImage from "@/components/base/CoverImage/CoverImage.vue";
 import PlayingBars from "@/components/base/PlayingBars/PlayingBars.vue";
 import PlayIcon from "@/components/base/icons/PlayIcon.vue";
+import { ARTIST_SEPARATOR, splitArtistNames } from "@/utils/songUtils";
 import type { TrackRowModel } from "./types";
 
 const props = withDefaults(
@@ -26,6 +27,10 @@ const props = withDefaults(
         那一格——留着空位会让歌名那列和时长之间多出一段空白。 */
     hideAlbum?: boolean;
     rowHeight?: number;
+    /** 歌手名可点（跳到歌手页 / 本地歌手分组）。默认关闭：不是每个列表都能跳。 */
+    artistClickable?: boolean;
+    /** 专辑名可点 */
+    albumClickable?: boolean;
   }>(),
   {
     index: 0,
@@ -36,6 +41,8 @@ const props = withDefaults(
     busy: false,
     hideAlbum: false,
     rowHeight: undefined,
+    artistClickable: false,
+    albumClickable: false,
   }
 );
 
@@ -43,11 +50,16 @@ const emit = defineEmits<{
   activate: [item: TrackRowModel];
   toggleSelect: [item: TrackRowModel];
   contextMenu: [event: MouseEvent, item: TrackRowModel];
+  /** 点了行内的歌手 / 专辑名：跳哪里由调用方决定 */
+  navigate: [kind: "artist" | "album", value: string, item: TrackRowModel];
 }>();
 
 const resolvedCoverUrl = computed(() =>
   typeof props.item.coverUrl === "function" ? props.item.coverUrl() : props.item.coverUrl
 );
+
+/** 多歌手串拆开，每个歌手各自成链接；分隔符只是普通文本 */
+const artistParts = computed(() => splitArtistNames(props.item.artist));
 
 function handleRowClick() {
   if (props.selectionMode) {
@@ -124,7 +136,25 @@ function handleActivate() {
         <div class="track-row__title" :class="{ 'is-playing': isCurrent }">
           {{ item.title }}
         </div>
-        <div class="track-row__meta">{{ item.artist }}</div>
+        <div class="track-row__meta">
+          <template v-if="artistClickable && artistParts.length > 0">
+            <template v-for="(name, index) in artistParts" :key="name + index">
+              <button
+                type="button"
+                class="track-row__link"
+                :title="name"
+                @click.stop="emit('navigate', 'artist', name, item)"
+              >
+                {{ name }}
+              </button>
+              <span v-if="index < artistParts.length - 1" class="track-row__sep">{{
+                ARTIST_SEPARATOR
+              }}</span>
+            </template>
+          </template>
+          <template v-else>{{ item.artist }}</template>
+          <span v-if="item.badge" class="track-row__badge">{{ item.badge }}</span>
+        </div>
       </div>
       <div v-if="$slots.actions && !selectionMode" class="track-row__actions" @click.stop>
         <slot name="actions" :item="item" />
@@ -132,7 +162,15 @@ function handleActivate() {
     </div>
 
     <div v-if="item.album && !hideAlbum" class="track-row__album" :title="item.album">
-      {{ item.album }}
+      <button
+        v-if="albumClickable"
+        type="button"
+        class="track-row__link track-row__link--block"
+        @click.stop="emit('navigate', 'album', item.album, item)"
+      >
+        {{ item.album }}
+      </button>
+      <template v-else>{{ item.album }}</template>
     </div>
 
     <div v-if="item.durationLabel" class="track-row__duration">
@@ -307,6 +345,51 @@ function handleActivate() {
   text-overflow: ellipsis;
   white-space: nowrap;
   letter-spacing: 0;
+}
+
+/* 行内的歌手 / 专辑名：长得跟正文一样，但可点、可聚焦。
+   歌手是行内元素（一行里可能有好几个），整行由 .track-row__meta 收省略号。 */
+.track-row__link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  transition: color var(--app-control-transition);
+}
+
+/* 专辑列是单条链接、独占一格：省略号得写在按钮自己身上，
+   外层的 overflow 管不到里面的行内内容 */
+.track-row__link--block {
+  display: block;
+  max-width: 100%;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.track-row__link:hover,
+.track-row__link:focus-visible {
+  color: var(--el-color-primary);
+}
+
+.track-row__sep {
+  color: inherit;
+}
+
+/* 歌名/歌手后面的小标签：底色极淡、字号小一号，不抢歌名 */
+.track-row__badge {
+  margin-left: 6px;
+  vertical-align: middle;
+  padding: 0 6px;
+  border-radius: var(--app-radius-sm);
+  background: var(--el-fill-color);
+  color: var(--el-text-color-secondary);
+  font-size: 11px;
+  line-height: 16px;
 }
 
 /* 行高由封面撑出来（40 + 上下内边距各 8 = 56），文字只需不超即可。

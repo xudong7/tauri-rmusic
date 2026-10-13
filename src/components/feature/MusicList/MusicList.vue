@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { Upload, Plus, Sort } from "@element-plus/icons-vue";
+import { Upload, Plus, Sort, SortUp, SortDown } from "@element-plus/icons-vue";
 import TrashIcon from "@/components/base/icons/TrashIcon.vue";
 import { deleteMusicFile } from "@/api/commands/file";
 import { parseErrorMessage } from "@/utils/errorUtils";
@@ -18,8 +18,12 @@ import {
   groupMusicFilesByArtist,
   type LibrarySortMode,
 } from "@/utils/libraryGroups";
-import { ElMessage } from "element-plus";
-import { formatDurationLabel, getLocalMusicDisplayInfo } from "@/utils/songUtils";
+import { ElMessage, ElMessageBox } from "element-plus";
+import {
+  ARTIST_SEPARATOR,
+  formatDurationLabel,
+  getLocalMusicDisplayInfo,
+} from "@/utils/songUtils";
 import { useLocalCoverCache } from "@/composables/useLocalCoverCache";
 import { useRowSelection } from "@/composables/useRowSelection";
 import PageHeader from "@/components/layout/PageHeader/PageHeader.vue";
@@ -116,6 +120,11 @@ const tabOptions = computed(() => [
 
 const sortOptions = LIBRARY_SORT_MODES;
 const sortLabel = computed(() => t(`musicList.sort_${localStore.sortMode}`));
+const sortDirectionLabel = computed(() =>
+  localStore.sortDirection === "asc"
+    ? t("musicList.sortAscending")
+    : t("musicList.sortDescending")
+);
 
 function handleSortCommand(mode: string) {
   localStore.setSortMode(mode as LibrarySortMode);
@@ -130,6 +139,33 @@ function openGroup(card: EntityCardModel) {
   clearSelection();
   if (browseTab.value === "albums") selectedAlbumKey.value = card.key;
   else if (browseTab.value === "artists") selectedArtistKey.value = card.key;
+}
+
+/**
+ * 行内点了歌手 / 专辑名：切到对应页签并打开那个分组。
+ *
+ * 分组 key 是小写名（未知归到哨兵 key），所以按名找组；歌手列可能是
+ * 「A / B」，取第一个能在库里找到的歌手。
+ */
+function handleNavigate(kind: "artist" | "album", value: string) {
+  clearSelection();
+  if (kind === "album") {
+    const key = value.trim().toLocaleLowerCase();
+    const group = albumGroups.value.find((item) => item.key === key);
+    if (!group) return;
+    browseTab.value = "albums";
+    selectedAlbumKey.value = group.key;
+    return;
+  }
+
+  const names = value.split(ARTIST_SEPARATOR);
+  const group = names
+    .map((name) => name.trim().toLocaleLowerCase())
+    .map((name) => artistGroups.value.find((item) => item.key === name))
+    .find((item) => Boolean(item));
+  if (!group) return;
+  browseTab.value = "artists";
+  selectedArtistKey.value = group.key;
 }
 
 function closeGroup() {
@@ -287,6 +323,57 @@ function toTrackRow(music: MusicFile, sourceIndex: number): TrackRowModel {
  *
  * 在这之前只能去访达里手动删——下载回来的歌只会越积越多。
  */
+const isBatchDeleting = ref(false);
+
+/**
+ * 批量删除：逐首调用与单行删除相同的命令（后端连带删封面/歌词），
+ * 全部跑完再刷新一次曲库。部分失败只汇总提示，不谎报全部成功。
+ */
+async function deleteSelected() {
+  const files = selectedFiles.value;
+  if (files.length === 0 || isBatchDeleting.value) return;
+
+  try {
+    await ElMessageBox.confirm(
+      t("musicList.deleteSelectedConfirm", { count: files.length }),
+      t("musicList.deleteSelected"),
+      {
+        confirmButtonText: t("common.confirmDelete"),
+        cancelButtonText: t("common.cancel"),
+        type: "warning",
+      }
+    );
+  } catch {
+    return;
+  }
+
+  isBatchDeleting.value = true;
+  let failed = 0;
+  for (const file of files) {
+    try {
+      await deleteMusicFile({
+        fileName: file.file_name,
+        defaultDirectory: localStore.defaultDirectory,
+      });
+    } catch (error) {
+      failed += 1;
+      console.error("批量删除失败:", file.file_name, error);
+    }
+  }
+  isBatchDeleting.value = false;
+
+  await localStore.refreshCurrentDirectory();
+  clearSelection();
+
+  if (failed > 0) {
+    ElMessage.error(
+      t("musicList.deleteSelectedPartial", { failed, count: files.length })
+    );
+    return;
+  }
+  ElMessage.success(t("musicList.deleteSelectedDone", { count: files.length }));
+}
+
 async function handleDelete(row: MusicFile) {
   try {
     await deleteMusicFile({
@@ -474,6 +561,19 @@ watch(
               </el-dropdown-menu>
             </template>
           </el-dropdown>
+          <!-- 批量删除：与单行删除同一条命令，只是先问一次、再逐首执行 -->
+          <el-button
+            v-if="selectedKeys.size > 0"
+            type="danger"
+            size="small"
+            class="batch-delete-btn"
+            :loading="isBatchDeleting"
+            :icon="TrashIcon"
+            :aria-label="t('musicList.deleteSelected')"
+            @click="deleteSelected"
+          >
+            {{ t("musicList.deleteSelected") }} ({{ selectedKeys.size }})
+          </el-button>
         </template>
         <template v-else>
           <el-tooltip
@@ -481,12 +581,14 @@ watch(
             :content="t('musicList.importMusic')"
             placement="bottom"
           >
-            <!-- 只留图标：与同排的多选键外观一致，含义由 tooltip 交代 -->
+            <!-- 只留图标：与同排的多选键外观一致，含义由 tooltip 交代；
+                 tooltip 不是无障碍名称，必须另给 aria-label -->
             <el-button
               link
               size="small"
               :icon="Upload"
               class="header-action-btn app-icon-button"
+              :aria-label="t('musicList.importMusic')"
               @click="emit('import')"
             />
           </el-tooltip>
@@ -500,6 +602,7 @@ watch(
               size="small"
               :icon="MultiSelectIcon"
               class="header-action-btn app-icon-button"
+              :aria-label="t('musicList.multiSelect')"
               @click="toggleSelectionMode"
             />
           </el-tooltip>
@@ -514,27 +617,39 @@ watch(
         :options="tabOptions"
         @update:model-value="switchTab($event as BrowseTab)"
       />
-      <el-dropdown
-        v-if="browseTab === 'songs'"
-        trigger="click"
-        @command="handleSortCommand"
-      >
-        <button
-          type="button"
-          class="music-list__sort"
-          :aria-label="t('musicList.sortBy')"
-        >
-          <el-icon><Sort /></el-icon>
-          <span>{{ sortLabel }}</span>
-        </button>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item v-for="mode in sortOptions" :key="mode" :command="mode">
-              {{ t(`musicList.sort_${mode}`) }}
-            </el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
+      <div v-if="browseTab === 'songs'" class="music-list__sort-group">
+        <el-dropdown trigger="click" @command="handleSortCommand">
+          <button
+            type="button"
+            class="music-list__sort"
+            :aria-label="t('musicList.sortBy')"
+          >
+            <el-icon><Sort /></el-icon>
+            <span>{{ sortLabel }}</span>
+          </button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item v-for="mode in sortOptions" :key="mode" :command="mode">
+                {{ t(`musicList.sort_${mode}`) }}
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+        <!-- 方向按钮独立于列头：列头只负责选列（#52 明确去掉了列头切方向） -->
+        <el-tooltip :content="sortDirectionLabel" placement="bottom">
+          <button
+            type="button"
+            class="music-list__sort-direction"
+            :disabled="localStore.sortMode === 'default'"
+            :aria-label="sortDirectionLabel"
+            @click="localStore.toggleSortDirection()"
+          >
+            <el-icon>
+              <component :is="localStore.sortDirection === 'asc' ? SortUp : SortDown" />
+            </el-icon>
+          </button>
+        </el-tooltip>
+      </div>
     </div>
 
     <TrackList
@@ -549,7 +664,10 @@ watch(
       :scroll-key="listScrollKey"
       :sortable="browseTab === 'songs'"
       :sort-key="localStore.sortMode"
+      :artist-clickable="true"
+      :album-clickable="true"
       @sort="handleHeaderSort"
+      @navigate="handleNavigate"
       @activate="emit('play', browseFiles[$event.sourceIndex])"
       @toggle-current="emit('toggle-current')"
       @toggle-select="toggleSelectRow(browseFiles[$event.sourceIndex])"
@@ -656,9 +774,6 @@ watch(
       :scroll-key="listScrollKey"
       @activate="openGroup"
     >
-      <template #loading>
-        <el-skeleton :rows="6" animated />
-      </template>
       <template #empty>
         <el-empty
           v-if="errorMessage"

@@ -13,12 +13,23 @@ const submenuRef = ref<HTMLElement | null>(null);
 const submenuPosition = ref({ left: 0, top: 0 });
 let hideSubmenuTimer: number | null = null;
 
+/** 打开菜单前的焦点：关闭后要还回去，否则键盘用户掉回 body */
+let previouslyFocused: HTMLElement | null = null;
+
 watch(
   () => state.value,
-  async (value) => {
+  async (value, oldValue) => {
     if (!value) {
       openSubmenuKey.value = null;
+      previouslyFocused?.focus();
+      previouslyFocused = null;
       return;
+    }
+    // 只在「关着 → 打开」时记录：菜单开着时右键另一行会换 state 对象，
+    // 那时记下的会是菜单项自己
+    if (!oldValue) {
+      previouslyFocused =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null;
     }
     // 先按光标落位，渲染后再量实际尺寸把菜单夹回视口内
     position.value = { left: value.x, top: value.y };
@@ -95,7 +106,11 @@ function handleItemClick(item: ContextMenuItem, event: MouseEvent) {
 }
 
 function handleKeydown(event: KeyboardEvent) {
-  if (event.key === "Escape") close();
+  if (event.key !== "Escape" || !state.value) return;
+  // 标记这次 Esc 已被消费：全局快捷键靠 defaultPrevented 判断该不该继续
+  // 关队列 / 退沉浸，否则一个按键会连关两层
+  event.preventDefault();
+  close();
 }
 
 function handleMenuKeydown(event: KeyboardEvent) {

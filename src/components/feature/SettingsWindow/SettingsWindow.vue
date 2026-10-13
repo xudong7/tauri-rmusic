@@ -358,6 +358,7 @@ onMounted(async () => {
                   :icon="TrashIcon"
                   :loading="clearingCache"
                   class="settings-action-btn settings-danger-action app-icon-button app-icon-button--danger"
+                  :aria-label="t('settings.clearCache')"
                   @click="handleClearOnlineCache"
                 />
               </el-tooltip>

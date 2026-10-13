@@ -1,15 +1,24 @@
 import { flushPromises, mount } from "@vue/test-utils";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ContextMenu from "./ContextMenu.vue";
 import { useContextMenu } from "@/composables/useContextMenu";
 
+// 挂到 document.body 上：脱离文档的元素拿不到焦点，测不了焦点行为
 function mountMenu() {
-  return mount(ContextMenu, { global: { stubs: { teleport: true } } });
+  return mount(ContextMenu, {
+    attachTo: document.body,
+    global: { stubs: { teleport: true } },
+  });
 }
 
 describe("ContextMenu", () => {
   beforeEach(() => {
     useContextMenu().close();
+  });
+
+  afterEach(() => {
+    useContextMenu().close();
+    document.body.innerHTML = "";
   });
 
   it("打开后渲染菜单项，点击触发动作并关闭", async () => {
@@ -39,6 +48,25 @@ describe("ContextMenu", () => {
     await flushPromises();
 
     expect(wrapper.find(".context-menu").exists()).toBe(false);
+  });
+
+  // 焦点用例不能用 teleport 桩：桩每次重渲染都会重建节点，刚 focus 的元素
+  // 下一帧就成了游离节点，焦点自然丢失。用真实 teleport，内容进 body，
+  // 断言也改从 document 上查。
+  it("关闭后焦点回到打开菜单的元素", async () => {
+    mount(ContextMenu, { attachTo: document.body });
+    const opener = document.createElement("button");
+    document.body.appendChild(opener);
+    opener.focus();
+
+    useContextMenu().open(new MouseEvent("contextmenu"), [{ key: "a", label: "A" }]);
+    await flushPromises();
+    expect(document.activeElement).toBe(document.querySelector(".context-menu__item"));
+
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    await flushPromises();
+    expect(document.activeElement).toBe(opener);
+    opener.remove();
   });
 
   it("全部禁用时不弹空菜单", async () => {

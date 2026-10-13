@@ -4,6 +4,11 @@ export function useAppKeyboardShortcuts(options: {
   onNext: () => void;
   /** 按 ? 打开快捷键帮助浮层 */
   onToggleHelp?: () => void;
+  /**
+   * 按 Esc：关掉最上层的界面。返回 true 表示这次按键已被消费
+   * （消费了才 preventDefault，让其它 Esc 监听者知道轮不到它们）。
+   */
+  onEscape?: () => boolean;
 }) {
   function isInteractiveTarget(target: EventTarget | null): boolean {
     if (!(target instanceof HTMLElement)) return false;
@@ -30,9 +35,19 @@ export function useAppKeyboardShortcuts(options: {
       event.repeat ||
       event.metaKey ||
       event.ctrlKey ||
-      event.altKey ||
-      isInteractiveTarget(event.target)
+      event.altKey
     ) {
+      return;
+    }
+
+    // Esc 要排在「交互元素」守卫之前：焦点停在按钮或滑块上时也得能关掉
+    // 最上层的界面（沉浸模式里几乎任何控件都可能持有焦点）。
+    if (event.key === "Escape") {
+      if (options.onEscape?.()) event.preventDefault();
+      return;
+    }
+
+    if (isInteractiveTarget(event.target)) {
       return;
     }
 

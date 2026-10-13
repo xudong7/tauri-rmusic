@@ -21,6 +21,12 @@ const routes = [
     component: LocalMusic,
   },
   {
+    path: "/recent",
+    name: "Recent",
+    component: () => import("../views/RecentView.vue"),
+    meta: { title: "recent" },
+  },
+  {
     path: "/online",
     name: "OnlineMusic",
     component: OnlineMusic,

@@ -32,37 +32,49 @@ export function useAlbumNavigation(args: {
   const { t, locale } = useI18n();
   const onlineServiceStore = useOnlineServiceStore();
 
-  const albumName = computed(() => {
-    void locale.value;
-    const song = args.currentOnlineSong?.();
+  function albumNameOf(song: SongInfo | null): string {
     if (song) return song.album?.trim() ?? "";
     return args.localAlbumDisplay?.()?.trim() ?? "";
-  });
+  }
 
-  const searchName = computed(() => {
-    void locale.value;
-    return albumName.value || args.displayTitle?.()?.trim() || "";
-  });
+  function searchNameOf(song: SongInfo | null): string {
+    return albumNameOf(song) || args.displayTitle?.()?.trim() || "";
+  }
 
-  const artistName = computed(() => {
-    void locale.value;
-    const song = args.currentOnlineSong?.();
+  function artistNameOf(song: SongInfo | null): string {
     if (song?.artists?.length) return song.artists[0];
     // 本地展示串可能已是「A / B」，取主歌手用于消歧即可
     return splitArtistNames(args.localArtistDisplay?.() ?? "")[0] ?? "";
-  });
+  }
 
   /** 在线歌曲自带专辑 id：直接用，不走名字搜索 */
-  const onlineAlbumId = computed(() => args.currentOnlineSong?.()?.album_id ?? "");
+  function onlineAlbumIdOf(song: SongInfo | null): string {
+    return song?.album_id ?? "";
+  }
+
+  const searchName = computed(() => {
+    void locale.value;
+    return searchNameOf(args.currentOnlineSong?.() ?? null);
+  });
+
+  const onlineAlbumId = computed(() =>
+    onlineAlbumIdOf(args.currentOnlineSong?.() ?? null)
+  );
 
   const canNavigateAlbum = computed(
     () => Boolean(onlineAlbumId.value) || Boolean(searchName.value)
   );
 
-  /** 返回是否真的发生了跳转（调用方据此决定要不要退出沉浸模式） */
-  async function navigateAlbumByName(): Promise<boolean> {
-    const directId = onlineAlbumId.value;
-    if (!directId && !searchName.value) return false;
+  /**
+   * 返回是否真的发生了跳转（调用方据此决定要不要退出沉浸模式）。
+   *
+   * `song` 给列表行用：不传就按「当前播放的歌」解析，传了就用传进来的那一行。
+   */
+  async function navigateAlbumByName(song?: SongInfo | null): Promise<boolean> {
+    const target = song ?? args.currentOnlineSong?.() ?? null;
+    const directId = onlineAlbumIdOf(target);
+    const keyword = searchNameOf(target);
+    if (!directId && !keyword) return false;
 
     try {
       await onlineServiceStore.ensureStarted();
@@ -77,7 +89,7 @@ export function useAlbumNavigation(args: {
       return true;
     }
 
-    const album = await resolveAlbumByName(searchName.value, artistName.value, {
+    const album = await resolveAlbumByName(keyword, artistNameOf(target), {
       onlineAlbums: args.onlineAlbums?.(),
     });
     if (!album?.id) return false;

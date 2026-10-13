@@ -2,10 +2,15 @@
 import { computed, ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { Folder, Setting, Plus } from "@element-plus/icons-vue";
+import { Clock, Folder, Setting, Plus, Upload } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox, type MessageBoxInputData } from "element-plus";
 import OnlineMusicIcon from "@/components/base/icons/OnlineMusicIcon.vue";
+import { open } from "@tauri-apps/plugin-dialog";
+import { readM3uFile } from "@/api/commands/file";
+import { matchM3uEntries, parseM3u } from "@/utils/m3u";
+import { parseErrorMessage } from "@/utils/errorUtils";
 import { useViewStore } from "@/stores/viewStore";
+import { useLocalMusicStore } from "@/stores/localMusicStore";
 import { usePlaylistStore } from "@/stores/playlistStore";
 import { useCollectedPlaylistStore } from "@/stores/collectedPlaylistStore";
 import { useCollectedAlbumStore } from "@/stores/collectedAlbumStore";
@@ -18,6 +23,7 @@ const router = useRouter();
 const route = useRoute();
 const viewStore = useViewStore();
 const playlistStore = usePlaylistStore();
+const localStore = useLocalMusicStore();
 const collectedStore = useCollectedPlaylistStore();
 const collectedAlbumStore = useCollectedAlbumStore();
 const contextMenu = useContextMenu();
@@ -84,6 +90,7 @@ const playlistTab = ref<"created" | "collected">("created");
 
 const navItems = [
   { path: "/", name: "LocalMusic", labelKey: "common.localMusic", icon: Folder },
+  { path: "/recent", name: "Recent", labelKey: "recent.title", icon: Clock },
   {
     path: "/online",
     name: "OnlineMusic",
@@ -120,6 +127,69 @@ function goTo(item: (typeof navItems)[0]) {
 
 function goToNewPlaylist() {
   router.push("/playlist/new");
+}
+
+const isImportingM3u = ref(false);
+
+/** 歌单名取文件名（去扩展名），与「新建歌单」的兜底名保持一致的处理方式 */
+function playlistNameFromPath(path: string): string {
+  const base = path.split(/[\\/]/).pop() ?? "";
+  const dot = base.lastIndexOf(".");
+  return (dot > 0 ? base.slice(0, dot) : base).trim();
+}
+
+/**
+ * 导入 M3U：解析 → 匹配曲库 → 新建歌单。
+ *
+ * 匹配不上的条目只汇总提示，不阻塞导入——别人导出的列表里存的常是他那台机器的
+ * 路径，能对上的往往只有文件名。
+ */
+async function importM3u() {
+  if (isImportingM3u.value) return;
+  try {
+    const selected = await open({
+      multiple: false,
+      filters: [{ name: "M3U", extensions: ["m3u", "m3u8"] }],
+    });
+    if (!selected || Array.isArray(selected)) return;
+
+    isImportingM3u.value = true;
+    const text = await readM3uFile({ path: selected });
+    const entries = parseM3u(text);
+    if (entries.length === 0) {
+      ElMessage.warning(t("playlist.importEmpty"));
+      return;
+    }
+
+    const { matched, missing } = matchM3uEntries(
+      entries,
+      localStore.musicFiles,
+      localStore.currentDirectory
+    );
+    if (matched.length === 0) {
+      ElMessage.warning(t("playlist.importNoMatch"));
+      return;
+    }
+
+    const list = playlistStore.createPlaylist(
+      playlistNameFromPath(selected) || t("playlist.newPlaylist")
+    );
+    for (const file of matched) {
+      playlistStore.addToPlaylist(list.id, { type: "local", file_name: file.file_name });
+    }
+
+    ElMessage.success(
+      missing > 0
+        ? t("playlist.importDonePartial", { count: matched.length, skipped: missing })
+        : t("playlist.importDone", { count: matched.length })
+    );
+    router.push(`/playlist/${list.id}`);
+  } catch (error) {
+    console.error("导入 M3U 失败:", error);
+    ElMessage.error(`${t("playlist.importFailed")}: ${parseErrorMessage(error)}`);
+  } finally {
+    isImportingM3u.value = false;
+  }
 }
 
 function goToPlaylist(id: string) {
@@ -191,6 +261,17 @@ function goToCollectedPlaylist(id: string) {
               {{ t("common.collected") }}
             </button>
           </div>
+          <button
+            v-if="playlistTab === 'created'"
+            type="button"
+            class="playlist-section-add"
+            :title="t('playlist.importM3u')"
+            :aria-label="t('playlist.importM3u')"
+            :disabled="isImportingM3u"
+            @click="importM3u"
+          >
+            <el-icon><Upload /></el-icon>
+          </button>
           <button
             v-if="playlistTab === 'created'"
             type="button"

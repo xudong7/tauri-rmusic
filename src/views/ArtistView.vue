@@ -28,12 +28,15 @@
       @toggle-current="playerStore.togglePlay"
       @load-more="artistStore.loadMoreArtistSongs"
     >
-      <template #loading><el-skeleton :rows="6" animated /></template>
       <template #empty>
-        <el-empty v-if="artistStore.songsError" :description="t('errors.searchFailed')">
+        <el-empty
+          v-if="artistStore.songsError"
+          :description="t('errors.searchFailed')"
+          :image-size="96"
+        >
           <el-button type="primary" @click="reloadTab">{{ t("common.retry") }}</el-button>
         </el-empty>
-        <el-empty v-else :description="t('artist.noSongs')" />
+        <el-empty v-else :description="t('artist.noSongs')" :image-size="96" />
       </template>
     </OnlineMusicList>
 
@@ -45,15 +48,15 @@
       @activate="openAlbum"
       @nearEnd="artistStore.loadMoreArtistAlbums"
     >
-      <template #loading><el-skeleton :rows="5" animated /></template>
       <template #empty>
         <el-empty
+          :image-size="96"
           v-if="artistStore.albumsError"
           :description="t('errors.loadArtistAlbumsFailed')"
         >
           <el-button type="primary" @click="reloadTab">{{ t("common.retry") }}</el-button>
         </el-empty>
-        <el-empty v-else :description="t('onlineAlbum.empty')" />
+        <el-empty v-else :description="t('onlineAlbum.empty')" :image-size="96" />
       </template>
     </EntityGrid>
   </PageLayout>
