@@ -82,6 +82,7 @@ export default {
     clearConfirm: "Clear the whole play history?",
     modeRecent: "Recent",
     modeMost: "Most played",
+    playCount: "{count} plays",
   },
   settings: {
     title: "Settings",

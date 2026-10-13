@@ -9,6 +9,8 @@ export interface PlayHistoryLocalSnapshot {
   file_name: string;
   title: string;
   artist: string;
+  /** 专辑：列表的专辑列要用；文件被删后也能显示 */
+  album?: string;
 }
 
 /**

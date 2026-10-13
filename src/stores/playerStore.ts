@@ -574,6 +574,7 @@ export const usePlayerStore = defineStore("player", () => {
           file_name: music.file_name,
           title: display.title,
           artist: display.artist,
+          album: display.album,
         },
       });
 

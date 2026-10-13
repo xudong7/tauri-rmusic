@@ -82,6 +82,7 @@ export default {
     clearConfirm: "清空全部播放记录？",
     modeRecent: "最近",
     modeMost: "最常",
+    playCount: "播放 {count} 次",
   },
   settings: {
     title: "设置",

@@ -153,6 +153,7 @@ function handleActivate() {
             </template>
           </template>
           <template v-else>{{ item.artist }}</template>
+          <span v-if="item.badge" class="track-row__badge">{{ item.badge }}</span>
         </div>
       </div>
       <div v-if="$slots.actions && !selectionMode" class="track-row__actions" @click.stop>
@@ -377,6 +378,18 @@ function handleActivate() {
 
 .track-row__sep {
   color: inherit;
+}
+
+/* 歌名/歌手后面的小标签：底色极淡、字号小一号，不抢歌名 */
+.track-row__badge {
+  margin-left: 6px;
+  vertical-align: middle;
+  padding: 0 6px;
+  border-radius: var(--app-radius-sm);
+  background: var(--el-fill-color);
+  color: var(--el-text-color-secondary);
+  font-size: 11px;
+  line-height: 16px;
 }
 
 /* 行高由封面撑出来（40 + 上下内边距各 8 = 56），文字只需不超即可。

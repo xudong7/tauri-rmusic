@@ -55,7 +55,10 @@ const rows = computed<TrackRowModel[]>(() =>
         key: entry.key,
         title: entry.local.title,
         artist: entry.local.artist,
+        // 专辑优先取曲库里的现况，文件被删后退回播放时记下的快照
+        album: file?.album?.trim() || entry.local.album || undefined,
         durationLabel: formatDurationLabel(file?.duration_ms),
+        badge: t("recent.playCount", { count: entry.playCount }),
         coverUrl: () => getCover(entry),
         source: "local",
         sourceIndex: index,
@@ -70,6 +73,7 @@ const rows = computed<TrackRowModel[]>(() =>
       artist: formatArtists(song.artists),
       album: song.album || undefined,
       durationLabel: formatDurationLabel(song.duration),
+      badge: t("recent.playCount", { count: entry.playCount }),
       coverUrl: song.pic_url ?? "",
       source: "online",
       sourceIndex: index,
@@ -131,8 +135,11 @@ const currentKey = computed(() => {
           @confirm="history.clearHistory()"
         >
           <template #reference>
+            <!-- 与其它页头的图标键同规矩：裸图标、无圆形描边，悬停只变红。
+                 只挂 --danger 变体、不挂 .app-icon-button：后者那条 color
+                 带 !important，会把危险色压回普通图标色。 -->
             <el-button
-              circle
+              link
               class="recent-view__clear app-icon-button--danger"
               :icon="TrashIcon"
               :aria-label="t('recent.clear')"
@@ -165,8 +172,8 @@ const currentKey = computed(() => {
 }
 
 .recent-view__clear {
-  width: var(--app-button-height);
-  height: var(--app-button-height);
+  width: var(--app-icon-btn-md);
+  height: var(--app-icon-btn-md);
   padding: 0;
 }
 </style>
